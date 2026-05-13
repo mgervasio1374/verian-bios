@@ -13,6 +13,7 @@ import {
   FolderOpen,
   Settings,
   ChevronLeft,
+  ArrowDownToLine,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -38,6 +39,7 @@ export function Sidebar({ workspaceSlug, tenantName }: SidebarProps) {
     { label: 'Leads',       href: `${base}/leads`,       icon: <Zap className="h-4 w-4" /> },
     { label: 'Opportunities', href: `${base}/opportunities`, icon: <TrendingUp className="h-4 w-4" /> },
     { label: 'Activities',  href: `${base}/activities`,  icon: <Activity className="h-4 w-4" /> },
+    { label: 'Submissions',  href: `${base}/submissions`,  icon: <ArrowDownToLine className="h-4 w-4" /> },
     { label: 'Inbox',       href: `${base}/inbox`,       icon: <CheckCircle2 className="h-4 w-4" /> },
     { label: 'Artifacts',   href: `${base}/artifacts`,   icon: <FolderOpen className="h-4 w-4" /> },
     { label: 'Settings',    href: `${base}/settings`,    icon: <Settings className="h-4 w-4" /> },
