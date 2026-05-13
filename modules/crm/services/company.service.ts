@@ -1,0 +1,90 @@
+import * as companyRepo from '@/modules/crm/repositories/company.repo'
+import { enqueueEvent } from '@/modules/workflow/services/event-dispatch.service'
+import { softDeleteRecord } from '@/lib/db/soft-delete'
+import { requirePermission } from '@/lib/auth/permissions'
+import { NotFoundError } from '@/lib/auth/errors'
+import type { RequestContext } from '@/types/context'
+import type { Database } from '@/types/database'
+
+type CompanyInsert = Database['public']['Tables']['companies']['Insert']
+type CompanyUpdate = Database['public']['Tables']['companies']['Update']
+
+export async function listCompanies(
+  ctx: RequestContext,
+  opts: { search?: string; status?: string; limit?: number; offset?: number } = {}
+) {
+  requirePermission(ctx, 'crm.companies.view')
+  return companyRepo.listCompanies({
+    tenantId: ctx.tenantId,
+    workspaceId: ctx.workspaceId,
+    ...opts,
+  })
+}
+
+export async function getCompany(ctx: RequestContext, id: string) {
+  requirePermission(ctx, 'crm.companies.view')
+  const company = await companyRepo.getCompany(id, ctx.tenantId)
+  if (!company) throw new NotFoundError('Company')
+  return company
+}
+
+export async function createCompany(
+  ctx: RequestContext,
+  data: Omit<CompanyInsert, 'tenant_id' | 'workspace_id' | 'created_by'>
+) {
+  requirePermission(ctx, 'crm.companies.create')
+
+  const company = await companyRepo.createCompany({
+    ...data,
+    tenant_id: ctx.tenantId,
+    workspace_id: ctx.workspaceId,
+    created_by: ctx.userId === 'system' ? null : ctx.userId,
+  })
+
+  await enqueueEvent(ctx, 'company.created', {
+    companyId: company.id,
+    name: company.name,
+    tenantId: ctx.tenantId,
+    workspaceId: ctx.workspaceId,
+  })
+
+  return company
+}
+
+export async function updateCompany(
+  ctx: RequestContext,
+  id: string,
+  data: Omit<CompanyUpdate, 'tenant_id' | 'workspace_id' | 'updated_by'>
+) {
+  requirePermission(ctx, 'crm.companies.edit')
+
+  const company = await companyRepo.updateCompany(id, ctx.tenantId, {
+    ...data,
+    updated_by: ctx.userId === 'system' ? null : ctx.userId,
+  })
+
+  await enqueueEvent(ctx, 'company.updated', {
+    companyId: id,
+    tenantId: ctx.tenantId,
+  })
+
+  return company
+}
+
+export async function deleteCompany(ctx: RequestContext, id: string) {
+  requirePermission(ctx, 'crm.companies.edit')
+  const existing = await companyRepo.getCompany(id, ctx.tenantId)
+  if (!existing) throw new NotFoundError('Company')
+
+  await softDeleteRecord('companies', id, ctx)
+
+  await enqueueEvent(ctx, 'company.deleted', {
+    companyId: id,
+    tenantId: ctx.tenantId,
+  })
+}
+
+export async function countCompanies(ctx: RequestContext) {
+  requirePermission(ctx, 'crm.companies.view')
+  return companyRepo.countCompanies(ctx.tenantId, ctx.workspaceId)
+}

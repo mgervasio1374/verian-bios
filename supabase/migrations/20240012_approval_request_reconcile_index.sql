@@ -1,0 +1,57 @@
+-- ============================================================
+-- Migration 20240012 — Index for email draft reconciliation query
+-- ============================================================
+--
+-- Problem:
+--   The reconciliation job (reconcile-email-draft-status) runs every 5 minutes
+--   and executes:
+--
+--     SELECT id, status, decided_at, approved_by, payload, tenant_id
+--     FROM approval_requests
+--     WHERE request_type = 'email_draft_review'
+--       AND status IN ('approved', 'rejected')
+--       AND decided_at IS NOT NULL
+--     ORDER BY decided_at DESC
+--     LIMIT 100
+--
+--   Existing indexes on approval_requests:
+--     idx_approval_requests_tenant   ON (tenant_id, status)
+--     idx_approval_requests_assignee ON (assignee_id, status)
+--
+--   Neither index helps this query:
+--     • idx_approval_requests_tenant leads with tenant_id, which is unfiltered
+--       in the cross-tenant reconciliation scan.  Postgres would scan the entire
+--       index to find rows where status IN ('approved','rejected'), then filter
+--       for request_type, then sort by decided_at — effectively a full scan.
+--     • idx_approval_requests_assignee covers unrelated columns entirely.
+--
+-- Fix:
+--   A partial index restricted to request_type = 'email_draft_review' and
+--   resolved statuses reduces the index to only the rows this query touches —
+--   typically a very small subset of all approval_requests.
+--
+--   Column order (tenant_id, status, decided_at DESC):
+--     • tenant_id first supports future per-tenant reconciliation or audit
+--       queries that add a WHERE tenant_id = ? clause.
+--     • status is included so queries that additionally filter on status
+--       within the partial index get a selective lookup without a residual filter.
+--     • decided_at DESC satisfies ORDER BY decided_at DESC within each
+--       (tenant_id, status) group.
+--
+--   For the current cross-tenant query (no tenant_id filter), Postgres scans
+--   the full partial index and then sorts by decided_at DESC before applying
+--   LIMIT 100.  The partial predicate alone reduces the scan to only
+--   email_draft_review + resolved rows — a fraction of the total table —
+--   making it substantially faster than a sequential table scan.
+--
+--   Note: if the query pattern remains purely cross-tenant and never gains a
+--   tenant_id filter, an index leading with (decided_at DESC) would be even
+--   more efficient (allows LIMIT push-down without a sort step).  The current
+--   definition is chosen for versatility across both current and anticipated
+--   future query shapes.
+-- ============================================================
+
+CREATE INDEX IF NOT EXISTS idx_approval_requests_email_draft_reconcile
+  ON approval_requests (tenant_id, status, decided_at DESC)
+  WHERE request_type = 'email_draft_review'
+    AND status IN ('approved', 'rejected');
