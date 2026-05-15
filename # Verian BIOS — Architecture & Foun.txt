@@ -1,0 +1,1742 @@
+# Verian BIOS — Architecture & Foundation Implementation Plan
+
+**Project root:** `C:\Projects\verian-bios`
+**Initial tenant:** Verian Internal
+**Supabase:** New project (fresh)
+**Inngest:** Needs account setup (included)
+**Resend:** Needs account setup (included)
+
+---
+
+## PHASE 1 — PLATFORM ARCHITECTURE & CANONICAL DOMAIN DESIGN
+
+---
+
+### 1. FULL SYSTEM ARCHITECTURE
+
+#### Application Boundary
+
+Verian BIOS is a **modular monolith** hosted as a single Next.js application. It is NOT split into microservices in Phase 1–2. Service boundaries are enforced by code organization (modules, services, repositories), not network topology. This allows fast iteration now, with extraction later if needed.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    VERIAN BIOS (Next.js)                         │
+│                                                                   │
+│  ┌────────────────┐  ┌─────────────────┐  ┌──────────────────┐  │
+│  │   App Router   │  │  Server Actions  │  │  API Route       │  │
+│  │   (UI Layer)   │  │  (Mutations)     │  │  Handlers        │  │
+│  └───────┬────────┘  └────────┬────────┘  └────────┬─────────┘  │
+│          │                    │                     │             │
+│  ┌───────▼────────────────────▼─────────────────────▼─────────┐  │
+│  │                    SERVICE LAYER                             │  │
+│  │  PlatformService │ CRMService │ WorkflowService │ etc.      │  │
+│  └───────────────────────────┬──────────────────────────────┘  │
+│                               │                                   │
+│  ┌────────────────────────────▼──────────────────────────────┐  │
+│  │                  REPOSITORY / DATA ACCESS LAYER            │  │
+│  │  (Supabase client wrappers, typed query builders)          │  │
+│  └────────────────────────────┬──────────────────────────────┘  │
+│                                │                                   │
+└────────────────────────────────┼───────────────────────────────┘
+                                 │
+     ┌───────────────────────────▼──────────────────────────────┐
+     │                SUPABASE (Postgres + Auth + Storage)        │
+     │   RLS enforces tenant isolation on every table             │
+     └──────────────────────────────────────────────────────────┘
+
+     ┌───────────────────┐    ┌─────────────────────┐
+     │  INNGEST           │    │  RESEND              │
+     │  Workflow runtime  │    │  Email delivery      │
+     │  Durable jobs      │    │  Webhook ingestion   │
+     │  Event processing  │    │                      │
+     └───────────────────┘    └─────────────────────┘
+```
+
+#### Service Boundaries (Logical)
+
+| Module | Owns | Calls |
+|--------|------|-------|
+| `platform` | tenants, workspaces, memberships, roles, entitlements | auth |
+| `crm` | companies, contacts, leads, accounts, opportunities, activities, notes, tasks | platform |
+| `workflow` | system_events, workflow_runs, job_executions, approval_requests | platform, crm |
+| `intelligence` | scores, recommendations, prompt_configs, scoring_configs | platform, crm |
+| `artifacts` | artifacts, versions, links, evidence_records | platform, storage |
+| `messaging` | sender_identities, templates, drafts, sends, events | platform, resend |
+| `config` | industry_profiles, pipeline_stages, dashboard_configs, policy_rules | platform |
+
+#### Data Ownership
+- **Postgres (Supabase)** = source of truth for all records
+- **Inngest** = source of truth for workflow/job execution state
+- **Supabase Storage** = source of truth for file blobs
+- **Resend** = source of truth for delivery events (mirrored into `email_events`)
+
+#### Runtime Flow
+1. User action → Next.js Server Action or API Route
+2. Server Action calls Service → Service calls Repository → Repository calls Supabase
+3. Service emits `system_event` record to Postgres
+4. Inngest function triggers on event (via `inngest.send()`) or polls
+5. Inngest job creates `workflow_run` + `job_execution` records
+6. Job may create `approval_request` → pauses until resolved
+7. On completion, job updates `workflow_run.status`
+
+---
+
+### 2. CANONICAL DOMAIN MODEL
+
+#### PLATFORM
+
+```sql
+-- tenants: root isolation unit
+tenants (
+  id uuid PK,
+  name text NOT NULL,
+  slug text UNIQUE NOT NULL,           -- URL-safe identifier
+  industry_type text,                  -- 'merchant_processing', 'insurance', etc.
+  status text DEFAULT 'active',        -- active | suspended | churned
+  plan_id text,                        -- future billing plan
+  metadata jsonb DEFAULT '{}',
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+-- workspaces: organizational sub-unit within tenant
+workspaces (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  name text NOT NULL,
+  slug text NOT NULL,
+  is_default boolean DEFAULT false,
+  status text DEFAULT 'active',
+  metadata jsonb DEFAULT '{}',
+  created_at timestamptz,
+  updated_at timestamptz,
+  UNIQUE(tenant_id, slug)
+)
+
+-- roles: tenant-scoped role definitions
+roles (
+  id uuid PK,
+  tenant_id uuid FK→tenants,          -- NULL = platform built-in role
+  name text NOT NULL,
+  slug text NOT NULL,
+  description text,
+  is_system boolean DEFAULT false,    -- true = cannot be deleted
+  created_at timestamptz,
+  UNIQUE(tenant_id, slug)
+)
+
+-- permissions: named permission definitions
+permissions (
+  id uuid PK,
+  slug text UNIQUE NOT NULL,          -- 'leads.view', 'leads.create', etc.
+  description text,
+  module text NOT NULL                -- 'crm', 'messaging', 'config', etc.
+)
+
+-- role_permissions: M:M
+role_permissions (
+  role_id uuid FK→roles,
+  permission_id uuid FK→permissions,
+  PRIMARY KEY (role_id, permission_id)
+)
+
+-- memberships: user-workspace-role mapping
+memberships (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  user_id uuid FK→auth.users,
+  role_id uuid FK→roles,
+  status text DEFAULT 'active',       -- active | invited | suspended
+  invited_by uuid FK→auth.users,
+  invited_at timestamptz,
+  joined_at timestamptz,
+  created_at timestamptz,
+  updated_at timestamptz,
+  UNIQUE(workspace_id, user_id)
+)
+
+-- feature_entitlements: tenant-level feature flags
+feature_entitlements (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  feature_slug text NOT NULL,         -- 'ai_scoring', 'email_campaigns', etc.
+  enabled boolean DEFAULT true,
+  config jsonb DEFAULT '{}',
+  expires_at timestamptz,
+  created_at timestamptz,
+  UNIQUE(tenant_id, feature_slug)
+)
+
+-- branding_profiles: tenant/workspace branding
+branding_profiles (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,    -- NULL = tenant-level
+  logo_url text,
+  favicon_url text,
+  primary_color text,
+  secondary_color text,
+  accent_color text,
+  font_family text,
+  custom_css text,
+  app_name text,
+  support_email text,
+  metadata jsonb DEFAULT '{}',
+  created_at timestamptz,
+  updated_at timestamptz
+)
+```
+
+#### CRM / OPERATIONS
+
+```sql
+-- companies: business entities
+companies (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  name text NOT NULL,
+  domain text,
+  phone text,
+  website text,
+  industry text,
+  employee_count int,
+  annual_revenue numeric,
+  address_line1 text,
+  address_line2 text,
+  city text,
+  state text,
+  zip text,
+  country text DEFAULT 'US',
+  status text DEFAULT 'active',
+  source text,                        -- 'manual', 'import', 'api', etc.
+  owner_id uuid FK→auth.users,
+  tags text[],
+  metadata jsonb DEFAULT '{}',
+  created_by uuid FK→auth.users,
+  updated_by uuid FK→auth.users,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+-- contacts: individual people
+contacts (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  company_id uuid FK→companies,
+  first_name text NOT NULL,
+  last_name text NOT NULL,
+  email text,
+  phone text,
+  title text,
+  department text,
+  is_primary_contact boolean DEFAULT false,
+  status text DEFAULT 'active',
+  source text,
+  owner_id uuid FK→auth.users,
+  do_not_contact boolean DEFAULT false,
+  tags text[],
+  metadata jsonb DEFAULT '{}',
+  created_by uuid FK→auth.users,
+  updated_by uuid FK→auth.users,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+-- leads: prospective opportunities (pre-qualified)
+leads (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  company_id uuid FK→companies,
+  contact_id uuid FK→contacts,
+  name text NOT NULL,                 -- display name for the lead
+  stage text NOT NULL,                -- pipeline stage slug
+  status text DEFAULT 'open',        -- open | converted | disqualified | lost
+  source text,
+  assigned_to uuid FK→auth.users,
+  priority text DEFAULT 'medium',    -- low | medium | high | critical
+  estimated_value numeric,
+  expected_close_date date,
+  disqualification_reason text,
+  converted_at timestamptz,
+  converted_to_opportunity_id uuid,
+  tags text[],
+  metadata jsonb DEFAULT '{}',
+  created_by uuid FK→auth.users,
+  updated_by uuid FK→auth.users,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+-- accounts: qualified/active business relationships
+accounts (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  company_id uuid FK→companies,
+  name text NOT NULL,
+  status text DEFAULT 'active',      -- active | at_risk | churned | suspended
+  account_type text,                 -- 'merchant', 'partner', 'enterprise', etc.
+  owner_id uuid FK→auth.users,
+  monthly_revenue numeric,
+  contract_start_date date,
+  contract_end_date date,
+  renewal_date date,
+  processor text,                    -- merchant processing specific, but generic enough
+  tags text[],
+  metadata jsonb DEFAULT '{}',
+  created_by uuid FK→auth.users,
+  updated_by uuid FK→auth.users,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+-- opportunities: revenue opportunities (pipeline)
+opportunities (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  company_id uuid FK→companies,
+  account_id uuid FK→accounts,
+  lead_id uuid FK→leads,
+  name text NOT NULL,
+  stage text NOT NULL,
+  status text DEFAULT 'open',        -- open | won | lost | stalled
+  value numeric,
+  probability int,                   -- 0-100
+  expected_close_date date,
+  closed_at timestamptz,
+  lost_reason text,
+  owner_id uuid FK→auth.users,
+  tags text[],
+  metadata jsonb DEFAULT '{}',
+  created_by uuid FK→auth.users,
+  updated_by uuid FK→auth.users,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+-- activities: logged actions / touchpoints
+activities (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  activity_type text NOT NULL,       -- 'call', 'email', 'meeting', 'note', 'task', etc.
+  subject text,
+  body text,
+  outcome text,
+  occurred_at timestamptz,
+  duration_minutes int,
+  -- polymorphic subject links
+  company_id uuid FK→companies,
+  contact_id uuid FK→contacts,
+  lead_id uuid FK→leads,
+  opportunity_id uuid FK→opportunities,
+  account_id uuid FK→accounts,
+  performed_by uuid FK→auth.users,
+  metadata jsonb DEFAULT '{}',
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+-- notes
+notes (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  body text NOT NULL,
+  pinned boolean DEFAULT false,
+  -- polymorphic links
+  company_id uuid,
+  contact_id uuid,
+  lead_id uuid,
+  opportunity_id uuid,
+  account_id uuid,
+  created_by uuid FK→auth.users,
+  updated_by uuid FK→auth.users,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+-- tasks
+tasks (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  title text NOT NULL,
+  description text,
+  status text DEFAULT 'open',        -- open | in_progress | completed | cancelled
+  priority text DEFAULT 'medium',
+  due_date timestamptz,
+  completed_at timestamptz,
+  assigned_to uuid FK→auth.users,
+  -- polymorphic links
+  company_id uuid,
+  contact_id uuid,
+  lead_id uuid,
+  opportunity_id uuid,
+  account_id uuid,
+  created_by uuid FK→auth.users,
+  updated_by uuid FK→auth.users,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+-- conversations: threaded communication records
+conversations (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  channel text NOT NULL,             -- 'email', 'sms', 'call', 'chat'
+  subject text,
+  status text DEFAULT 'open',
+  direction text,                    -- 'inbound' | 'outbound'
+  -- polymorphic links
+  company_id uuid,
+  contact_id uuid,
+  lead_id uuid,
+  opportunity_id uuid,
+  account_id uuid,
+  assigned_to uuid FK→auth.users,
+  metadata jsonb DEFAULT '{}',
+  created_at timestamptz,
+  updated_at timestamptz
+)
+```
+
+#### WORKFLOW / RUNTIME
+
+```sql
+-- system_events: immutable event log
+system_events (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  event_type text NOT NULL,          -- 'lead.created', 'email.sent', etc.
+  event_version text DEFAULT 'v1',
+  payload jsonb NOT NULL DEFAULT '{}',
+  source text,                       -- 'user', 'system', 'webhook', 'inngest'
+  actor_id uuid,                     -- user or system identity
+  -- polymorphic subject
+  subject_type text,                 -- 'lead', 'opportunity', etc.
+  subject_id uuid,
+  idempotency_key text UNIQUE,       -- prevents duplicate events
+  occurred_at timestamptz DEFAULT now(),
+  created_at timestamptz DEFAULT now()
+)
+
+-- workflow_runs: high-level workflow execution record
+workflow_runs (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  workflow_config_id uuid FK→workflow_configs,
+  trigger_event_id uuid FK→system_events,
+  status text DEFAULT 'pending',     -- pending | running | paused | completed | failed | cancelled
+  subject_type text,
+  subject_id uuid,
+  started_at timestamptz,
+  completed_at timestamptz,
+  failed_at timestamptz,
+  error_message text,
+  context jsonb DEFAULT '{}',        -- runtime state
+  metadata jsonb DEFAULT '{}',
+  created_at timestamptz
+)
+
+-- job_executions: individual step within a workflow run
+job_executions (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workflow_run_id uuid FK→workflow_runs,
+  job_type text NOT NULL,            -- 'score_lead', 'draft_email', etc.
+  inngest_run_id text,               -- Inngest's own run ID for correlation
+  status text DEFAULT 'pending',     -- pending | running | completed | failed | skipped
+  attempt int DEFAULT 1,
+  input jsonb DEFAULT '{}',
+  output jsonb DEFAULT '{}',
+  error_message text,
+  started_at timestamptz,
+  completed_at timestamptz,
+  created_at timestamptz
+)
+
+-- approval_requests: human-in-the-loop gates
+approval_requests (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  workflow_run_id uuid FK→workflow_runs,
+  job_execution_id uuid FK→job_executions,
+  request_type text NOT NULL,        -- 'email_approval', 'score_override', 'action_gate'
+  status text DEFAULT 'pending',     -- pending | approved | rejected | expired
+  requested_by_system boolean DEFAULT true,
+  assignee_id uuid FK→auth.users,
+  subject_type text,
+  subject_id uuid,
+  payload jsonb DEFAULT '{}',        -- what needs approval
+  decision jsonb DEFAULT '{}',       -- approver's response
+  approved_by uuid FK→auth.users,
+  decided_at timestamptz,
+  expires_at timestamptz,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+-- webhook_events: raw inbound webhooks
+webhook_events (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  source text NOT NULL,              -- 'resend', 'inngest', 'stripe', 'custom'
+  event_type text,
+  headers jsonb DEFAULT '{}',
+  payload jsonb NOT NULL DEFAULT '{}',
+  processed boolean DEFAULT false,
+  processed_at timestamptz,
+  error_message text,
+  received_at timestamptz DEFAULT now()
+)
+
+-- automation_failures: failed workflow/job records for ops review
+automation_failures (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workflow_run_id uuid FK→workflow_runs,
+  job_execution_id uuid FK→job_executions,
+  failure_type text NOT NULL,
+  error_code text,
+  error_message text,
+  stack_trace text,
+  context jsonb DEFAULT '{}',
+  resolved boolean DEFAULT false,
+  resolved_by uuid FK→auth.users,
+  resolved_at timestamptz,
+  created_at timestamptz
+)
+
+-- notification_queue: queued user notifications
+notification_queue (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  recipient_id uuid FK→auth.users,
+  channel text NOT NULL,             -- 'in_app', 'email', 'sms'
+  notification_type text NOT NULL,
+  title text,
+  body text,
+  link text,
+  read_at timestamptz,
+  sent_at timestamptz,
+  status text DEFAULT 'pending',
+  metadata jsonb DEFAULT '{}',
+  created_at timestamptz
+)
+```
+
+#### INTELLIGENCE / CONFIG
+
+```sql
+-- score tables (fit, urgency, engagement, opportunity, health, churn_risk)
+-- All follow same pattern:
+fit_scores (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  subject_type text NOT NULL,        -- 'lead', 'company', 'account'
+  subject_id uuid NOT NULL,
+  score numeric NOT NULL,            -- 0.0–1.0 normalized or 0–100
+  score_version text DEFAULT 'v1',
+  scoring_config_id uuid FK→scoring_configs,
+  dimensions jsonb DEFAULT '{}',     -- sub-scores by dimension
+  reasoning text,                    -- human-readable explanation
+  model_used text,                   -- 'gpt-4o', 'claude-3-5-sonnet', etc.
+  confidence numeric,
+  is_current boolean DEFAULT true,   -- only one current per subject
+  generated_at timestamptz,
+  created_at timestamptz
+)
+-- urgency_scores, engagement_scores, opportunity_scores, health_scores, churn_risk_scores
+-- same structure, separate tables for clean indexing + separate scoring configs
+
+-- agent_recommendations
+agent_recommendations (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  subject_type text NOT NULL,
+  subject_id uuid NOT NULL,
+  recommendation_type text NOT NULL, -- 'next_action', 'email_draft', 'risk_alert', etc.
+  title text NOT NULL,
+  body text,
+  priority text DEFAULT 'medium',
+  status text DEFAULT 'pending',     -- pending | accepted | rejected | expired | superseded
+  workflow_run_id uuid FK→workflow_runs,
+  prompt_config_id uuid FK→prompt_configs,
+  raw_output jsonb DEFAULT '{}',
+  accepted_by uuid FK→auth.users,
+  accepted_at timestamptz,
+  rejected_by uuid FK→auth.users,
+  rejected_at timestamptz,
+  expires_at timestamptz,
+  metadata jsonb DEFAULT '{}',
+  created_at timestamptz
+)
+
+-- recommendation_feedback
+recommendation_feedback (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  recommendation_id uuid FK→agent_recommendations,
+  user_id uuid FK→auth.users,
+  rating int,                        -- 1-5
+  useful boolean,
+  comment text,
+  created_at timestamptz
+)
+
+-- prompt_configs: versioned prompt definitions
+prompt_configs (
+  id uuid PK,
+  tenant_id uuid FK→tenants,         -- NULL = platform default
+  workspace_id uuid FK→workspaces,   -- NULL = tenant-level
+  slug text NOT NULL,                -- 'lead.fit_score', 'opportunity.draft_email'
+  name text NOT NULL,
+  description text,
+  module text NOT NULL,
+  purpose text NOT NULL,             -- 'scoring', 'drafting', 'analysis', 'extraction'
+  is_active boolean DEFAULT true,
+  active_version_id uuid,            -- FK→prompt_versions (set after insert)
+  industry_profile_id uuid FK→industry_profiles,
+  metadata jsonb DEFAULT '{}',
+  created_by uuid FK→auth.users,
+  created_at timestamptz,
+  updated_at timestamptz,
+  UNIQUE(tenant_id, slug)
+)
+
+-- prompt_versions: immutable version history
+prompt_versions (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  prompt_config_id uuid FK→prompt_configs,
+  version int NOT NULL,
+  system_prompt text NOT NULL,
+  user_prompt_template text NOT NULL, -- handlebars/mustache style {{variable}}
+  model text DEFAULT 'claude-sonnet-4-6',
+  temperature numeric DEFAULT 0.3,
+  max_tokens int DEFAULT 2000,
+  variables jsonb DEFAULT '[]',      -- list of expected variable names
+  change_notes text,
+  created_by uuid FK→auth.users,
+  created_at timestamptz,
+  UNIQUE(prompt_config_id, version)
+)
+
+-- scoring_configs
+scoring_configs (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  slug text NOT NULL,
+  name text NOT NULL,
+  score_type text NOT NULL,          -- 'fit', 'urgency', 'engagement', etc.
+  subject_type text NOT NULL,        -- 'lead', 'account', etc.
+  dimensions jsonb DEFAULT '[]',     -- [{name, weight, description}]
+  thresholds jsonb DEFAULT '{}',     -- {high: 0.8, medium: 0.5, low: 0.2}
+  prompt_config_id uuid FK→prompt_configs,
+  is_active boolean DEFAULT true,
+  industry_profile_id uuid FK→industry_profiles,
+  created_by uuid FK→auth.users,
+  created_at timestamptz,
+  updated_at timestamptz,
+  UNIQUE(tenant_id, slug)
+)
+
+-- workflow_configs
+workflow_configs (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  slug text NOT NULL,
+  name text NOT NULL,
+  trigger_event text NOT NULL,       -- 'lead.created', etc.
+  steps jsonb DEFAULT '[]',          -- ordered step definitions
+  conditions jsonb DEFAULT '{}',     -- trigger conditions/filters
+  is_active boolean DEFAULT true,
+  requires_approval boolean DEFAULT false,
+  industry_profile_id uuid FK→industry_profiles,
+  created_by uuid FK→auth.users,
+  created_at timestamptz,
+  updated_at timestamptz,
+  UNIQUE(tenant_id, slug)
+)
+
+-- policy_rules: configurable business logic guardrails
+policy_rules (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  slug text NOT NULL,
+  name text NOT NULL,
+  module text NOT NULL,              -- 'messaging', 'scoring', 'workflow'
+  rule_type text NOT NULL,           -- 'blocklist', 'approval_gate', 'rate_limit', 'override'
+  conditions jsonb DEFAULT '{}',
+  actions jsonb DEFAULT '{}',
+  is_active boolean DEFAULT true,
+  priority int DEFAULT 100,
+  created_by uuid FK→auth.users,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+-- pipeline_stage_configs
+pipeline_stage_configs (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  pipeline_type text NOT NULL,       -- 'lead', 'opportunity', 'account'
+  slug text NOT NULL,
+  name text NOT NULL,
+  position int NOT NULL,
+  color text,
+  is_terminal boolean DEFAULT false,
+  terminal_outcome text,             -- 'won', 'lost', 'converted', etc.
+  entry_conditions jsonb DEFAULT '{}',
+  exit_conditions jsonb DEFAULT '{}',
+  industry_profile_id uuid FK→industry_profiles,
+  created_at timestamptz,
+  updated_at timestamptz,
+  UNIQUE(tenant_id, pipeline_type, slug)
+)
+
+-- dashboard_configs
+dashboard_configs (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  slug text NOT NULL,
+  name text NOT NULL,
+  layout jsonb DEFAULT '{}',         -- widget layout definitions
+  filters jsonb DEFAULT '{}',
+  is_default boolean DEFAULT false,
+  is_shared boolean DEFAULT false,
+  created_by uuid FK→auth.users,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+-- industry_profiles
+industry_profiles (
+  id uuid PK,
+  slug text UNIQUE NOT NULL,         -- 'merchant_processing', 'insurance', 'real_estate'
+  name text NOT NULL,
+  description text,
+  pipeline_defaults jsonb DEFAULT '{}',
+  scoring_defaults jsonb DEFAULT '{}',
+  workflow_defaults jsonb DEFAULT '{}',
+  prompt_defaults jsonb DEFAULT '{}',
+  feature_defaults jsonb DEFAULT '{}',
+  is_active boolean DEFAULT true,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+```
+
+#### ARTIFACTS / KNOWLEDGE
+
+```sql
+-- artifacts
+artifacts (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  name text NOT NULL,
+  artifact_type text NOT NULL,       -- 'statement', 'contract', 'proposal', 'report', 'document'
+  mime_type text,
+  file_size_bytes bigint,
+  storage_path text,                 -- Supabase Storage path
+  storage_bucket text DEFAULT 'artifacts',
+  status text DEFAULT 'active',      -- active | processing | archived | deleted
+  is_latest boolean DEFAULT true,
+  current_version_id uuid,
+  -- polymorphic subject
+  subject_type text,
+  subject_id uuid,
+  -- polymorphic owner
+  company_id uuid,
+  contact_id uuid,
+  lead_id uuid,
+  opportunity_id uuid,
+  account_id uuid,
+  description text,
+  tags text[],
+  metadata jsonb DEFAULT '{}',
+  uploaded_by uuid FK→auth.users,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+-- artifact_versions
+artifact_versions (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  artifact_id uuid FK→artifacts,
+  version_number int NOT NULL,
+  storage_path text NOT NULL,
+  storage_bucket text DEFAULT 'artifacts',
+  file_size_bytes bigint,
+  mime_type text,
+  change_notes text,
+  created_by uuid FK→auth.users,
+  created_at timestamptz,
+  UNIQUE(artifact_id, version_number)
+)
+
+-- artifact_links: attach artifacts to any record
+artifact_links (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  artifact_id uuid FK→artifacts,
+  link_type text NOT NULL,           -- 'company', 'lead', 'opportunity', etc.
+  link_id uuid NOT NULL,
+  created_by uuid FK→auth.users,
+  created_at timestamptz,
+  UNIQUE(artifact_id, link_type, link_id)
+)
+
+-- evidence_records: scored/analyzed data points for explainability
+evidence_records (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  subject_type text NOT NULL,
+  subject_id uuid NOT NULL,
+  evidence_type text NOT NULL,       -- 'score_input', 'recommendation_basis', 'extracted_data'
+  source_type text,                  -- 'artifact', 'crm_field', 'activity', 'external'
+  source_id uuid,
+  artifact_id uuid FK→artifacts,
+  field_path text,                   -- JSON path into source record
+  value_snapshot jsonb,
+  weight numeric,
+  notes text,
+  workflow_run_id uuid FK→workflow_runs,
+  created_at timestamptz
+)
+
+-- document_extractions: foundation only (Phase 3 will add intelligence)
+document_extractions (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  artifact_id uuid FK→artifacts,
+  artifact_version_id uuid FK→artifact_versions,
+  extraction_type text NOT NULL,     -- 'text', 'structured_data', 'table'
+  status text DEFAULT 'pending',     -- pending | processing | completed | failed
+  raw_text text,
+  structured_data jsonb DEFAULT '{}',
+  model_used text,
+  error_message text,
+  processed_at timestamptz,
+  created_at timestamptz
+)
+```
+
+#### MESSAGING
+
+```sql
+-- sender_identities
+sender_identities (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  name text NOT NULL,                -- display name e.g. "Michael from Verian"
+  email text NOT NULL,
+  reply_to text,
+  domain_settings_id uuid FK→domain_settings,
+  is_verified boolean DEFAULT false,
+  is_default boolean DEFAULT false,
+  status text DEFAULT 'pending',     -- pending | verified | suspended
+  resend_identity_id text,           -- Resend's ID
+  metadata jsonb DEFAULT '{}',
+  created_by uuid FK→auth.users,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+-- domain_settings
+domain_settings (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  domain text NOT NULL,
+  is_verified boolean DEFAULT false,
+  verification_token text,
+  dns_records jsonb DEFAULT '[]',    -- required DNS records
+  resend_domain_id text,
+  status text DEFAULT 'pending',
+  verified_at timestamptz,
+  created_by uuid FK→auth.users,
+  created_at timestamptz,
+  updated_at timestamptz,
+  UNIQUE(tenant_id, domain)
+)
+
+-- email_templates
+email_templates (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  name text NOT NULL,
+  slug text NOT NULL,
+  subject_template text NOT NULL,
+  body_html_template text,
+  body_text_template text,
+  template_type text NOT NULL,       -- 'transactional', 'campaign', 'ai_draft_base'
+  variables jsonb DEFAULT '[]',
+  is_active boolean DEFAULT true,
+  industry_profile_id uuid FK→industry_profiles,
+  created_by uuid FK→auth.users,
+  created_at timestamptz,
+  updated_at timestamptz,
+  UNIQUE(tenant_id, slug)
+)
+
+-- email_drafts
+email_drafts (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  sender_identity_id uuid FK→sender_identities,
+  template_id uuid FK→email_templates,
+  to_email text NOT NULL,
+  to_name text,
+  cc_emails text[],
+  bcc_emails text[],
+  subject text NOT NULL,
+  body_html text,
+  body_text text,
+  status text DEFAULT 'draft',       -- draft | pending_approval | approved | sent | cancelled
+  -- subject context
+  subject_type text,
+  subject_id uuid,
+  company_id uuid,
+  contact_id uuid,
+  lead_id uuid,
+  opportunity_id uuid,
+  -- workflow context
+  workflow_run_id uuid FK→workflow_runs,
+  approval_request_id uuid FK→approval_requests,
+  prompt_config_id uuid FK→prompt_configs,
+  generated_by_ai boolean DEFAULT false,
+  ai_generation_metadata jsonb DEFAULT '{}',
+  created_by uuid FK→auth.users,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+-- email_sends
+email_sends (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  workspace_id uuid FK→workspaces,
+  draft_id uuid FK→email_drafts,
+  sender_identity_id uuid FK→sender_identities,
+  to_email text NOT NULL,
+  subject text NOT NULL,
+  resend_message_id text,            -- Resend's ID
+  status text DEFAULT 'queued',      -- queued | sent | delivered | bounced | failed
+  sent_at timestamptz,
+  metadata jsonb DEFAULT '{}',
+  created_at timestamptz
+)
+
+-- email_events: mirrored from Resend webhooks
+email_events (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  email_send_id uuid FK→email_sends,
+  resend_message_id text,
+  event_type text NOT NULL,          -- 'delivered', 'opened', 'clicked', 'bounced', 'complained'
+  occurred_at timestamptz NOT NULL,
+  payload jsonb DEFAULT '{}',
+  created_at timestamptz
+)
+
+-- unsubscribes
+unsubscribes (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  email text NOT NULL,
+  reason text,
+  unsubscribed_at timestamptz DEFAULT now(),
+  source text,                       -- 'link_click', 'manual', 'complaint'
+  email_send_id uuid FK→email_sends,
+  created_at timestamptz,
+  UNIQUE(tenant_id, email)
+)
+
+-- suppression_rules
+suppression_rules (
+  id uuid PK,
+  tenant_id uuid FK→tenants,
+  rule_type text NOT NULL,           -- 'domain', 'email', 'tag'
+  value text NOT NULL,               -- the domain/email/tag to suppress
+  reason text,
+  is_active boolean DEFAULT true,
+  created_by uuid FK→auth.users,
+  created_at timestamptz,
+  UNIQUE(tenant_id, rule_type, value)
+)
+```
+
+---
+
+### 3. MULTI-TENANCY MODEL
+
+#### Isolation Strategy
+
+Every tenant-owned table includes `tenant_id`. RLS policies ensure a user can only access rows belonging to their current tenant. No row from one tenant is ever visible to another, even through joins.
+
+**JWT Custom Claims approach:**
+When a user signs in, a Supabase Auth hook (Edge Function `on_auth_token_created`) populates JWT claims:
+```json
+{
+  "sub": "<user-uuid>",
+  "app_metadata": {
+    "tenant_id": "<tenant-uuid>",
+    "workspace_id": "<workspace-uuid>",
+    "role_slug": "member"
+  }
+}
+```
+
+The active workspace is set at login time (defaulting to the user's primary workspace) and can be switched mid-session by calling a server action that re-issues the session with updated `app_metadata`.
+
+**RLS Helper Functions:**
+```sql
+-- Extract tenant from JWT
+CREATE OR REPLACE FUNCTION auth.tenant_id() RETURNS uuid AS $$
+  SELECT (auth.jwt() -> 'app_metadata' ->> 'tenant_id')::uuid
+$$ LANGUAGE sql STABLE;
+
+-- Extract workspace from JWT
+CREATE OR REPLACE FUNCTION auth.workspace_id() RETURNS uuid AS $$
+  SELECT (auth.jwt() -> 'app_metadata' ->> 'workspace_id')::uuid
+$$ LANGUAGE sql STABLE;
+
+-- Check if user is tenant admin
+CREATE OR REPLACE FUNCTION auth.is_tenant_admin() RETURNS boolean AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM memberships m
+    JOIN roles r ON r.id = m.role_id
+    WHERE m.user_id = auth.uid()
+      AND m.tenant_id = auth.tenant_id()
+      AND r.slug IN ('tenant_admin', 'platform_admin')
+      AND m.status = 'active'
+  )
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
+```
+
+**Standard RLS policy pattern (applied to every tenant-owned table):**
+```sql
+-- tenant isolation
+CREATE POLICY "tenant_isolation" ON leads
+  FOR ALL USING (tenant_id = auth.tenant_id());
+
+-- workspace membership (for tables with workspace_id)
+CREATE POLICY "workspace_membership" ON leads
+  FOR ALL USING (
+    workspace_id IN (
+      SELECT workspace_id FROM memberships
+      WHERE user_id = auth.uid() AND status = 'active'
+    )
+  );
+```
+
+---
+
+### 4. SECURITY / AUTHORIZATION MODEL
+
+#### Auth Flow
+1. User registers/signs in via Supabase Auth (email/password or magic link)
+2. `on_auth_token_created` Edge Function runs → looks up membership → adds `tenant_id`, `workspace_id`, `role_slug` to JWT `app_metadata`
+3. Next.js middleware validates session on every protected route using `@supabase/ssr`
+4. Server components/actions use `createServerClient` (cookie-based) — never the anon client for protected data
+5. The service role client (`createServiceClient`) is used ONLY in Inngest handlers and webhook receivers — never exposed to the browser
+
+#### Role Model (System Roles)
+| Role Slug | Scope | Capabilities |
+|-----------|-------|--------------|
+| `platform_admin` | platform | Full access across all tenants |
+| `tenant_admin` | tenant | Full access within their tenant |
+| `workspace_admin` | workspace | Full access within their workspace |
+| `member` | workspace | Standard CRUD on assigned modules |
+| `viewer` | workspace | Read-only access |
+
+Custom roles can be created per tenant and assigned any combination of permissions.
+
+#### Permission Slugs (initial set)
+```
+platform.manage_tenants
+platform.manage_system
+crm.leads.view / crm.leads.create / crm.leads.edit / crm.leads.delete
+crm.companies.view / crm.companies.create / crm.companies.edit
+crm.opportunities.view / crm.opportunities.create / crm.opportunities.edit
+workflow.approve_requests
+workflow.view_runs
+messaging.send_emails
+messaging.manage_templates
+config.manage_configs
+config.manage_prompts
+artifacts.upload / artifacts.view
+```
+
+#### Table Exposure Model
+| Tables | Exposed to client via RLS | Server-only |
+|--------|--------------------------|-------------|
+| companies, contacts, leads, opportunities, activities, notes, tasks | Yes | No |
+| system_events, workflow_runs, job_executions | Read-only via RLS | Writes server-only |
+| approval_requests | Read via RLS | Writes server-only |
+| prompt_configs, prompt_versions | Read via RLS | Writes server-only |
+| email_drafts | Yes (own workspace) | Sends server-only |
+| webhook_events | No | Server-only |
+| automation_failures | Tenant admin only | — |
+
+---
+
+### 5. WORKFLOW / EVENT MODEL
+
+#### Event Taxonomy
+```
+lead.created          lead.updated          lead.stage_changed
+lead.scored           lead.assigned         lead.converted
+lead.disqualified
+
+opportunity.created   opportunity.updated   opportunity.stage_changed
+opportunity.won       opportunity.lost      opportunity.stalled
+
+account.created       account.updated       account.health_changed
+account.at_risk       account.churned
+
+email.draft_created   email.approved        email.sent
+email.delivered       email.opened          email.clicked
+email.bounced         email.complained
+
+artifact.uploaded     artifact.processed    artifact.extraction_completed
+
+approval.requested    approval.approved     approval.rejected    approval.expired
+
+workflow.run_started  workflow.run_completed workflow.run_failed
+job.started           job.completed         job.failed
+
+score.generated       recommendation.created recommendation.accepted
+```
+
+#### Lifecycle Models
+
+**workflow_run lifecycle:**
+```
+pending → running → [paused (approval)] → completed
+                 ↘                      ↘ failed
+                  cancelled
+```
+
+**job_execution lifecycle:**
+```
+pending → running → completed
+                 ↘ failed → (retry) → running...
+                 ↘ skipped
+```
+
+**approval_request lifecycle:**
+```
+pending → approved → (workflow resumes)
+       ↘ rejected → (workflow cancelled or alternative path)
+       ↘ expired  → (policy-defined behavior)
+```
+
+#### Idempotency
+- `system_events` has a `UNIQUE` constraint on `idempotency_key`
+- Inngest uses `event.id` as its own idempotency key
+- All Inngest functions must be written as idempotent operations
+- Use `ON CONFLICT DO NOTHING` when recording events from webhooks
+
+#### Retry Strategy
+- Inngest handles retries natively (exponential backoff)
+- `job_executions.attempt` tracks retry count
+- `automation_failures` is created after max retries exceeded
+
+---
+
+### 6. ARTIFACT / KNOWLEDGE MODEL
+
+**Storage layout in Supabase Storage:**
+```
+bucket: artifacts
+  /{tenant_id}/{subject_type}/{subject_id}/{artifact_id}/{version_number}/{filename}
+```
+
+**Upload flow:**
+1. Client requests signed upload URL via server action
+2. Server action validates permission, creates `artifact` record (status: `processing`)
+3. Client uploads directly to Supabase Storage
+4. Client calls completion server action → updates artifact status to `active`
+5. Server emits `artifact.uploaded` system event
+6. Inngest function picks up event → creates `document_extraction` record (Phase 3 fills this)
+
+**Retrieval flow:**
+1. Server generates signed download URL (short TTL, 60 min)
+2. Never expose raw Storage URLs to client
+
+---
+
+### 7. CONFIGURATION / INHERITANCE MODEL
+
+#### Inheritance Chain
+```
+platform default (industry_profiles.xxx_defaults)
+       ↓ override
+tenant config (prompt_configs / scoring_configs / workflow_configs WHERE tenant_id = X, workspace_id = NULL)
+       ↓ override
+workspace config (... WHERE workspace_id = Y)
+       ↓ (Phase 4+)
+user/team override
+```
+
+#### Config Resolution Function (server-side)
+```typescript
+// lib/config/resolve.ts
+async function resolvePromptConfig(
+  slug: string,
+  tenantId: string,
+  workspaceId: string,
+  industryProfileId: string
+): Promise<PromptConfig> {
+  // 1. Check workspace-level override
+  // 2. Check tenant-level override
+  // 3. Fall back to industry profile default
+  // 4. Fall back to platform default (hardcoded seed)
+}
+```
+
+#### Prompt Template Variable System
+Prompts use `{{variable_name}}` syntax. The `variables` field on `prompt_versions` declares what context variables the prompt expects. The caller is responsible for providing a complete context object.
+
+---
+
+### 8. PRODUCTIZATION / GTM READINESS MODEL
+
+#### Tenant Onboarding Model
+1. Platform admin creates tenant record + default workspace
+2. First user is assigned `tenant_admin` role
+3. System applies `industry_profile` defaults to scaffold their configs
+4. Tenant admin configures sender identity + domain
+5. Feature entitlements gate advanced capabilities
+
+#### Industry Pack Model
+Each `industry_profiles` record defines defaults for an entire vertical:
+- Pipeline stage configs
+- Default scoring dimensions
+- Default workflow triggers
+- Default prompt templates
+- Feature flag defaults
+
+New vertical = new `industry_profiles` seed record + associated default configs.
+
+#### White-Label Path
+`branding_profiles` + `domain_settings` support custom domains per tenant. Future: deploy tenant on custom subdomain (`acme.verian.ai`) via Next.js `host` header routing and middleware workspace resolution.
+
+#### Evolution Path
+```
+Phase 1-2: Internal BIOS (single tenant, no billing)
+Phase 3-4: Multi-tenant managed platform (invite-only)
+Phase 5+:  Self-serve SaaS with billing (Stripe entitlements)
+```
+
+---
+
+### 9. FOLDER / CODEBASE STRUCTURE
+
+```
+C:\Projects\verian-bios\
+├── app/
+│   ├── (auth)/
+│   │   ├── login/page.tsx
+│   │   ├── register/page.tsx
+│   │   └── layout.tsx
+│   ├── (workspace)/
+│   │   ├── layout.tsx                    # authenticated workspace shell
+│   │   ├── [workspaceSlug]/
+│   │   │   ├── dashboard/page.tsx
+│   │   │   ├── companies/
+│   │   │   │   ├── page.tsx              # list
+│   │   │   │   └── [id]/page.tsx         # detail
+│   │   │   ├── contacts/
+│   │   │   ├── leads/
+│   │   │   ├── opportunities/
+│   │   │   ├── accounts/
+│   │   │   ├── activities/
+│   │   │   ├── inbox/                    # approval inbox
+│   │   │   ├── artifacts/
+│   │   │   └── settings/
+│   ├── (platform)/
+│   │   └── platform/                     # platform admin (tenant mgmt)
+│   ├── api/
+│   │   ├── inngest/route.ts              # Inngest webhook receiver
+│   │   ├── webhooks/
+│   │   │   ├── resend/route.ts           # Resend email events
+│   │   │   └── [source]/route.ts
+│   │   └── trpc/[trpc]/route.ts          # (optional, or use server actions)
+│   └── layout.tsx
+│
+├── modules/                              # domain business logic
+│   ├── platform/
+│   │   ├── services/
+│   │   │   ├── tenant.service.ts
+│   │   │   ├── workspace.service.ts
+│   │   │   └── membership.service.ts
+│   │   ├── repositories/
+│   │   │   ├── tenant.repo.ts
+│   │   │   ├── workspace.repo.ts
+│   │   │   └── membership.repo.ts
+│   │   └── types.ts
+│   ├── crm/
+│   │   ├── services/
+│   │   │   ├── company.service.ts
+│   │   │   ├── contact.service.ts
+│   │   │   ├── lead.service.ts
+│   │   │   ├── opportunity.service.ts
+│   │   │   └── account.service.ts
+│   │   ├── repositories/
+│   │   │   ├── company.repo.ts
+│   │   │   ├── contact.repo.ts
+│   │   │   ├── lead.repo.ts
+│   │   │   └── opportunity.repo.ts
+│   │   └── types.ts
+│   ├── workflow/
+│   │   ├── services/
+│   │   │   ├── event.service.ts
+│   │   │   ├── workflow-run.service.ts
+│   │   │   └── approval.service.ts
+│   │   ├── repositories/
+│   │   └── types.ts
+│   ├── intelligence/
+│   │   ├── services/
+│   │   │   ├── scoring.service.ts
+│   │   │   └── recommendation.service.ts
+│   │   ├── repositories/
+│   │   └── types.ts
+│   ├── artifacts/
+│   │   ├── services/
+│   │   │   └── artifact.service.ts
+│   │   ├── repositories/
+│   │   └── types.ts
+│   ├── messaging/
+│   │   ├── services/
+│   │   │   ├── email.service.ts
+│   │   │   ├── sender.service.ts
+│   │   │   └── suppression.service.ts
+│   │   ├── repositories/
+│   │   └── types.ts
+│   └── config/
+│       ├── services/
+│       │   ├── prompt-config.service.ts
+│       │   ├── scoring-config.service.ts
+│       │   └── workflow-config.service.ts
+│       ├── repositories/
+│       └── types.ts
+│
+├── components/
+│   ├── ui/                               # shadcn/ui primitives
+│   ├── layout/
+│   │   ├── AppShell.tsx
+│   │   ├── Sidebar.tsx
+│   │   ├── TopNav.tsx
+│   │   └── WorkspaceSwitcher.tsx
+│   ├── crm/
+│   │   ├── CompanyTable.tsx
+│   │   ├── LeadCard.tsx
+│   │   └── LeadStageBoard.tsx
+│   ├── workflow/
+│   │   ├── ApprovalCard.tsx
+│   │   └── WorkflowRunStatus.tsx
+│   └── shared/
+│       ├── EmptyState.tsx
+│       ├── ErrorBoundary.tsx
+│       └── ConfirmDialog.tsx
+│
+├── lib/
+│   ├── supabase/
+│   │   ├── server.ts                     # createServerClient
+│   │   ├── client.ts                     # createBrowserClient
+│   │   ├── service.ts                    # createServiceRoleClient (server-only)
+│   │   └── middleware.ts                 # session refresh
+│   ├── inngest/
+│   │   ├── client.ts
+│   │   └── index.ts                      # register all functions
+│   ├── resend/
+│   │   └── client.ts
+│   ├── auth/
+│   │   ├── session.ts                    # getSession helpers
+│   │   ├── membership.ts                 # resolveMembership
+│   │   └── permissions.ts               # hasPermission(user, slug)
+│   └── config/
+│       └── resolve.ts                    # config inheritance resolver
+│
+├── inngest/                              # Inngest function definitions
+│   ├── functions/
+│   │   ├── on-lead-created.ts
+│   │   ├── on-artifact-uploaded.ts
+│   │   └── on-approval-decided.ts
+│   └── index.ts
+│
+├── types/
+│   ├── database.ts                       # generated from Supabase CLI
+│   ├── platform.ts
+│   ├── crm.ts
+│   ├── workflow.ts
+│   └── shared.ts
+│
+├── schemas/                              # Zod validation
+│   ├── company.schema.ts
+│   ├── lead.schema.ts
+│   └── shared.schema.ts
+│
+├── supabase/
+│   ├── migrations/
+│   │   ├── 20240001_platform.sql
+│   │   ├── 20240002_crm.sql
+│   │   ├── 20240003_workflow.sql
+│   │   ├── 20240004_intelligence.sql
+│   │   ├── 20240005_artifacts.sql
+│   │   ├── 20240006_messaging.sql
+│   │   ├── 20240007_rls.sql
+│   │   └── 20240008_seed.sql
+│   ├── functions/
+│   │   └── on-auth-token-created/       # JWT enrichment hook
+│   └── config.toml
+│
+├── middleware.ts                         # Next.js middleware (auth gate)
+├── .env.local                            # environment variables
+├── package.json
+├── tailwind.config.ts
+├── tsconfig.json
+└── next.config.ts
+```
+
+---
+
+## PHASE 2 — FOUNDATION IMPLEMENTATION PLAN
+
+### Files to Create (in order)
+
+#### Step 1: Project Bootstrap
+```bash
+cd C:\Projects
+npx create-next-app@latest verian-bios \
+  --typescript --tailwind --app --no-src-dir \
+  --import-alias "@/*"
+cd verian-bios
+npx shadcn@latest init
+```
+
+#### Step 2: Install Dependencies
+```bash
+npm install @supabase/supabase-js @supabase/ssr
+npm install inngest
+npm install resend
+npm install zod react-hook-form @hookform/resolvers
+npm install @tanstack/react-table
+npm install date-fns
+npm install lucide-react
+npx shadcn@latest add button card input label table badge
+npx shadcn@latest add dialog sheet form select textarea
+npx shadcn@latest add dropdown-menu avatar separator skeleton
+npx shadcn@latest add toast sonner command
+```
+
+#### Step 3: Environment Configuration
+**File:** `.env.local`
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# Inngest
+INNGEST_EVENT_KEY=
+INNGEST_SIGNING_KEY=
+
+# Resend
+RESEND_API_KEY=
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_NAME=Verian BIOS
+```
+
+#### Step 4: Supabase Setup
+**File:** `supabase/config.toml` — Supabase local dev config
+
+**File:** `supabase/migrations/20240001_platform.sql`
+- Creates: `tenants`, `workspaces`, `roles`, `permissions`, `role_permissions`, `memberships`, `feature_entitlements`, `branding_profiles`
+- Includes helper functions: `auth.tenant_id()`, `auth.workspace_id()`, `auth.is_tenant_admin()`
+- Includes triggers: `updated_at` auto-update on all tables
+
+**File:** `supabase/migrations/20240002_crm.sql`
+- Creates: `companies`, `contacts`, `leads`, `accounts`, `opportunities`, `activities`, `notes`, `tasks`, `conversations`
+
+**File:** `supabase/migrations/20240003_workflow.sql`
+- Creates: `system_events`, `workflow_runs`, `job_executions`, `approval_requests`, `webhook_events`, `automation_failures`, `notification_queue`
+
+**File:** `supabase/migrations/20240004_intelligence.sql`
+- Creates: `industry_profiles`, `pipeline_stage_configs`, `scoring_configs`, `workflow_configs`, `policy_rules`, `prompt_configs`, `prompt_versions`, `dashboard_configs`
+- Creates: `fit_scores`, `urgency_scores`, `engagement_scores`, `opportunity_scores`, `health_scores`, `churn_risk_scores`
+- Creates: `agent_recommendations`, `recommendation_feedback`
+
+**File:** `supabase/migrations/20240005_artifacts.sql`
+- Creates: `artifacts`, `artifact_versions`, `artifact_links`, `evidence_records`, `document_extractions`
+
+**File:** `supabase/migrations/20240006_messaging.sql`
+- Creates: `domain_settings`, `sender_identities`, `email_templates`, `email_drafts`, `email_sends`, `email_events`, `unsubscribes`, `suppression_rules`
+
+**File:** `supabase/migrations/20240007_rls.sql`
+- Enables RLS on all tenant-owned tables
+- Creates `tenant_isolation` + `workspace_membership` policies
+- Creates service-role bypass policies
+
+**File:** `supabase/migrations/20240008_seed.sql`
+- Seeds: Verian Internal tenant, default workspace
+- Seeds: system roles (platform_admin, tenant_admin, workspace_admin, member, viewer)
+- Seeds: all permission slugs
+- Seeds: role_permissions for each system role
+- Seeds: merchant_processing industry profile
+- Seeds: default pipeline_stage_configs (lead + opportunity pipelines)
+- Seeds: default prompt_configs (fit scoring, urgency scoring, email draft)
+- Seeds: sample companies, contacts, leads
+- Seeds: sender_identity placeholder
+
+#### Step 5: Supabase Client Layer
+**File:** `lib/supabase/server.ts` — `createServerClient` using `@supabase/ssr` cookie adapter
+**File:** `lib/supabase/client.ts` — `createBrowserClient`
+**File:** `lib/supabase/service.ts` — `createServiceClient` using service role key (server-only import)
+**File:** `middleware.ts` — Auth session refresh + protected route gating
+
+#### Step 6: Auth & Permission Helpers
+**File:** `lib/auth/session.ts` — `getServerSession()`, `requireSession()`, `getCurrentUser()`
+**File:** `lib/auth/membership.ts` — `resolveMembership(userId, workspaceId)`, `getUserRole()`
+**File:** `lib/auth/permissions.ts` — `hasPermission(membership, permissionSlug)`, `requirePermission()`
+
+#### Step 7: Supabase Type Generation
+```bash
+npx supabase gen types typescript --local > types/database.ts
+```
+**File:** `types/platform.ts` — typed interfaces for platform entities
+**File:** `types/crm.ts` — typed interfaces for CRM entities
+**File:** `types/workflow.ts` — typed interfaces for workflow entities
+
+#### Step 8: Repository Layer
+
+**File:** `modules/crm/repositories/company.repo.ts`
+```typescript
+// listCompanies(tenantId, workspaceId, filters, pagination)
+// getCompany(id, tenantId)
+// createCompany(data)
+// updateCompany(id, data, tenantId)
+// deleteCompany(id, tenantId)
+```
+
+**File:** `modules/crm/repositories/lead.repo.ts` — same pattern
+**File:** `modules/crm/repositories/contact.repo.ts` — same pattern
+**File:** `modules/workflow/repositories/event.repo.ts` — `recordEvent()`, `getEvents()`
+**File:** `modules/workflow/repositories/approval.repo.ts` — `createApproval()`, `resolveApproval()`
+
+#### Step 9: Service Layer
+
+**File:** `modules/crm/services/company.service.ts`
+- Wraps repo, emits `company.created` / `company.updated` system events
+- Validates ownership, enforces tenant context
+
+**File:** `modules/crm/services/lead.service.ts`
+- Wraps repo, emits `lead.created` / `lead.stage_changed`
+- On create: records `system_event`, triggers Inngest event
+
+**File:** `modules/workflow/services/event.service.ts`
+- `recordSystemEvent(eventType, payload, options)` — deduplicates via idempotency_key
+- `emitToInngest(eventType, payload)` — sends event to Inngest
+
+#### Step 10: Inngest Foundation
+**File:** `lib/inngest/client.ts` — `new Inngest({ id: 'verian-bios' })`
+**File:** `inngest/functions/on-lead-created.ts`
+```typescript
+// Trigger: 'lead.created'
+// Step 1: Create workflow_run record
+// Step 2: Create job_execution record (type: 'initial_scoring')
+// Step 3: Placeholder for future scoring call
+// Step 4: Update workflow_run to completed
+```
+**File:** `inngest/functions/on-approval-decided.ts`
+```typescript
+// Trigger: 'approval.approved' | 'approval.rejected'
+// Resume paused workflow_run
+```
+**File:** `app/api/inngest/route.ts` — Inngest serve handler
+
+#### Step 11: Next.js App Shell
+
+**File:** `app/(auth)/login/page.tsx` — Supabase Auth UI or custom form
+**File:** `app/(auth)/layout.tsx` — centered, branded auth layout
+**File:** `app/(workspace)/layout.tsx` — authenticated shell with sidebar
+**File:** `components/layout/AppShell.tsx` — main layout wrapper
+**File:** `components/layout/Sidebar.tsx` — navigation links, role-aware
+**File:** `components/layout/TopNav.tsx` — workspace switcher, user menu
+
+#### Step 12: Core Pages
+
+**File:** `app/(workspace)/[workspaceSlug]/dashboard/page.tsx`
+- Server component, loads workspace context
+- Shows placeholder metric cards, recent activity feed
+
+**File:** `app/(workspace)/[workspaceSlug]/companies/page.tsx`
+- Server component with `CompanyTable`
+- Pagination, search filter
+
+**File:** `app/(workspace)/[workspaceSlug]/companies/[id]/page.tsx`
+- Company detail: info, contacts list, activities, notes, artifacts
+
+**File:** `app/(workspace)/[workspaceSlug]/contacts/page.tsx`
+
+**File:** `app/(workspace)/[workspaceSlug]/leads/page.tsx`
+- Kanban-style stage board + list view toggle
+
+**File:** `app/(workspace)/[workspaceSlug]/leads/[id]/page.tsx`
+- Lead detail with scores panel, recommendations, activities, artifacts
+
+**File:** `app/(workspace)/[workspaceSlug]/activities/page.tsx`
+
+**File:** `app/(workspace)/[workspaceSlug]/inbox/page.tsx`
+- Approval requests list
+
+**File:** `app/(workspace)/[workspaceSlug]/artifacts/page.tsx`
+- Artifact center shell (upload + list)
+
+**File:** `app/(workspace)/[workspaceSlug]/settings/page.tsx`
+- Workspace settings shell
+
+#### Step 13: Server Actions (CRUD)
+**File:** `modules/crm/actions/company.actions.ts`
+- `createCompanyAction(formData)`, `updateCompanyAction(id, formData)`, `deleteCompanyAction(id)`
+- Each validates session, resolves tenant, calls service
+
+**File:** `modules/crm/actions/lead.actions.ts` — same pattern
+**File:** `modules/crm/actions/contact.actions.ts`
+**File:** `modules/workflow/actions/approval.actions.ts`
+- `approveRequestAction(id, decision)`, `rejectRequestAction(id, reason)`
+
+#### Step 14: Validation Schemas
+**File:** `schemas/company.schema.ts` — Zod schema for company create/update
+**File:** `schemas/lead.schema.ts`
+**File:** `schemas/contact.schema.ts`
+
+#### Step 15: Resend / Webhook Integration
+**File:** `lib/resend/client.ts` — `new Resend(process.env.RESEND_API_KEY)`
+**File:** `modules/messaging/services/email.service.ts`
+- `sendEmail(draft)` → calls Resend, records `email_send`
+- `recordEmailEvent(webhookPayload)` → records `email_event`
+
+**File:** `app/api/webhooks/resend/route.ts`
+- Validates Resend webhook signature
+- Creates `webhook_event` record
+- Calls `email.service.recordEmailEvent()`
+- Handles unsubscribes from complaints
+
+#### Step 16: Config Resolver
+**File:** `lib/config/resolve.ts`
+- `resolvePromptConfig(slug, tenantId, workspaceId)` — implements inheritance chain
+- `resolveScoringConfig(slug, tenantId, workspaceId)` — same
+- `resolveWorkflowConfig(slug, tenantId, workspaceId)` — same
+
+#### Step 17: Artifact Foundation
+**File:** `modules/artifacts/services/artifact.service.ts`
+- `createUploadUrl(tenantId, workspaceId, metadata)` → signed Supabase Storage URL
+- `completeUpload(artifactId, tenantId)` → updates status, emits event
+- `getDownloadUrl(artifactId, tenantId)` → signed download URL
+
+---
+
+### SETUP INSTRUCTIONS
+
+#### Supabase Setup
+1. Go to supabase.com → New Project
+2. Note: Project URL, anon key, service role key
+3. Install CLI: `npm install -g supabase`
+4. `supabase login`
+5. `supabase link --project-ref <your-project-ref>`
+6. `supabase db push` (runs all migrations)
+7. Enable Row Level Security in Supabase dashboard → Auth → Policies (should be done by migration)
+8. Create Storage bucket `artifacts` with private access
+
+#### Supabase Auth JWT Hook Setup
+1. Supabase Dashboard → Authentication → Hooks
+2. Add hook: `on_auth_token_created` → Edge Function
+3. Deploy Edge Function `supabase/functions/on-auth-token-created/index.ts`
+
+#### Inngest Setup
+1. Go to inngest.com → Sign up → Create App `verian-bios`
+2. Get Event Key + Signing Key
+3. Add to `.env.local`
+4. Local dev: `npx inngest-cli@latest dev`
+5. App registers at `http://localhost:3000/api/inngest`
+
+#### Resend Setup
+1. Go to resend.com → Sign up → Create API key
+2. Add domain in Resend → configure DNS records (copy to `domain_settings` seed)
+3. Add API key to `.env.local`
+4. Configure webhook endpoint in Resend → `https://yourdomain/api/webhooks/resend`
+
+#### Local Dev
+```bash
+cd C:\Projects\verian-bios
+npm install
+supabase start              # starts local Supabase
+npx inngest-cli@latest dev  # starts Inngest dev server (separate terminal)
+npm run dev                 # starts Next.js
+```
+
+---
+
+## PHASE 1 — KEY DESIGN DECISIONS & RATIONALE
+
+| Decision | Rationale |
+|----------|-----------|
+| Modular monolith over microservices | Faster to build, easier to debug, can extract services later |
+| Separate score tables per score type | Clean indexes, separate scoring configs, avoid type-juggling |
+| `system_events` as immutable log | Inngest triggers from events; audit log is a side effect |
+| JWT custom claims for tenant_id | Avoids per-request DB lookup in every RLS policy |
+| `idempotency_key` on system_events | Prevents duplicate workflow triggers from retried requests |
+| Server Actions over API routes for mutations | Type-safe, no serialization layer, simpler auth |
+| Service role only in Inngest/webhooks | Never expose service role to browser; strict boundary |
+| `industry_profiles` as default seeds | Enables multi-vertical without code changes |
+| Prompt configs in DB, not code files | Tenant-overridable, versioned, auditable |
+
+## RISK AREAS
+
+1. **JWT claim staleness** — if tenant/workspace changes, JWT must be refreshed. Middleware must handle token refresh carefully.
+2. **RLS performance** — complex RLS policies with JOINs can slow queries. Profile early; consider denormalized `tenant_id` on every table (already planned).
+3. **Inngest cold start** — on Vercel, Inngest needs to be able to reach `/api/inngest`. Ensure this route isn't behind auth middleware.
+4. **Supabase Storage signed URLs** — keep TTLs short (60 min max). Don't cache signed URLs across sessions.
+5. **Webhook signature validation** — Resend webhooks MUST validate signatures before processing to prevent spoofed email events.
+
+## INTENTIONALLY DEFERRED TO PHASE 3+
+
+- AI scoring execution (prompt → LLM → score record)
+- Email campaign automation + playbooks
+- Full document extraction intelligence
+- Analytics / reporting layer
+- Billing / entitlement enforcement
+- White-label domain routing
+- Advanced recommendation engine
+- Mobile-responsive polish
+- Full config admin UI
+- Tenant self-service onboarding UI

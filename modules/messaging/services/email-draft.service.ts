@@ -21,6 +21,7 @@ const RULE_TO_TEMPLATE_SLUG: Record<string, string> = {
   request_statement:        'email_request_statement',
   urgent_early_outreach:    'email_urgent_outreach',
   initial_contact:          'email_initial_contact',
+  intake_initial_contact:   'email_initial_contact',
   proposal_follow_up:       'email_proposal_follow_up',
   standard_follow_up:       'email_standard_follow_up',
 }

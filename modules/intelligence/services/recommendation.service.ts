@@ -53,7 +53,7 @@ const RULES: Rule[] = [
   {
     id: 'send_proposal',
     check: ({ fitScore, lead }) =>
-      fitScore >= 60 && lead.stage === 'statement_review',
+      fitScore >= 60 && ['statement_review', 'statement_received'].includes(lead.stage),
     priority: 'high',
     title: () => 'Prepare and send a proposal',
     body: ({ lead, fitScore }) =>
@@ -67,7 +67,7 @@ const RULES: Rule[] = [
   {
     id: 'request_statement',
     check: ({ fitScore, lead }) =>
-      fitScore >= 40 && lead.stage === 'statement_review',
+      fitScore >= 40 && ['statement_review', 'statement_received'].includes(lead.stage),
     priority: 'high',
     title: () => 'Request merchant processing statement',
     body: ({ lead }) =>
@@ -82,7 +82,7 @@ const RULES: Rule[] = [
     id: 'urgent_early_outreach',
     check: ({ urgencyScore, fitScore, lead }) =>
       urgencyScore >= 65 && fitScore >= 40 &&
-      ['new', 'contacted'].includes(lead.stage),
+      ['new', 'contacted', 'new_inquiry', 'analysis_requested'].includes(lead.stage),
     priority: 'high',
     title: () => 'High urgency — reach out immediately',
     body: ({ lead, urgencyScore, fitScore }) =>
@@ -96,7 +96,8 @@ const RULES: Rule[] = [
   },
   {
     id: 'initial_contact',
-    check: ({ fitScore, lead }) => fitScore >= 50 && lead.stage === 'new',
+    check: ({ fitScore, lead }) =>
+      fitScore >= 50 && ['new', 'new_inquiry', 'analysis_requested'].includes(lead.stage),
     priority: 'medium',
     title: () => 'Qualified new lead — make initial contact',
     body: ({ lead, fitScore }) =>
@@ -122,6 +123,23 @@ const RULES: Rule[] = [
         : ''),
     key_inputs: ['stage', 'expected_close_date'],
     reasoning: () => 'Proposal stage — follow-up drives decision.',
+  },
+  {
+    // Catch-all for intake-sourced leads that didn't match a more specific rule above.
+    // Fires before low_fit_qualify so warm inbound leads always get an initial contact draft
+    // regardless of fit score — they actively submitted a form and expect a response.
+    id: 'intake_initial_contact',
+    check: ({ lead }) =>
+      ['new_inquiry', 'analysis_requested', 'statement_received'].includes(lead.stage),
+    priority: 'high',
+    title: () => 'Web inquiry received — send initial contact',
+    body: ({ lead }) =>
+      `This lead arrived via web intake (stage: ${lead.stage.replace(/_/g, ' ')}). ` +
+      `A personalized response email is ready for review. ` +
+      `Respond within 24 hours to maximize engagement.`,
+    key_inputs: ['stage', 'source'],
+    reasoning: ({ lead }) =>
+      `Intake stage "${lead.stage}" — prospect actively submitted a form; prompt response expected.`,
   },
   {
     id: 'low_fit_qualify',

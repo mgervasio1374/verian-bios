@@ -141,29 +141,31 @@ CREATE TRIGGER branding_profiles_updated_at BEFORE UPDATE ON branding_profiles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- -------------------------------------------------------
--- RLS HELPER FUNCTIONS
+-- RLS HELPER FUNCTIONS (public schema — Supabase Cloud does not permit
+-- user-defined functions in the auth schema)
+-- auth.jwt() and auth.uid() are Supabase built-ins and remain unchanged.
 -- -------------------------------------------------------
-CREATE OR REPLACE FUNCTION auth.tenant_id() RETURNS uuid AS $$
+CREATE OR REPLACE FUNCTION public.current_tenant_id() RETURNS uuid AS $$
   SELECT (auth.jwt() -> 'app_metadata' ->> 'tenant_id')::uuid
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION auth.workspace_id() RETURNS uuid AS $$
+CREATE OR REPLACE FUNCTION public.current_workspace_id() RETURNS uuid AS $$
   SELECT (auth.jwt() -> 'app_metadata' ->> 'workspace_id')::uuid
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION auth.role_slug() RETURNS text AS $$
+CREATE OR REPLACE FUNCTION public.current_role_slug() RETURNS text AS $$
   SELECT auth.jwt() -> 'app_metadata' ->> 'role_slug'
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION auth.is_platform_admin() RETURNS boolean AS $$
-  SELECT auth.role_slug() = 'platform_admin'
+CREATE OR REPLACE FUNCTION public.is_platform_admin() RETURNS boolean AS $$
+  SELECT public.current_role_slug() = 'platform_admin'
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION auth.is_tenant_admin() RETURNS boolean AS $$
-  SELECT auth.role_slug() IN ('platform_admin', 'tenant_admin')
+CREATE OR REPLACE FUNCTION public.is_tenant_admin() RETURNS boolean AS $$
+  SELECT public.current_role_slug() IN ('platform_admin', 'tenant_admin')
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION auth.active_workspace_ids() RETURNS SETOF uuid AS $$
+CREATE OR REPLACE FUNCTION public.active_workspace_ids() RETURNS SETOF uuid AS $$
   SELECT workspace_id FROM memberships
   WHERE user_id = auth.uid() AND status = 'active'
 $$ LANGUAGE sql STABLE SECURITY DEFINER;

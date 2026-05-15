@@ -68,6 +68,9 @@ export const onLeadCreated = inngest.createFunction(
           ? completedAt.getTime() - new Date(job.startedAt).getTime()
           : null
 
+        const ruleMatched = (result.recommendation.raw_output as Record<string, unknown>)
+          ?.rule_matched as string | undefined
+
         await supabase
           .from('job_executions')
           .update({
@@ -76,7 +79,7 @@ export const onLeadCreated = inngest.createFunction(
               fitScore: result.fitScore.score,
               urgencyScore: result.urgencyScore.score,
               recommendationId: result.recommendation.id,
-              ruleMatched: (result.recommendation.raw_output as Record<string, unknown>)?.rule_matched,
+              ruleMatched,
             },
             completed_at: completedAt.toISOString(),
             duration_ms: durationMs,
@@ -84,12 +87,14 @@ export const onLeadCreated = inngest.createFunction(
           .eq('id', job.id)
 
         logger.info('Scoring pipeline complete', {
-          leadId: data.leadId,
-          fitScore: result.fitScore.score,
-          urgencyScore: result.urgencyScore.score,
-          durationMs,
+          lead_id: data.leadId,
+          fit_score: result.fitScore.score,
+          urgency_score: result.urgencyScore.score,
+          recommendation_id: result.recommendation.id,
+          rule_matched: ruleMatched,
+          duration_ms: durationMs,
         })
-        return { ok: true as const }
+        return { ok: true as const, recommendationId: result.recommendation.id, ruleMatched }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
         const failedAt = new Date()
@@ -144,16 +149,21 @@ export const onLeadCreated = inngest.createFunction(
     const draftStatus = await step.run('create-email-draft', async () => {
       const result = await emailDraftService.createLeadEmailDraft(ctx, data.leadId, run.id)
       if (result.ok) {
-        logger.info('Email draft created for review', {
-          leadId: data.leadId,
-          draftId: result.draftId,
-          templateSlug: result.templateSlug,
+        logger.info('email_draft.created', {
+          lead_id:            data.leadId,
+          draft_id:           result.draftId,
+          approval_request_id: result.approvalRequestId,
+          template_slug:      result.templateSlug,
+          recommendation_id:  pipelineStatus.recommendationId,
+          rule_matched:       pipelineStatus.ruleMatched,
         })
       } else {
-        logger.info('Email draft skipped', {
-          leadId: data.leadId,
-          reason: result.reason,
-          skipped: result.skipped,
+        logger.info('email_draft.skipped', {
+          lead_id:           data.leadId,
+          reason:            result.reason,
+          skipped:           result.skipped,
+          recommendation_id: pipelineStatus.recommendationId,
+          rule_matched:      pipelineStatus.ruleMatched,
         })
       }
       return result

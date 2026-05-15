@@ -2,11 +2,44 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { buildRequestContext } from '@/lib/auth/context'
 import * as approvalService from '@/modules/workflow/services/approval.service'
 import * as approvalRepo from '@/modules/workflow/repositories/approval.repo'
 import * as emailDraftService from '@/modules/messaging/services/email-draft.service'
 import type { ActionResult } from '@/modules/crm/actions/company.actions'
+
+export type DraftDetail = {
+  id: string
+  subject: string
+  body_html: string | null
+  body_text: string | null
+  to_email: string
+  to_name: string | null
+  status: string
+}
+
+export async function getDraftForReviewAction(
+  draftId: string
+): Promise<ActionResult<DraftDetail>> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx = await buildRequestContext(supabase)
+
+    const svc = createSupabaseServiceClient()
+    const { data, error } = await svc
+      .from('email_drafts')
+      .select('id, subject, body_html, body_text, to_email, to_name, status')
+      .eq('id', draftId)
+      .eq('tenant_id', ctx.tenantId)
+      .single()
+
+    if (error || !data) return { success: false, error: 'Draft not found' }
+    return { success: true, data: data as DraftDetail }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
 
 export async function approveRequestAction(
   approvalId: string,
