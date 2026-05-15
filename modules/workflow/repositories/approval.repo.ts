@@ -127,6 +127,31 @@ export async function getApprovalById(
   return data ?? null
 }
 
+export async function getApprovalByReviewToken(
+  token: string
+): Promise<ApprovalRow | null> {
+  const supabase = createSupabaseServiceClient()
+  // Filter on the JSONB text extraction — uses the index created in migration 20240015
+  const { data } = await supabase
+    .from('approval_requests')
+    .select('*')
+    .filter('payload->>review_token', 'eq', token)
+    .limit(1)
+    .maybeSingle()
+  return data ?? null
+}
+
+export async function updateApprovalDecision(
+  id: string,
+  decision: Record<string, unknown>
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  await supabase
+    .from('approval_requests')
+    .update({ decision })
+    .eq('id', id)
+}
+
 export async function listPendingApprovals(
   tenantId: string,
   workspaceId: string,

@@ -183,6 +183,30 @@ export async function getDraftStatusCounts(tenantId: string): Promise<DraftStatu
   return Object.entries(counts).map(([status, count]) => ({ status, count }))
 }
 
+// ---- Content update (pre-send edits on pending_approval drafts) ----
+
+export async function updateEmailDraftContent(
+  draftId: string,
+  tenantId: string,
+  update: { subject?: string; bodyHtml?: string | null; bodyText?: string | null }
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const patch: Record<string, unknown> = {}
+  if (update.subject   !== undefined) patch.subject   = update.subject
+  if (update.bodyHtml  !== undefined) patch.body_html = update.bodyHtml
+  if (update.bodyText  !== undefined) patch.body_text = update.bodyText
+  if (Object.keys(patch).length === 0) return
+
+  const { error } = await supabase
+    .from('email_drafts')
+    .update(patch)
+    .eq('id', draftId)
+    .eq('tenant_id', tenantId)
+    .in('status', ['pending_approval', 'draft'])
+
+  if (error) throw new Error(`updateEmailDraftContent: ${error.message}`)
+}
+
 // ---- Create ----
 
 interface CreateEmailDraftInput {

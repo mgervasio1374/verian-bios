@@ -126,8 +126,12 @@ export async function POST(req: NextRequest) {
         stage: 'statement_received',
         status: 'open',
         source: input.source,
-        priority: 'medium',
-        metadata: { intake_source: input.source },
+        priority: 'critical',
+        metadata: {
+          intake_source: input.source,
+          priority_tier: 'P1',
+          priority_reason: 'Merchant statement uploaded; prospect requested analysis.',
+        },
       })
       .select()
       .single()
@@ -227,6 +231,21 @@ export async function POST(req: NextRequest) {
       leadId: lead.id,
       tenantId,
       workspaceId,
+    })
+
+    // Trigger dedicated P1 statement review workflow
+    await enqueueEvent(ctx, 'statement.received', {
+      artifactId: artifact.id,
+      leadId: lead.id,
+      contactId: contact.id,
+      companyId: company?.id ?? null,
+      tenantId,
+      workspaceId,
+      source: input.source,
+      firstName: input.first_name,
+      lastName: input.last_name,
+      email: input.email,
+      companyName: input.company_name ?? null,
     })
 
     return NextResponse.json(
