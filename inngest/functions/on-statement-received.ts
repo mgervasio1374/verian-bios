@@ -254,18 +254,23 @@ export const onStatementReceived = inngest.createFunction(
       const senderName   = sender?.name ?? '321 Swipe'
       const calendlyLink = process.env.CALENDLY_LINK ?? 'https://calendly.com/321swipe'
 
-      // Conservative language — no unsupported savings claims
       const hasPdf = pdfArtifact !== null
-      const proposalLine = hasPdf
-        ? 'We\'ve completed our initial review and prepared a personalized proposal for your business. Please see the attached proposal document for pricing details and next steps.'
-        : 'We\'ve received your statement and will complete our analysis shortly. Our team will follow up with a personalized pricing proposal.'
+
+      // ── Customer-facing email copy ─────────────────────────────────────────
+      // Conservative language only — no unsupported savings claims.
+      const companyLine = data.companyName ? ` for ${data.companyName}` : ''
+      const pdfLine = hasPdf
+        ? 'The attached document outlines the preliminary pricing structure, the assumptions used for this review, and the recommended next steps.'
+        : 'Our team will follow up shortly with a personalized pricing proposal once the review is complete.'
 
       const bodyText =
         `Hi ${contactFirst},\n\n` +
-        `Thank you for submitting your merchant processing statement${data.companyName ? ` for ${data.companyName}` : ''}.\n\n` +
-        `${proposalLine}\n\n` +
-        `We\'d love to walk you through our analysis and answer any questions. ` +
-        `You can schedule a free 15-minute call at a time that works for you:\n` +
+        `Thank you for submitting your merchant processing statement${companyLine}.\n\n` +
+        `We completed an initial review and prepared a proposal package for your business. ` +
+        `${pdfLine}\n\n` +
+        `Because every merchant statement can include different fees, card mix, and processor-specific charges, ` +
+        `we would like to walk through the details with you before finalizing any savings estimate.\n\n` +
+        `You can schedule a quick statement review here:\n` +
         `${calendlyLink}\n\n` +
         `If you have any questions before then, simply reply to this email.\n\n` +
         `Best,\n${senderName}\n321 Swipe`
@@ -275,12 +280,14 @@ export const onStatementReceived = inngest.createFunction(
         `<p>Thank you for submitting your merchant processing statement` +
         (data.companyName ? ` for <strong>${data.companyName}</strong>` : '') +
         `.</p>` +
-        `<p>${proposalLine}</p>` +
-        `<p>We'd love to walk you through our analysis and answer any questions. ` +
-        `Schedule a free 15-minute call at a time that works for you:</p>` +
+        `<p>We completed an initial review and prepared a proposal package for your business. ` +
+        `${pdfLine}</p>` +
+        `<p>Because every merchant statement can include different fees, card mix, and processor-specific charges, ` +
+        `we would like to walk through the details with you before finalizing any savings estimate.</p>` +
+        `<p>You can schedule a quick statement review here:</p>` +
         `<p><a href="${calendlyLink}" style="display:inline-block;background:#2563eb;color:#fff;` +
         `padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;">` +
-        `Schedule Your Free Review Call</a></p>` +
+        `Schedule Your Statement Review</a></p>` +
         `<p>If you have any questions before then, simply reply to this email.</p>` +
         `<p>Best,<br>${senderName}<br>321 Swipe</p>`
 
