@@ -59,10 +59,11 @@ export async function approveAndSendAction(
     })
 
     // Resolve the approval_request → status: approved
+    // approved_by is null for token-based approvals (no authenticated user session)
     await approvalRepo.resolveApprovalRequest(
       approval.id,
       approval.tenant_id,
-      'system',
+      null,
       'approved',
       { approved_via: 'review_link', review_token: token }
     )
@@ -204,7 +205,7 @@ export async function rejectTokenAction(
     await approvalRepo.resolveApprovalRequest(
       approval.id,
       approval.tenant_id,
-      'system',
+      null,
       'rejected',
       { reason, rejected_via: 'review_link', review_token: token }
     )

@@ -88,7 +88,7 @@ export async function createApprovalRequest(data: {
 export async function resolveApprovalRequest(
   id: string,
   tenantId: string,
-  userId: string,
+  userId: string | null,
   decision: 'approved' | 'rejected',
   decisionData: Record<string, unknown> = {}
 ): Promise<ApprovalRow> {
@@ -98,7 +98,8 @@ export async function resolveApprovalRequest(
     decided_at: new Date().toISOString(),
     decision: decisionData,
   }
-  if (decision === 'approved') update.approved_by = userId
+  // approved_by is nullable uuid — only set when we have a real user id
+  if (decision === 'approved') update.approved_by = userId ?? null
 
   const { data: row, error } = await supabase
     .from('approval_requests')
