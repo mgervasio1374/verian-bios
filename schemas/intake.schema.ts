@@ -38,14 +38,17 @@ export const FreeAnalysisIntakeSchema = z.object({
 })
 export type FreeAnalysisIntakePayload = z.infer<typeof FreeAnalysisIntakeSchema>
 
-// Statement uploads arrive as multipart/form-data; non-file fields are parsed here
+// Statement uploads arrive as multipart/form-data; non-file fields are parsed here.
+// last_name is optional — the upload form collects it separately but older integrations
+// may send a single combined name. The route handler normalises before calling upsertContact.
 export const StatementIntakeMetaSchema = z.object({
   source: z.enum(INTAKE_SOURCES).default('upload.321swipe.com'),
   first_name: z.string().min(1).max(100),
-  last_name: z.string().min(1).max(100),
+  last_name: z.string().max(100).default(''),
   email: z.string().email(),
   phone: z.string().max(30).optional(),
   company_name: z.string().max(200).optional(),
   company_domain: z.string().max(200).optional(),
+  processor: z.string().max(100).optional(),
 })
 export type StatementIntakeMeta = z.infer<typeof StatementIntakeMetaSchema>
