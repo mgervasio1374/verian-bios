@@ -9,6 +9,7 @@ interface ReviewFormProps {
   initialSubject: string
   initialBodyText: string
   initialBodyHtml: string
+  hasPdf?: boolean
 }
 
 type ActionState =
@@ -22,6 +23,7 @@ export function ReviewForm({
   initialSubject,
   initialBodyText,
   initialBodyHtml,
+  hasPdf = false,
 }: ReviewFormProps) {
   const [subject, setSubject] = useState(initialSubject)
   const [bodyText, setBodyText] = useState(initialBodyText)
@@ -149,7 +151,9 @@ export function ReviewForm({
                      disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <CheckCheck className="h-4 w-4" />
-          {isLoading && state.action === 'approve' ? 'Approving & Sending…' : 'Approve & Send to Prospect'}
+          {isLoading && state.action === 'approve'
+            ? 'Approving & Sending…'
+            : hasPdf ? 'Approve & Send to Prospect (PDF attached)' : 'Approve & Send to Prospect'}
         </button>
 
         {/* Secondary actions */}

@@ -1,6 +1,6 @@
 import { getReviewPageData } from './actions'
 import { ReviewForm } from './ReviewForm'
-import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, XCircle, FileText, ExternalLink } from 'lucide-react'
 
 interface PageProps {
   params: Promise<{ token: string }>
@@ -52,7 +52,7 @@ export default async function ApprovalReviewPage({ params }: PageProps) {
                 <p className="text-sm text-muted-foreground mt-0.5">{data.leadName}</p>
               )}
             </div>
-            <span className="text-xs bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full font-medium">
+            <span className="text-xs bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full font-medium shrink-0">
               Awaiting Review
             </span>
           </div>
@@ -68,9 +68,7 @@ export default async function ApprovalReviewPage({ params }: PageProps) {
             {data.toEmail && (
               <div>
                 <p className="text-xs text-muted-foreground">Recipient</p>
-                <p className="font-medium">
-                  {data.toName ? `${data.toName}` : data.toEmail}
-                </p>
+                <p className="font-medium">{data.toName ?? data.toEmail}</p>
                 <p className="text-xs text-muted-foreground">{data.toEmail}</p>
               </div>
             )}
@@ -93,15 +91,108 @@ export default async function ApprovalReviewPage({ params }: PageProps) {
           </div>
         </div>
 
+        {/* Analysis + Pricing Card */}
+        {data.analysis && (
+          <div className="bg-white rounded-xl border shadow-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold">Statement Analysis</h2>
+              <ConfidenceBadge confidence={data.analysis.confidence} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+              <AnalysisRow
+                label="Current Processor"
+                value={data.analysis.processor_name ?? 'Not yet identified'}
+                dim={!data.analysis.processor_name}
+              />
+              <AnalysisRow label="Monthly Volume"  value="Pending review" dim />
+              <AnalysisRow label="Total Fees"      value="Pending review" dim />
+              <AnalysisRow label="Effective Rate"  value="Pending review" dim />
+            </div>
+
+            <div className="border-t pt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                Proposed 321 Swipe Pricing
+              </p>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                <AnalysisRow label="Model"          value="Interchange-Plus" />
+                <AnalysisRow label="Processing Markup" value={`${data.analysis.proposed_basis_pts} bps (${(data.analysis.proposed_basis_pts / 100).toFixed(2)}%)`} />
+                <AnalysisRow label="Per Transaction" value={`$${(data.analysis.proposed_per_txn / 100).toFixed(2)}`} />
+                <AnalysisRow label="Monthly Fee"    value={`$${data.analysis.proposed_monthly_fee.toFixed(2)}`} />
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5 text-xs text-amber-800">
+              Savings estimate pending — will be confirmed after full statement review during the scheduled call.
+            </div>
+          </div>
+        )}
+
+        {/* PDF Proposal download */}
+        {data.proposalPdfUrl && (
+          <div className="bg-white rounded-xl border shadow-sm p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                <FileText className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Proposal Package PDF</p>
+                <p className="text-xs text-muted-foreground">Click to open — attach this to the customer email</p>
+              </div>
+            </div>
+            <a
+              href={data.proposalPdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              Open PDF
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </div>
+        )}
+
         {/* Editable review form */}
         <ReviewForm
           token={token}
           initialSubject={data.subject}
           initialBodyText={data.bodyText}
           initialBodyHtml={data.bodyHtml ?? ''}
+          hasPdf={!!data.proposalPdfUrl}
         />
-
       </div>
+    </div>
+  )
+}
+
+// ---- Sub-components ----
+
+function ConfidenceBadge({ confidence }: { confidence: string }) {
+  const isPlaceholder = confidence === 'placeholder'
+  return (
+    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+      isPlaceholder
+        ? 'bg-amber-100 text-amber-700'
+        : 'bg-green-100 text-green-700'
+    }`}>
+      {isPlaceholder ? 'Preliminary' : confidence}
+    </span>
+  )
+}
+
+function AnalysisRow({
+  label,
+  value,
+  dim = false,
+}: {
+  label: string
+  value: string
+  dim?: boolean
+}) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={`font-medium text-sm ${dim ? 'text-muted-foreground italic' : ''}`}>{value}</p>
     </div>
   )
 }
@@ -122,9 +213,7 @@ function ErrorState({ message }: { message: string }) {
 }
 
 function StatusState({
-  icon,
-  title,
-  message,
+  icon, title, message,
 }: {
   icon: React.ReactNode
   title: string
