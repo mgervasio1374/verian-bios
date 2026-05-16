@@ -6,6 +6,7 @@ import { upsertCompany, upsertContact } from '../_lib/upsert'
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { buildSystemContext } from '@/lib/auth/context'
 import { enqueueEvent } from '@/modules/workflow/services/event-dispatch.service'
+import { inngest } from '@/lib/inngest/client'
 
 const STORAGE_BUCKET = 'artifacts'
 const ALLOWED_MIME_TYPES = new Set([
@@ -20,8 +21,9 @@ const ALLOWED_MIME_TYPES = new Set([
 const MAX_FILE_BYTES = 20 * 1024 * 1024 // 20 MB
 
 // Handles statement file uploads from upload.321swipe.com
-// Expects multipart/form-data with fields: file, first_name, last_name, email,
-// and optional: phone, company_name, company_domain, source
+// Expects multipart/form-data with fields:
+//   file (required), first_name, last_name, email, phone,
+//   company_name, company_domain, source, processor
 export async function POST(req: NextRequest) {
   if (!validateIntakeApiKey(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -58,13 +60,14 @@ export async function POST(req: NextRequest) {
   }
 
   const rawMeta = {
-    source: formData.get('source') ?? 'upload.321swipe.com',
-    first_name: formData.get('first_name'),
-    last_name: formData.get('last_name'),
-    email: formData.get('email'),
-    phone: formData.get('phone') ?? undefined,
-    company_name: formData.get('company_name') ?? undefined,
+    source:         formData.get('source')         ?? 'upload.321swipe.com',
+    first_name:     formData.get('first_name'),
+    last_name:      formData.get('last_name'),
+    email:          formData.get('email'),
+    phone:          formData.get('phone')          ?? undefined,
+    company_name:   formData.get('company_name')   ?? undefined,
     company_domain: formData.get('company_domain') ?? undefined,
+    processor:      formData.get('processor')      ?? undefined,
   }
 
   const parsed = StatementIntakeMetaSchema.safeParse(rawMeta)
@@ -88,8 +91,15 @@ export async function POST(req: NextRequest) {
   const supabase = createSupabaseServiceClient()
   const ctx = buildSystemContext(tenantId, workspaceId)
 
+  // ── CRM records ──────────────────────────────────────────────────────────
+  let company: Awaited<ReturnType<typeof upsertCompany>>
+  let contact: Awaited<ReturnType<typeof upsertContact>>
+  let lead: { id: string; name: string; stage: string; priority: string }
+  let artifact: { id: string }
+  let version: { id: string }
+
   try {
-    const company = await upsertCompany({
+    company = await upsertCompany({
       tenantId,
       workspaceId,
       name: input.company_name,
@@ -97,7 +107,7 @@ export async function POST(req: NextRequest) {
       source: input.source,
     })
 
-    const contact = await upsertContact({
+    contact = await upsertContact({
       tenantId,
       workspaceId,
       email: input.email,
@@ -109,13 +119,13 @@ export async function POST(req: NextRequest) {
     })
 
     const leadName = [
-      `${input.first_name} ${input.last_name}`,
+      `${input.first_name} ${input.last_name}`.trim(),
       input.company_name ? `— ${input.company_name}` : null,
     ]
       .filter(Boolean)
       .join(' ')
 
-    const { data: lead, error: leadErr } = await supabase
+    const { data: leadRow, error: leadErr } = await supabase
       .from('leads')
       .insert({
         tenant_id: tenantId,
@@ -131,15 +141,17 @@ export async function POST(req: NextRequest) {
           intake_source: input.source,
           priority_tier: 'P1',
           priority_reason: 'Merchant statement uploaded; prospect requested analysis.',
+          processor: input.processor ?? null,
         },
       })
-      .select()
+      .select('id, name, stage, priority')
       .single()
 
-    if (leadErr || !lead) throw new Error(`lead insert: ${leadErr?.message}`)
+    if (leadErr || !leadRow) throw new Error(`lead insert: ${leadErr?.message}`)
+    lead = leadRow
 
-    // Create artifact record (status: processing until upload completes)
-    const { data: artifact, error: artifactErr } = await supabase
+    // Artifact record (processing → active after storage upload)
+    const { data: artifactRow, error: artifactErr } = await supabase
       .from('artifacts')
       .insert({
         tenant_id: tenantId,
@@ -155,12 +167,13 @@ export async function POST(req: NextRequest) {
         lead_id: lead.id,
         description: `Statement uploaded via ${input.source}`,
       })
-      .select()
+      .select('id')
       .single()
 
-    if (artifactErr || !artifact) throw new Error(`artifact insert: ${artifactErr?.message}`)
+    if (artifactErr || !artifactRow) throw new Error(`artifact insert: ${artifactErr?.message}`)
+    artifact = artifactRow
 
-    // Upload file bytes to Supabase Storage
+    // Upload bytes to Supabase Storage
     const storagePath = `${tenantId}/${artifact.id}/v1/${filename}`
     const bytes = new Uint8Array(await file.arrayBuffer())
 
@@ -170,8 +183,8 @@ export async function POST(req: NextRequest) {
 
     if (uploadErr) throw new Error(`storage upload: ${uploadErr.message}`)
 
-    // Create artifact_version record
-    const { data: version, error: versionErr } = await supabase
+    // Artifact version record
+    const { data: versionRow, error: versionErr } = await supabase
       .from('artifact_versions')
       .insert({
         tenant_id: tenantId,
@@ -182,10 +195,11 @@ export async function POST(req: NextRequest) {
         mime_type: mimeType,
         file_size_bytes: file.size,
       })
-      .select()
+      .select('id')
       .single()
 
-    if (versionErr || !version) throw new Error(`artifact_version insert: ${versionErr?.message}`)
+    if (versionErr || !versionRow) throw new Error(`artifact_version insert: ${versionErr?.message}`)
+    version = versionRow
 
     // Mark artifact active
     await supabase
@@ -198,6 +212,7 @@ export async function POST(req: NextRequest) {
       })
       .eq('id', artifact.id)
 
+    // Activity log
     await supabase.from('activities').insert({
       tenant_id: tenantId,
       workspace_id: workspaceId,
@@ -214,52 +229,89 @@ export async function POST(req: NextRequest) {
         mime_type: mimeType,
       },
     })
-
-    await enqueueEvent(ctx, 'lead.created', {
-      leadId: lead.id,
-      tenantId,
-      workspaceId,
-      name: lead.name,
-      stage: lead.stage,
-      priority: lead.priority,
-      source: input.source,
-    })
-
-    await enqueueEvent(ctx, 'artifact.uploaded', {
-      artifactId: artifact.id,
-      versionId: version.id,
-      leadId: lead.id,
-      tenantId,
-      workspaceId,
-    })
-
-    // Trigger dedicated P1 statement review workflow
-    await enqueueEvent(ctx, 'statement.received', {
-      artifactId: artifact.id,
-      leadId: lead.id,
-      contactId: contact.id,
-      companyId: company?.id ?? null,
-      tenantId,
-      workspaceId,
-      source: input.source,
-      firstName: input.first_name,
-      lastName: input.last_name,
-      email: input.email,
-      companyName: input.company_name ?? null,
-    })
-
-    return NextResponse.json(
-      {
-        ok: true,
-        leadId: lead.id,
-        contactId: contact.id,
-        companyId: company?.id ?? null,
-        artifactId: artifact.id,
-      },
-      { status: 201 }
-    )
   } catch (err) {
-    console.error('[intake/statement] error:', err)
+    console.error('[intake/statement] CRM/storage error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
+
+  // ── Event enqueue — each call is independent ──────────────────────────────
+  // A failure in one must not block the others. The outer CRM block already
+  // committed so we always return 201 after this point.
+
+  // 1. lead.created — scoring pipeline + generic email draft
+  try {
+    await enqueueEvent(ctx, 'lead.created', {
+      leadId:      lead.id,
+      tenantId,
+      workspaceId,
+      name:        lead.name,
+      stage:       lead.stage,
+      priority:    lead.priority,
+      source:      input.source,
+    })
+  } catch (err) {
+    console.error('[intake/statement] enqueue lead.created failed:', err)
+  }
+
+  // 2. artifact.uploaded — artifact pipeline
+  try {
+    await enqueueEvent(ctx, 'artifact.uploaded', {
+      artifactId:  artifact.id,
+      versionId:   version.id,
+      leadId:      lead.id,
+      tenantId,
+      workspaceId,
+    })
+  } catch (err) {
+    console.error('[intake/statement] enqueue artifact.uploaded failed:', err)
+  }
+
+  // 3. statement.received — P1 statement review workflow
+  // Enqueued into outbox (audit + retry) AND fired directly to Inngest so the
+  // P1 workflow starts immediately without waiting for the 30-minute outbox cron.
+  // A deterministic dedup ID (lead ID based) prevents double-execution if both
+  // the direct send and the outbox cron deliver the event.
+  const statementPayload = {
+    artifactId:  artifact.id,
+    leadId:      lead.id,
+    contactId:   contact.id,
+    companyId:   company?.id ?? null,
+    tenantId,
+    workspaceId,
+    source:      input.source,
+    firstName:   input.first_name,
+    lastName:    input.last_name,
+    email:       input.email,
+    companyName: input.company_name ?? null,
+  }
+
+  try {
+    await enqueueEvent(ctx, 'statement.received', statementPayload)
+    console.log('[intake/statement] statement.received enqueued', { leadId: lead.id })
+  } catch (err) {
+    console.error('[intake/statement] enqueue statement.received failed:', err)
+  }
+
+  // Direct Inngest send — fires immediately, deduplicated by lead ID
+  try {
+    await inngest.send({
+      name: 'statement.received',
+      data: { ...statementPayload, tenantId, workspaceId },
+      id:   `statement.received:${lead.id}`,
+    })
+    console.log('[intake/statement] statement.received sent directly to Inngest', { leadId: lead.id })
+  } catch (err) {
+    console.error('[intake/statement] direct inngest.send statement.received failed:', err)
+  }
+
+  return NextResponse.json(
+    {
+      ok:        true,
+      leadId:    lead.id,
+      contactId: contact.id,
+      companyId: company?.id ?? null,
+      artifactId: artifact.id,
+    },
+    { status: 201 }
+  )
 }
