@@ -1,0 +1,175 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-016",
+    "scenario_name": "no_response_follow_up_sequence_2_different_opening_angles",
+    "description": "No-response follow-up at sequence position 2. Three versions, each using a different opening angle to avoid repetition."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0016-0016-0016-000000000016",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-1122-1122-1122-111111111120",
+      "company_id": "22222222-1122-1122-1122-222222222230",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "no_response_follow_up",
+      "primary_goal": "re_engage_after_no_response",
+      "secondary_goal": null,
+      "sequence_position": 2,
+      "days_since_last_contact": 7,
+      "lead_source": "manual",
+      "lead_stage": "new",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "security_services",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 1,
+      "last_engagement_signal": null,
+      "partner_membership": null,
+      "audience_context": "Security services company. No response to initial outreach. Second touch in sequence.",
+      "pain_point_hypothesis": "Owner may not have prioritized the first email. Different angle needed.",
+      "offer_angle": "cost_clarity",
+      "trust_angle": "Try a different angle to spark engagement without being repetitive.",
+      "proof_point": null,
+      "cta": "Worth a 10-minute conversation to see if there is anything to look at?",
+      "tone": "executive_brevity",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "Do not claim savings",
+        "Do not say 'I have been trying to reach you'"
+      ],
+      "required_inclusions": [
+        "Different opening angle from prior email",
+        "One low-friction CTA"
+      ],
+      "avoid": [
+        "Just checking in",
+        "I wanted to follow up",
+        "I have been trying to reach you"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "no_response_follow_up",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "angle_variation",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "trust_building_advisor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.75,
+      "reasoning": "Second touch with no prior response. Different angles required for each version.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-1122-1122-1122-111111111120",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Ronald Burke",
+      "companyName": "SecureWatch Patrol Services",
+      "businessType": "security_services",
+      "city": "Las Vegas",
+      "state": "NV",
+      "website": "securewatchpatrol.com",
+      "sizeProxy": "medium",
+      "knownPaymentContext": null,
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "security_services"
+    },
+    "company_context": {
+      "companyId": "22222222-1122-1122-1122-222222222230",
+      "companyName": "SecureWatch Patrol Services",
+      "industry": "security_services",
+      "city": "Las Vegas",
+      "state": "NV"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "no_response_follow_up",
+        "skill_version": 1,
+        "instructions": "Try a different angle. Do not repeat the prior email opener. Do not reference lack of response accusatorially."
+      },
+      {
+        "skill_slug": "angle_variation",
+        "skill_version": 1,
+        "instructions": "Each version must use a distinct opening angle. No two versions may share an opening approach."
+      },
+      {
+        "skill_slug": "trust_building_advisor",
+        "skill_version": 1,
+        "instructions": "Maintain a helpful, low-pressure tone."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "No savings claims. No reference to trying to reach them repeatedly."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 3,
+    "expected_version_labels": [
+      "Different Angle",
+      "Question Only",
+      "Brief Reframe"
+    ],
+    "expected_strategy_angles": [
+      "industry_angle",
+      "question_lead",
+      "value_reframe"
+    ],
+    "expected_subject_behavior": "Each subject line uses a different hook; none are identical or near-identical",
+    "expected_body_behavior": "Each version uses a different opening angle; no two versions share an opening approach",
+    "expected_cta_behavior": "Each version has one low-friction CTA that varies in phrasing",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "savings_claim_check",
+      "angle_differentiation_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 3
+    },
+    "forbidden_phrases": [
+      "Just checking in",
+      "I wanted to follow up",
+      "I have been trying to reach you",
+      "I sent you an email"
+    ],
+    "forbidden_claims": [
+      "savings",
+      "repeated outreach shaming"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "Each version must use a distinct opening angle. Repeated openers across versions or reference to prior non-response are hard fails."
+  }
+}

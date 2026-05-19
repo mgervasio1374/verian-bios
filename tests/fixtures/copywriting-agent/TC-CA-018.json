@@ -1,0 +1,176 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-018",
+    "scenario_name": "re_engagement_time_gap_acknowledgment",
+    "description": "Re-engagement outreach after a significant time gap. Two versions: Time-Gap Acknowledgment and Fresh Reason. Both acknowledge time has passed without guilt."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0018-0018-0018-000000000018",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-1144-1144-1144-111111111122",
+      "company_id": "22222222-1144-1144-1144-222222222232",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "re_engagement",
+      "primary_goal": "re_engage_after_long_gap",
+      "secondary_goal": null,
+      "sequence_position": 1,
+      "days_since_last_contact": 90,
+      "lead_source": "manual",
+      "lead_stage": "dormant",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "insurance",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 3,
+      "last_engagement_signal": null,
+      "partner_membership": null,
+      "audience_context": "Insurance agency owner. Three prior touches about 3 months ago with no conversion. Re-engaging with a fresh angle.",
+      "pain_point_hypothesis": "Owner may now be more receptive after seasonal changes or competitive pressures.",
+      "offer_angle": "fresh_perspective",
+      "trust_angle": "Acknowledge the time gap naturally and non-guilting. Offer a new reason to reconnect.",
+      "proof_point": null,
+      "cta": "If payment costs have come back to mind, happy to pick up where we left off.",
+      "tone": "professional_warm",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "Do not shame for not responding",
+        "Do not claim savings"
+      ],
+      "required_inclusions": [
+        "Acknowledge time has passed",
+        "Non-guilty tone",
+        "Fresh reason to reconnect"
+      ],
+      "avoid": [
+        "I have tried to reach you",
+        "I have been following up",
+        "you have not responded",
+        "it has been a while and"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "re_engagement",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "trust_building_advisor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "insurance_merchant",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.72,
+      "reasoning": "90-day gap since last contact. Re-engagement with time-gap acknowledgment.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-1144-1144-1144-111111111122",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Gregory Walsh",
+      "companyName": "Walsh & Partners Insurance",
+      "businessType": "insurance",
+      "city": "Hartford",
+      "state": "CT",
+      "website": "walshandpartners.com",
+      "sizeProxy": "small",
+      "knownPaymentContext": null,
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "insurance"
+    },
+    "company_context": {
+      "companyId": "22222222-1144-1144-1144-222222222232",
+      "companyName": "Walsh & Partners Insurance",
+      "industry": "insurance",
+      "city": "Hartford",
+      "state": "CT"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "re_engagement",
+        "skill_version": 1,
+        "instructions": "Acknowledge the time gap naturally. Offer a fresh reason to reconnect. Do not guilt."
+      },
+      {
+        "skill_slug": "trust_building_advisor",
+        "skill_version": 1,
+        "instructions": "Show patience and respect for their timing."
+      },
+      {
+        "skill_slug": "insurance_merchant",
+        "skill_version": 1,
+        "instructions": "Reference insurance payment processing context if relevant."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "No savings claims. No shaming. No pressure."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 2,
+    "expected_version_labels": [
+      "Time-Gap Acknowledgment",
+      "Fresh Reason"
+    ],
+    "expected_strategy_angles": [
+      "time_gap_acknowledgment",
+      "fresh_reason_to_reconnect"
+    ],
+    "expected_subject_behavior": "Subjects signal a fresh reach-out; no guilt or pressure",
+    "expected_body_behavior": "Both versions acknowledge time has passed in a natural, non-guilty way; each offers a fresh angle for reconnecting",
+    "expected_cta_behavior": "Each version proposes reconnecting without pressure",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "guilt_shaming_check",
+      "savings_claim_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 1
+    },
+    "forbidden_phrases": [
+      "I have tried to reach you",
+      "I have been following up",
+      "you have not responded",
+      "it has been a while and I"
+    ],
+    "forbidden_claims": [
+      "repeated outreach shaming",
+      "savings guarantees",
+      "guilt language"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "Both versions must acknowledge the time gap naturally and without guilt. Shaming language is a hard fail."
+  }
+}

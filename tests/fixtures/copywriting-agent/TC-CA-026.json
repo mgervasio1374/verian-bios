@@ -1,0 +1,174 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-026",
+    "scenario_name": "referral_request_existing_customer",
+    "description": "Referral request to an existing customer. is_existing_customer context is true (strategy status:approved). Two versions: Gratitude First and Specific Referral-Fit Ask."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0026-0026-0026-000000000026",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-2626-2626-2626-11111111112a",
+      "company_id": "22222222-2626-2626-2626-22222222223a",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "approved",
+      "message_type": "referral_request",
+      "primary_goal": "ask_for_referrals_from_existing_customer",
+      "secondary_goal": null,
+      "sequence_position": 1,
+      "days_since_last_contact": 30,
+      "lead_source": "existing_customer",
+      "lead_stage": "customer",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "electrical",
+      "processing_volume_tier": null,
+      "has_statement_artifact": true,
+      "prior_touch_count": 8,
+      "last_engagement_signal": "active_customer",
+      "partner_membership": null,
+      "audience_context": "Existing customer; electrical contractor who switched to our processing 6 months ago. Happy with service. Good referral candidate.",
+      "pain_point_hypothesis": "No pain point; this is a relationship-building ask from a satisfied customer.",
+      "offer_angle": "relationship_gratitude",
+      "trust_angle": "Lead with gratitude for the relationship; make the referral ask feel natural, not transactional.",
+      "proof_point": null,
+      "cta": "If you know any other contractors who might benefit from a rate review, I would love an introduction.",
+      "tone": "professional_warm",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "Do not pressure for referrals",
+        "Do not make referral incentives that do not exist"
+      ],
+      "required_inclusions": [
+        "Gratitude for the existing relationship",
+        "Natural referral ask"
+      ],
+      "avoid": [
+        "I came across your business",
+        "prospecting language",
+        "if you know anyone who needs to save money"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "referral_request",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "customer_relationship",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "electrical_contractor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.88,
+      "reasoning": "Existing satisfied customer. Referral ask with gratitude-first framing.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-2626-2626-2626-11111111112a",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Nathan Prescott",
+      "companyName": "Prescott Electric Inc.",
+      "businessType": "electrical",
+      "city": "Minneapolis",
+      "state": "MN",
+      "website": "prescottelectric.com",
+      "sizeProxy": "medium",
+      "knownPaymentContext": "field_payments",
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "electrical",
+      "isExistingCustomer": true
+    },
+    "company_context": {
+      "companyId": "22222222-2626-2626-2626-22222222223a",
+      "companyName": "Prescott Electric Inc.",
+      "industry": "electrical",
+      "city": "Minneapolis",
+      "state": "MN"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "referral_request",
+        "skill_version": 1,
+        "instructions": "Ask for referrals naturally. Lead with gratitude. Do not pressure."
+      },
+      {
+        "skill_slug": "customer_relationship",
+        "skill_version": 1,
+        "instructions": "Acknowledge the existing relationship. Make the ask feel like a natural extension of the partnership."
+      },
+      {
+        "skill_slug": "electrical_contractor",
+        "skill_version": 1,
+        "instructions": "Reference the electrical contractor context and community."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "No invented referral incentives. No pressure. No savings guarantees."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 2,
+    "expected_version_labels": [
+      "Gratitude First",
+      "Specific Referral-Fit Ask"
+    ],
+    "expected_strategy_angles": [
+      "gratitude_first",
+      "specific_referral_fit"
+    ],
+    "expected_subject_behavior": "Subjects reference the relationship or a check-in; none are cold-outreach style",
+    "expected_body_behavior": "Both versions lead with genuine gratitude for the existing relationship before making the referral ask",
+    "expected_cta_behavior": "Each version makes a natural referral ask without pressure or invented incentives",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "pressure_language_check",
+      "invented_incentive_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 1
+    },
+    "forbidden_phrases": [
+      "I came across your business",
+      "prospecting language",
+      "if you know anyone who needs to save money"
+    ],
+    "forbidden_claims": [
+      "invented referral bonuses",
+      "pressure for referrals",
+      "savings guarantees"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "Gratitude must come before the referral ask in both versions. Prospecting language is a hard fail for an existing customer context."
+  }
+}

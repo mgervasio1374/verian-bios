@@ -1,0 +1,192 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-022",
+    "scenario_name": "partner_campaign_bcsg_confirmed_one_reference",
+    "description": "Blue Collar Success Group (BCSG) partner member campaign. Three versions. BCSG referenced once per version. blue_collar_success_group_messaging skill loaded."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0022-0022-0022-000000000022",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-2222-3333-4444-111111111126",
+      "company_id": "22222222-2222-3333-4444-222222222236",
+      "campaign_id": "33333333-2222-3333-4444-333333333336",
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "partner_member_specific_campaign",
+      "primary_goal": "leverage_partner_trust_and_request_statement",
+      "secondary_goal": null,
+      "sequence_position": 1,
+      "days_since_last_contact": null,
+      "lead_source": "partner_list",
+      "lead_stage": "new",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "home_services",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 0,
+      "last_engagement_signal": null,
+      "partner_membership": {
+        "confirmed": true,
+        "partner_name": "blue_collar_success_group",
+        "partner_claims_authorized": false,
+        "membership_tier": null
+      },
+      "audience_context": "Home services contractor who is a confirmed Blue Collar Success Group (BCSG) member. Campaign outreach leveraging the shared BCSG community relationship.",
+      "pain_point_hypothesis": "BCSG members often run field-based operations with mixed card types that lead to downgrade fees.",
+      "offer_angle": "partner_trust",
+      "trust_angle": "Reference the shared BCSG community naturally and once only per version.",
+      "proof_point": null,
+      "cta": "Would you be open to a quick statement review? Happy to make it worth your time.",
+      "tone": "professional_warm",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "Do not claim official BCSG endorsement",
+        "Reference BCSG at most once per version"
+      ],
+      "required_inclusions": [
+        "One natural BCSG reference per version",
+        "One low-friction CTA"
+      ],
+      "avoid": [
+        "exclusive partner",
+        "official partner",
+        "endorsed by BCSG",
+        "certified by"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "cold_outreach",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "blue_collar_success_group_messaging",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "home_services_contractor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "trust_building_advisor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.85,
+      "reasoning": "Confirmed BCSG member. BCSG messaging skill loaded. One reference per version enforced.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-2222-3333-4444-111111111126",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Dale Hutchinson",
+      "companyName": "Hutchinson Custom Painting",
+      "businessType": "painting",
+      "city": "Cincinnati",
+      "state": "OH",
+      "website": "hutchinsoncustompainting.com",
+      "sizeProxy": "small",
+      "knownPaymentContext": "field_payments",
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "home_services"
+    },
+    "company_context": {
+      "companyId": "22222222-2222-3333-4444-222222222236",
+      "companyName": "Hutchinson Custom Painting",
+      "industry": "painting",
+      "city": "Cincinnati",
+      "state": "OH"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "cold_outreach",
+        "skill_version": 1,
+        "instructions": "Open with a relevant observation."
+      },
+      {
+        "skill_slug": "blue_collar_success_group_messaging",
+        "skill_version": 1,
+        "instructions": "Reference the Blue Collar Success Group relationship naturally and at most once per version. Do not claim official endorsement."
+      },
+      {
+        "skill_slug": "home_services_contractor",
+        "skill_version": 1,
+        "instructions": "Reference home services payment realities."
+      },
+      {
+        "skill_slug": "trust_building_advisor",
+        "skill_version": 1,
+        "instructions": "Use shared community context to build trust."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "One BCSG reference max per version. No endorsement or exclusive partner claims."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 3,
+    "expected_version_labels": [
+      "Partner Context",
+      "Home Services / Operational Angle",
+      "Statement Review Clarity"
+    ],
+    "expected_strategy_angles": [
+      "bcsg_community_lead",
+      "member_benefit",
+      "shared_network"
+    ],
+    "expected_subject_behavior": "Subjects may reference BCSG community; none claim endorsement",
+    "expected_body_behavior": "BCSG reference appears at most once per version; no official endorsement or exclusive partner claims",
+    "expected_cta_behavior": "Each version proposes a low-friction next step for a BCSG member",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "partner_claim_check",
+      "bcsg_reference_count_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 3
+    },
+    "forbidden_phrases": [
+      "exclusive partner",
+      "official partner",
+      "endorsed by BCSG",
+      "certified by"
+    ],
+    "forbidden_claims": [
+      "exclusive partner",
+      "official partner",
+      "endorsed by",
+      "certified by"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "BCSG may be mentioned once per version maximum. Endorsement or exclusive partner claims are a hard fail. Three versions required."
+  }
+}

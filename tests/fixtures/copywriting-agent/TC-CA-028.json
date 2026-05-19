@@ -1,0 +1,119 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-028",
+    "scenario_name": "missing_compliance_skill_blocks_copy_005",
+    "description": "Valid cold outreach strategy but selected_skills does NOT include compliance_forbidden_claims. Expects COPY_005 error blocking generation."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0028-0028-0028-000000000028",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-2828-2828-2828-11111111112c",
+      "company_id": "22222222-2828-2828-2828-22222222223c",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "cold_outreach",
+      "primary_goal": "request_statement_or_start_conversation",
+      "secondary_goal": null,
+      "sequence_position": 1,
+      "days_since_last_contact": null,
+      "lead_source": "manual",
+      "lead_stage": "new",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "roofing",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 0,
+      "last_engagement_signal": null,
+      "partner_membership": null,
+      "audience_context": "Roofing contractor; large-ticket jobs paid in field.",
+      "pain_point_hypothesis": "Large-ticket field payments may carry higher interchange.",
+      "offer_angle": "cost_clarity",
+      "trust_angle": "Position as a roofing payment specialist.",
+      "proof_point": null,
+      "cta": "Worth 15 minutes to review your statement?",
+      "tone": "executive_brevity",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": ["Do not claim savings amounts"],
+      "required_inclusions": ["One specific industry observation", "One low-friction CTA"],
+      "avoid": ["I hope this email finds you well"],
+      "selected_skills": [
+        { "skill_slug": "cold_outreach", "skill_version": 1 },
+        { "skill_slug": "roofing_contractor", "skill_version": 1 },
+        { "skill_slug": "trust_building_advisor", "skill_version": 1 },
+        { "skill_slug": "executive_brevity", "skill_version": 1 }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.60,
+      "reasoning": "Valid cold outreach but compliance_forbidden_claims skill is missing from selected_skills.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-2828-2828-2828-11111111112c",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Ed Carmichael",
+      "companyName": "Carmichael Roofing & Sheet Metal",
+      "businessType": "roofing",
+      "city": "Pittsburgh",
+      "state": "PA",
+      "website": "carmichaelroofing.com",
+      "sizeProxy": "medium",
+      "knownPaymentContext": "field_payments",
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "roofing"
+    },
+    "company_context": {
+      "companyId": "22222222-2828-2828-2828-22222222223c",
+      "companyName": "Carmichael Roofing & Sheet Metal",
+      "industry": "roofing",
+      "city": "Pittsburgh",
+      "state": "PA"
+    },
+    "selected_skill_definitions": [
+      { "skill_slug": "cold_outreach", "skill_version": 1, "instructions": "Open with a relevant industry observation." },
+      { "skill_slug": "roofing_contractor", "skill_version": 1, "instructions": "Reference roofing large-ticket payment context." },
+      { "skill_slug": "trust_building_advisor", "skill_version": 1, "instructions": "Position as knowledgeable." },
+      { "skill_slug": "executive_brevity", "skill_version": 1, "instructions": "Under 120 words. One CTA." }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": false,
+    "expected_version_count": 0,
+    "expected_version_labels": [],
+    "expected_strategy_angles": [],
+    "expected_subject_behavior": "No output produced",
+    "expected_body_behavior": "No output produced; generation blocked due to missing compliance skill",
+    "expected_cta_behavior": "No output produced",
+    "expected_compliance_checks": [],
+    "expected_warnings": [],
+    "expected_errors": [
+      { "code": "COPY_005" }
+    ],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 0,
+      "version_pairs_checked": 0
+    },
+    "forbidden_phrases": [],
+    "forbidden_claims": [],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "COPY_005 must be returned when compliance_forbidden_claims skill is absent from selected_skills. No email versions should be produced."
+  }
+}

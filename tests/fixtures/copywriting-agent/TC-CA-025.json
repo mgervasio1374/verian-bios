@@ -1,0 +1,175 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-025",
+    "scenario_name": "event_expo_follow_up_no_conversation_notes",
+    "description": "Post-event follow-up where NO conversation notes exist. Two versions that reference the event but avoid fabricating specific conversation details."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0025-0025-0025-000000000025",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-2525-2525-2525-111111111129",
+      "company_id": "22222222-2525-2525-2525-222222222239",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "event_expo_follow_up",
+      "primary_goal": "follow_up_on_event_meeting",
+      "secondary_goal": null,
+      "sequence_position": 1,
+      "days_since_last_contact": 3,
+      "lead_source": "event",
+      "lead_stage": "new",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "restaurant",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 0,
+      "last_engagement_signal": "event_booth_visit",
+      "partner_membership": null,
+      "audience_context": "Restaurant owner who stopped by the booth at the National Restaurant Association Show. Brief interaction; no detailed conversation notes recorded.",
+      "pain_point_hypothesis": "Restaurant owners at this event are commonly interested in reducing card processing costs.",
+      "offer_angle": "cost_clarity",
+      "trust_angle": "Reference the event to establish context without fabricating a specific conversation.",
+      "proof_point": null,
+      "cta": "Happy to take a quick look at your processing statement if you are curious about your rates.",
+      "tone": "professional_warm",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "Do not fabricate specific conversation details",
+        "Do not use 'as we discussed' when no notes exist"
+      ],
+      "required_inclusions": [
+        "Reference the NRA Show event",
+        "Low-friction CTA"
+      ],
+      "avoid": [
+        "as we discussed",
+        "based on our conversation",
+        "you mentioned"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "event_follow_up",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "trust_building_advisor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "restaurant_merchant",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.76,
+      "reasoning": "Event follow-up with no conversation notes. Generic event reference only; no fabricated discussion details.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-2525-2525-2525-111111111129",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Priya Kapoor",
+      "companyName": "Kapoor's Kitchen & Bar",
+      "businessType": "restaurant",
+      "city": "Chicago",
+      "state": "IL",
+      "website": "kapoorskitchenbar.com",
+      "sizeProxy": "small",
+      "knownPaymentContext": null,
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "restaurant",
+      "eventName": "HVAC Business Summit 2026",
+      "conversationNotes": null
+    },
+    "company_context": {
+      "companyId": "22222222-2525-2525-2525-222222222239",
+      "companyName": "Kapoor's Kitchen & Bar",
+      "industry": "restaurant",
+      "city": "Chicago",
+      "state": "IL"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "event_follow_up",
+        "skill_version": 1,
+        "instructions": "Reference the event to establish context. Do not fabricate specific conversation details when none exist in conversationNotes."
+      },
+      {
+        "skill_slug": "trust_building_advisor",
+        "skill_version": 1,
+        "instructions": "Position as helpful and knowledgeable based on the event context."
+      },
+      {
+        "skill_slug": "restaurant_merchant",
+        "skill_version": 1,
+        "instructions": "Reference restaurant payment context."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "Do not use 'as we discussed', 'based on our conversation', or 'you mentioned' when no notes are available."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 2,
+    "expected_version_labels": [
+      "Event Reference",
+      "Direct Ask"
+    ],
+    "expected_strategy_angles": [
+      "event_context",
+      "industry_angle"
+    ],
+    "expected_subject_behavior": "Subjects reference the NRA Show or the event meeting; none fabricate conversation specifics",
+    "expected_body_behavior": "Both versions reference the event but do not fabricate specific conversation details; no 'as we discussed' or 'you mentioned' language",
+    "expected_cta_behavior": "Each version proposes a low-friction next step relevant to a restaurant owner",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "conversation_fabrication_check",
+      "savings_claim_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 1
+    },
+    "forbidden_phrases": [
+      "as we discussed",
+      "based on our conversation",
+      "you mentioned"
+    ],
+    "forbidden_claims": [
+      "fabricated conversation details",
+      "specific things they said that are not in conversationNotes",
+      "savings guarantees"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "No conversation notes exist. Any phrase implying a specific discussion occurred is a hard fail. Event reference is permitted but must be generic."
+  }
+}

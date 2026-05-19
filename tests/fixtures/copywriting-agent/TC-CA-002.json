@@ -1,0 +1,179 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-002",
+    "scenario_name": "cold_outreach_no_industry_skill_unknown_segment",
+    "description": "Cold outreach where no industry/audience skill is included and the industry segment is unknown. Verifies the agent does not hallucinate industry-specific language."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0002-0002-0002-000000000002",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-2222-2222-2222-111111111112",
+      "company_id": "22222222-3333-3333-3333-222222222223",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "cold_outreach",
+      "primary_goal": "request_statement_or_start_conversation",
+      "secondary_goal": null,
+      "sequence_position": 1,
+      "days_since_last_contact": null,
+      "lead_source": "manual",
+      "lead_stage": "new",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "unknown",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 0,
+      "last_engagement_signal": null,
+      "partner_membership": null,
+      "audience_context": "Small business owner; general merchant with no specific industry context provided.",
+      "pain_point_hypothesis": "Payment processing costs may not be fully understood by the merchant.",
+      "offer_angle": "cost_clarity",
+      "trust_angle": "Position as a payment cost specialist offering clarity without assumptions.",
+      "proof_point": null,
+      "cta": "Happy to take a quick look at your statement if you want a second set of eyes.",
+      "tone": "professional_warm",
+      "length_target": "short",
+      "personalization_level": "generic",
+      "compliance_notes": [
+        "Do not claim savings amounts",
+        "Do not claim knowledge of current processor"
+      ],
+      "required_inclusions": [
+        "One low-friction CTA",
+        "No industry assumptions"
+      ],
+      "avoid": [
+        "I hope this email finds you well",
+        "home services",
+        "hvac",
+        "contractor"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "cold_outreach",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "trust_building_advisor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "executive_brevity",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.65,
+      "reasoning": "Unknown industry segment; no industry skill loaded. Generic advisory tone without industry assumptions.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-2222-2222-2222-111111111112",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Patricia Nguyen",
+      "companyName": "Nguyen General Trading",
+      "businessType": "unknown",
+      "city": "Phoenix",
+      "state": "AZ",
+      "website": null,
+      "sizeProxy": null,
+      "knownPaymentContext": null,
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "unknown"
+    },
+    "company_context": {
+      "companyId": "22222222-3333-3333-3333-222222222223",
+      "companyName": "Nguyen General Trading",
+      "industry": "unknown",
+      "city": "Phoenix",
+      "state": "AZ"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "cold_outreach",
+        "skill_version": 1,
+        "instructions": "Open with a relevant observation. Avoid filler openers. Do not assume industry."
+      },
+      {
+        "skill_slug": "trust_building_advisor",
+        "skill_version": 1,
+        "instructions": "Position as a knowledgeable advisor. Do not oversell."
+      },
+      {
+        "skill_slug": "executive_brevity",
+        "skill_version": 1,
+        "instructions": "Keep total email under 120 words. One clear CTA."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "Do not claim savings amounts. Do not claim knowledge of current processor."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 4,
+    "expected_version_labels": [
+      "Industry Question",
+      "Statement Clarity",
+      "Trust-Builder",
+      "Direct Executive Brevity"
+    ],
+    "expected_strategy_angles": [
+      "cost_clarity",
+      "statement_review",
+      "advisor_positioning",
+      "direct_question"
+    ],
+    "expected_subject_behavior": "Subject lines are general and do not reference any specific industry",
+    "expected_body_behavior": "No home services language, no hvac references, no contractor-specific language in any version",
+    "expected_cta_behavior": "Each version contains one low-friction CTA appropriate for an unknown industry merchant",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "industry_assumption_check",
+      "savings_claim_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 6
+    },
+    "forbidden_phrases": [
+      "I hope this email finds you well",
+      "I came across your business"
+    ],
+    "forbidden_claims": [
+      "home services language",
+      "hvac",
+      "contractor",
+      "technician payments",
+      "seasonal volume"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "Agent must not inject home services, HVAC, or contractor language when no industry skill is present and segment is unknown."
+  }
+}

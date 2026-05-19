@@ -1,0 +1,124 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-021",
+    "scenario_name": "partner_campaign_unconfirmed_membership_blocks_copy_004",
+    "description": "Partner member campaign where partner_membership.confirmed is false. Strategy flagged with requires_human_review:true. Expects COPY_004 blocking error."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0021-0021-0021-000000000021",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-2121-2121-2121-111111111125",
+      "company_id": "22222222-2121-2121-2121-222222222235",
+      "campaign_id": "33333333-2121-2121-2121-333333333335",
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "partner_member_specific_campaign",
+      "primary_goal": "leverage_partner_trust_and_request_statement",
+      "secondary_goal": null,
+      "sequence_position": 1,
+      "days_since_last_contact": null,
+      "lead_source": "partner_list",
+      "lead_stage": "new",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "home_services",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 0,
+      "last_engagement_signal": null,
+      "partner_membership": {
+        "confirmed": false,
+        "partner_name": "certainpath",
+        "partner_claims_authorized": false,
+        "membership_tier": null
+      },
+      "audience_context": "Home services contractor flagged as possible CertainPath member but membership not confirmed.",
+      "pain_point_hypothesis": "Unconfirmed partner membership; cannot proceed with partner messaging.",
+      "offer_angle": "partner_trust",
+      "trust_angle": "Cannot proceed; membership confirmation required.",
+      "proof_point": null,
+      "cta": null,
+      "tone": "professional_warm",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": ["Partner membership not confirmed; do not proceed with partner messaging"],
+      "required_inclusions": [],
+      "avoid": [],
+      "selected_skills": [
+        { "skill_slug": "cold_outreach", "skill_version": 1 },
+        { "skill_slug": "certainpath_member_messaging", "skill_version": 1 },
+        { "skill_slug": "home_services_contractor", "skill_version": 1 },
+        { "skill_slug": "compliance_forbidden_claims", "skill_version": 1 }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.20,
+      "reasoning": "Partner membership not confirmed. Strategy requires human review before generation can proceed.",
+      "alternative_angles": [],
+      "requires_human_review": true,
+      "override_log": [],
+      "invalid_reasons": ["Partner membership not confirmed; human review required before partner messaging."],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-2121-2121-2121-111111111125",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Harold Meyers",
+      "companyName": "Meyers Handyman Services",
+      "businessType": "home_services",
+      "city": "Indianapolis",
+      "state": "IN",
+      "website": null,
+      "sizeProxy": null,
+      "knownPaymentContext": null,
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "home_services"
+    },
+    "company_context": {
+      "companyId": "22222222-2121-2121-2121-222222222235",
+      "companyName": "Meyers Handyman Services",
+      "industry": "home_services",
+      "city": "Indianapolis",
+      "state": "IN"
+    },
+    "selected_skill_definitions": [
+      { "skill_slug": "cold_outreach", "skill_version": 1, "instructions": "Standard cold outreach." },
+      { "skill_slug": "certainpath_member_messaging", "skill_version": 1, "instructions": "Only use when membership is confirmed. If not confirmed, block generation." },
+      { "skill_slug": "home_services_contractor", "skill_version": 1, "instructions": "Reference home services payment context." },
+      { "skill_slug": "compliance_forbidden_claims", "skill_version": 1, "instructions": "No partner claims without confirmed membership." }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": false,
+    "expected_version_count": 0,
+    "expected_version_labels": [],
+    "expected_strategy_angles": [],
+    "expected_subject_behavior": "No output produced",
+    "expected_body_behavior": "No output produced; generation blocked because requires_human_review is true and status is draft",
+    "expected_cta_behavior": "No output produced",
+    "expected_compliance_checks": [],
+    "expected_warnings": [],
+    "expected_errors": [
+      { "code": "COPY_004" }
+    ],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 0,
+      "version_pairs_checked": 0
+    },
+    "forbidden_phrases": [],
+    "forbidden_claims": [],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "COPY_004 must be returned. Unconfirmed partner membership with requires_human_review:true and status:draft must block generation entirely."
+  }
+}

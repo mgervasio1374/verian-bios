@@ -1,0 +1,174 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-017",
+    "scenario_name": "no_response_follow_up_sequence_3_shorter_than_sequence_2",
+    "description": "Third no-response follow-up. Two versions, shorter than sequence 2 equivalents. length_target must be short or ultra_short."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0017-0017-0017-000000000017",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-1133-1133-1133-111111111121",
+      "company_id": "22222222-1133-1133-1133-222222222231",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "no_response_follow_up",
+      "primary_goal": "re_engage_after_no_response",
+      "secondary_goal": null,
+      "sequence_position": 3,
+      "days_since_last_contact": 14,
+      "lead_source": "manual",
+      "lead_stage": "new",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "veterinary",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 2,
+      "last_engagement_signal": null,
+      "partner_membership": null,
+      "audience_context": "Veterinary practice. Two prior touches with no response. Third and near-final outreach. Keep it short and low pressure.",
+      "pain_point_hypothesis": "Owner is busy or not prioritizing this. Ultra-concise message may cut through.",
+      "offer_angle": "cost_clarity",
+      "trust_angle": "Brief, respectful, low-pressure. Show you respect their time.",
+      "proof_point": null,
+      "cta": "Happy to connect whenever it makes sense for you.",
+      "tone": "executive_brevity",
+      "length_target": "ultra_short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "Do not claim savings",
+        "Do not pressure"
+      ],
+      "required_inclusions": [
+        "Ultra-short message",
+        "Single soft CTA"
+      ],
+      "avoid": [
+        "Just checking in",
+        "I wanted to follow up",
+        "you have not responded"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "no_response_follow_up",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "executive_brevity",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "veterinary_merchant",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.7,
+      "reasoning": "Third touch with no response. Shorter than sequence 2 is required.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-1133-1133-1133-111111111121",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Dr. Christine Park",
+      "companyName": "Parkside Animal Hospital",
+      "businessType": "veterinary",
+      "city": "Seattle",
+      "state": "WA",
+      "website": "parksideanimalhospital.com",
+      "sizeProxy": "small",
+      "knownPaymentContext": null,
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "veterinary"
+    },
+    "company_context": {
+      "companyId": "22222222-1133-1133-1133-222222222231",
+      "companyName": "Parkside Animal Hospital",
+      "industry": "veterinary",
+      "city": "Seattle",
+      "state": "WA"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "no_response_follow_up",
+        "skill_version": 1,
+        "instructions": "Shorter than sequence 2. Do not reference prior non-response accusatorially."
+      },
+      {
+        "skill_slug": "executive_brevity",
+        "skill_version": 1,
+        "instructions": "Under 60 words. Single CTA. No filler."
+      },
+      {
+        "skill_slug": "veterinary_merchant",
+        "skill_version": 1,
+        "instructions": "Reference veterinary payment context briefly if relevant."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "No savings. No pressure. No reference to unanswered emails."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 2,
+    "expected_version_labels": [
+      "Different Angle",
+      "Question Only"
+    ],
+    "expected_strategy_angles": [
+      "ultra_short_reframe",
+      "single_question"
+    ],
+    "expected_subject_behavior": "Subjects are brief; no reference to prior unanswered emails",
+    "expected_body_behavior": "Both versions are shorter than typical sequence 2 follow-up versions; ultra_short length enforced",
+    "expected_cta_behavior": "Each version has a single soft CTA with no pressure",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "length_check",
+      "savings_claim_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 1
+    },
+    "forbidden_phrases": [
+      "Just checking in",
+      "I wanted to follow up",
+      "you have not responded",
+      "you have not replied"
+    ],
+    "forbidden_claims": [
+      "savings",
+      "pressure",
+      "unanswered email shaming"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "Both versions must be ultra_short. Length must be shorter than sequence 2 equivalents. Any reference to prior non-response in an accusatorial tone is a hard fail."
+  }
+}

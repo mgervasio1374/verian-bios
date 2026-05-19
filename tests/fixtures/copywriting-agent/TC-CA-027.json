@@ -1,0 +1,173 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-027",
+    "scenario_name": "customer_nurture_relationship_maintenance",
+    "description": "Customer nurture email. Two versions: Account Review Offer and Relationship Maintenance. No prospecting language permitted."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0027-0027-0027-000000000027",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-2727-2727-2727-11111111112b",
+      "company_id": "22222222-2727-2727-2727-22222222223b",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "approved",
+      "message_type": "customer_nurture",
+      "primary_goal": "maintain_relationship_and_offer_account_review",
+      "secondary_goal": null,
+      "sequence_position": 1,
+      "days_since_last_contact": 45,
+      "lead_source": "existing_customer",
+      "lead_stage": "customer",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "landscaping",
+      "processing_volume_tier": null,
+      "has_statement_artifact": true,
+      "prior_touch_count": 6,
+      "last_engagement_signal": "active_customer",
+      "partner_membership": null,
+      "audience_context": "Landscaping contractor who has been a customer for 9 months. Seasonal volume changes upcoming; good time for an account touchpoint.",
+      "pain_point_hypothesis": "Seasonal volume changes may affect rate structure or require a statement check.",
+      "offer_angle": "account_review",
+      "trust_angle": "Check in as their advisor; proactively offer an account review as a service touchpoint.",
+      "proof_point": null,
+      "cta": "Would you like to do a quick account check before the busy season kicks in?",
+      "tone": "professional_warm",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "Do not use prospecting language",
+        "Do not claim savings"
+      ],
+      "required_inclusions": [
+        "Acknowledge the existing relationship",
+        "Offer an account review"
+      ],
+      "avoid": [
+        "I came across your business",
+        "prospecting language",
+        "I wanted to reach out"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "customer_nurture",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "account_review_offer",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "landscaping_contractor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.87,
+      "reasoning": "Existing customer nurture; seasonal timing creates natural reason for an account touchpoint.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-2727-2727-2727-11111111112b",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Rosa Espinoza",
+      "companyName": "Espinoza Premium Landscaping",
+      "businessType": "landscaping",
+      "city": "Albuquerque",
+      "state": "NM",
+      "website": "espinozalandscaping.com",
+      "sizeProxy": "small",
+      "knownPaymentContext": "field_payments",
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "landscaping",
+      "isExistingCustomer": true
+    },
+    "company_context": {
+      "companyId": "22222222-2727-2727-2727-22222222223b",
+      "companyName": "Espinoza Premium Landscaping",
+      "industry": "landscaping",
+      "city": "Albuquerque",
+      "state": "NM"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "customer_nurture",
+        "skill_version": 1,
+        "instructions": "Check in as an advisor. Acknowledge the relationship. Avoid prospecting language."
+      },
+      {
+        "skill_slug": "account_review_offer",
+        "skill_version": 1,
+        "instructions": "Offer a proactive account review as a service touchpoint, not a sales pitch."
+      },
+      {
+        "skill_slug": "landscaping_contractor",
+        "skill_version": 1,
+        "instructions": "Reference seasonal landscaping volume patterns as context for the account review."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "No savings claims. No prospecting openers. This is a customer, not a prospect."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 2,
+    "expected_version_labels": [
+      "Account Review Offer",
+      "Relationship Maintenance"
+    ],
+    "expected_strategy_angles": [
+      "account_review",
+      "relationship_maintenance"
+    ],
+    "expected_subject_behavior": "Subjects are warm relationship touchpoints; none are cold-outreach style",
+    "expected_body_behavior": "Both versions acknowledge the existing relationship and offer an account review; no prospecting language",
+    "expected_cta_behavior": "Each version offers an account review or a check-in without pressure",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "prospecting_language_check",
+      "savings_claim_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 1
+    },
+    "forbidden_phrases": [
+      "I came across your business",
+      "I wanted to reach out"
+    ],
+    "forbidden_claims": [
+      "prospecting language",
+      "I came across your business",
+      "savings guarantees"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "Prospecting language in a customer nurture context is a hard fail. Both versions must acknowledge the existing customer relationship."
+  }
+}

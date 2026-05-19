@@ -1,0 +1,177 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-014",
+    "scenario_name": "proposal_follow_up_two_versions_short_no_pressure",
+    "description": "Proposal has been sent; follow-up email checking on decision status. Two versions, short, references proposal, no pressure language."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0014-0014-0014-000000000014",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-eeee-eeee-eeee-11111111111e",
+      "company_id": "22222222-eeee-eeee-eeee-22222222222e",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "proposal_follow_up",
+      "primary_goal": "check_proposal_status_and_invite_questions",
+      "secondary_goal": null,
+      "sequence_position": 1,
+      "days_since_last_contact": 7,
+      "lead_source": "manual",
+      "lead_stage": "proposal_sent",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "food_truck",
+      "processing_volume_tier": null,
+      "has_statement_artifact": true,
+      "prior_touch_count": 3,
+      "last_engagement_signal": "proposal_sent",
+      "partner_membership": null,
+      "audience_context": "Food truck operator. Proposal sent one week ago. Following up to check on decision timeline and address any questions.",
+      "pain_point_hypothesis": "Owner may have questions about the proposal or needs a nudge to make a decision.",
+      "offer_angle": "decision_support",
+      "trust_angle": "Make it easy for them to ask questions or share concerns.",
+      "proof_point": null,
+      "cta": "Any questions on the proposal, or would you like to chat through it?",
+      "tone": "professional_warm",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "Do not pressure",
+        "Do not set artificial deadlines"
+      ],
+      "required_inclusions": [
+        "Reference proposal",
+        "Invite questions or status update"
+      ],
+      "avoid": [
+        "expires",
+        "limited time",
+        "deadline",
+        "this offer",
+        "last chance"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "proposal_follow_up",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "trust_building_advisor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "food_truck_merchant",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.83,
+      "reasoning": "Proposal sent one week ago. Soft check-in without pressure is appropriate.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-eeee-eeee-eeee-11111111111e",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Keisha Odom",
+      "companyName": "Odom's Rolling Kitchen",
+      "businessType": "food_truck",
+      "city": "New Orleans",
+      "state": "LA",
+      "website": null,
+      "sizeProxy": "small",
+      "knownPaymentContext": "mobile_payments",
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "food_truck"
+    },
+    "company_context": {
+      "companyId": "22222222-eeee-eeee-eeee-22222222222e",
+      "companyName": "Odom's Rolling Kitchen",
+      "industry": "food_truck",
+      "city": "New Orleans",
+      "state": "LA"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "proposal_follow_up",
+        "skill_version": 1,
+        "instructions": "Reference the proposal. Ask about status or questions. Do not pressure."
+      },
+      {
+        "skill_slug": "trust_building_advisor",
+        "skill_version": 1,
+        "instructions": "Make it easy to respond with questions or concerns."
+      },
+      {
+        "skill_slug": "food_truck_merchant",
+        "skill_version": 1,
+        "instructions": "Reference food truck payment context where relevant."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "No artificial deadlines. No urgency manufacturing. No savings guarantees."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 2,
+    "expected_version_labels": [
+      "Decision/Status Question",
+      "Clarify-Objection Invitation"
+    ],
+    "expected_strategy_angles": [
+      "decision_status_check",
+      "objection_clarification"
+    ],
+    "expected_subject_behavior": "Subjects reference the proposal; none use urgency or deadline language",
+    "expected_body_behavior": "Short, references proposal, no pressure; each version invites a question or status update",
+    "expected_cta_behavior": "Each version asks about status or invites questions without pressure",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "deadline_language_check",
+      "urgency_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 1
+    },
+    "forbidden_phrases": [
+      "expires",
+      "limited time",
+      "deadline",
+      "last chance"
+    ],
+    "forbidden_claims": [
+      "expires",
+      "limited time",
+      "deadline",
+      "this offer"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "Both versions must reference the proposal and be short. Deadline or urgency language is a hard fail."
+  }
+}

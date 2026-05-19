@@ -1,0 +1,176 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-011",
+    "scenario_name": "statement_review_follow_up_no_savings_angle_no_dollar_amounts",
+    "description": "Statement review follow-up WITHOUT offer_angle:confirmed_savings_review. No specific dollar amounts, no mention of $380, no guaranteed language should appear in any version."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0011-0011-0011-000000000011",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-bbbb-bbbb-bbbb-11111111111b",
+      "company_id": "22222222-bbbb-bbbb-bbbb-22222222222b",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "approved",
+      "message_type": "statement_review_follow_up",
+      "primary_goal": "share_review_findings_and_schedule_call",
+      "secondary_goal": null,
+      "sequence_position": 2,
+      "days_since_last_contact": 2,
+      "lead_source": "manual",
+      "lead_stage": "statement_reviewed",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "pest_control",
+      "processing_volume_tier": null,
+      "has_statement_artifact": true,
+      "prior_touch_count": 2,
+      "last_engagement_signal": "statement_uploaded",
+      "partner_membership": null,
+      "audience_context": "Pest control company. Review summary: statement shows potential inefficiencies in fee structure. No specific dollar amount confirmed in this review cycle.",
+      "pain_point_hypothesis": "Fee structure inefficiencies observed but not yet quantified.",
+      "offer_angle": "cost_clarity",
+      "trust_angle": "Share observations from the review without making dollar claims.",
+      "proof_point": null,
+      "cta": "Happy to walk you through what I found in a quick call.",
+      "tone": "professional_warm",
+      "length_target": "medium",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "Do not claim specific dollar amounts",
+        "Do not say $380 or any dollar figure",
+        "Do not guarantee savings"
+      ],
+      "required_inclusions": [
+        "Reference review observations",
+        "Propose a call to discuss"
+      ],
+      "avoid": [
+        "$380",
+        "specific dollar amounts",
+        "guaranteed",
+        "you will save"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "statement_review_follow_up",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "trust_building_advisor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "pest_control_merchant",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.8,
+      "reasoning": "offer_angle is cost_clarity, not confirmed_savings_review. Dollar amounts must not be referenced.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-bbbb-bbbb-bbbb-11111111111b",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Victor Harrington",
+      "companyName": "AllClear Pest Solutions",
+      "businessType": "pest_control",
+      "city": "Tampa",
+      "state": "FL",
+      "website": "allclearpest.com",
+      "sizeProxy": "small",
+      "knownPaymentContext": null,
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "pest_control"
+    },
+    "company_context": {
+      "companyId": "22222222-bbbb-bbbb-bbbb-22222222222b",
+      "companyName": "AllClear Pest Solutions",
+      "industry": "pest_control",
+      "city": "Tampa",
+      "state": "FL"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "statement_review_follow_up",
+        "skill_version": 1,
+        "instructions": "Reference review observations. Do not invent dollar figures. Propose next step."
+      },
+      {
+        "skill_slug": "trust_building_advisor",
+        "skill_version": 1,
+        "instructions": "Build credibility through transparency about what was found."
+      },
+      {
+        "skill_slug": "pest_control_merchant",
+        "skill_version": 1,
+        "instructions": "Reference pest control service payment patterns where appropriate."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "No dollar amounts. No guaranteed claims. Only reference what is confirmed in the review."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 3,
+    "expected_version_labels": [
+      "Findings First",
+      "Advisor Explanation",
+      "Proposal-Oriented Next Step"
+    ],
+    "expected_strategy_angles": [
+      "observation_lead",
+      "process_transparency",
+      "call_invitation"
+    ],
+    "expected_subject_behavior": "Subjects reference review or findings without dollar amounts",
+    "expected_body_behavior": "No specific dollar amounts, no mention of $380, no guaranteed language in any version",
+    "expected_cta_behavior": "Each version invites a call to discuss what was found",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "dollar_amount_check",
+      "guarantee_language_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 3
+    },
+    "forbidden_phrases": [
+      "you will save",
+      "guaranteed"
+    ],
+    "forbidden_claims": [
+      "specific dollar amounts",
+      "$380",
+      "guaranteed savings"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "Without offer_angle:confirmed_savings_review, no dollar figures may appear in any version. $380 in any version is a hard fail."
+  }
+}

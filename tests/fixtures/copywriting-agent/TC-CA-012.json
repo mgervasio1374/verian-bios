@@ -1,0 +1,176 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-012",
+    "scenario_name": "statement_not_submitted_follow_up_sequence_2_three_versions",
+    "description": "Follow-up when statement has not been submitted at sequence position 2. Three versions with different angles to reduce friction and clarify value."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0012-0012-0012-000000000012",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-cccc-cccc-cccc-11111111111c",
+      "company_id": "22222222-cccc-cccc-cccc-22222222222c",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "statement_not_submitted_follow_up",
+      "primary_goal": "encourage_statement_submission",
+      "secondary_goal": null,
+      "sequence_position": 2,
+      "days_since_last_contact": 5,
+      "lead_source": "manual",
+      "lead_stage": "statement_requested",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "cleaning_services",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 1,
+      "last_engagement_signal": "statement_requested",
+      "partner_membership": null,
+      "audience_context": "Cleaning services company. Statement requested but not yet submitted. Second follow-up in sequence.",
+      "pain_point_hypothesis": "Owner may find the statement submission process confusing or burdensome.",
+      "offer_angle": "friction_reduction",
+      "trust_angle": "Make the process feel easy and low-commitment.",
+      "proof_point": null,
+      "cta": "Happy to walk you through how to pull the statement if that would help.",
+      "tone": "professional_warm",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "Do not claim savings",
+        "Do not pressure"
+      ],
+      "required_inclusions": [
+        "Reference the prior request",
+        "Reduce friction for submission"
+      ],
+      "avoid": [
+        "Just checking in",
+        "I wanted to follow up",
+        "pressure language"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "statement_follow_up",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "friction_reduction",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "trust_building_advisor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.78,
+      "reasoning": "Second touch on statement request; reduce friction and clarify value.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-cccc-cccc-cccc-11111111111c",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Angela Moretti",
+      "companyName": "Crystal Clean Commercial Services",
+      "businessType": "cleaning_services",
+      "city": "Chicago",
+      "state": "IL",
+      "website": "crystalcleancomm.com",
+      "sizeProxy": "small",
+      "knownPaymentContext": null,
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "cleaning_services"
+    },
+    "company_context": {
+      "companyId": "22222222-cccc-cccc-cccc-22222222222c",
+      "companyName": "Crystal Clean Commercial Services",
+      "industry": "cleaning_services",
+      "city": "Chicago",
+      "state": "IL"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "statement_follow_up",
+        "skill_version": 1,
+        "instructions": "Reference prior statement request. Make submission feel easy."
+      },
+      {
+        "skill_slug": "friction_reduction",
+        "skill_version": 1,
+        "instructions": "Offer to help with the submission process. Reduce perceived burden."
+      },
+      {
+        "skill_slug": "trust_building_advisor",
+        "skill_version": 1,
+        "instructions": "Position as helpful, not pushy."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "No savings claims. No pressure language."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 3,
+    "expected_version_labels": [
+      "Reduced Friction",
+      "Clarify Value",
+      "Simple Question"
+    ],
+    "expected_strategy_angles": [
+      "friction_reduction",
+      "value_clarification",
+      "simple_question"
+    ],
+    "expected_subject_behavior": "Subjects are soft and non-pressuring; reference the statement or review",
+    "expected_body_behavior": "Each version references the prior request and makes submission feel low-commitment; no pressure language",
+    "expected_cta_behavior": "Each version offers help or a simple next step rather than demanding action",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "pressure_language_check",
+      "savings_claim_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 3
+    },
+    "forbidden_phrases": [
+      "Just checking in",
+      "I wanted to follow up",
+      "you need to",
+      "you must"
+    ],
+    "forbidden_claims": [
+      "savings",
+      "you are losing money",
+      "pressure claims"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "Friction reduction and value clarification are the primary goals. Pressure language in any version is a hard fail."
+  }
+}

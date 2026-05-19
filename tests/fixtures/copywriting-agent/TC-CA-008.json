@@ -1,0 +1,119 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-008",
+    "scenario_name": "statement_review_follow_up_requires_human_review_blocks",
+    "description": "Statement review follow-up where requires_human_review is true and status is draft. This triggers COPY_004 blocking error because the strategy requires human review before generation."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0008-0008-0008-000000000008",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-8888-8888-8888-111111111118",
+      "company_id": "22222222-8888-8888-8888-222222222228",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "statement_review_follow_up",
+      "primary_goal": "share_review_findings_and_schedule_call",
+      "secondary_goal": null,
+      "sequence_position": 2,
+      "days_since_last_contact": 2,
+      "lead_source": "manual",
+      "lead_stage": "statement_reviewed",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "roofing",
+      "processing_volume_tier": null,
+      "has_statement_artifact": true,
+      "prior_touch_count": 2,
+      "last_engagement_signal": "statement_uploaded",
+      "partner_membership": null,
+      "audience_context": "Roofing contractor. Statement reviewed internally but strategy requires human approval before sending.",
+      "pain_point_hypothesis": "Possible downgrade fees and batch settlement timing issues.",
+      "offer_angle": "cost_clarity",
+      "trust_angle": "Share findings in a transparent, advisor-style manner.",
+      "proof_point": null,
+      "cta": "Would you have 20 minutes this week to go over what I found?",
+      "tone": "professional_warm",
+      "length_target": "medium",
+      "personalization_level": "lead_specific",
+      "compliance_notes": ["Do not claim specific savings", "Reference only what is in the review summary"],
+      "required_inclusions": ["Reference actual review findings", "Propose a call to discuss"],
+      "avoid": ["invented findings", "guaranteed savings"],
+      "selected_skills": [
+        { "skill_slug": "statement_review_follow_up", "skill_version": 1 },
+        { "skill_slug": "trust_building_advisor", "skill_version": 1 },
+        { "skill_slug": "roofing_contractor", "skill_version": 1 },
+        { "skill_slug": "compliance_forbidden_claims", "skill_version": 1 }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.55,
+      "reasoning": "Strategy flagged for human review before generation can proceed.",
+      "alternative_angles": [],
+      "requires_human_review": true,
+      "override_log": [],
+      "invalid_reasons": ["Strategy requires human review before message generation can proceed."],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-8888-8888-8888-111111111118",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Craig Beaumont",
+      "companyName": "Summit Roofing LLC",
+      "businessType": "roofing",
+      "city": "Nashville",
+      "state": "TN",
+      "website": "summitroofingllc.com",
+      "sizeProxy": "medium",
+      "knownPaymentContext": "field_payments",
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "roofing"
+    },
+    "company_context": {
+      "companyId": "22222222-8888-8888-8888-222222222228",
+      "companyName": "Summit Roofing LLC",
+      "industry": "roofing",
+      "city": "Nashville",
+      "state": "TN"
+    },
+    "selected_skill_definitions": [
+      { "skill_slug": "statement_review_follow_up", "skill_version": 1, "instructions": "Reference review findings. Propose next step." },
+      { "skill_slug": "trust_building_advisor", "skill_version": 1, "instructions": "Be transparent about findings." },
+      { "skill_slug": "roofing_contractor", "skill_version": 1, "instructions": "Reference roofing payment patterns where relevant." },
+      { "skill_slug": "compliance_forbidden_claims", "skill_version": 1, "instructions": "Only reference findings in the review summary. No invented data." }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": false,
+    "expected_version_count": 0,
+    "expected_version_labels": [],
+    "expected_strategy_angles": [],
+    "expected_subject_behavior": "No output produced",
+    "expected_body_behavior": "No output produced; generation blocked because requires_human_review is true and status is draft",
+    "expected_cta_behavior": "No output produced",
+    "expected_compliance_checks": [],
+    "expected_warnings": [],
+    "expected_errors": [
+      { "code": "COPY_004" }
+    ],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 0,
+      "version_pairs_checked": 0
+    },
+    "forbidden_phrases": [],
+    "forbidden_claims": [],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "COPY_004 must be returned when requires_human_review is true and status is draft. No email versions should be produced."
+  }
+}

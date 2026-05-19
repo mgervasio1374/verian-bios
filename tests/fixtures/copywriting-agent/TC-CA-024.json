@@ -1,0 +1,174 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-024",
+    "scenario_name": "event_expo_follow_up_with_conversation_notes",
+    "description": "Post-event follow-up where conversationNotes is present in lead_context. Three versions, all referencing the event and the conversation detail."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0024-0024-0024-000000000024",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-2424-2424-2424-111111111128",
+      "company_id": "22222222-2424-2424-2424-222222222238",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "event_expo_follow_up",
+      "primary_goal": "follow_up_on_event_conversation",
+      "secondary_goal": null,
+      "sequence_position": 1,
+      "days_since_last_contact": 2,
+      "lead_source": "event",
+      "lead_stage": "new",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "home_services",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 0,
+      "last_engagement_signal": "event_conversation",
+      "partner_membership": null,
+      "audience_context": "Met at the Nexstar Network annual conference. Conversation about high interchange fees on large-ticket jobs collected in the field. Owner mentioned using Square for all field collections.",
+      "pain_point_hypothesis": "High interchange on large-ticket field payments collected via Square; possible downgrade from card-not-present rates.",
+      "offer_angle": "cost_clarity",
+      "trust_angle": "Reference the specific event conversation detail to show attentiveness.",
+      "proof_point": null,
+      "cta": "Happy to take a closer look at what those field transactions are costing you.",
+      "tone": "professional_warm",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "Reference only what was discussed; do not invent conversation details",
+        "Do not claim savings"
+      ],
+      "required_inclusions": [
+        "Reference the Nexstar conference",
+        "Reference the conversation about field payments and Square"
+      ],
+      "avoid": [
+        "I hope this email finds you well",
+        "I came across your business"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "event_follow_up",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "trust_building_advisor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "home_services_contractor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.9,
+      "reasoning": "Event follow-up with specific conversation notes. High personalization possible.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-2424-2424-2424-111111111128",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Marcus Whitfield",
+      "companyName": "Whitfield Mechanical Services",
+      "businessType": "hvac",
+      "city": "St. Louis",
+      "state": "MO",
+      "website": "whitfieldmechanical.com",
+      "sizeProxy": "medium",
+      "knownPaymentContext": "field_payments_via_square",
+      "currentProcessor": "Square",
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "home_services",
+      "conversationNotes": "Met at Nexstar Network annual conference. Discussed high interchange fees on large HVAC jobs collected via Square in the field. Owner expressed interest in understanding whether a different setup would cost less.",
+      "eventName": "Nexstar Network Annual Conference"
+    },
+    "company_context": {
+      "companyId": "22222222-2424-2424-2424-222222222238",
+      "companyName": "Whitfield Mechanical Services",
+      "industry": "hvac",
+      "city": "St. Louis",
+      "state": "MO"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "event_follow_up",
+        "skill_version": 1,
+        "instructions": "Reference the event and the specific conversation. Show attentiveness to what was discussed."
+      },
+      {
+        "skill_slug": "trust_building_advisor",
+        "skill_version": 1,
+        "instructions": "Use the conversation detail to establish credibility and continuity."
+      },
+      {
+        "skill_slug": "home_services_contractor",
+        "skill_version": 1,
+        "instructions": "Reference HVAC field payment context and Square usage as noted in the conversation."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "Reference only what is in the conversation notes. Do not invent details. No savings guarantees."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 3,
+    "expected_version_labels": [
+      "Event Conversation",
+      "Follow-Up on Topic",
+      "Direct Next Step"
+    ],
+    "expected_strategy_angles": [
+      "event_callback",
+      "conversation_detail",
+      "specific_observation"
+    ],
+    "expected_subject_behavior": "Subjects reference the event or the conversation; none are generic cold-outreach subjects",
+    "expected_body_behavior": "All 3 versions reference the Nexstar conference and the conversation about field payments and Square usage",
+    "expected_cta_behavior": "Each version proposes a low-friction next step based on the conversation",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "conversation_fabrication_check",
+      "savings_claim_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 3
+    },
+    "forbidden_phrases": [
+      "I hope this email finds you well",
+      "I came across your business"
+    ],
+    "forbidden_claims": [
+      "guaranteed savings",
+      "invented conversation details not in conversationNotes"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "All versions must reference the Nexstar event and the Square conversation. Invented conversation details not in conversationNotes are a hard fail."
+  }
+}

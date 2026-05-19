@@ -1,0 +1,176 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-006",
+    "scenario_name": "statement_submitted_confirmation_two_versions",
+    "description": "Statement has been submitted. Confirmation email with 2 versions. Must not claim review is complete or reference findings or savings."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0006-0006-0006-000000000006",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-6666-6666-6666-111111111116",
+      "company_id": "22222222-6666-6666-6666-222222222226",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "statement_submitted_confirmation",
+      "primary_goal": "confirm_receipt_and_set_expectations",
+      "secondary_goal": null,
+      "sequence_position": 1,
+      "days_since_last_contact": null,
+      "lead_source": "manual",
+      "lead_stage": "statement_submitted",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "hvac",
+      "processing_volume_tier": null,
+      "has_statement_artifact": true,
+      "prior_touch_count": 2,
+      "last_engagement_signal": "statement_uploaded",
+      "partner_membership": null,
+      "audience_context": "HVAC contractor who submitted their processing statement. Awaiting review.",
+      "pain_point_hypothesis": "Owner wants to know what happens next after submitting the statement.",
+      "offer_angle": "process_transparency",
+      "trust_angle": "Confirm receipt and set realistic expectations for the review timeline.",
+      "proof_point": null,
+      "cta": "I will be in touch within 1-2 business days with what I find.",
+      "tone": "professional_warm",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "Do not claim review is complete",
+        "Do not reference findings until review is done",
+        "Do not claim savings"
+      ],
+      "required_inclusions": [
+        "Confirm receipt of statement",
+        "Set expectations for next steps"
+      ],
+      "avoid": [
+        "review complete",
+        "what we found",
+        "you will save"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "statement_confirmation",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "trust_building_advisor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "hvac_contractor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.9,
+      "reasoning": "Statement submitted; confirmation with expectation-setting is appropriate.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-6666-6666-6666-111111111116",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Derek Voss",
+      "companyName": "Apex HVAC Services",
+      "businessType": "hvac",
+      "city": "Columbus",
+      "state": "OH",
+      "website": "apexhvacservices.com",
+      "sizeProxy": "medium",
+      "knownPaymentContext": "field_payments",
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "hvac"
+    },
+    "company_context": {
+      "companyId": "22222222-6666-6666-6666-222222222226",
+      "companyName": "Apex HVAC Services",
+      "industry": "hvac",
+      "city": "Columbus",
+      "state": "OH"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "statement_confirmation",
+        "skill_version": 1,
+        "instructions": "Confirm receipt of the statement. Set timeline expectations. Do not reference findings or conclusions."
+      },
+      {
+        "skill_slug": "trust_building_advisor",
+        "skill_version": 1,
+        "instructions": "Reinforce that the submission was a good step and the review will be thorough."
+      },
+      {
+        "skill_slug": "hvac_contractor",
+        "skill_version": 1,
+        "instructions": "Acknowledge HVAC field payment context where relevant."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "Do not claim review complete. Do not reference findings. Do not claim savings."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 2,
+    "expected_version_labels": [
+      "Professional Confirmation",
+      "Warm Reassurance"
+    ],
+    "expected_strategy_angles": [
+      "professional_confirmation",
+      "warm_reassurance"
+    ],
+    "expected_subject_behavior": "No version says 'review complete' in the subject line",
+    "expected_body_behavior": "Both versions confirm receipt and set expectations for next steps; neither references findings or savings",
+    "expected_cta_behavior": "Both versions set a clear expectation for the next communication rather than requesting an action",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "review_complete_check",
+      "findings_claim_check",
+      "savings_claim_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 1
+    },
+    "forbidden_phrases": [
+      "review complete",
+      "what we found",
+      "you will save",
+      "savings"
+    ],
+    "forbidden_claims": [
+      "review complete",
+      "what we found",
+      "savings"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "Any reference to review being complete or findings discovered is a hard fail. Receipt confirmation and next-step expectation-setting are required."
+  }
+}

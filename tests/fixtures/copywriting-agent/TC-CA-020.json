@@ -1,0 +1,193 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-020",
+    "scenario_name": "partner_campaign_certainpath_confirmed_at_most_one_reference",
+    "description": "CertainPath partner member campaign. Three versions. Each version may reference CertainPath at most once. Partner membership confirmed."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0020-0020-0020-000000000020",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-2020-2020-2020-111111111124",
+      "company_id": "22222222-2020-2020-2020-222222222234",
+      "campaign_id": "33333333-2020-2020-2020-333333333334",
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "partner_member_specific_campaign",
+      "primary_goal": "leverage_partner_trust_and_request_statement",
+      "secondary_goal": null,
+      "sequence_position": 1,
+      "days_since_last_contact": null,
+      "lead_source": "partner_list",
+      "lead_stage": "new",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "home_services",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 0,
+      "last_engagement_signal": null,
+      "partner_membership": {
+        "confirmed": true,
+        "partner_name": "certainpath",
+        "partner_claims_authorized": false,
+        "membership_tier": null
+      },
+      "audience_context": "Home services contractor who is a confirmed CertainPath member. Campaign outreach leveraging the shared CertainPath relationship.",
+      "pain_point_hypothesis": "CertainPath members often have field-based payment flows that could benefit from rate review.",
+      "offer_angle": "partner_trust",
+      "trust_angle": "Reference shared CertainPath membership naturally and once only.",
+      "proof_point": null,
+      "cta": "Would you be open to a quick statement review as a CertainPath member benefit?",
+      "tone": "professional_warm",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "Do not claim exclusive partnership",
+        "Do not claim endorsement by CertainPath",
+        "Reference CertainPath at most once per version"
+      ],
+      "required_inclusions": [
+        "One natural CertainPath reference per version",
+        "One low-friction CTA"
+      ],
+      "avoid": [
+        "exclusive partner",
+        "official partner",
+        "endorsed by CertainPath",
+        "certified by"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "cold_outreach",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "certainpath_member_messaging",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "home_services_contractor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "trust_building_advisor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.86,
+      "reasoning": "Confirmed CertainPath member. Partner messaging skill loaded. One reference per version enforced.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-2020-2020-2020-111111111124",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Wayne Gibbons",
+      "companyName": "Gibbons Heating & Air",
+      "businessType": "hvac",
+      "city": "Kansas City",
+      "state": "MO",
+      "website": "gibbonsheatingair.com",
+      "sizeProxy": "medium",
+      "knownPaymentContext": "field_payments",
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "home_services"
+    },
+    "company_context": {
+      "companyId": "22222222-2020-2020-2020-222222222234",
+      "companyName": "Gibbons Heating & Air",
+      "industry": "hvac",
+      "city": "Kansas City",
+      "state": "MO"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "cold_outreach",
+        "skill_version": 1,
+        "instructions": "Open with a relevant observation relevant to the merchant or industry."
+      },
+      {
+        "skill_slug": "certainpath_member_messaging",
+        "skill_version": 1,
+        "instructions": "Reference the CertainPath relationship naturally and at most once per version. Do not claim exclusive or official partner status."
+      },
+      {
+        "skill_slug": "home_services_contractor",
+        "skill_version": 1,
+        "instructions": "Reference home services field payment realities."
+      },
+      {
+        "skill_slug": "trust_building_advisor",
+        "skill_version": 1,
+        "instructions": "Use the shared CertainPath context to build trust without overclaiming."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "No exclusive partner claims. No endorsement claims. One CertainPath reference max per version."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 3,
+    "expected_version_labels": [
+      "Partner Context",
+      "Home Services / Operational Angle",
+      "Statement Review Clarity"
+    ],
+    "expected_strategy_angles": [
+      "partner_trust_lead",
+      "member_benefit",
+      "shared_community"
+    ],
+    "expected_subject_behavior": "Subjects may reference CertainPath; none claim exclusive or official endorsement",
+    "expected_body_behavior": "At most one CertainPath reference per version; no exclusive or official partner claims",
+    "expected_cta_behavior": "Each version proposes a low-friction next step appropriate for a partner member",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "partner_claim_check",
+      "certainpath_reference_count_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 3
+    },
+    "forbidden_phrases": [
+      "exclusive partner",
+      "official partner",
+      "endorsed by CertainPath",
+      "certified by CertainPath"
+    ],
+    "forbidden_claims": [
+      "exclusive partner",
+      "official partner",
+      "endorsed by",
+      "certified by"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "CertainPath may be mentioned at most once per version. Any exclusive or endorsement claim is a hard fail. Three versions required."
+  }
+}

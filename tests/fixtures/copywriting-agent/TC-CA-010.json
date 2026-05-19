@@ -1,0 +1,175 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-010",
+    "scenario_name": "statement_review_follow_up_confirmed_savings_angle",
+    "description": "Statement review follow-up with offer_angle:confirmed_savings_review and a $380 savings figure referenced in audience_context. Versions may reference the savings opportunity."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0010-0010-0010-000000000010",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-aaaa-aaaa-aaaa-11111111111a",
+      "company_id": "22222222-aaaa-aaaa-aaaa-22222222222a",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "approved",
+      "message_type": "statement_review_follow_up",
+      "primary_goal": "share_review_findings_and_schedule_call",
+      "secondary_goal": null,
+      "sequence_position": 2,
+      "days_since_last_contact": 2,
+      "lead_source": "manual",
+      "lead_stage": "statement_reviewed",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "landscaping",
+      "processing_volume_tier": null,
+      "has_statement_artifact": true,
+      "prior_touch_count": 2,
+      "last_engagement_signal": "statement_uploaded",
+      "partner_membership": null,
+      "audience_context": "Landscaping contractor. Review summary: analysis of statement identified approximately $380 in monthly unnecessary fees related to non-qualified surcharges. Savings opportunity confirmed. Calculated savings amount: $380/month.",
+      "pain_point_hypothesis": "Non-qualified surcharges adding approximately $380/month in unnecessary fees.",
+      "offer_angle": "confirmed_savings_review",
+      "trust_angle": "Present the confirmed savings opportunity clearly and propose a call to act on it.",
+      "proof_point": "Approximately $380/month in avoidable non-qualified surcharges identified in the review.",
+      "cta": "Can we connect this week to walk through how to address this?",
+      "tone": "professional_warm",
+      "length_target": "medium",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "Reference only the confirmed savings figure from the review",
+        "Do not claim guaranteed savings"
+      ],
+      "required_inclusions": [
+        "Reference the $380 savings opportunity from the review",
+        "Propose a call to act on findings"
+      ],
+      "avoid": [
+        "guaranteed",
+        "promise",
+        "definitely"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "statement_review_follow_up",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "confirmed_savings_messaging",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "landscaping_contractor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.91,
+      "reasoning": "Confirmed savings figure present; offer_angle allows referencing the savings opportunity.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-aaaa-aaaa-aaaa-11111111111a",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Brian Sutherland",
+      "companyName": "Greenscape Lawn & Landscape",
+      "businessType": "landscaping",
+      "city": "Portland",
+      "state": "OR",
+      "website": "greenscapelandscape.com",
+      "sizeProxy": "small",
+      "knownPaymentContext": "field_payments",
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "landscaping"
+    },
+    "company_context": {
+      "companyId": "22222222-aaaa-aaaa-aaaa-22222222222a",
+      "companyName": "Greenscape Lawn & Landscape",
+      "industry": "landscaping",
+      "city": "Portland",
+      "state": "OR"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "statement_review_follow_up",
+        "skill_version": 1,
+        "instructions": "Reference actual review findings. Propose next step."
+      },
+      {
+        "skill_slug": "confirmed_savings_messaging",
+        "skill_version": 1,
+        "instructions": "When offer_angle is confirmed_savings_review and a savings figure exists, referencing the savings opportunity is permitted."
+      },
+      {
+        "skill_slug": "landscaping_contractor",
+        "skill_version": 1,
+        "instructions": "Reference landscaping payment patterns where relevant."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "Reference only confirmed figures from the review. Do not guarantee outcomes."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 3,
+    "expected_version_labels": [
+      "Findings First",
+      "Advisor Explanation",
+      "Proposal-Oriented Next Step"
+    ],
+    "expected_strategy_angles": [
+      "savings_opportunity_lead",
+      "findings_detail",
+      "action_invitation"
+    ],
+    "expected_subject_behavior": "Subjects may reference the savings opportunity; none use guaranteed language",
+    "expected_body_behavior": "May reference the $380 savings opportunity; versions do not use guaranteed language",
+    "expected_cta_behavior": "Each version invites a call or discussion about acting on the findings",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "guarantee_language_check",
+      "savings_claim_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 3
+    },
+    "forbidden_phrases": [
+      "guaranteed",
+      "promise",
+      "definitely will save"
+    ],
+    "forbidden_claims": [
+      "guaranteed savings",
+      "we promise",
+      "you will definitely"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "With offer_angle:confirmed_savings_review and a $380 figure in audience_context, versions may reference the savings opportunity. Guarantee language remains forbidden."
+  }
+}

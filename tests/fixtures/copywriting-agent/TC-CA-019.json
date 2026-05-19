@@ -1,0 +1,177 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-019",
+    "scenario_name": "re_engagement_no_pursuit_language",
+    "description": "Re-engagement message where forbidden phrases include 'I have tried to reach you', 'I have been following up', and 'you have not responded'. None may appear in any version."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0019-0019-0019-000000000019",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-1155-1155-1155-111111111123",
+      "company_id": "22222222-1155-1155-1155-222222222233",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "re_engagement",
+      "primary_goal": "re_engage_after_long_gap",
+      "secondary_goal": null,
+      "sequence_position": 1,
+      "days_since_last_contact": 120,
+      "lead_source": "manual",
+      "lead_stage": "dormant",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "fitness",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 4,
+      "last_engagement_signal": null,
+      "partner_membership": null,
+      "audience_context": "Fitness studio owner. 120 days since last contact. Four prior touches. Fresh re-engagement needed.",
+      "pain_point_hypothesis": "Owner may have more headspace now or recent changes in their processing situation.",
+      "offer_angle": "fresh_perspective",
+      "trust_angle": "Come from a completely fresh angle without any reference to pursuit history.",
+      "proof_point": null,
+      "cta": "If now is a better time to take a look at processing costs, I am happy to help.",
+      "tone": "professional_warm",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "No pursuit language",
+        "No shaming",
+        "No savings claims"
+      ],
+      "required_inclusions": [
+        "Fresh opening",
+        "No reference to prior non-response"
+      ],
+      "avoid": [
+        "I have tried to reach you",
+        "I have been following up",
+        "you have not responded",
+        "multiple attempts"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "re_engagement",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "fresh_start_messaging",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "fitness_merchant",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.68,
+      "reasoning": "120-day gap. Fresh start approach required with zero pursuit language.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-1155-1155-1155-111111111123",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Alexis Chambers",
+      "companyName": "Chambers Fitness Studio",
+      "businessType": "fitness",
+      "city": "San Diego",
+      "state": "CA",
+      "website": "chambersfitness.com",
+      "sizeProxy": "small",
+      "knownPaymentContext": "recurring_billing",
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "fitness"
+    },
+    "company_context": {
+      "companyId": "22222222-1155-1155-1155-222222222233",
+      "companyName": "Chambers Fitness Studio",
+      "industry": "fitness",
+      "city": "San Diego",
+      "state": "CA"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "re_engagement",
+        "skill_version": 1,
+        "instructions": "Write as if this is the first contact. Do not reference prior outreach. Fresh start."
+      },
+      {
+        "skill_slug": "fresh_start_messaging",
+        "skill_version": 1,
+        "instructions": "Completely ignore history. Open with an industry or value observation."
+      },
+      {
+        "skill_slug": "fitness_merchant",
+        "skill_version": 1,
+        "instructions": "Reference fitness studio payment context such as recurring billing or membership management."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "No pursuit language. No reference to non-response. No savings guarantees."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 2,
+    "expected_version_labels": [
+      "Time-Gap Acknowledgment",
+      "Fresh Reason"
+    ],
+    "expected_strategy_angles": [
+      "fresh_industry_angle",
+      "seasonal_reconnect"
+    ],
+    "expected_subject_behavior": "Subjects read as fresh outreach with no reference to prior history",
+    "expected_body_behavior": "Both versions read as fresh outreach; no reference to prior emails, attempts, or non-response",
+    "expected_cta_behavior": "Each version has a single low-pressure CTA for reconnecting",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "pursuit_language_check",
+      "savings_claim_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 1
+    },
+    "forbidden_phrases": [
+      "I have tried to reach you",
+      "I have been following up",
+      "you have not responded",
+      "multiple attempts",
+      "several times"
+    ],
+    "forbidden_claims": [
+      "pursuit history reference",
+      "non-response shaming",
+      "savings guarantees"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "Any reference to prior outreach attempts or non-response is a hard fail. Versions must read as fresh first contact."
+  }
+}

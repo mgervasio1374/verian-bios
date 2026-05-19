@@ -1,0 +1,174 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-005",
+    "scenario_name": "new_inquiry_response_forbidden_cold_openers",
+    "description": "New inquiry response type. Verifies that cold outreach openers like 'I came across your business' and 'I stumbled upon your company' are absent from all versions, and that all versions acknowledge the inquiry."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0005-0005-0005-000000000005",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-5555-5555-5555-111111111115",
+      "company_id": "22222222-5555-5555-5555-222222222225",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "new_inquiry_response",
+      "primary_goal": "acknowledge_and_qualify",
+      "secondary_goal": null,
+      "sequence_position": 1,
+      "days_since_last_contact": null,
+      "lead_source": "phone_inquiry",
+      "lead_stage": "new",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "retail",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 0,
+      "last_engagement_signal": "phone_inquiry",
+      "partner_membership": null,
+      "audience_context": "Retail store owner who called in asking about payment processing costs. Follow-up email after the call.",
+      "pain_point_hypothesis": "Owner is concerned about processing fees eating into thin retail margins.",
+      "offer_angle": "cost_clarity",
+      "trust_angle": "Thank them for reaching out; reinforce that a statement review is a no-obligation first step.",
+      "proof_point": null,
+      "cta": "Can we set up a 15-minute review of your current statement?",
+      "tone": "professional_warm",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "Do not claim savings amounts",
+        "Do not claim knowledge of current processor"
+      ],
+      "required_inclusions": [
+        "Explicit acknowledgment of the inquiry",
+        "One low-friction next step"
+      ],
+      "avoid": [
+        "I came across your business",
+        "I stumbled upon your company",
+        "I hope this email finds you well"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "new_inquiry_response",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "trust_building_advisor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "retail_merchant",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.85,
+      "reasoning": "Phone inquiry follow-up. Warm acknowledgment required; cold openers explicitly forbidden.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-5555-5555-5555-111111111115",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "James Kowalski",
+      "companyName": "Kowalski Hardware Supply",
+      "businessType": "retail",
+      "city": "Milwaukee",
+      "state": "WI",
+      "website": "kowalskihardware.com",
+      "sizeProxy": "small",
+      "knownPaymentContext": null,
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "retail"
+    },
+    "company_context": {
+      "companyId": "22222222-5555-5555-5555-222222222225",
+      "companyName": "Kowalski Hardware Supply",
+      "industry": "retail",
+      "city": "Milwaukee",
+      "state": "WI"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "new_inquiry_response",
+        "skill_version": 1,
+        "instructions": "Always acknowledge the inquiry explicitly. Do not open as if this is a cold outreach."
+      },
+      {
+        "skill_slug": "trust_building_advisor",
+        "skill_version": 1,
+        "instructions": "Reinforce responsiveness and expertise."
+      },
+      {
+        "skill_slug": "retail_merchant",
+        "skill_version": 1,
+        "instructions": "Reference retail payment realities such as margin sensitivity or card-present transaction mix."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "No savings claims. No processor knowledge claims."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 3,
+    "expected_version_labels": [
+      "Warm Acknowledgment",
+      "Direct Next Step",
+      "Advisor-First"
+    ],
+    "expected_strategy_angles": [
+      "warm_acknowledgment",
+      "next_step",
+      "value_reframe"
+    ],
+    "expected_subject_behavior": "Subjects reference the follow-up nature of the email, not a cold approach",
+    "expected_body_behavior": "All versions acknowledge the inquiry explicitly in the opening; none open as if discovering the business for the first time",
+    "expected_cta_behavior": "Each version contains one low-friction CTA proposing a statement review or brief call",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "savings_claim_check",
+      "cold_opener_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 3
+    },
+    "forbidden_phrases": [
+      "I came across your business",
+      "I stumbled upon your company",
+      "I hope this email finds you well"
+    ],
+    "forbidden_claims": [
+      "guaranteed savings",
+      "we know your processor"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "Cold opener phrases are a hard fail. All versions must explicitly acknowledge the prior inquiry. Body behavior check is the primary assertion."
+  }
+}

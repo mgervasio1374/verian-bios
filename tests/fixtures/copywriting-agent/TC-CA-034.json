@@ -1,0 +1,171 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-034",
+    "scenario_name": "any_message_type_each_version_exactly_one_cta",
+    "description": "Multi-version generation for statement_review_follow_up. Each version must contain exactly one CTA; no version should have multiple CTAs or none."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0034-0034-0034-000000000034",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-3434-3434-3434-111111111132",
+      "company_id": "22222222-3434-3434-3434-222222222242",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "approved",
+      "message_type": "statement_review_follow_up",
+      "primary_goal": "share_review_findings_and_schedule_call",
+      "secondary_goal": null,
+      "sequence_position": 2,
+      "days_since_last_contact": 2,
+      "lead_source": "manual",
+      "lead_stage": "statement_reviewed",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "commercial_cleaning",
+      "processing_volume_tier": null,
+      "has_statement_artifact": true,
+      "prior_touch_count": 2,
+      "last_engagement_signal": "statement_uploaded",
+      "partner_membership": null,
+      "audience_context": "Commercial cleaning company. Review summary: statement shows inconsistent fee structure with multiple surcharge line items. No specific dollar amount confirmed.",
+      "pain_point_hypothesis": "Inconsistent surcharge structure in statement.",
+      "offer_angle": "cost_clarity",
+      "trust_angle": "Reference the specific fee structure observation from the review.",
+      "proof_point": "Inconsistent surcharge line items noted in statement review.",
+      "cta": "Can we find 15 minutes to walk through what I found?",
+      "tone": "professional_warm",
+      "length_target": "medium",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "One CTA per version",
+        "Do not include multiple calls to action"
+      ],
+      "required_inclusions": [
+        "Exactly one CTA per version",
+        "Reference review findings"
+      ],
+      "avoid": [
+        "multiple CTAs in a single email",
+        "PS line with a second CTA",
+        "asking to call and also email"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "statement_review_follow_up",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "trust_building_advisor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "commercial_cleaning_merchant",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.86,
+      "reasoning": "Single CTA enforcement across multiple versions is the primary test assertion.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-3434-3434-3434-111111111132",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Bridget Calloway",
+      "companyName": "Calloway Commercial Cleaning Group",
+      "businessType": "commercial_cleaning",
+      "city": "Denver",
+      "state": "CO",
+      "website": "callowaycommercialcleaning.com",
+      "sizeProxy": "medium",
+      "knownPaymentContext": "invoicing",
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "commercial_cleaning"
+    },
+    "company_context": {
+      "companyId": "22222222-3434-3434-3434-222222222242",
+      "companyName": "Calloway Commercial Cleaning Group",
+      "industry": "commercial_cleaning",
+      "city": "Denver",
+      "state": "CO"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "statement_review_follow_up",
+        "skill_version": 1,
+        "instructions": "Reference review findings. Exactly one CTA per version. Do not include a PS with a second ask."
+      },
+      {
+        "skill_slug": "trust_building_advisor",
+        "skill_version": 1,
+        "instructions": "Transparent and helpful. Single clear next step."
+      },
+      {
+        "skill_slug": "commercial_cleaning_merchant",
+        "skill_version": 1,
+        "instructions": "Reference commercial cleaning payment and invoicing context."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "One CTA only. No savings dollar claims. Do not split the CTA across the body and a PS line."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 3,
+    "expected_version_labels": [
+      "Findings First",
+      "Advisor Explanation",
+      "Proposal-Oriented Next Step"
+    ],
+    "expected_strategy_angles": [
+      "call_invitation",
+      "email_reply_ask",
+      "meeting_propose"
+    ],
+    "expected_subject_behavior": "Subjects reference the review; none prompt multiple actions",
+    "expected_body_behavior": "Each version has exactly one CTA; no version contains a PS line with a secondary ask or multiple action requests",
+    "expected_cta_behavior": "Each version has exactly one CTA",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "single_cta_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 3
+    },
+    "forbidden_phrases": [
+      "multiple CTAs in a single email"
+    ],
+    "forbidden_claims": [
+      "multiple action requests in one version",
+      "savings guarantees"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "Each version must contain exactly one CTA. A version with a body CTA and a PS CTA is a hard fail. A version with no CTA is also a hard fail."
+  }
+}

@@ -1,0 +1,174 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-013",
+    "scenario_name": "statement_not_submitted_follow_up_sequence_4_graceful_exit",
+    "description": "Fourth touch in statement not submitted sequence. Ultra-short graceful exit versions. Two versions: one Graceful Exit, one Exit CTA."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0013-0013-0013-000000000013",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-dddd-dddd-dddd-11111111111d",
+      "company_id": "22222222-dddd-dddd-dddd-22222222222d",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "statement_not_submitted_follow_up",
+      "primary_goal": "graceful_exit_or_final_cta",
+      "secondary_goal": null,
+      "sequence_position": 4,
+      "days_since_last_contact": 14,
+      "lead_source": "manual",
+      "lead_stage": "statement_requested",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "auto_repair",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 3,
+      "last_engagement_signal": null,
+      "partner_membership": null,
+      "audience_context": "Auto repair shop owner. Four touches in. Statement still not submitted. Final outreach before marking as inactive.",
+      "pain_point_hypothesis": "Lead may not be ready or interested. Final touch should be gracious and leave the door open.",
+      "offer_angle": "graceful_exit",
+      "trust_angle": "Leave on a positive note. Do not burn the bridge.",
+      "proof_point": null,
+      "cta": "No worries if the timing is not right — happy to revisit whenever it makes sense.",
+      "tone": "professional_warm",
+      "length_target": "ultra_short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "Do not pressure",
+        "Do not claim savings"
+      ],
+      "required_inclusions": [
+        "Gracious close",
+        "Open door for future contact"
+      ],
+      "avoid": [
+        "Just checking in",
+        "I wanted to reach out again",
+        "last chance"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "graceful_exit",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "trust_building_advisor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "auto_repair_merchant",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.7,
+      "reasoning": "Fourth touch. Graceful exit is appropriate. Ultra-short length required.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-dddd-dddd-dddd-11111111111d",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Tony Marchetti",
+      "companyName": "Marchetti Auto & Tire",
+      "businessType": "auto_repair",
+      "city": "Detroit",
+      "state": "MI",
+      "website": "marchettiauto.com",
+      "sizeProxy": "small",
+      "knownPaymentContext": null,
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "auto_repair"
+    },
+    "company_context": {
+      "companyId": "22222222-dddd-dddd-dddd-22222222222d",
+      "companyName": "Marchetti Auto & Tire",
+      "industry": "auto_repair",
+      "city": "Detroit",
+      "state": "MI"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "graceful_exit",
+        "skill_version": 1,
+        "instructions": "Close graciously. Leave the door open. Ultra-short. Do not pressure."
+      },
+      {
+        "skill_slug": "trust_building_advisor",
+        "skill_version": 1,
+        "instructions": "End on a positive, helpful note."
+      },
+      {
+        "skill_slug": "auto_repair_merchant",
+        "skill_version": 1,
+        "instructions": "Acknowledge auto repair context briefly if relevant."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "No savings claims. No pressure language. No urgency manufacturing."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 2,
+    "expected_version_labels": [
+      "Graceful Exit",
+      "Exit CTA"
+    ],
+    "expected_strategy_angles": [
+      "graceful_exit",
+      "exit_with_door_open"
+    ],
+    "expected_subject_behavior": "Subjects are brief and non-pressuring; reflect a final gracious touch",
+    "expected_body_behavior": "Both versions are ultra-short (under 60 words), gracious, and leave the door open without pressure",
+    "expected_cta_behavior": "Both versions make reopening the conversation easy and low-commitment",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "pressure_language_check",
+      "urgency_manufacturing_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 1
+    },
+    "forbidden_phrases": [
+      "Just checking in",
+      "I wanted to reach out again",
+      "last chance",
+      "final opportunity"
+    ],
+    "forbidden_claims": [
+      "urgency",
+      "pressure",
+      "savings"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "Both versions must be ultra-short. Any urgency or pressure language is a hard fail. Gracious close with an open door is required."
+  }
+}

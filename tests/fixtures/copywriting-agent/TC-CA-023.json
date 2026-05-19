@@ -1,0 +1,195 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-023",
+    "scenario_name": "partner_campaign_certainpath_no_partner_claims_authorized",
+    "description": "CertainPath confirmed member but partner_claims_authorized is false. Success is true but exclusive/official/endorsed language is forbidden in all versions."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0023-0023-0023-000000000023",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-2323-2323-2323-111111111127",
+      "company_id": "22222222-2323-2323-2323-222222222237",
+      "campaign_id": "33333333-2323-2323-2323-333333333337",
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "partner_member_specific_campaign",
+      "primary_goal": "leverage_partner_trust_and_request_statement",
+      "secondary_goal": null,
+      "sequence_position": 1,
+      "days_since_last_contact": null,
+      "lead_source": "partner_list",
+      "lead_stage": "new",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "home_services",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 0,
+      "last_engagement_signal": null,
+      "partner_membership": {
+        "confirmed": true,
+        "partner_name": "certainpath",
+        "partner_claims_authorized": false,
+        "membership_tier": null
+      },
+      "audience_context": "HVAC contractor confirmed as CertainPath member. Partner claims not authorized; cannot use exclusive or endorsement language.",
+      "pain_point_hypothesis": "CertainPath member with potential field payment inefficiencies.",
+      "offer_angle": "partner_trust",
+      "trust_angle": "Reference CertainPath membership naturally without claiming exclusive or endorsed status.",
+      "proof_point": null,
+      "cta": "Happy to take a look at your statement as a fellow CertainPath community member.",
+      "tone": "professional_warm",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "partner_claims_authorized is false",
+        "Do not claim exclusive partner status",
+        "Do not claim CertainPath endorsement"
+      ],
+      "required_inclusions": [
+        "Soft community reference",
+        "Low-friction CTA"
+      ],
+      "avoid": [
+        "exclusive partner",
+        "official partner",
+        "endorsed by",
+        "preferred vendor",
+        "certified"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "cold_outreach",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "certainpath_member_messaging",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "home_services_contractor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "trust_building_advisor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.82,
+      "reasoning": "Confirmed CertainPath member but partner_claims_authorized is false. Soft community reference permitted; exclusive claims forbidden.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-2323-2323-2323-111111111127",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Brett Hollingsworth",
+      "companyName": "Hollingsworth Air Comfort",
+      "businessType": "hvac",
+      "city": "Raleigh",
+      "state": "NC",
+      "website": "hollingsworthair.com",
+      "sizeProxy": "medium",
+      "knownPaymentContext": "field_payments",
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "home_services"
+    },
+    "company_context": {
+      "companyId": "22222222-2323-2323-2323-222222222237",
+      "companyName": "Hollingsworth Air Comfort",
+      "industry": "hvac",
+      "city": "Raleigh",
+      "state": "NC"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "cold_outreach",
+        "skill_version": 1,
+        "instructions": "Open with a relevant industry observation."
+      },
+      {
+        "skill_slug": "certainpath_member_messaging",
+        "skill_version": 1,
+        "instructions": "Soft community reference only. partner_claims_authorized is false so exclusive or endorsed claims are forbidden."
+      },
+      {
+        "skill_slug": "home_services_contractor",
+        "skill_version": 1,
+        "instructions": "Reference HVAC field payment patterns."
+      },
+      {
+        "skill_slug": "trust_building_advisor",
+        "skill_version": 1,
+        "instructions": "Use shared community membership lightly to build rapport."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "No exclusive partner, official partner, or endorsed language. partner_claims_authorized is false."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 3,
+    "expected_version_labels": [
+      "Partner Context",
+      "Home Services / Operational Angle",
+      "Statement Review Clarity"
+    ],
+    "expected_strategy_angles": [
+      "community_member",
+      "soft_trust",
+      "advisor_positioning"
+    ],
+    "expected_subject_behavior": "Subjects reference the member community softly; none claim exclusivity or endorsement",
+    "expected_body_behavior": "CertainPath referenced softly at most once per version; no exclusive, official, or endorsed language",
+    "expected_cta_behavior": "Each version invites a low-friction next step without claiming partner authority",
+    "expected_compliance_checks": [
+      "banned_phrase_check",
+      "partner_claim_check",
+      "endorsement_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 3
+    },
+    "forbidden_phrases": [
+      "exclusive partner",
+      "official partner",
+      "endorsed by",
+      "preferred vendor",
+      "certified"
+    ],
+    "forbidden_claims": [
+      "exclusive partner",
+      "official partner",
+      "endorsed by",
+      "certified by"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "partner_claims_authorized is false. Any exclusive, official, or endorsed claim is a hard compliance fail regardless of confirmed membership."
+  }
+}

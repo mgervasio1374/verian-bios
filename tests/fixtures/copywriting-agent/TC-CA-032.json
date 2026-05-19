@@ -1,0 +1,183 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-032",
+    "scenario_name": "cold_outreach_banned_phrase_in_avoid_list_enforced",
+    "description": "Cold outreach with 'Just checking in' in the strategy avoid list. Generation succeeds but the banned phrase must not appear in any version. Compliance check must include banned_phrase_check."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0032-0032-0032-000000000032",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-3232-3232-3232-111111111130",
+      "company_id": "22222222-3232-3232-3232-222222222240",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "cold_outreach",
+      "primary_goal": "request_statement_or_start_conversation",
+      "secondary_goal": null,
+      "sequence_position": 1,
+      "days_since_last_contact": null,
+      "lead_source": "manual",
+      "lead_stage": "new",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "pool_services",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 0,
+      "last_engagement_signal": null,
+      "partner_membership": null,
+      "audience_context": "Pool services company; seasonal volume patterns with high summer volume and slow winter.",
+      "pain_point_hypothesis": "Seasonal volume swings may interact poorly with tiered pricing structures.",
+      "offer_angle": "cost_clarity",
+      "trust_angle": "Reference pool services payment timing and seasonal patterns.",
+      "proof_point": null,
+      "cta": "Happy to take a look at your statement if you want a second opinion on your rates.",
+      "tone": "professional_warm",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": [
+        "Do not claim savings amounts",
+        "Do not claim knowledge of current processor"
+      ],
+      "required_inclusions": [
+        "One industry-specific observation",
+        "One low-friction CTA"
+      ],
+      "avoid": [
+        "Just checking in",
+        "I hope this email finds you well",
+        "I came across your business"
+      ],
+      "selected_skills": [
+        {
+          "skill_slug": "cold_outreach",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "pool_services_merchant",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "trust_building_advisor",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "executive_brevity",
+          "skill_version": 1
+        },
+        {
+          "skill_slug": "compliance_forbidden_claims",
+          "skill_version": 1
+        }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.8,
+      "reasoning": "Cold outreach. 'Just checking in' is explicitly in the avoid list and should not appear.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-3232-3232-3232-111111111130",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Phil Castillo",
+      "companyName": "Castillo Pool & Spa Services",
+      "businessType": "pool_services",
+      "city": "Scottsdale",
+      "state": "AZ",
+      "website": "castillopoolandspa.com",
+      "sizeProxy": "small",
+      "knownPaymentContext": "seasonal_volume",
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "pool_services"
+    },
+    "company_context": {
+      "companyId": "22222222-3232-3232-3232-222222222240",
+      "companyName": "Castillo Pool & Spa Services",
+      "industry": "pool_services",
+      "city": "Scottsdale",
+      "state": "AZ"
+    },
+    "selected_skill_definitions": [
+      {
+        "skill_slug": "cold_outreach",
+        "skill_version": 1,
+        "instructions": "Open with an industry observation. Never use 'Just checking in'."
+      },
+      {
+        "skill_slug": "pool_services_merchant",
+        "skill_version": 1,
+        "instructions": "Reference seasonal pool service payment patterns."
+      },
+      {
+        "skill_slug": "trust_building_advisor",
+        "skill_version": 1,
+        "instructions": "Position as knowledgeable and helpful."
+      },
+      {
+        "skill_slug": "executive_brevity",
+        "skill_version": 1,
+        "instructions": "Under 120 words. One CTA."
+      },
+      {
+        "skill_slug": "compliance_forbidden_claims",
+        "skill_version": 1,
+        "instructions": "No savings claims. No forbidden phrases from the avoid list."
+      }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 4,
+    "expected_version_labels": [
+      "Industry Question",
+      "Statement Clarity",
+      "Trust-Builder",
+      "Direct Executive Brevity"
+    ],
+    "expected_strategy_angles": [
+      "seasonal_observation",
+      "rate_clarity",
+      "trust_advisor",
+      "direct_question"
+    ],
+    "expected_subject_behavior": "Subject lines are industry-relevant; none use banned phrases",
+    "expected_body_behavior": "All versions avoid 'Just checking in' and other banned phrases from the avoid list",
+    "expected_cta_behavior": "Each version has one low-friction CTA",
+    "expected_compliance_checks": [
+      "banned_phrase_check"
+    ],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 6
+    },
+    "forbidden_phrases": [
+      "Just checking in",
+      "I hope this email finds you well",
+      "I came across your business"
+    ],
+    "forbidden_claims": [
+      "savings guarantees",
+      "processor knowledge claims"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "Generation must succeed but banned_phrase_check must run. 'Just checking in' in any version is a hard compliance fail. All 4 versions required."
+  }
+}

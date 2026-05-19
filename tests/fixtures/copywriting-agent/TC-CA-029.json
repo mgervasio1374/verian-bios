@@ -1,0 +1,121 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-029",
+    "scenario_name": "valid_strategy_requires_human_review_true_blocks_copy_004",
+    "description": "Valid cold outreach strategy but requires_human_review:true and status:draft. Expects COPY_004 blocking error regardless of other strategy validity."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0029-0029-0029-000000000029",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-2929-2929-2929-11111111112d",
+      "company_id": "22222222-2929-2929-2929-22222222223d",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "cold_outreach",
+      "primary_goal": "request_statement_or_start_conversation",
+      "secondary_goal": null,
+      "sequence_position": 1,
+      "days_since_last_contact": null,
+      "lead_source": "manual",
+      "lead_stage": "new",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "home_services",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 0,
+      "last_engagement_signal": null,
+      "partner_membership": null,
+      "audience_context": "Home services contractor; field-based payments.",
+      "pain_point_hypothesis": "Possible interchange downgrade from mixed card types.",
+      "offer_angle": "cost_clarity",
+      "trust_angle": "Reference home services payment realities.",
+      "proof_point": null,
+      "cta": "Worth 15 minutes to review your statement?",
+      "tone": "executive_brevity",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": ["Do not claim savings amounts", "Do not claim knowledge of current processor"],
+      "required_inclusions": ["One specific observation", "One low-friction CTA"],
+      "avoid": ["I hope this email finds you well"],
+      "selected_skills": [
+        { "skill_slug": "cold_outreach", "skill_version": 1 },
+        { "skill_slug": "home_services_contractor", "skill_version": 1 },
+        { "skill_slug": "trust_building_advisor", "skill_version": 1 },
+        { "skill_slug": "executive_brevity", "skill_version": 1 },
+        { "skill_slug": "compliance_forbidden_claims", "skill_version": 1 }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.55,
+      "reasoning": "Valid strategy but flagged for human review. Draft status. Should block generation.",
+      "alternative_angles": [],
+      "requires_human_review": true,
+      "override_log": [],
+      "invalid_reasons": ["Strategy confidence below threshold; requires human review before generation."],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-2929-2929-2929-11111111112d",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Paul Nkrumah",
+      "companyName": "Nkrumah General Contracting",
+      "businessType": "home_services",
+      "city": "Baltimore",
+      "state": "MD",
+      "website": "nkrumahcontracting.com",
+      "sizeProxy": "small",
+      "knownPaymentContext": null,
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "home_services"
+    },
+    "company_context": {
+      "companyId": "22222222-2929-2929-2929-22222222223d",
+      "companyName": "Nkrumah General Contracting",
+      "industry": "home_services",
+      "city": "Baltimore",
+      "state": "MD"
+    },
+    "selected_skill_definitions": [
+      { "skill_slug": "cold_outreach", "skill_version": 1, "instructions": "Open with a relevant observation." },
+      { "skill_slug": "home_services_contractor", "skill_version": 1, "instructions": "Reference home services payment realities." },
+      { "skill_slug": "trust_building_advisor", "skill_version": 1, "instructions": "Position as knowledgeable." },
+      { "skill_slug": "executive_brevity", "skill_version": 1, "instructions": "Under 120 words." },
+      { "skill_slug": "compliance_forbidden_claims", "skill_version": 1, "instructions": "No savings claims. No processor knowledge claims." }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": false,
+    "expected_version_count": 0,
+    "expected_version_labels": [],
+    "expected_strategy_angles": [],
+    "expected_subject_behavior": "No output produced",
+    "expected_body_behavior": "No output produced; generation blocked because requires_human_review is true and status is draft",
+    "expected_cta_behavior": "No output produced",
+    "expected_compliance_checks": [],
+    "expected_warnings": [],
+    "expected_errors": [
+      { "code": "COPY_004" }
+    ],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 0,
+      "version_pairs_checked": 0
+    },
+    "forbidden_phrases": [],
+    "forbidden_claims": [],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "COPY_004 must be returned whenever requires_human_review is true and status is draft. The rest of the strategy being valid is irrelevant."
+  }
+}

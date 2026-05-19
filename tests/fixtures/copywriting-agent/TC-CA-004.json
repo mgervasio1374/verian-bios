@@ -1,0 +1,124 @@
+{
+  "meta": {
+    "test_case_id": "TC-CA-004",
+    "scenario_name": "new_inquiry_response_website_lead_three_versions",
+    "description": "Inbound inquiry from a website lead. Expects a warm, acknowledgment-first response in 3 versions. No cold-outreach openers allowed."
+  },
+  "input": {
+    "strategy": {
+      "id": "a1b2c3d4-0004-0004-0004-000000000004",
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "lead_id": "11111111-4444-4444-4444-111111111114",
+      "company_id": "22222222-4444-4444-4444-222222222224",
+      "campaign_id": null,
+      "agent_run_id": null,
+      "created_by": "agent",
+      "status": "draft",
+      "message_type": "new_inquiry_response",
+      "primary_goal": "acknowledge_and_qualify",
+      "secondary_goal": "request_statement_or_start_conversation",
+      "sequence_position": 1,
+      "days_since_last_contact": null,
+      "lead_source": "website",
+      "lead_stage": "new",
+      "lead_score": null,
+      "lead_urgency_score": null,
+      "industry_segment": "restaurant",
+      "processing_volume_tier": null,
+      "has_statement_artifact": false,
+      "prior_touch_count": 0,
+      "last_engagement_signal": "website_inquiry",
+      "partner_membership": null,
+      "audience_context": "Restaurant owner who submitted an inquiry through the website contact form. Shows intent to learn more.",
+      "pain_point_hypothesis": "Owner is actively seeking cost transparency on payment processing.",
+      "offer_angle": "cost_clarity",
+      "trust_angle": "Acknowledge their initiative in reaching out; position as responsive and knowledgeable.",
+      "proof_point": null,
+      "cta": "Would you be available for a quick 15-minute call this week?",
+      "tone": "professional_warm",
+      "length_target": "short",
+      "personalization_level": "lead_specific",
+      "compliance_notes": ["Do not claim savings amounts", "Do not claim knowledge of current processor"],
+      "required_inclusions": ["Explicit acknowledgment of the inquiry", "One low-friction next step"],
+      "avoid": ["I came across your business", "I stumbled upon your company"],
+      "selected_skills": [
+        { "skill_slug": "new_inquiry_response", "skill_version": 1 },
+        { "skill_slug": "trust_building_advisor", "skill_version": 1 },
+        { "skill_slug": "restaurant_merchant", "skill_version": 1 },
+        { "skill_slug": "compliance_forbidden_claims", "skill_version": 1 }
+      ],
+      "skill_reasoning": [],
+      "confidence_score": 0.88,
+      "reasoning": "Website inquiry lead shows intent. Warm acknowledgment with a clear next step is appropriate.",
+      "alternative_angles": [],
+      "requires_human_review": false,
+      "override_log": [],
+      "invalid_reasons": [],
+      "created_at": "2026-05-19T10:00:00Z",
+      "updated_at": "2026-05-19T10:00:00Z"
+    },
+    "lead_context": {
+      "leadId": "11111111-4444-4444-4444-111111111114",
+      "tenantId": "00000000-0000-0000-0000-000000000000",
+      "contactName": "Maria Delgado",
+      "companyName": "Casa Verde Kitchen",
+      "businessType": "restaurant",
+      "city": "Austin",
+      "state": "TX",
+      "website": "casaverdekitchen.com",
+      "sizeProxy": "small",
+      "knownPaymentContext": null,
+      "currentProcessor": null,
+      "estimatedMonthlyVolume": null,
+      "industrySegment": "restaurant"
+    },
+    "company_context": {
+      "companyId": "22222222-4444-4444-4444-222222222224",
+      "companyName": "Casa Verde Kitchen",
+      "industry": "restaurant",
+      "city": "Austin",
+      "state": "TX"
+    },
+    "selected_skill_definitions": [
+      { "skill_slug": "new_inquiry_response", "skill_version": 1, "instructions": "Always acknowledge the inquiry explicitly in the opening. Do not treat this like a cold outreach." },
+      { "skill_slug": "trust_building_advisor", "skill_version": 1, "instructions": "Position as responsive and knowledgeable. Reinforce that reaching out was the right move." },
+      { "skill_slug": "restaurant_merchant", "skill_version": 1, "instructions": "Reference restaurant payment realities such as tip adjustments, high transaction volume, or table-turn speed." },
+      { "skill_slug": "compliance_forbidden_claims", "skill_version": 1, "instructions": "Do not claim savings amounts. Do not claim knowledge of current processor." }
+    ],
+    "prior_message_context": null,
+    "system_controls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_message_approval": true,
+      "require_strategy_review": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_version_count": 3,
+    "expected_version_labels": ["Warm Acknowledgment", "Direct Next Step", "Advisor-First"],
+    "expected_strategy_angles": ["warm_acknowledgment", "direct_next_step", "advisor_positioning"],
+    "expected_subject_behavior": "Subject lines reference the inquiry or the owner's outreach; none are cold-outreach style",
+    "expected_body_behavior": "All versions acknowledge the inquiry explicitly in the first sentence or two",
+    "expected_cta_behavior": "Each version proposes one low-friction next step such as a call or review",
+    "expected_compliance_checks": ["banned_phrase_check", "savings_claim_check"],
+    "expected_warnings": [],
+    "expected_errors": [],
+    "expected_retry_behavior": null,
+    "expected_differentiation_profile": {
+      "minimum_dimensions_different": 2,
+      "version_pairs_checked": 3
+    },
+    "forbidden_phrases": [
+      "I came across your business",
+      "I stumbled upon your company"
+    ],
+    "forbidden_claims": [
+      "we know your current processor",
+      "you are overpaying",
+      "guaranteed savings"
+    ],
+    "body_html_must_be_null": true,
+    "pass_fail_notes": "All 3 versions must explicitly acknowledge the inbound inquiry. Cold-outreach openers are a hard fail."
+  }
+}

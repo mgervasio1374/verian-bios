@@ -1,0 +1,174 @@
+import type { Database } from '@/types/database'
+
+// ---- Database row types ----
+
+export type AgentRunRow       = Database['public']['Tables']['agent_runs']['Row']
+export type AgentRunStepRow   = Database['public']['Tables']['agent_run_steps']['Row']
+export type GuardrailEventRow = Database['public']['Tables']['guardrail_events']['Row']
+export type SystemControlRow  = Database['public']['Tables']['system_controls']['Row']
+export type CompanyScoreRow   = Database['public']['Tables']['company_scores']['Row']
+export type ActivityEventRow  = Database['public']['Tables']['activity_events']['Row']
+
+// ---- Agent run status ----
+
+export const AgentRunStatus = {
+  RUNNING:   'running',
+  COMPLETED: 'completed',
+  FAILED:    'failed',
+  CANCELLED: 'cancelled',
+  KILLED:    'killed',
+} as const
+export type AgentRunStatus = typeof AgentRunStatus[keyof typeof AgentRunStatus]
+
+// ---- Agent run type ----
+
+export const AgentRunType = {
+  CLASSIFICATION: 'classification',
+  GENERATION:     'generation',
+  SCORING:        'scoring',
+  ANALYSIS:       'analysis',
+  NOTIFICATION:   'notification',
+} as const
+export type AgentRunType = typeof AgentRunType[keyof typeof AgentRunType]
+
+// ---- Agent run step status ----
+
+export const AgentRunStepStatus = {
+  PENDING:   'pending',
+  RUNNING:   'running',
+  COMPLETED: 'completed',
+  FAILED:    'failed',
+  SKIPPED:   'skipped',
+} as const
+export type AgentRunStepStatus = typeof AgentRunStepStatus[keyof typeof AgentRunStepStatus]
+
+// ---- Guardrail severity ----
+
+export const GuardrailSeverity = {
+  LOW:      'low',
+  MEDIUM:   'medium',
+  HIGH:     'high',
+  CRITICAL: 'critical',
+} as const
+export type GuardrailSeverity = typeof GuardrailSeverity[keyof typeof GuardrailSeverity]
+
+// ---- Guardrail status ----
+
+export const GuardrailStatus = {
+  OPEN:         'open',
+  ACKNOWLEDGED: 'acknowledged',
+  RESOLVED:     'resolved',
+} as const
+export type GuardrailStatus = typeof GuardrailStatus[keyof typeof GuardrailStatus]
+
+// ---- System control keys ----
+// These exact string values are checked by services at runtime.
+// Phase 3B-1 keys seed as value=false and must not be enabled without team approval.
+
+export const SystemControlKey = {
+  // Phase 3A — agent layer
+  GLOBAL_AGENT_PAUSE:                  'global_agent_pause',
+  EMAIL_SENDING_ENABLED:               'email_sending_enabled',
+  CAMPAIGN_SENDING_ENABLED:            'campaign_sending_enabled',
+  RECOMMENDATION_ENGINE_ENABLED:       'recommendation_engine_enabled',
+  AUTO_TASK_CREATION_ENABLED:          'auto_task_creation_enabled',
+  AGENT_ENABLED:                       'agent.enabled',
+  AGENT_CONFIDENCE_THRESHOLD_MIN:      'agent.confidence_threshold.min',
+  AGENT_STATEMENT_CLASSIFIER_ENABLED:  'agent.statement_classifier.enabled',
+  AGENT_PROPOSAL_BUILDER_ENABLED:      'agent.proposal_builder.enabled',
+  AGENT_COMPANY_SCORING_ENABLED:       'agent.company_scoring.enabled',
+
+  // Phase 3B — Revenue Learning Engine
+  EMAIL_GENERATION_ENGINE:             'email_generation_engine',
+  REQUIRE_STRATEGY_REVIEW:             'require_strategy_review',
+
+  // Phase 3B-1 — Human Handoff & Follow-Up Accountability (future, disabled by default)
+  OUTLOOK_MONITORING_ENABLED:              'outlook_monitoring_enabled',
+  CALENDAR_MONITORING_ENABLED:             'calendar_monitoring_enabled',
+  FOLLOW_UP_ACCOUNTABILITY_ENABLED:        'follow_up_accountability_enabled',
+  FOLLOW_UP_AUTO_TASK_CREATION_ENABLED:    'follow_up_auto_task_creation_enabled',
+  FOLLOW_UP_ESCALATIONS_ENABLED:           'follow_up_escalations_enabled',
+} as const
+export type SystemControlKey = typeof SystemControlKey[keyof typeof SystemControlKey]
+
+// ---- Recommendation outcome status ----
+
+export const RecommendationOutcomeStatus = {
+  PENDING:    'pending',
+  ACCEPTED:   'accepted',
+  ACTED_ON:   'acted_on',    // recommendation was acted upon (email sent, approval given, etc.)
+  REJECTED:   'rejected',
+  EXPIRED:    'expired',
+  DISMISSED:  'dismissed',
+  SUPERSEDED: 'superseded',
+} as const
+export type RecommendationOutcomeStatus =
+  typeof RecommendationOutcomeStatus[keyof typeof RecommendationOutcomeStatus]
+
+// ---- Activity event types ----
+
+export const ActivityEventType = {
+  // Phase 3A — agent lifecycle (internal operational signals)
+  AGENT_RUN_STARTED:             'agent_run_started',
+  AGENT_RUN_COMPLETED:           'agent_run_completed',
+  AGENT_RUN_FAILED:              'agent_run_failed',
+  COMPANY_SCORED:                'company_scored',
+  RECOMMENDATION_GENERATED:      'recommendation_generated',
+  RECOMMENDATION_TASK_CREATED:   'recommendation_task_created',
+
+  // Phase 3A — recommendation lifecycle
+  RECOMMENDATION_COMPLETED:    'recommendation_completed',
+
+  // Phase 3A — email quality
+  EMAIL_QUALITY_REVIEWED:      'email_quality_reviewed',
+
+  // Phase 3A — system controls audit trail
+  SYSTEM_CONTROL_UPDATED:      'system_control_updated',
+
+  // Phase 3A — document vault signals
+  DOCUMENT_LINKED_TO_COMPANY:  'document_linked_to_company',
+  PROPOSAL_GENERATED:          'proposal_generated',
+  ANALYSIS_REPORT_GENERATED:   'analysis_report_generated',
+
+  // Phase 3A — intake and CRM signals
+  STATEMENT_UPLOADED:   'statement_uploaded',
+  FORM_SUBMITTED:       'form_submitted',
+  EMAIL_OPENED:         'email_opened',
+  EMAIL_CLICKED:        'email_clicked',
+  EMAIL_BOUNCED:        'email_bounced',
+  PROPOSAL_SENT:        'proposal_sent',
+  PROPOSAL_APPROVED:    'proposal_approved',
+  PROPOSAL_REJECTED:    'proposal_rejected',
+  PAGE_VIEW:            'page_view',
+  LINK_CLICKED:         'link_clicked',
+  CHAT_STARTED:         'chat_started',
+  CALENDLY_BOOKED:      'calendly_booked',
+  LEAD_STAGE_CHANGED:   'lead_stage_changed',
+
+  // Phase 3A — manual campaign assignment
+  MANUAL_CAMPAIGN_DRAFT_CREATED:    'manual_campaign_draft_created',
+
+  // Phase 3A — email rewrite loop
+  EMAIL_REWRITE_LOOP_COMPLETED:     'email_rewrite_loop_completed',
+  EMAIL_BEST_REWRITE_APPLIED:        'email_best_rewrite_applied',
+  EMAIL_REWRITE_VERSION_APPLIED:     'email_rewrite_version_applied',
+
+  // Phase 3B — Revenue Learning Engine
+  MESSAGE_STRATEGY_GENERATED:      'message_strategy_generated',
+  MESSAGE_STRATEGY_APPROVED:        'message_strategy_approved',
+  MESSAGE_STRATEGY_OVERRIDDEN:      'message_strategy_overridden',
+  MESSAGE_VERSIONS_GENERATED:       'message_versions_generated',
+
+  // Phase 3B-1 — Human Handoff & Follow-Up Accountability (future)
+  OUTLOOK_EMAIL_SENT:                'outlook_email_sent',
+  OUTLOOK_EMAIL_RECEIVED:            'outlook_email_received',
+  OUTLOOK_REPLY_DETECTED:            'outlook_reply_detected',
+  CALENDAR_MEETING_CREATED:          'calendar_meeting_created',
+  CALENDAR_MEETING_COMPLETED:        'calendar_meeting_completed',
+  HUMAN_HANDOFF_DETECTED:            'human_handoff_detected',
+  FOLLOW_UP_OBLIGATION_CREATED:      'follow_up_obligation_created',
+  FOLLOW_UP_OBLIGATION_COMPLETED:    'follow_up_obligation_completed',
+  FOLLOW_UP_OBLIGATION_MISSED:       'follow_up_obligation_missed',
+  FOLLOW_UP_ESCALATED:               'follow_up_escalated',
+} as const
+export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType]
