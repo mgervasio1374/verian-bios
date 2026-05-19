@@ -1,0 +1,90 @@
+{
+  "meta": {
+    "test_case_id": "TC-003",
+    "scenario_name": "Inbound website inquiry from home services company",
+    "description": "Website source lead in new_inquiry stage for a plumbing company. Expects new_inquiry_response with warm conversational tone and high confidence."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000003",
+      "contact_name": "Maria Santos",
+      "contact_email": "maria@greenvalleyplumbing.com",
+      "contact_title": "Owner",
+      "lead_source": "website",
+      "lead_stage": "new_inquiry",
+      "opted_out": false,
+      "prior_touch_count": 0,
+      "last_contacted_at": null,
+      "last_engagement_signal": "none",
+      "prior_campaign_messages": []
+    },
+    "company": {
+      "company_name": "Green Valley Plumbing",
+      "industry": "home_services",
+      "sub_industry": "plumbing",
+      "employee_count": 5,
+      "annual_revenue_estimate": 750000,
+      "location_city": "Albuquerque",
+      "location_state": "NM"
+    },
+    "statement": {
+      "has_statement_artifact": false,
+      "statement_received_at": null,
+      "statement_review_completed": false,
+      "findings_available": false,
+      "review_summary": null,
+      "calculated_savings_amount": null
+    },
+    "campaign": null,
+    "partner": {
+      "partner_membership_confirmed": false,
+      "partner_name": null
+    },
+    "event": null,
+    "proposal": {
+      "proposal_sent": false,
+      "proposal_sent_at": null
+    },
+    "customer": {
+      "is_existing_customer": false,
+      "account_status": null,
+      "nurture_trigger": null
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": true,
+    "message_type": "new_inquiry_response",
+    "required_skills_included": [
+      "new_inquiry_response",
+      "warm_conversational",
+      "home_services_contractor",
+      "compliance_forbidden_claims"
+    ],
+    "forbidden_skills": [
+      "cold_outreach",
+      "customer_nurture",
+      "certainpath_member_messaging"
+    ],
+    "primary_goal": "confirm_interest_and_request_statement",
+    "cta_style": "warm_next_step",
+    "confidence_band": "usable_review_recommended",
+    "confidence_range": {
+      "min": 0.65,
+      "max": 0.9
+    },
+    "requires_human_review": false,
+    "errors": [],
+    "warnings": [],
+    "guardrails": [
+      "no_savings_claims"
+    ],
+    "personalization_level": "lead_specific",
+    "sequence_position": 1
+  }
+}

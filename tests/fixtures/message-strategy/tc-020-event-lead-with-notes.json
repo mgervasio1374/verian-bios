@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "test_case_id": "TC-020",
+    "scenario_name": "Event lead from Service World Expo 2026 with detailed conversation notes",
+    "description": "Lead sourced from event 2 days ago with rich conversation notes about the owner's business. Expects event_expo_follow_up with highly_personalized level and high confidence."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000020",
+      "contact_name": "Chris Bauer",
+      "contact_email": "cbauer@bauerhvac.com",
+      "contact_title": "Owner",
+      "lead_source": "event",
+      "lead_stage": "new",
+      "opted_out": false,
+      "prior_touch_count": 0,
+      "last_contacted_at": null,
+      "last_engagement_signal": "none",
+      "prior_campaign_messages": []
+    },
+    "company": {
+      "company_name": "Bauer HVAC Solutions",
+      "industry": "home_services",
+      "sub_industry": "hvac",
+      "employee_count": 6,
+      "annual_revenue_estimate": 820000,
+      "location_city": "Indianapolis",
+      "location_state": "IN"
+    },
+    "statement": {
+      "has_statement_artifact": false,
+      "statement_received_at": null,
+      "statement_review_completed": false,
+      "findings_available": false,
+      "review_summary": null,
+      "calculated_savings_amount": null
+    },
+    "campaign": null,
+    "partner": {
+      "partner_membership_confirmed": false,
+      "partner_name": null
+    },
+    "event": {
+      "event_name": "Service World Expo 2026",
+      "event_date": "2026-05-16T00:00:00Z",
+      "conversation_notes": "HVAC owner, 6 techs, uses Square for field payments. Processes about $80K/month. Frustrated with Square fees on bigger jobs. Open to reviewing processing costs. Interested in next-day funding option."
+    },
+    "proposal": {
+      "proposal_sent": false,
+      "proposal_sent_at": null
+    },
+    "customer": {
+      "is_existing_customer": false,
+      "account_status": null,
+      "nurture_trigger": null
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": true,
+    "message_type": "event_expo_follow_up",
+    "required_skills_included": [
+      "event_expo_follow_up",
+      "home_services_contractor",
+      "warm_conversational",
+      "compliance_forbidden_claims"
+    ],
+    "forbidden_skills": [
+      "cold_outreach",
+      "customer_nurture",
+      "certainpath_member_messaging"
+    ],
+    "primary_goal": "reconnect_post_event_and_request_statement",
+    "cta_style": "low_friction_statement_review",
+    "confidence_band": "high",
+    "confidence_range": {
+      "min": 0.8,
+      "max": 1.0
+    },
+    "requires_human_review": false,
+    "errors": [],
+    "warnings": [],
+    "guardrails": [
+      "no_savings_claims",
+      "reference_event_context"
+    ],
+    "personalization_level": "highly_personalized",
+    "sequence_position": 1
+  }
+}

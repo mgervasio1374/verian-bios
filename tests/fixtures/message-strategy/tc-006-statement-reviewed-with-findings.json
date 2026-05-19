@@ -1,0 +1,102 @@
+{
+  "meta": {
+    "test_case_id": "TC-006",
+    "scenario_name": "Statement reviewed with findings available",
+    "description": "Statement review is complete and findings are available with a populated review_summary. Expects statement_review_follow_up with statement_analysis_positioning skill."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000006",
+      "contact_name": "James Okafor",
+      "contact_email": "james@okaforlandscaping.com",
+      "contact_title": "CEO",
+      "lead_source": "upload.321swipe.com",
+      "lead_stage": "statement_review",
+      "opted_out": false,
+      "prior_touch_count": 2,
+      "last_contacted_at": "2026-05-10T11:00:00Z",
+      "last_engagement_signal": "opened",
+      "prior_campaign_messages": [
+        {
+          "message_type": "statement_submitted_confirmation",
+          "sent_at": "2026-05-08T09:00:00Z",
+          "mt_code": "MT-3"
+        },
+        {
+          "message_type": "no_response_follow_up",
+          "sent_at": "2026-05-10T11:00:00Z",
+          "mt_code": "MT-5"
+        }
+      ]
+    },
+    "company": {
+      "company_name": "Okafor Landscaping & Lawn Care",
+      "industry": "home_services",
+      "sub_industry": "landscaping",
+      "employee_count": 15,
+      "annual_revenue_estimate": 2100000,
+      "location_city": "Atlanta",
+      "location_state": "GA"
+    },
+    "statement": {
+      "has_statement_artifact": true,
+      "statement_received_at": "2026-05-07T14:00:00Z",
+      "statement_review_completed": true,
+      "findings_available": true,
+      "review_summary": "Processing volume of $187,400/month with current effective rate of 3.42%. Identified $1,980/month in potential savings through interchange optimization and surcharge program eligibility.",
+      "calculated_savings_amount": 1980
+    },
+    "campaign": null,
+    "partner": {
+      "partner_membership_confirmed": false,
+      "partner_name": null
+    },
+    "event": null,
+    "proposal": {
+      "proposal_sent": false,
+      "proposal_sent_at": null
+    },
+    "customer": {
+      "is_existing_customer": false,
+      "account_status": null,
+      "nurture_trigger": null
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": true,
+    "message_type": "statement_review_follow_up",
+    "required_skills_included": [
+      "statement_review_follow_up",
+      "statement_analysis_positioning",
+      "compliance_forbidden_claims"
+    ],
+    "forbidden_skills": [
+      "cold_outreach",
+      "customer_nurture",
+      "no_response_follow_up"
+    ],
+    "primary_goal": "present_findings_and_advance_to_proposal",
+    "cta_style": "consultative_review_call",
+    "offer_angle": "confirmed_savings_review",
+    "confidence_band": "usable_review_recommended",
+    "confidence_range": {
+      "min": 0.75,
+      "max": 1.0
+    },
+    "requires_human_review": false,
+    "errors": [],
+    "warnings": [],
+    "guardrails": [
+      "no_guaranteed_savings_language",
+      "findings_must_be_referenced"
+    ],
+    "personalization_level": "highly_personalized",
+    "sequence_position": 3
+  }
+}

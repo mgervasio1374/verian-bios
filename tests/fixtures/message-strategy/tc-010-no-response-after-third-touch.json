@@ -1,0 +1,107 @@
+{
+  "meta": {
+    "test_case_id": "TC-010",
+    "scenario_name": "No response after third touch \u00e2\u20ac\u201d exit CTA on sequence position 4",
+    "description": "Manual cold lead at sequence position 4 with no engagement signal across three prior touches. Expects no_response_follow_up with ultra_short length and an exit CTA to close the loop gracefully."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000010",
+      "contact_name": "Sandra Tillman",
+      "contact_email": "s.tillman@tillmanroofing.com",
+      "contact_title": "Owner",
+      "lead_source": "manual",
+      "lead_stage": "contacted",
+      "opted_out": false,
+      "prior_touch_count": 3,
+      "last_contacted_at": "2026-05-12T09:00:00Z",
+      "last_engagement_signal": "none",
+      "prior_campaign_messages": [
+        {
+          "message_type": "cold_outreach",
+          "sent_at": "2026-05-06T08:00:00Z",
+          "mt_code": "MT-1"
+        },
+        {
+          "message_type": "no_response_follow_up",
+          "sent_at": "2026-05-08T08:00:00Z",
+          "mt_code": "MT-5"
+        },
+        {
+          "message_type": "no_response_follow_up",
+          "sent_at": "2026-05-12T09:00:00Z",
+          "mt_code": "MT-5"
+        }
+      ]
+    },
+    "company": {
+      "company_name": "Tillman Roofing & Gutters",
+      "industry": "home_services",
+      "sub_industry": "roofing",
+      "employee_count": 9,
+      "annual_revenue_estimate": 1100000,
+      "location_city": "Nashville",
+      "location_state": "TN"
+    },
+    "statement": {
+      "has_statement_artifact": false,
+      "statement_received_at": null,
+      "statement_review_completed": false,
+      "findings_available": false,
+      "review_summary": null,
+      "calculated_savings_amount": null
+    },
+    "campaign": null,
+    "partner": {
+      "partner_membership_confirmed": false,
+      "partner_name": null
+    },
+    "event": null,
+    "proposal": {
+      "proposal_sent": false,
+      "proposal_sent_at": null
+    },
+    "customer": {
+      "is_existing_customer": false,
+      "account_status": null,
+      "nurture_trigger": null
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": true,
+    "message_type": "no_response_follow_up",
+    "required_skills_included": [
+      "no_response_follow_up",
+      "executive_brevity",
+      "compliance_forbidden_claims"
+    ],
+    "forbidden_skills": [
+      "cold_outreach",
+      "customer_nurture",
+      "re_engagement"
+    ],
+    "primary_goal": "graceful_sequence_exit",
+    "cta_style": "exit_cta",
+    "message_length": "ultra_short",
+    "confidence_band": "usable_review_recommended",
+    "confidence_range": {
+      "min": 0.65,
+      "max": 0.9
+    },
+    "requires_human_review": false,
+    "errors": [],
+    "warnings": [],
+    "guardrails": [
+      "no_savings_claims",
+      "no_inbound_language"
+    ],
+    "personalization_level": "lead_specific",
+    "sequence_position": 4
+  }
+}

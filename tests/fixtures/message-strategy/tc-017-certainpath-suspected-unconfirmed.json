@@ -1,0 +1,91 @@
+{
+  "meta": {
+    "test_case_id": "TC-017",
+    "scenario_name": "Suspected CertainPath member but membership not confirmed",
+    "description": "Lead from manual source in home services with partner_membership_confirmed false. Must NOT receive CertainPath messaging. Should fall back to standard cold_outreach with home_services_contractor skill."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000017",
+      "contact_name": "Mike Delgado",
+      "contact_email": "mike@delgadoplumbing.com",
+      "contact_title": "Owner",
+      "lead_source": "manual",
+      "lead_stage": "new",
+      "opted_out": false,
+      "prior_touch_count": 0,
+      "last_contacted_at": null,
+      "last_engagement_signal": "none",
+      "prior_campaign_messages": []
+    },
+    "company": {
+      "company_name": "Delgado Plumbing Services",
+      "industry": "home_services",
+      "sub_industry": "plumbing",
+      "employee_count": 7,
+      "annual_revenue_estimate": 980000,
+      "location_city": "San Antonio",
+      "location_state": "TX"
+    },
+    "statement": {
+      "has_statement_artifact": false,
+      "statement_received_at": null,
+      "statement_review_completed": false,
+      "findings_available": false,
+      "review_summary": null,
+      "calculated_savings_amount": null
+    },
+    "campaign": null,
+    "partner": {
+      "partner_membership_confirmed": false,
+      "partner_name": null
+    },
+    "event": null,
+    "proposal": {
+      "proposal_sent": false,
+      "proposal_sent_at": null
+    },
+    "customer": {
+      "is_existing_customer": false,
+      "account_status": null,
+      "nurture_trigger": null
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": true,
+    "message_type": "cold_outreach",
+    "required_skills_included": [
+      "cold_outreach",
+      "home_services_contractor",
+      "compliance_forbidden_claims"
+    ],
+    "forbidden_skills": [
+      "certainpath_member_messaging",
+      "blue_collar_success_group_messaging",
+      "customer_nurture",
+      "partner_member_specific_campaign"
+    ],
+    "primary_goal": "request_statement_or_start_conversation",
+    "cta_style": "low_friction_statement_review",
+    "confidence_band": "usable_review_recommended",
+    "confidence_range": {
+      "min": 0.7,
+      "max": 0.85
+    },
+    "requires_human_review": false,
+    "errors": [],
+    "warnings": [],
+    "guardrails": [
+      "no_savings_claims",
+      "no_inbound_language"
+    ],
+    "personalization_level": "lead_specific",
+    "sequence_position": 1
+  }
+}

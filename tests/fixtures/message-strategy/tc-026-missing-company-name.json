@@ -1,0 +1,86 @@
+{
+  "meta": {
+    "test_case_id": "TC-026",
+    "scenario_name": "Cold outreach with missing company name \u00e2\u20ac\u201d insufficient confidence, blocking error",
+    "description": "Manual cold lead where company_name is null. Confidence drops to insufficient band (<= 0.45). STRAT_WARN_001 fires and STRAT_004D hard-blocks strategy execution, requiring human review before any message can be sent."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000026",
+      "contact_name": "Unknown Contractor",
+      "contact_email": "info@unknownco.com",
+      "contact_title": null,
+      "lead_source": "manual",
+      "lead_stage": "new",
+      "opted_out": false,
+      "prior_touch_count": 0,
+      "last_contacted_at": null,
+      "last_engagement_signal": "none",
+      "prior_campaign_messages": []
+    },
+    "company": {
+      "company_name": null,
+      "industry": "home_services",
+      "sub_industry": null,
+      "employee_count": null,
+      "annual_revenue_estimate": null,
+      "location_city": null,
+      "location_state": null
+    },
+    "statement": {
+      "has_statement_artifact": false,
+      "statement_received_at": null,
+      "statement_review_completed": false,
+      "findings_available": false,
+      "review_summary": null,
+      "calculated_savings_amount": null
+    },
+    "campaign": null,
+    "partner": {
+      "partner_membership_confirmed": false,
+      "partner_name": null
+    },
+    "event": null,
+    "proposal": {
+      "proposal_sent": false,
+      "proposal_sent_at": null
+    },
+    "customer": {
+      "is_existing_customer": false,
+      "account_status": null,
+      "nurture_trigger": null
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": false,
+    "message_type": "cold_outreach",
+    "required_skills_included": [],
+    "forbidden_skills": [],
+    "primary_goal": "request_statement_or_start_conversation",
+    "cta_style": null,
+    "confidence_band": "insufficient",
+    "confidence_range": {
+      "min": 0.0,
+      "max": 0.45
+    },
+    "requires_human_review": true,
+    "errors": [
+      {
+        "code": "STRAT_004D",
+        "blocking": true
+      }
+    ],
+    "warnings": [
+      "STRAT_WARN_001"
+    ],
+    "guardrails": [],
+    "personalization_level": null,
+    "sequence_position": 1
+  }
+}

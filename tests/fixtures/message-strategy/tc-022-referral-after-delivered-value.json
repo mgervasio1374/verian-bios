@@ -1,0 +1,93 @@
+{
+  "meta": {
+    "test_case_id": "TC-022",
+    "scenario_name": "Referral request campaign for existing customer \u00e2\u20ac\u201d customer_nurture wins at P1",
+    "description": "Existing active customer with campaign_type referral_request. MT-11 (referral) is explicit-request only. customer_nurture takes P1 priority for existing customers and wins over referral_request campaign type."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000022",
+      "contact_name": "Denise Hawthorne",
+      "contact_email": "denise@hawthorneelectric.com",
+      "contact_title": "Owner",
+      "lead_source": "manual",
+      "lead_stage": "customer",
+      "opted_out": false,
+      "prior_touch_count": 15,
+      "last_contacted_at": "2026-04-10T10:00:00Z",
+      "last_engagement_signal": "replied",
+      "prior_campaign_messages": []
+    },
+    "company": {
+      "company_name": "Hawthorne Electrical Contractors",
+      "industry": "home_services",
+      "sub_industry": "electrical",
+      "employee_count": 19,
+      "annual_revenue_estimate": 2600000,
+      "location_city": "Richmond",
+      "location_state": "VA"
+    },
+    "statement": {
+      "has_statement_artifact": true,
+      "statement_received_at": "2025-08-20T09:00:00Z",
+      "statement_review_completed": true,
+      "findings_available": true,
+      "review_summary": "Processing $215,000/month. Savings realized after 6 months: $14,700 total.",
+      "calculated_savings_amount": null
+    },
+    "campaign": {
+      "campaign_type": "referral_request",
+      "campaign_name": "Q2 Referral Drive"
+    },
+    "partner": {
+      "partner_membership_confirmed": false,
+      "partner_name": null
+    },
+    "event": null,
+    "proposal": {
+      "proposal_sent": true,
+      "proposal_sent_at": "2025-09-01T09:00:00Z"
+    },
+    "customer": {
+      "is_existing_customer": true,
+      "account_status": "active",
+      "nurture_trigger": "relationship_maintenance"
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": true,
+    "message_type": "customer_nurture",
+    "required_skills_included": [
+      "customer_nurture",
+      "home_services_contractor",
+      "warm_conversational",
+      "compliance_forbidden_claims"
+    ],
+    "forbidden_skills": [
+      "cold_outreach",
+      "no_response_follow_up",
+      "certainpath_member_messaging"
+    ],
+    "primary_goal": "retain_and_grow_relationship",
+    "cta_style": "value_add_check_in",
+    "confidence_band": "usable_review_recommended",
+    "confidence_range": {
+      "min": 0.65,
+      "max": 0.9
+    },
+    "requires_human_review": false,
+    "errors": [],
+    "warnings": [],
+    "guardrails": [
+      "no_savings_claims",
+      "no_sales_pressure"
+    ],
+    "personalization_level": "highly_personalized"
+  }
+}

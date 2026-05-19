@@ -1,0 +1,92 @@
+{
+  "meta": {
+    "test_case_id": "TC-024",
+    "scenario_name": "Opted-out lead \u00e2\u20ac\u201d hard block, no strategy created",
+    "description": "Lead has opted_out true. The system must immediately return success: false with STRAT_001 error and must not create any messaging strategy. No skills should be selected."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000024",
+      "contact_name": "Walter Guzman",
+      "contact_email": "walter@guzmanpool.com",
+      "contact_title": "Owner",
+      "lead_source": "manual",
+      "lead_stage": "contacted",
+      "opted_out": true,
+      "prior_touch_count": 2,
+      "last_contacted_at": "2026-05-01T08:00:00Z",
+      "last_engagement_signal": "unsubscribed",
+      "prior_campaign_messages": [
+        {
+          "message_type": "cold_outreach",
+          "sent_at": "2026-04-28T08:00:00Z",
+          "mt_code": "MT-1"
+        },
+        {
+          "message_type": "no_response_follow_up",
+          "sent_at": "2026-05-01T08:00:00Z",
+          "mt_code": "MT-5"
+        }
+      ]
+    },
+    "company": {
+      "company_name": "Guzman Pool Services",
+      "industry": "home_services",
+      "sub_industry": "pool_spa",
+      "employee_count": 5,
+      "annual_revenue_estimate": 650000,
+      "location_city": "Tucson",
+      "location_state": "AZ"
+    },
+    "statement": {
+      "has_statement_artifact": false,
+      "statement_received_at": null,
+      "statement_review_completed": false,
+      "findings_available": false,
+      "review_summary": null,
+      "calculated_savings_amount": null
+    },
+    "campaign": null,
+    "partner": {
+      "partner_membership_confirmed": false,
+      "partner_name": null
+    },
+    "event": null,
+    "proposal": {
+      "proposal_sent": false,
+      "proposal_sent_at": null
+    },
+    "customer": {
+      "is_existing_customer": false,
+      "account_status": null,
+      "nurture_trigger": null
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": false,
+    "message_type": null,
+    "required_skills_included": [],
+    "forbidden_skills": [],
+    "primary_goal": null,
+    "cta_style": null,
+    "confidence_band": null,
+    "confidence_range": null,
+    "requires_human_review": false,
+    "errors": [
+      {
+        "code": "STRAT_001",
+        "blocking": true
+      }
+    ],
+    "warnings": [],
+    "guardrails": [],
+    "personalization_level": null,
+    "sequence_position": null
+  }
+}

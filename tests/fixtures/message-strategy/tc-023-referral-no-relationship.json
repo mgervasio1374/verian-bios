@@ -1,0 +1,93 @@
+{
+  "meta": {
+    "test_case_id": "TC-023",
+    "scenario_name": "Referral request for non-customer with no statement \u00e2\u20ac\u201d fallback to cold outreach",
+    "description": "Campaign type is referral_request but lead is not an existing customer and has no statement review. Referral request is blocked without an established relationship. Falls back to cold_outreach."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000023",
+      "contact_name": "Paul Strickland",
+      "contact_email": "paul@stricklandpool.com",
+      "contact_title": "Owner",
+      "lead_source": "manual",
+      "lead_stage": "new",
+      "opted_out": false,
+      "prior_touch_count": 0,
+      "last_contacted_at": null,
+      "last_engagement_signal": "none",
+      "prior_campaign_messages": []
+    },
+    "company": {
+      "company_name": "Strickland Pool & Spa",
+      "industry": "home_services",
+      "sub_industry": "pool_spa",
+      "employee_count": 8,
+      "annual_revenue_estimate": 1100000,
+      "location_city": "Scottsdale",
+      "location_state": "AZ"
+    },
+    "statement": {
+      "has_statement_artifact": false,
+      "statement_received_at": null,
+      "statement_review_completed": false,
+      "findings_available": false,
+      "review_summary": null,
+      "calculated_savings_amount": null
+    },
+    "campaign": {
+      "campaign_type": "referral_request",
+      "campaign_name": "Q2 Referral Drive"
+    },
+    "partner": {
+      "partner_membership_confirmed": false,
+      "partner_name": null
+    },
+    "event": null,
+    "proposal": {
+      "proposal_sent": false,
+      "proposal_sent_at": null
+    },
+    "customer": {
+      "is_existing_customer": false,
+      "account_status": null,
+      "nurture_trigger": null
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": true,
+    "message_type": "cold_outreach",
+    "required_skills_included": [
+      "cold_outreach",
+      "home_services_contractor",
+      "compliance_forbidden_claims"
+    ],
+    "forbidden_skills": [
+      "customer_nurture",
+      "certainpath_member_messaging",
+      "statement_analysis_positioning"
+    ],
+    "primary_goal": "request_statement_or_start_conversation",
+    "cta_style": "low_friction_statement_review",
+    "confidence_band": "usable_review_recommended",
+    "confidence_range": {
+      "min": 0.6,
+      "max": 0.9
+    },
+    "requires_human_review": false,
+    "errors": [],
+    "warnings": [],
+    "guardrails": [
+      "no_savings_claims",
+      "no_inbound_language"
+    ],
+    "personalization_level": "lead_specific",
+    "sequence_position": 1
+  }
+}

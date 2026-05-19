@@ -1,0 +1,90 @@
+{
+  "meta": {
+    "test_case_id": "TC-016",
+    "scenario_name": "Confirmed CertainPath member from CertainPath lead source",
+    "description": "Lead arrived via certainpath source with partner_membership_confirmed true. Expects partner_member_specific_campaign with certainpath_member_messaging skill and requires_human_review due to partner messaging sensitivity."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000016",
+      "contact_name": "Steve Carmichael",
+      "contact_email": "steve@carmichaelac.com",
+      "contact_title": "Owner",
+      "lead_source": "certainpath",
+      "lead_stage": "new",
+      "opted_out": false,
+      "prior_touch_count": 0,
+      "last_contacted_at": null,
+      "last_engagement_signal": "none",
+      "prior_campaign_messages": []
+    },
+    "company": {
+      "company_name": "Carmichael Air Conditioning",
+      "industry": "home_services",
+      "sub_industry": "hvac",
+      "employee_count": 20,
+      "annual_revenue_estimate": 3100000,
+      "location_city": "Dallas",
+      "location_state": "TX"
+    },
+    "statement": {
+      "has_statement_artifact": false,
+      "statement_received_at": null,
+      "statement_review_completed": false,
+      "findings_available": false,
+      "review_summary": null,
+      "calculated_savings_amount": null
+    },
+    "campaign": null,
+    "partner": {
+      "partner_membership_confirmed": true,
+      "partner_name": "certainpath"
+    },
+    "event": null,
+    "proposal": {
+      "proposal_sent": false,
+      "proposal_sent_at": null
+    },
+    "customer": {
+      "is_existing_customer": false,
+      "account_status": null,
+      "nurture_trigger": null
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": true,
+    "message_type": "partner_member_specific_campaign",
+    "required_skills_included": [
+      "certainpath_member_messaging",
+      "home_services_contractor",
+      "compliance_forbidden_claims"
+    ],
+    "forbidden_skills": [
+      "cold_outreach",
+      "customer_nurture",
+      "blue_collar_success_group_messaging"
+    ],
+    "primary_goal": "leverage_partner_relationship_for_statement",
+    "cta_style": "partner_endorsed_statement_review",
+    "confidence_band": "high",
+    "confidence_range": {
+      "min": 0.85,
+      "max": 1.0
+    },
+    "requires_human_review": true,
+    "errors": [],
+    "warnings": [],
+    "guardrails": [
+      "no_savings_claims",
+      "partner_brand_guidelines"
+    ],
+    "personalization_level": "lead_specific",
+    "sequence_position": 1
+  }
+}

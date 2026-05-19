@@ -1,0 +1,90 @@
+{
+  "meta": {
+    "test_case_id": "TC-015",
+    "scenario_name": "Existing customer with at-risk account status \u00e2\u20ac\u201d requires human review",
+    "description": "Existing customer with account_status at_risk. customer_nurture is still selected (P1 priority) but the at_risk status automatically sets requires_human_review to true for oversight before sending."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000015",
+      "contact_name": "Derek Hollis",
+      "contact_email": "derek@holliswindow.com",
+      "contact_title": "CEO",
+      "lead_source": "manual",
+      "lead_stage": "customer",
+      "opted_out": false,
+      "prior_touch_count": 12,
+      "last_contacted_at": "2026-04-01T10:00:00Z",
+      "last_engagement_signal": "none",
+      "prior_campaign_messages": []
+    },
+    "company": {
+      "company_name": "Hollis Window & Door",
+      "industry": "home_services",
+      "sub_industry": "windows_doors",
+      "employee_count": 18,
+      "annual_revenue_estimate": 2900000,
+      "location_city": "Portland",
+      "location_state": "OR"
+    },
+    "statement": {
+      "has_statement_artifact": true,
+      "statement_received_at": "2025-11-15T09:00:00Z",
+      "statement_review_completed": true,
+      "findings_available": true,
+      "review_summary": "Processing $245,000/month. Chargeback rate elevated at 1.2% above threshold.",
+      "calculated_savings_amount": null
+    },
+    "campaign": null,
+    "partner": {
+      "partner_membership_confirmed": false,
+      "partner_name": null
+    },
+    "event": null,
+    "proposal": {
+      "proposal_sent": true,
+      "proposal_sent_at": "2025-12-01T09:00:00Z"
+    },
+    "customer": {
+      "is_existing_customer": true,
+      "account_status": "at_risk",
+      "nurture_trigger": "account_health_check"
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": true,
+    "message_type": "customer_nurture",
+    "required_skills_included": [
+      "customer_nurture",
+      "warm_conversational",
+      "compliance_forbidden_claims"
+    ],
+    "forbidden_skills": [
+      "cold_outreach",
+      "no_response_follow_up",
+      "certainpath_member_messaging"
+    ],
+    "primary_goal": "address_risk_and_retain_customer",
+    "cta_style": "urgent_support_check_in",
+    "confidence_band": "usable_review_recommended",
+    "confidence_range": {
+      "min": 0.55,
+      "max": 0.85
+    },
+    "requires_human_review": true,
+    "errors": [],
+    "warnings": [],
+    "guardrails": [
+      "no_savings_claims",
+      "no_sales_pressure",
+      "sensitive_account_handling"
+    ],
+    "personalization_level": "highly_personalized"
+  }
+}

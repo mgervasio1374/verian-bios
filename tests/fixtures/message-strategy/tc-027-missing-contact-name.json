@@ -1,0 +1,91 @@
+{
+  "meta": {
+    "test_case_id": "TC-027",
+    "scenario_name": "Cold outreach with missing contact name \u00e2\u20ac\u201d reduced personalization, medium confidence",
+    "description": "Manual home services lead where contact_name is null. Company name is present. Cold outreach can still proceed but personalization drops to segment_specific and confidence is reduced to medium band."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000027",
+      "contact_name": null,
+      "contact_email": "info@pinnaclemechanical.com",
+      "contact_title": null,
+      "lead_source": "manual",
+      "lead_stage": "new",
+      "opted_out": false,
+      "prior_touch_count": 0,
+      "last_contacted_at": null,
+      "last_engagement_signal": "none",
+      "prior_campaign_messages": []
+    },
+    "company": {
+      "company_name": "Pinnacle Mechanical Services",
+      "industry": "home_services",
+      "sub_industry": "hvac",
+      "employee_count": 13,
+      "annual_revenue_estimate": 1700000,
+      "location_city": "Omaha",
+      "location_state": "NE"
+    },
+    "statement": {
+      "has_statement_artifact": false,
+      "statement_received_at": null,
+      "statement_review_completed": false,
+      "findings_available": false,
+      "review_summary": null,
+      "calculated_savings_amount": null
+    },
+    "campaign": null,
+    "partner": {
+      "partner_membership_confirmed": false,
+      "partner_name": null
+    },
+    "event": null,
+    "proposal": {
+      "proposal_sent": false,
+      "proposal_sent_at": null
+    },
+    "customer": {
+      "is_existing_customer": false,
+      "account_status": null,
+      "nurture_trigger": null
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": true,
+    "message_type": "cold_outreach",
+    "required_skills_included": [
+      "cold_outreach",
+      "home_services_contractor",
+      "compliance_forbidden_claims"
+    ],
+    "forbidden_skills": [
+      "customer_nurture",
+      "certainpath_member_messaging"
+    ],
+    "primary_goal": "request_statement_or_start_conversation",
+    "cta_style": "low_friction_statement_review",
+    "confidence_band": "low_review_required",
+    "confidence_range": {
+      "min": 0.5,
+      "max": 0.7
+    },
+    "requires_human_review": false,
+    "errors": [],
+    "warnings": [
+      "STRAT_WARN_004"
+    ],
+    "guardrails": [
+      "no_savings_claims",
+      "no_inbound_language"
+    ],
+    "personalization_level": "segment_specific",
+    "sequence_position": 1
+  }
+}

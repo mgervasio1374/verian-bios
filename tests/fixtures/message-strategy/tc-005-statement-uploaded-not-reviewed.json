@@ -1,0 +1,104 @@
+{
+  "meta": {
+    "test_case_id": "TC-005",
+    "scenario_name": "Statement uploaded, not reviewed, confirmation already sent",
+    "description": "Statement uploaded but not reviewed. A MT-3 confirmation was already sent (in prior_campaign_messages). Expects no_response_follow_up (P9) since P4 dedup fires."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000005",
+      "contact_name": "Brenda Holloway",
+      "contact_email": "brenda@hollowaypestcontrol.com",
+      "contact_title": "Owner",
+      "lead_source": "upload.321swipe.com",
+      "lead_stage": "statement_received",
+      "opted_out": false,
+      "prior_touch_count": 1,
+      "last_contacted_at": "2026-05-14T09:00:00Z",
+      "last_engagement_signal": "none",
+      "prior_campaign_messages": [
+        {
+          "message_type": "statement_submitted_confirmation",
+          "sent_at": "2026-05-14T09:00:00Z",
+          "mt_code": "MT-3"
+        }
+      ]
+    },
+    "company": {
+      "company_name": "Holloway Pest Control",
+      "industry": "home_services",
+      "sub_industry": "pest_control",
+      "employee_count": 7,
+      "annual_revenue_estimate": 900000,
+      "location_city": "Baton Rouge",
+      "location_state": "LA"
+    },
+    "statement": {
+      "has_statement_artifact": true,
+      "statement_received_at": "2026-05-13T16:00:00Z",
+      "statement_review_completed": false,
+      "findings_available": false,
+      "review_summary": null,
+      "calculated_savings_amount": null
+    },
+    "campaign": {
+      "sequence_position": 2,
+      "prior_campaign_messages": [
+        {
+          "message_type": "statement_submitted_confirmation",
+          "sent_at": "2026-05-14T10:00:00Z"
+        }
+      ]
+    },
+    "partner": {
+      "partner_membership_confirmed": false,
+      "partner_name": null
+    },
+    "event": null,
+    "proposal": {
+      "proposal_sent": false,
+      "proposal_sent_at": null
+    },
+    "customer": {
+      "is_existing_customer": false,
+      "account_status": null,
+      "nurture_trigger": null
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": true,
+    "message_type": "no_response_follow_up",
+    "required_skills_included": [
+      "no_response_follow_up",
+      "executive_brevity",
+      "compliance_forbidden_claims"
+    ],
+    "forbidden_skills": [
+      "statement_submitted_confirmation",
+      "customer_nurture",
+      "statement_analysis_positioning"
+    ],
+    "primary_goal": "re_engage_pending_review",
+    "cta_style": "soft_check_in",
+    "confidence_band": "high",
+    "confidence_range": {
+      "min": 0.8,
+      "max": 0.95
+    },
+    "requires_human_review": false,
+    "errors": [],
+    "warnings": [],
+    "guardrails": [
+      "no_savings_claims",
+      "no_premature_results_language"
+    ],
+    "personalization_level": "lead_specific",
+    "sequence_position": 2
+  }
+}

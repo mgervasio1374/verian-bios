@@ -1,0 +1,90 @@
+{
+  "meta": {
+    "test_case_id": "TC-014",
+    "scenario_name": "Active existing customer with quarterly check-in nurture trigger",
+    "description": "Existing customer in home services with account_status active and nurture_trigger quarterly_check_in. customer_nurture takes P1 priority and beats all other message types."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000014",
+      "contact_name": "Angela Kim",
+      "contact_email": "angela@kimclimate.com",
+      "contact_title": "Owner",
+      "lead_source": "manual",
+      "lead_stage": "customer",
+      "opted_out": false,
+      "prior_touch_count": 8,
+      "last_contacted_at": "2026-02-15T10:00:00Z",
+      "last_engagement_signal": "replied",
+      "prior_campaign_messages": []
+    },
+    "company": {
+      "company_name": "Kim Climate Control",
+      "industry": "home_services",
+      "sub_industry": "hvac",
+      "employee_count": 14,
+      "annual_revenue_estimate": 2200000,
+      "location_city": "Seattle",
+      "location_state": "WA"
+    },
+    "statement": {
+      "has_statement_artifact": true,
+      "statement_received_at": "2026-01-10T09:00:00Z",
+      "statement_review_completed": true,
+      "findings_available": true,
+      "review_summary": "Processing $198,000/month at 2.85% effective rate after optimization.",
+      "calculated_savings_amount": null
+    },
+    "campaign": null,
+    "partner": {
+      "partner_membership_confirmed": false,
+      "partner_name": null
+    },
+    "event": null,
+    "proposal": {
+      "proposal_sent": true,
+      "proposal_sent_at": "2026-01-20T10:00:00Z"
+    },
+    "customer": {
+      "is_existing_customer": true,
+      "account_status": "active",
+      "nurture_trigger": "quarterly_check_in"
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": true,
+    "message_type": "customer_nurture",
+    "required_skills_included": [
+      "customer_nurture",
+      "home_services_contractor",
+      "warm_conversational",
+      "compliance_forbidden_claims"
+    ],
+    "forbidden_skills": [
+      "cold_outreach",
+      "no_response_follow_up",
+      "certainpath_member_messaging"
+    ],
+    "primary_goal": "retain_and_grow_relationship",
+    "cta_style": "value_add_check_in",
+    "confidence_band": "usable_review_recommended",
+    "confidence_range": {
+      "min": 0.65,
+      "max": 0.9
+    },
+    "requires_human_review": false,
+    "errors": [],
+    "warnings": [],
+    "guardrails": [
+      "no_savings_claims",
+      "no_sales_pressure"
+    ],
+    "personalization_level": "highly_personalized"
+  }
+}

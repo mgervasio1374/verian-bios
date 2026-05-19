@@ -1,0 +1,106 @@
+{
+  "meta": {
+    "test_case_id": "TC-011",
+    "scenario_name": "Re-engagement after 60-day gap with prior open signal",
+    "description": "Manual lead with 3 prior touches, last contacted 60 days ago, and a prior email open (engagement signal). 60 days crosses the re-engagement threshold so this should resolve to re_engagement, not no_response_follow_up."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000011",
+      "contact_name": "Kevin Drummond",
+      "contact_email": "kevin@drummondcleaning.com",
+      "contact_title": "President",
+      "lead_source": "manual",
+      "lead_stage": "contacted",
+      "opted_out": false,
+      "prior_touch_count": 3,
+      "last_contacted_at": "2026-03-19T10:00:00Z",
+      "last_engagement_signal": "opened",
+      "prior_campaign_messages": [
+        {
+          "message_type": "cold_outreach",
+          "sent_at": "2026-03-13T08:00:00Z",
+          "mt_code": "MT-1"
+        },
+        {
+          "message_type": "no_response_follow_up",
+          "sent_at": "2026-03-16T08:00:00Z",
+          "mt_code": "MT-5"
+        },
+        {
+          "message_type": "no_response_follow_up",
+          "sent_at": "2026-03-19T10:00:00Z",
+          "mt_code": "MT-5"
+        }
+      ]
+    },
+    "company": {
+      "company_name": "Drummond Commercial Cleaning",
+      "industry": "home_services",
+      "sub_industry": "cleaning",
+      "employee_count": 22,
+      "annual_revenue_estimate": 2800000,
+      "location_city": "Minneapolis",
+      "location_state": "MN"
+    },
+    "statement": {
+      "has_statement_artifact": false,
+      "statement_received_at": null,
+      "statement_review_completed": false,
+      "findings_available": false,
+      "review_summary": null,
+      "calculated_savings_amount": null
+    },
+    "campaign": null,
+    "partner": {
+      "partner_membership_confirmed": false,
+      "partner_name": null
+    },
+    "event": null,
+    "proposal": {
+      "proposal_sent": false,
+      "proposal_sent_at": null
+    },
+    "customer": {
+      "is_existing_customer": false,
+      "account_status": null,
+      "nurture_trigger": null
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": true,
+    "message_type": "re_engagement",
+    "required_skills_included": [
+      "re_engagement",
+      "executive_brevity",
+      "compliance_forbidden_claims"
+    ],
+    "forbidden_skills": [
+      "no_response_follow_up",
+      "cold_outreach",
+      "customer_nurture"
+    ],
+    "primary_goal": "restart_conversation_after_gap",
+    "cta_style": "low_friction_statement_review",
+    "confidence_band": "usable_review_recommended",
+    "confidence_range": {
+      "min": 0.65,
+      "max": 0.9
+    },
+    "requires_human_review": false,
+    "errors": [],
+    "warnings": [],
+    "guardrails": [
+      "no_savings_claims",
+      "no_inbound_language"
+    ],
+    "personalization_level": "lead_specific",
+    "days_since_last_contact": 60
+  }
+}

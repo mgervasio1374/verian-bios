@@ -1,0 +1,89 @@
+{
+  "meta": {
+    "test_case_id": "TC-025",
+    "scenario_name": "Conflicting inbound source with cold-looking stage \u00e2\u20ac\u201d source wins, reduced confidence",
+    "description": "lead_source is website (inbound signal) but lead_stage is new (cold-looking). Source beats stage in the decision tree, so new_inquiry_response is selected. Conflict triggers STRAT_WARN_006, lowers confidence, and requires human review."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000025",
+      "contact_name": "Irene Caldwell",
+      "contact_email": "irene@caldwellpainting.com",
+      "contact_title": "Owner",
+      "lead_source": "website",
+      "lead_stage": "new",
+      "opted_out": false,
+      "prior_touch_count": 0,
+      "last_contacted_at": null,
+      "last_engagement_signal": "none",
+      "prior_campaign_messages": []
+    },
+    "company": {
+      "company_name": "Caldwell Painting & Coatings",
+      "industry": "home_services",
+      "sub_industry": "painting",
+      "employee_count": 11,
+      "annual_revenue_estimate": 1300000,
+      "location_city": "Salt Lake City",
+      "location_state": "UT"
+    },
+    "statement": {
+      "has_statement_artifact": false,
+      "statement_received_at": null,
+      "statement_review_completed": false,
+      "findings_available": false,
+      "review_summary": null,
+      "calculated_savings_amount": null
+    },
+    "campaign": null,
+    "partner": {
+      "partner_membership_confirmed": false,
+      "partner_name": null
+    },
+    "event": null,
+    "proposal": {
+      "proposal_sent": false,
+      "proposal_sent_at": null
+    },
+    "customer": {
+      "is_existing_customer": false,
+      "account_status": null,
+      "nurture_trigger": null
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": true,
+    "message_type": "new_inquiry_response",
+    "required_skills_included": [
+      "new_inquiry_response",
+      "warm_conversational",
+      "home_services_contractor",
+      "compliance_forbidden_claims"
+    ],
+    "forbidden_skills": [
+      "cold_outreach",
+      "customer_nurture"
+    ],
+    "primary_goal": "confirm_interest_and_request_statement",
+    "cta_style": "warm_next_step",
+    "confidence_band": "insufficient",
+    "confidence_range": {
+      "min": 0.0,
+      "max": 0.55
+    },
+    "requires_human_review": true,
+    "errors": [],
+    "warnings": [],
+    "guardrails": [
+      "no_savings_claims"
+    ],
+    "personalization_level": "lead_specific",
+    "sequence_position": 1
+  }
+}

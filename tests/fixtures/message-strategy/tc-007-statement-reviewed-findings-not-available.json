@@ -1,0 +1,89 @@
+{
+  "meta": {
+    "test_case_id": "TC-007",
+    "scenario_name": "Statement review complete but findings not available \u00e2\u20ac\u201d hard block",
+    "description": "review_completed is true but findings_available is false. The decision tree must hard-block strategy selection with STRAT_004B since MT-4 cannot be sent without findings and no fallback is valid at this stage."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000007",
+      "contact_name": "Carolyn Merritt",
+      "contact_email": "carolyn@merritt-hvac.com",
+      "contact_title": "Co-Owner",
+      "lead_source": "upload.321swipe.com",
+      "lead_stage": "statement_review",
+      "opted_out": false,
+      "prior_touch_count": 2,
+      "last_contacted_at": "2026-05-12T10:00:00Z",
+      "last_engagement_signal": "none",
+      "prior_campaign_messages": [
+        {
+          "message_type": "statement_submitted_confirmation",
+          "sent_at": "2026-05-09T08:00:00Z",
+          "mt_code": "MT-3"
+        },
+        {
+          "message_type": "no_response_follow_up",
+          "sent_at": "2026-05-12T10:00:00Z",
+          "mt_code": "MT-5"
+        }
+      ]
+    },
+    "company": {
+      "company_name": "Merritt Heating & Cooling",
+      "industry": "home_services",
+      "sub_industry": "hvac",
+      "employee_count": 10,
+      "annual_revenue_estimate": 1500000,
+      "location_city": "Columbus",
+      "location_state": "OH"
+    },
+    "statement": {
+      "has_statement_artifact": true,
+      "statement_received_at": "2026-05-08T15:00:00Z",
+      "statement_review_completed": true,
+      "findings_available": false,
+      "review_summary": null,
+      "calculated_savings_amount": null
+    },
+    "campaign": null,
+    "partner": {
+      "partner_membership_confirmed": false,
+      "partner_name": null
+    },
+    "event": null,
+    "proposal": {
+      "proposal_sent": false,
+      "proposal_sent_at": null
+    },
+    "customer": {
+      "is_existing_customer": false,
+      "account_status": null,
+      "nurture_trigger": null
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": true,
+    "required_skills_included": [],
+    "forbidden_skills": [],
+    "primary_goal": null,
+    "cta_style": null,
+    "confidence_range": {
+      "min": 0.5,
+      "max": 0.9
+    },
+    "requires_human_review": true,
+    "errors": [],
+    "warnings": [],
+    "guardrails": [],
+    "personalization_level": null,
+    "sequence_position": null,
+    "message_type_must_not_be": "statement_review_follow_up"
+  }
+}

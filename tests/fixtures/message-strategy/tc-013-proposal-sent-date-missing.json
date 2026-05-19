@@ -1,0 +1,106 @@
+{
+  "meta": {
+    "test_case_id": "TC-013",
+    "scenario_name": "Proposal sent flag true but sent_at date is null",
+    "description": "proposal_sent is true but proposal_sent_at is null. Should still resolve to proposal_follow_up but with reduced confidence and a STRAT_WARN_008 warning because timing cannot be verified."
+  },
+  "input": {
+    "lead": {
+      "lead_id": "00000000-0000-0000-0000-000000000013",
+      "contact_name": "Gary Pemberton",
+      "contact_email": "gary@pembertonelectric.com",
+      "contact_title": "Owner",
+      "lead_source": "manual",
+      "lead_stage": "proposal_sent",
+      "opted_out": false,
+      "prior_touch_count": 3,
+      "last_contacted_at": "2026-05-10T08:00:00Z",
+      "last_engagement_signal": "none",
+      "prior_campaign_messages": [
+        {
+          "message_type": "cold_outreach",
+          "sent_at": "2026-05-04T08:00:00Z",
+          "mt_code": "MT-1"
+        },
+        {
+          "message_type": "statement_review_follow_up",
+          "sent_at": "2026-05-08T10:00:00Z",
+          "mt_code": "MT-4"
+        },
+        {
+          "message_type": "proposal_sent",
+          "sent_at": "2026-05-10T08:00:00Z",
+          "mt_code": "MT-7"
+        }
+      ]
+    },
+    "company": {
+      "company_name": "Pemberton Electrical Services",
+      "industry": "home_services",
+      "sub_industry": "electrical",
+      "employee_count": 11,
+      "annual_revenue_estimate": 1400000,
+      "location_city": "Charlotte",
+      "location_state": "NC"
+    },
+    "statement": {
+      "has_statement_artifact": true,
+      "statement_received_at": "2026-05-03T12:00:00Z",
+      "statement_review_completed": true,
+      "findings_available": true,
+      "review_summary": "Processing $112,000/month at 3.31% effective rate. Identified $1,100/month in interchange optimization savings.",
+      "calculated_savings_amount": 1100
+    },
+    "campaign": null,
+    "partner": {
+      "partner_membership_confirmed": false,
+      "partner_name": null
+    },
+    "event": null,
+    "proposal": {
+      "proposal_sent": true,
+      "proposal_sent_at": null
+    },
+    "customer": {
+      "is_existing_customer": false,
+      "account_status": null,
+      "nurture_trigger": null
+    },
+    "systemControls": {
+      "email_generation_engine": "phase3b",
+      "global_agent_pause": false,
+      "require_strategy_review": false,
+      "require_message_approval": true
+    }
+  },
+  "expected": {
+    "success": true,
+    "message_type": "proposal_follow_up",
+    "required_skills_included": [
+      "proposal_follow_up",
+      "compliance_forbidden_claims"
+    ],
+    "forbidden_skills": [
+      "cold_outreach",
+      "no_response_follow_up",
+      "customer_nurture"
+    ],
+    "primary_goal": "advance_proposal_to_close",
+    "cta_style": "decision_prompt",
+    "confidence_band": "low_review_required",
+    "confidence_range": {
+      "min": 0.5,
+      "max": 0.7
+    },
+    "requires_human_review": false,
+    "errors": [],
+    "warnings": [
+      "STRAT_WARN_008"
+    ],
+    "guardrails": [
+      "no_guaranteed_savings_language"
+    ],
+    "personalization_level": "highly_personalized",
+    "sequence_position": 4
+  }
+}
