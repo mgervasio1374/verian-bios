@@ -16,6 +16,8 @@ The following documents have been approved and locked. They serve as the specifi
 | Phase 3B Copywriting Agent — Design & Test Cases v1.0 | Locked |
 | Phase 3B Copywriting Agent — Implementation Plan v1.0 | Locked |
 | Phase 3B Copywriting Agent Foundation — Code Implementation v1.0 | Locked |
+| Phase 3B Quality Review Agent — Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3b-quality-review-agent-design-test-cases.md`) |
+| Phase 3B Quality Review Agent — Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b-quality-review-agent-implementation-plan.md`) |
 
 ## Locked Architectural Decisions
 
@@ -62,3 +64,15 @@ Version planner, compliance validator, structural validator, differentiation val
 ### Phase 3A Is Locked
 
 Phase 3A services, repositories, types, and migrations must not be modified unless explicitly scoped in a new approved task.
+
+### Quality Review Agent Is Evaluation-Only
+
+The Quality Review Agent reads `message_strategy` and `message_version` records and produces `quality_review` records. It must not write or rewrite copy, modify any `message_version` content, modify any `message_strategy` field, approve messages for sending, create `email_drafts`, create `approval_requests`, call external LLMs in v1, or take any action that affects the pipeline beyond producing quality_review records.
+
+### QRA Recommendation Is Advisory
+
+The Quality Review Agent may mark one version per strategy run as `is_recommended = true`. This recommendation is advisory — it does not approve the version, does not trigger sending, and does not replace human review.
+
+### QRA v1 Is Deterministic
+
+The Quality Review Agent uses rule-based, pure-function scoring in v1. No external LLM calls. No randomness. Future LLM-assisted scoring may be introduced only under a separately approved design.

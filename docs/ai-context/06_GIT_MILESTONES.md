@@ -18,6 +18,8 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `60ed136` | Docs: add Phase 3B Quality Review Agent implementation plan v1.0 | Phase 3B Docs |
+| `dd26ec8` | Docs: add Phase 3B Quality Review Agent design and test cases v1.0 | Phase 3B Docs |
 | `5765c7a` | Docs: add Phase 3B1 follow-up accountability roadmap | Phase 3B Docs |
 | `5edf9c2` | Phase 3A: add artifacts document module | Phase 3A |
 | `11bc621` | Phase 3A: enhance CRM workspace and intelligence UI | Phase 3A |
@@ -67,11 +69,21 @@
 - `tests/copywriting-agent.test.ts` + 35 fixtures
 - `modules/intelligence/types.agent.ts` — added `MESSAGE_VERSIONS_GENERATED`
 
+### Phase 3B: Quality Review Agent Planning (`dd26ec8`, `60ed136`)
+- `docs/roadmap/phase-3b-quality-review-agent-design-test-cases.md` — Design & Test Cases v1.0 (locked)
+- `docs/roadmap/phase-3b-quality-review-agent-implementation-plan.md` — Implementation Plan v1.0 (locked)
+- `docs/ai-context/` — AI context recovery pack (committed in this same sequence)
+- `AGENTS.md` — AI context recovery protocol appended
+
 ## QA Verification Log
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
 | 2026-05-19 | 141/141 passed | PASSED | Final QA before Phase 3B commit sequence |
+
+## Current HEAD
+
+`60ed136` — Docs: add Phase 3B Quality Review Agent implementation plan v1.0
 
 ## Migrations Sequence
 

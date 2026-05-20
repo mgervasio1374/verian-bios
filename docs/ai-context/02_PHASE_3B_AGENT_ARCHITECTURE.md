@@ -25,7 +25,7 @@ Phase 3B is the Verian Revenue Learning Engine. It is a multi-agent pipeline tha
 │  └──────────┬───────────┘                                           │
 │             │                                                       │
 │             ▼                                                       │
-│  ┌──────────────────────┐  (Not yet built)                         │
+│  ┌──────────────────────┐  (Design + plan locked; code next)       │
 │  │  Quality Review      │  Scores and ranks versions               │
 │  │  Agent               │  Produces: quality_review                │
 │  └──────────┬───────────┘                                           │
@@ -65,13 +65,15 @@ Phase 3B is the Verian Revenue Learning Engine. It is a multi-agent pipeline tha
 - **Validates:** Compliance (banned phrases, urgency, guaranteed outcomes, inbound/cold framing, partner claims, review-complete gates), structural correctness, version differentiation
 - **Does not:** Score quality, rank best version, approve for send, generate body_html, call external LLMs
 
-### Quality Review Agent (Not yet built)
+### Quality Review Agent (Design and plan locked — code implementation is next)
 
-- **Input:** `message_version[]` rows
-- **Output:** `quality_review` rows
-- **Will score:** Strategic fit, compliance confidence, CTA clarity, specificity/personalization, tone fit, differentiation quality, subject/body consistency, risk flags
-- **Will produce:** Ranked version recommendation with reasoning
-- **Design phase is next**
+- **Status:** Design & Test Cases v1.0 locked. Implementation Plan v1.0 locked. Code implementation not yet started.
+- **Input:** `message_strategy` row, `message_version[]` rows, skill definitions, optional prior message context
+- **Output:** `quality_review` rows — one per evaluated version
+- **Scores per version:** Strategic fit, compliance confidence, CTA clarity, specificity/personalization, tone fit, differentiation, subject/body consistency, readability
+- **Also produces per version:** `composite_score`, `score_band`, `rank_position`, `is_recommended`, `risk_flags`, `scoring_reasoning`, `human_review_notes`, `comparison_summary`, `recommended_edits`
+- **Does not:** Write copy, modify versions, approve, send, create email_drafts, create approval_requests, call external LLMs in v1
+- **Recommendation is advisory:** `is_recommended` marks the strongest version but does not approve or send it
 
 ### Learning Agent (Future work)
 
@@ -85,7 +87,7 @@ Phase 3B is the Verian Revenue Learning Engine. It is a multi-agent pipeline tha
 lead
  └── message_strategy          (1 active per lead at a time)
       └── message_version[]    (2–4 candidates per strategy)
-           └── quality_review  (1 per version, from Quality Review Agent)
+           └── quality_review  (1 per version, from Quality Review Agent — not yet built)
 ```
 
 ## Key Design Principles

@@ -6,7 +6,7 @@ These boundaries are active and must be preserved by all future Claude sessions 
 
 | Guardrail | Reason |
 |-----------|--------|
-| Do not build the Quality Review Agent before its design is approved | Design phase has not started yet |
+| Do not begin Quality Review Agent code implementation before the user explicitly issues a code implementation prompt | Design and plan are locked, but coding requires a separate explicit approval |
 | Do not build the Learning Agent | Not scoped — future work only |
 | Do not add external LLM calls to the Copywriting Agent v1 | Deterministic generation is a locked decision; LLM adapter is planned for a future version |
 | Do not wire email sending | Sending is a separate downstream step not owned by any v1 agent |
@@ -21,6 +21,23 @@ These boundaries are active and must be preserved by all future Claude sessions 
 | Do not create shallow synonym rewrites | Version differentiation must be substantive across 8 measured dimensions |
 | Do not skip compliance validation | All versions must pass compliance before being stored |
 | Do not skip the differentiation validator | Pairwise differentiation is required — minimum 2 dimensions must differ between any two versions |
+
+## Quality Review Agent Hard Stops
+
+These apply once QRA code implementation begins and must remain in force throughout.
+
+| Guardrail | Reason |
+|-----------|--------|
+| QRA must not write or rewrite copy | QRA is evaluation-only; it produces quality_review records, not copy |
+| QRA must not modify `message_version` content | Read-only consumer; versions are immutable from QRA's perspective |
+| QRA must not modify `message_strategy` records | Read-only consumer; strategy decisions belong to the Message Strategy Agent |
+| QRA must not approve messages for sending | Human approval is always required |
+| QRA must not create `email_drafts` | Not in v1 scope |
+| QRA must not create `approval_requests` | Not in v1 scope |
+| QRA must not call external LLMs in v1 | Scoring must be deterministic; LLM-assisted scoring requires a separately approved design |
+| QRA must not learn from outcomes or update skills | Learning Agent is future work |
+| QRA recommendation (`is_recommended`) is advisory | It marks the strongest version; it does not approve or send |
+| QRA must not proceed beyond QRA implementation | Do not begin approval/send bridge or Learning Agent without explicit scope |
 
 ## Process Guardrails
 

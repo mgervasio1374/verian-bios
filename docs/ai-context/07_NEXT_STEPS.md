@@ -2,73 +2,75 @@
 
 ## Approved Next Phase
 
-**Phase 3B Quality Review Agent — Design & Test Cases**
+**Phase 3B Quality Review Agent — Code Implementation**
 
-Status: **Not started.** Design only. No code until design is approved.
+Status: **Not started.** Both prerequisite documents are locked. Code implementation requires an explicit user prompt to begin.
 
-## What the Quality Review Agent Should Do
+## Locked Planning Documents
 
-The Quality Review Agent evaluates the `message_version[]` candidates produced by the Copywriting Agent and produces a `quality_review` for each version.
+| Document | Path | Status |
+|----------|------|--------|
+| Design & Test Cases v1.0 | `docs/roadmap/phase-3b-quality-review-agent-design-test-cases.md` | Locked |
+| Implementation Plan v1.0 | `docs/roadmap/phase-3b-quality-review-agent-implementation-plan.md` | Locked |
 
-It should score each version across these dimensions:
+The implementation must follow the locked implementation plan exactly. Do not make architectural decisions independently.
 
-| Dimension | Description |
-|-----------|-------------|
-| Strategic fit | Does the copy match the strategy's intent, message type, and skill? |
-| Compliance confidence | How confident are we that no compliance issues remain? |
-| CTA clarity | Is the call to action clear, specific, and achievable? |
-| Specificity / personalization quality | Does the copy feel specific to this lead, or is it generic? |
-| Tone fit | Does the tone match the strategy's specified tone? |
-| Differentiation quality | Does this version offer a genuinely different angle, not just a synonym rewrite? |
-| Subject/body consistency | Does the subject line accurately reflect the body's content and CTA? |
-| Risk flags | Are there any red flags that a human reviewer should note? |
+## What the Code Implementation Must Build (in sequence)
 
-It should also produce:
+1. `supabase/migrations/20240024_phase3b_quality_reviews.sql` — quality_reviews table, indexes, RLS, trigger
+2. `modules/messaging/quality-review/quality-review-agent.types.ts` — all types, error codes, score band constants, QRA-owned pattern constants
+3. `modules/messaging/repositories/quality-review.repo.ts` — repository
+4. `modules/messaging/quality-review/quality-review-agent.scoring.ts` — 8 pure scoring functions
+5. `modules/messaging/quality-review/quality-review-agent.risk-flags.ts` — risk flag detector, RFL-001–RFL-025
+6. `modules/messaging/quality-review/quality-review-agent.composite.ts` — composite score calculator
+7. `modules/messaging/quality-review/quality-review-agent.ranking.ts` — ranking and recommendation assignment
+8. `modules/messaging/quality-review/quality-review-agent.reasoning.ts` — reasoning generator
+9. `modules/messaging/quality-review/quality-review-agent.validation.ts` — invalid condition checker, QRA_001–QRA_013
+10. `modules/messaging/quality-review/quality-review-agent.message-type-rules.ts` — 12 message type rules
+11. `modules/messaging/quality-review/quality-review-agent.service.ts` — 12-step orchestration service
+12. `modules/messaging/actions/quality-review-agent.actions.ts` — server actions
+13. `modules/intelligence/types.agent.ts` — add `quality_review_agent`, `QUALITY_REVIEW_COMPLETED`, `QUALITY_REVIEW_NO_RECOMMENDATION` (additive only)
+14. `tests/fixtures/quality-review-agent/TC-QRA-001.json` through `TC-QRA-035.json` — 35 fixtures
+15. `tests/quality-review-agent.test.ts` — QRA Vitest test suite
+16. `app/(workspace)/[workspaceSlug]/message-workspace/[leadId]/GeneratedVersionsPanel.tsx` — extended with quality review display
+17. Full QA: `npx vitest run` (176+ tests expected) + `npx next build` + TypeScript + lint
 
-- **Recommended version ranking** — which version is best for this lead and why
-- **Reasoning** — a human-readable explanation of the ranking decision
+## What the Code Implementation Must NOT Do
 
-## What the Quality Review Agent Should NOT Do in v1
+- Do not begin approval/send bridge work
+- Do not begin Learning Agent design or implementation
+- Do not add external LLM calls
+- Do not approve messages or wire sending
+- Do not create `email_drafts` or `approval_requests`
+- Do not modify `message_version` content
+- Do not modify `message_strategy` records
+- Do not stop at fewer than 176 total tests (141 existing + 35 QRA)
+- Do not skip the guardrail correction pass before final QA
 
-- Send messages
-- Approve messages for sending
-- Override the strategy
-- Modify message versions
-- Call external LLMs (unless explicitly approved in design)
+## QA Expectations After Implementation
 
-## Design Requirements for Next Session
-
-Before implementation begins, the design session should produce:
-
-1. **Phase 3B Quality Review Agent — Design & Test Cases** document covering:
-   - Input schema (what fields it reads from `message_version` and `message_strategy`)
-   - Output schema (`quality_review` row structure)
-   - Scoring methodology for each dimension (how scores are calculated deterministically in v1)
-   - Ranking algorithm
-   - Edge cases (single version, all versions flagged, no clear winner)
-   - Test case inventory (at minimum 20 fixture scenarios)
-
-2. Approval of the design document before any code is written.
-
-3. **Phase 3B Quality Review Agent — Implementation Plan** covering the step-by-step file creation sequence.
-
-4. Approval of the implementation plan before coding begins.
+| Metric | Expected |
+|--------|---------|
+| Total tests | ≥ 176 (141 existing + 35 QRA) |
+| `npx vitest run` | PASSED |
+| `npx next build` | PASSED |
+| TypeScript | PASSED |
+| Existing tests | All 141 still passing (no regressions) |
 
 ## After Quality Review Agent
 
-Once the Quality Review Agent is implemented and QA-verified:
+Once the Quality Review Agent is implemented, committed, and QA-verified:
 
-- Human approval flow can be extended to use quality review rankings
+- Human approval flow can be extended to use quality review rankings (separate scope)
 - Body HTML generation can be scoped as a separate sub-task
-- Learning Agent design can begin
+- Learning Agent design can begin (requires separate design session)
 
 ## Process Reminder
 
-The standard design → approval → implementation → QA → commit sequence must be followed:
+Standard sequence applies:
 
-1. Design & Test Cases document — presented, reviewed, locked
-2. Implementation Plan — presented, reviewed, locked
-3. Code implementation — executed per plan, with guardrail correction pass if needed
-4. QA: `npx vitest run` + `npx next build`
-5. Commit, tag, push
-6. Update `docs/ai-context/` files
+1. Implementation Plan already locked — proceed to code implementation
+2. Code implementation — follow locked plan, with guardrail correction pass before final QA
+3. QA: `npx vitest run` + `npx next build`
+4. Commit, tag, push
+5. Update `docs/ai-context/` files
