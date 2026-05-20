@@ -6,6 +6,7 @@ import * as contactRepo from '@/modules/crm/repositories/contact.repo'
 import * as leadRepo from '@/modules/crm/repositories/lead.repo'
 import * as recommendationRepo from '@/modules/intelligence/repositories/recommendation.repo'
 import * as approvalRepo from '@/modules/workflow/repositories/approval.repo'
+import { reviewAndPersistEmailDraftQuality } from '@/modules/messaging/services/email-quality-review-runner.service'
 
 type ApprovalRow = Database['public']['Tables']['approval_requests']['Row']
 
@@ -202,7 +203,10 @@ export async function createLeadEmailDraft(
     aiGenerationMetadata: metadata,
   })
 
-  // 12. Create approval_request
+  // 12. Auto quality review before approval (non-fatal)
+  await reviewAndPersistEmailDraftQuality(draft.id, ctx.tenantId, ctx.workspaceId).catch(() => null)
+
+  // 13. Create approval_request
   const approval = await approvalRepo.createApprovalRequest({
     tenantId:     ctx.tenantId,
     workspaceId:  ctx.workspaceId,
@@ -222,7 +226,7 @@ export async function createLeadEmailDraft(
     },
   })
 
-  // 13. Link approval back to draft
+  // 14. Link approval back to draft
   await emailDraftRepo.linkApprovalToEmailDraft(draft.id, approval.id)
 
   return {
