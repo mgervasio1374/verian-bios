@@ -1,7 +1,8 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import * as artifactService from '@/modules/artifacts/services/artifact.service'
-import { FolderOpen, FileText } from 'lucide-react'
+import * as companyDocRepo from '@/modules/artifacts/repositories/company-document.repo'
+import { FolderOpen, FileText, ExternalLink } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 
@@ -15,6 +16,19 @@ export default async function ArtifactsPage({ params }: PageProps) {
   const ctx = await buildRequestContext(supabase)
 
   const artifacts = await artifactService.listArtifacts(ctx).catch(() => [])
+
+  // Generate signed URLs in parallel for artifacts that have a storage path
+  const withUrls = await Promise.all(
+    artifacts.map(async (a) => ({
+      ...a,
+      signedUrl: a.storage_path
+        ? await companyDocRepo.getDocumentSignedUrl(
+            a.storage_path,
+            a.storage_bucket ?? 'artifacts'
+          ).catch(() => null)
+        : null,
+    }))
+  )
 
   return (
     <div className="space-y-6">
@@ -38,10 +52,11 @@ export default async function ArtifactsPage({ params }: PageProps) {
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Type</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Uploaded</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">File</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {artifacts.map((a) => (
+              {withUrls.map((a) => (
                 <tr key={a.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -59,6 +74,20 @@ export default async function ArtifactsPage({ params }: PageProps) {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {format(new Date(a.created_at), 'MMM d, yyyy')}
+                  </td>
+                  <td className="px-4 py-3">
+                    {a.signedUrl ? (
+                      <a
+                        href={a.signedUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-xs"
+                      >
+                        Open <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No file</span>
+                    )}
                   </td>
                 </tr>
               ))}
