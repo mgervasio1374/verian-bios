@@ -4,6 +4,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { resend } from '@/lib/resend/client'
 import * as approvalRepo from '@/modules/workflow/repositories/approval.repo'
 import * as emailDraftRepo from '@/modules/messaging/repositories/email-draft.repo'
+import { completeRecommendationsForApprovedAction } from '@/modules/intelligence/services/recommendation-completion.service'
 import type { ActionResult } from '@/modules/crm/actions/company.actions'
 import type { StatementAnalysis } from '@/lib/statement/analysis'
 
@@ -207,6 +208,19 @@ export async function approveAndSendAction(
         .eq('id', leadId)
         .eq('tenant_id', approval.tenant_id)
         .eq('stage', 'statement_received')
+
+      // 12. Mark related recommendations completed (non-fatal — email already sent)
+      await completeRecommendationsForApprovedAction({
+        tenantId:          approval.tenant_id,
+        workspaceId:       workspaceId ?? undefined,
+        subjectType:       'lead',
+        subjectId:         leadId,
+        companyId:         companyId ?? undefined,
+        leadId,
+        reason:            'Proposal email approved and sent via review link',
+        approvalRequestId: approval.id,
+        emailDraftId:      draftId,
+      }).catch(() => null)
     }
 
     return { success: true, data: { draftId, sendId: emailSend?.id ?? null } }
@@ -285,6 +299,8 @@ export type AnalysisSummary = {
 
 export type ReviewPageData = {
   approvalId:        string
+  tenantId:          string
+  draftId:           string | null
   status:            string
   subject:           string
   bodyText:          string
@@ -373,6 +389,8 @@ export async function getReviewPageData(
       success: true,
       data: {
         approvalId:           approval.id,
+        tenantId:             approval.tenant_id,
+        draftId:              typeof payload.draft_id === 'string' ? payload.draft_id : null,
         status:               approval.status,
         subject,
         bodyText,

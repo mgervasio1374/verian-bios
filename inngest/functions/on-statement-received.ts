@@ -7,6 +7,7 @@ import * as approvalRepo from '@/modules/workflow/repositories/approval.repo'
 import * as emailDraftRepo from '@/modules/messaging/repositories/email-draft.repo'
 import { buildPlaceholderAnalysis } from '@/lib/statement/analysis'
 import { generateProposalPdf } from '@/lib/pdf/proposal'
+import { reviewAndPersistEmailDraftQuality } from '@/modules/messaging/services/email-quality-review-runner.service'
 import type { StatementAnalysis } from '@/lib/statement/analysis'
 
 // ---- Lead priority tiers ----
@@ -334,6 +335,21 @@ export const onStatementReceived = inngest.createFunction(
         lead_id: data.leadId,
       })
       return draft
+    })
+
+    // ── Auto quality review for proposal draft (non-fatal) ────────────────
+    await step.run('auto-quality-review', async () => {
+      try {
+        await reviewAndPersistEmailDraftQuality(draftResult.id, data.tenantId, data.workspaceId)
+        logger.info('statement.received: quality review complete', { draft_id: draftResult.id })
+        return { ok: true }
+      } catch (err) {
+        logger.warn('statement.received: quality review failed (non-fatal)', {
+          draft_id: draftResult.id,
+          error: err instanceof Error ? err.message : String(err),
+        })
+        return { ok: false }
+      }
     })
 
     // ── Create approval request with review token ──────────────────────────
