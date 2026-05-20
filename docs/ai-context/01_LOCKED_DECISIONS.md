@@ -18,6 +18,7 @@ The following documents have been approved and locked. They serve as the specifi
 | Phase 3B Copywriting Agent Foundation — Code Implementation v1.0 | Locked |
 | Phase 3B Quality Review Agent — Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3b-quality-review-agent-design-test-cases.md`) |
 | Phase 3B Quality Review Agent — Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b-quality-review-agent-implementation-plan.md`) |
+| Phase 3B Quality Review Agent Foundation — Code Implementation v1.0 | Locked (`435b890`, `96f32f8`) |
 
 ## Locked Architectural Decisions
 

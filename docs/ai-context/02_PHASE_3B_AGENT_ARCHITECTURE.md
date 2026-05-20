@@ -25,7 +25,7 @@ Phase 3B is the Verian Revenue Learning Engine. It is a multi-agent pipeline tha
 │  └──────────┬───────────┘                                           │
 │             │                                                       │
 │             ▼                                                       │
-│  ┌──────────────────────┐  (Design + plan locked; code next)       │
+│  ┌──────────────────────┐  (Implemented)                           │
 │  │  Quality Review      │  Scores and ranks versions               │
 │  │  Agent               │  Produces: quality_review                │
 │  └──────────┬───────────┘                                           │
@@ -65,9 +65,9 @@ Phase 3B is the Verian Revenue Learning Engine. It is a multi-agent pipeline tha
 - **Validates:** Compliance (banned phrases, urgency, guaranteed outcomes, inbound/cold framing, partner claims, review-complete gates), structural correctness, version differentiation
 - **Does not:** Score quality, rank best version, approve for send, generate body_html, call external LLMs
 
-### Quality Review Agent (Design and plan locked — code implementation is next)
+### Quality Review Agent (Implemented — v1.1 committed and tagged)
 
-- **Status:** Design & Test Cases v1.0 locked. Implementation Plan v1.0 locked. Code implementation not yet started.
+- **Status:** Complete. Design, plan, backend, and UI integration all committed. Tags: `phase-3b-quality-review-agent-v1`, `phase-3b-quality-review-agent-v1.1`.
 - **Input:** `message_strategy` row, `message_version[]` rows, skill definitions, optional prior message context
 - **Output:** `quality_review` rows — one per evaluated version
 - **Scores per version:** Strategic fit, compliance confidence, CTA clarity, specificity/personalization, tone fit, differentiation, subject/body consistency, readability
@@ -87,7 +87,7 @@ Phase 3B is the Verian Revenue Learning Engine. It is a multi-agent pipeline tha
 lead
  └── message_strategy          (1 active per lead at a time)
       └── message_version[]    (2–4 candidates per strategy)
-           └── quality_review  (1 per version, from Quality Review Agent — not yet built)
+           └── quality_review  (1 per version, from Quality Review Agent — implemented)
 ```
 
 ## Key Design Principles
