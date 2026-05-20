@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "test_case_id": "TC-QRA-034",
+    "scenario_name": "Gate check — no versions blocks review (QRA_002)",
+    "description": "Strategy has no versions. Should return blocking error QRA_002.",
+    "message_type": "cold_outreach"
+  },
+  "input": {
+    "strategy": {
+      "id": "str-034",
+      "message_type": "cold_outreach",
+      "primary_goal": "Book a call",
+      "offer_angle": "statement_review_offer",
+      "tone": "direct",
+      "cta": "Reply to schedule",
+      "proof_point": null,
+      "pain_point_hypothesis": "Overpaying",
+      "industry_segment": "retail",
+      "lead_source": "manual",
+      "sequence_position": 1,
+      "lead_stage": "new",
+      "required_inclusions": [],
+      "avoid": [],
+      "partner_membership_confirmed": false,
+      "personalization_level": "lead_specific",
+      "length_target": "short",
+      "audience_context": "Retail owner",
+      "status": "draft",
+      "confidence_score": 0.80,
+      "invalid_reasons": [],
+      "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+      "lead_id": "lead-034",
+      "company_id": null
+    },
+    "versions": [],
+    "prior_context": null,
+    "system_controls": {
+      "emailGenerationEngine": "phase3b",
+      "globalAgentPause": false
+    }
+  },
+  "expected": {
+    "success": false,
+    "expected_review_count": 0,
+    "expected_ranking": [],
+    "expected_recommended_version_label": null,
+    "expected_errors": [
+      { "code": "QRA_002" }
+    ],
+    "pass_fail_notes": "No versions present triggers blocking error QRA_002. Service should return success=false."
+  }
+}

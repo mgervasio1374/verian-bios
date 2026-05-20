@@ -1,0 +1,96 @@
+{
+  "meta": {
+    "test_case_id": "TC-QRA-006",
+    "scenario_name": "Statement submitted — clear timeline confirmation rewarded",
+    "description": "Clean confirmation with receipt acknowledgment and clear timeline. Should score well.",
+    "message_type": "statement_submitted_confirmation"
+  },
+  "input": {
+    "strategy": {
+      "id": "str-006",
+      "message_type": "statement_submitted_confirmation",
+      "primary_goal": "Confirm receipt and set timeline",
+      "offer_angle": "statement_review_offer",
+      "tone": "professional",
+      "cta": "Reply with any questions",
+      "proof_point": null,
+      "pain_point_hypothesis": "Statement received",
+      "industry_segment": "restaurant",
+      "lead_source": "app.321swipe.com",
+      "sequence_position": 1,
+      "lead_stage": "statement_received",
+      "required_inclusions": [],
+      "avoid": [],
+      "partner_membership_confirmed": false,
+      "personalization_level": "lead_specific",
+      "length_target": "short",
+      "audience_context": "Statement just uploaded",
+      "status": "draft",
+      "confidence_score": 0.85,
+      "invalid_reasons": [],
+      "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+      "lead_id": "lead-006",
+      "company_id": "company-006"
+    },
+    "versions": [
+      {
+        "id": "ver-006-a",
+        "tenant_id": "tenant-001",
+        "strategy_id": "str-006",
+        "lead_id": "lead-006",
+        "company_id": "company-006",
+        "campaign_id": null,
+        "agent_run_id": "run-006",
+        "subject_line": "Statement received — next steps",
+        "preview_text": "We have your statement on file",
+        "body_text": "We received your statement and it is now on file for review.\n\nOur team typically completes the analysis within 2–3 business days. Once complete, we will reach out to walk through what we found.\n\nReply with any questions in the meantime.",
+        "body_html": null,
+        "message_type": "statement_submitted_confirmation",
+        "version_label": "Professional Confirmation",
+        "version_number": 1,
+        "strategy_angle": "professional_confirmation",
+        "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+        "skill_versions": {"compliance_forbidden_claims": 1},
+        "source_strategy_snapshot": {},
+        "compliance_notes_applied": [],
+        "required_inclusions_satisfied": {},
+        "avoided_elements_checked": {},
+        "generation_notes": "Clean confirmation with timeline",
+        "copy_constraints": {},
+        "personalization_used": ["company_name"],
+        "personalization_gaps": [],
+        "approval_status": "pending",
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "rejection_reason": null,
+        "user_edited": false,
+        "user_edit_summary": null,
+        "final_subject_line": null,
+        "final_body_text": null,
+        "created_by_agent": "copywriting_agent",
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z"
+      }
+    ],
+    "prior_context": null,
+    "system_controls": {
+      "emailGenerationEngine": "phase3b",
+      "globalAgentPause": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_review_count": 1,
+    "expected_ranking": ["ver-006-a"],
+    "expected_recommended_version_label": "Professional Confirmation",
+    "expected_scores": {
+      "ver-006-a": {
+        "composite_score_min": 65,
+        "score_band": "usable",
+        "risk_flags": []
+      }
+    },
+    "expected_errors": [],
+    "pass_fail_notes": "Clean confirmation with timeline and CTA should score well with no critical or high risk flags."
+  }
+}

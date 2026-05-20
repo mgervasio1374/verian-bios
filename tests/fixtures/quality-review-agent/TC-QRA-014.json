@@ -1,0 +1,97 @@
+{
+  "meta": {
+    "test_case_id": "TC-QRA-014",
+    "scenario_name": "No-response follow-up — repeated prior angle triggers RFL-024",
+    "description": "Version uses same strategy angle as a prior run's version. Prior context indicates this angle was already used.",
+    "message_type": "no_response_follow_up"
+  },
+  "input": {
+    "strategy": {
+      "id": "str-014",
+      "message_type": "no_response_follow_up",
+      "primary_goal": "Re-engage",
+      "offer_angle": "statement_review_offer",
+      "tone": "direct",
+      "cta": "Reply to connect",
+      "proof_point": null,
+      "pain_point_hypothesis": "No response",
+      "industry_segment": null,
+      "lead_source": "manual",
+      "sequence_position": 3,
+      "lead_stage": "new",
+      "required_inclusions": [],
+      "avoid": [],
+      "partner_membership_confirmed": false,
+      "personalization_level": "lead_specific",
+      "length_target": "short",
+      "audience_context": "No response",
+      "status": "draft",
+      "confidence_score": 0.80,
+      "invalid_reasons": [],
+      "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+      "lead_id": "lead-014",
+      "company_id": null
+    },
+    "versions": [
+      {
+        "id": "ver-014-a",
+        "tenant_id": "tenant-001",
+        "strategy_id": "str-014",
+        "lead_id": "lead-014",
+        "company_id": null,
+        "campaign_id": null,
+        "agent_run_id": "run-014",
+        "subject_line": "Quick question about processing",
+        "preview_text": "Worth reviewing?",
+        "body_text": "We specialize in helping businesses review their payment processing costs. Many find that a quick review is worth the time.\n\nReply to connect if you are open to it.",
+        "body_html": null,
+        "message_type": "no_response_follow_up",
+        "version_label": "Direct Question",
+        "version_number": 1,
+        "strategy_angle": "direct_sequence_question",
+        "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+        "skill_versions": {"compliance_forbidden_claims": 1},
+        "source_strategy_snapshot": {},
+        "compliance_notes_applied": [],
+        "required_inclusions_satisfied": {},
+        "avoided_elements_checked": {},
+        "generation_notes": "Same angle as prior run",
+        "copy_constraints": {},
+        "personalization_used": [],
+        "personalization_gaps": ["industry_segment: unavailable"],
+        "approval_status": "pending",
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "rejection_reason": null,
+        "user_edited": false,
+        "user_edit_summary": null,
+        "final_subject_line": null,
+        "final_body_text": null,
+        "created_by_agent": "copywriting_agent",
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z"
+      }
+    ],
+    "prior_context": {
+      "priorStrategyAngles": ["direct_sequence_question", "industry_specific_question"]
+    },
+    "system_controls": {
+      "emailGenerationEngine": "phase3b",
+      "globalAgentPause": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_review_count": 1,
+    "expected_ranking": ["ver-014-a"],
+    "expected_recommended_version_label": null,
+    "expected_scores": {
+      "ver-014-a": {
+        "composite_score_max": 75,
+        "risk_flags": ["RFL-024", "RFL-023"]
+      }
+    },
+    "expected_errors": [],
+    "pass_fail_notes": "Strategy angle repeated from prior context triggers RFL-024 (medium). Also missing personalization gap triggers RFL-023."
+  }
+}

@@ -81,6 +81,7 @@ export const SystemControlKey = {
   // Phase 3B — Revenue Learning Engine
   EMAIL_GENERATION_ENGINE:             'email_generation_engine',
   REQUIRE_STRATEGY_REVIEW:             'require_strategy_review',
+  REQUIRE_MESSAGE_APPROVAL:            'require_message_approval',
 
   // Phase 3B-1 — Human Handoff & Follow-Up Accountability (future, disabled by default)
   OUTLOOK_MONITORING_ENABLED:              'outlook_monitoring_enabled',
@@ -170,5 +171,9 @@ export const ActivityEventType = {
   FOLLOW_UP_OBLIGATION_COMPLETED:    'follow_up_obligation_completed',
   FOLLOW_UP_OBLIGATION_MISSED:       'follow_up_obligation_missed',
   FOLLOW_UP_ESCALATED:               'follow_up_escalated',
+
+  // Phase 3B — Quality Review Agent
+  QUALITY_REVIEW_COMPLETED:          'quality_review_completed',
+  QUALITY_REVIEW_NO_RECOMMENDATION:  'quality_review_no_recommendation',
 } as const
 export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType]

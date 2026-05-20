@@ -1,0 +1,96 @@
+{
+  "meta": {
+    "test_case_id": "TC-QRA-025",
+    "scenario_name": "Tone — warm_conversational for inbound inquiry",
+    "description": "Inbound inquiry response with warm acknowledgment and genuine tone. Good tone fit expected.",
+    "message_type": "new_inquiry_response"
+  },
+  "input": {
+    "strategy": {
+      "id": "str-025",
+      "message_type": "new_inquiry_response",
+      "primary_goal": "Respond warmly to inbound inquiry",
+      "offer_angle": "statement_review_offer",
+      "tone": "warm_conversational",
+      "cta": "Reply to schedule a call",
+      "proof_point": null,
+      "pain_point_hypothesis": "Inquiry about payment processing",
+      "industry_segment": "restaurant",
+      "lead_source": "website",
+      "sequence_position": 1,
+      "lead_stage": "new",
+      "required_inclusions": [],
+      "avoid": [],
+      "partner_membership_confirmed": false,
+      "personalization_level": "lead_specific",
+      "length_target": "short",
+      "audience_context": "Inbound website inquiry from restaurant",
+      "status": "draft",
+      "confidence_score": 0.85,
+      "invalid_reasons": [],
+      "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+      "lead_id": "lead-025",
+      "company_id": "company-025"
+    },
+    "versions": [
+      {
+        "id": "ver-025-a",
+        "tenant_id": "tenant-001",
+        "strategy_id": "str-025",
+        "lead_id": "lead-025",
+        "company_id": "company-025",
+        "campaign_id": null,
+        "agent_run_id": "run-025",
+        "subject_line": "Re: Your inquiry — glad you reached out",
+        "preview_text": "Happy to connect",
+        "body_text": "Thank you for reaching out — glad to connect with you.\n\nRestaurant payment processing is an area where the right setup can make a meaningful difference in monthly costs. I would love to learn more about your current situation and see if we can be helpful.\n\nReply to schedule a call at your convenience.",
+        "body_html": null,
+        "message_type": "new_inquiry_response",
+        "version_label": "Warm Acknowledgment",
+        "version_number": 1,
+        "strategy_angle": "warm_inquiry_response",
+        "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+        "skill_versions": {"compliance_forbidden_claims": 1},
+        "source_strategy_snapshot": {},
+        "compliance_notes_applied": [],
+        "required_inclusions_satisfied": {},
+        "avoided_elements_checked": {},
+        "generation_notes": "Warm inbound response with industry context",
+        "copy_constraints": {},
+        "personalization_used": ["industry_segment"],
+        "personalization_gaps": [],
+        "approval_status": "pending",
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "rejection_reason": null,
+        "user_edited": false,
+        "user_edit_summary": null,
+        "final_subject_line": null,
+        "final_body_text": null,
+        "created_by_agent": "copywriting_agent",
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z"
+      }
+    ],
+    "prior_context": null,
+    "system_controls": {
+      "emailGenerationEngine": "phase3b",
+      "globalAgentPause": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_review_count": 1,
+    "expected_ranking": ["ver-025-a"],
+    "expected_recommended_version_label": "Warm Acknowledgment",
+    "expected_scores": {
+      "ver-025-a": {
+        "tone_fit_score_min": 70,
+        "composite_score_min": 65,
+        "risk_flags": []
+      }
+    },
+    "expected_errors": [],
+    "pass_fail_notes": "Warm conversational inbound response should have good tone fit and be recommendable."
+  }
+}

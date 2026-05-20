@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "test_case_id": "TC-QRA-004",
+    "scenario_name": "Inbound inquiry — cold discovery language triggers high risk",
+    "description": "Lead source is website (inbound) but body uses cold discovery language 'I came across'. RFL-006 high risk.",
+    "message_type": "new_inquiry_response"
+  },
+  "input": {
+    "strategy": {
+      "id": "str-004",
+      "message_type": "new_inquiry_response",
+      "primary_goal": "Respond to inquiry warmly",
+      "offer_angle": "statement_review_offer",
+      "tone": "warm_conversational",
+      "cta": "Reply to schedule a call",
+      "proof_point": null,
+      "pain_point_hypothesis": "Inquiry about payment processing",
+      "industry_segment": null,
+      "lead_source": "website",
+      "sequence_position": 1,
+      "lead_stage": "new",
+      "required_inclusions": [],
+      "avoid": [],
+      "partner_membership_confirmed": false,
+      "personalization_level": "lead_specific",
+      "length_target": "short",
+      "audience_context": "Inbound website inquiry",
+      "status": "draft",
+      "confidence_score": 0.85,
+      "invalid_reasons": [],
+      "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+      "lead_id": "lead-004",
+      "company_id": null
+    },
+    "versions": [
+      {
+        "id": "ver-004-a",
+        "tenant_id": "tenant-001",
+        "strategy_id": "str-004",
+        "lead_id": "lead-004",
+        "company_id": null,
+        "campaign_id": null,
+        "agent_run_id": "run-004",
+        "subject_line": "Re: Your inquiry",
+        "preview_text": "Happy to connect",
+        "body_text": "I came across your business and wanted to reach out about payment processing options that might be a fit.\n\nWe help small businesses reduce their processing costs. It might be worth a quick call to see if there is an opportunity.\n\nReply to schedule a call.",
+        "body_html": null,
+        "message_type": "new_inquiry_response",
+        "version_label": "Warm Acknowledgment",
+        "version_number": 1,
+        "strategy_angle": "warm_inquiry_response",
+        "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+        "skill_versions": {"compliance_forbidden_claims": 1},
+        "source_strategy_snapshot": {},
+        "compliance_notes_applied": [],
+        "required_inclusions_satisfied": {},
+        "avoided_elements_checked": {},
+        "generation_notes": "Cold discovery language in inbound context",
+        "copy_constraints": {},
+        "personalization_used": [],
+        "personalization_gaps": [],
+        "approval_status": "pending",
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "rejection_reason": null,
+        "user_edited": false,
+        "user_edit_summary": null,
+        "final_subject_line": null,
+        "final_body_text": null,
+        "created_by_agent": "copywriting_agent",
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z"
+      }
+    ],
+    "prior_context": null,
+    "system_controls": {
+      "emailGenerationEngine": "phase3b",
+      "globalAgentPause": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_review_count": 1,
+    "expected_ranking": ["ver-004-a"],
+    "expected_recommended_version_label": null,
+    "expected_scores": {
+      "ver-004-a": {
+        "composite_score_max": 69,
+        "risk_flags": ["RFL-006"]
+      }
+    },
+    "expected_errors": [],
+    "pass_fail_notes": "Cold discovery language in inbound context triggers RFL-006 (high) which caps composite at 69. Also has banned phrase 'I wanted to reach out'."
+  }
+}

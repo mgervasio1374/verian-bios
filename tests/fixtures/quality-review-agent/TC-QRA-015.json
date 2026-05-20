@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "test_case_id": "TC-QRA-015",
+    "scenario_name": "Re-engagement — guilt language penalized by RFL-015",
+    "description": "Re-engagement version uses guilt language. RFL-015 triggered.",
+    "message_type": "re_engagement"
+  },
+  "input": {
+    "strategy": {
+      "id": "str-015",
+      "message_type": "re_engagement",
+      "primary_goal": "Re-engage cold lead",
+      "offer_angle": "statement_review_offer",
+      "tone": "direct",
+      "cta": "Reply if interested",
+      "proof_point": null,
+      "pain_point_hypothesis": "Cold lead needs fresh reason",
+      "industry_segment": null,
+      "lead_source": "manual",
+      "sequence_position": 5,
+      "lead_stage": "cold",
+      "required_inclusions": [],
+      "avoid": [],
+      "partner_membership_confirmed": false,
+      "personalization_level": "lead_specific",
+      "length_target": "short",
+      "audience_context": "Has not engaged in 60 days",
+      "status": "draft",
+      "confidence_score": 0.80,
+      "invalid_reasons": [],
+      "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+      "lead_id": "lead-015",
+      "company_id": null
+    },
+    "versions": [
+      {
+        "id": "ver-015-a",
+        "tenant_id": "tenant-001",
+        "strategy_id": "str-015",
+        "lead_id": "lead-015",
+        "company_id": null,
+        "campaign_id": null,
+        "agent_run_id": "run-015",
+        "subject_line": "Did my emails get buried?",
+        "preview_text": "I haven't heard from you",
+        "body_text": "I haven't heard from you in a while and I was hoping to hear back. I know you must be busy and I don't want to bother you, but I want to make sure my previous emails didn't fall through the cracks.\n\nIf payment processing costs are still on your radar, I am still here. Reply if interested.",
+        "body_html": null,
+        "message_type": "re_engagement",
+        "version_label": "Time-Gap Acknowledgment",
+        "version_number": 1,
+        "strategy_angle": "time_gap_acknowledgment",
+        "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+        "skill_versions": {"compliance_forbidden_claims": 1},
+        "source_strategy_snapshot": {},
+        "compliance_notes_applied": [],
+        "required_inclusions_satisfied": {},
+        "avoided_elements_checked": {},
+        "generation_notes": "Uses guilt language",
+        "copy_constraints": {},
+        "personalization_used": [],
+        "personalization_gaps": ["industry_segment: unavailable"],
+        "approval_status": "pending",
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "rejection_reason": null,
+        "user_edited": false,
+        "user_edit_summary": null,
+        "final_subject_line": null,
+        "final_body_text": null,
+        "created_by_agent": "copywriting_agent",
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z"
+      }
+    ],
+    "prior_context": null,
+    "system_controls": {
+      "emailGenerationEngine": "phase3b",
+      "globalAgentPause": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_review_count": 1,
+    "expected_ranking": ["ver-015-a"],
+    "expected_recommended_version_label": null,
+    "expected_scores": {
+      "ver-015-a": {
+        "composite_score_max": 70,
+        "risk_flags": ["RFL-015"]
+      }
+    },
+    "expected_errors": [],
+    "pass_fail_notes": "Guilt language in re-engagement triggers RFL-015 (medium). Multiple guilt patterns in a single version penalize tone fit score."
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "test_case_id": "TC-QRA-012",
+    "scenario_name": "Proposal follow-up — false urgency triggers RFL-002",
+    "description": "Version uses 'expires soon' urgency language triggering RFL-002 high risk.",
+    "message_type": "proposal_follow_up"
+  },
+  "input": {
+    "strategy": {
+      "id": "str-012",
+      "message_type": "proposal_follow_up",
+      "primary_goal": "Close on proposal",
+      "offer_angle": "confirmed_savings_review",
+      "tone": "executive_brevity",
+      "cta": "Reply to confirm",
+      "proof_point": null,
+      "pain_point_hypothesis": "Proposal pending",
+      "industry_segment": null,
+      "lead_source": "app.321swipe.com",
+      "sequence_position": 3,
+      "lead_stage": "proposal_sent",
+      "required_inclusions": [],
+      "avoid": [],
+      "partner_membership_confirmed": false,
+      "personalization_level": "lead_specific",
+      "length_target": "short",
+      "audience_context": "Proposal sent",
+      "status": "draft",
+      "confidence_score": 0.85,
+      "invalid_reasons": [],
+      "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+      "lead_id": "lead-012",
+      "company_id": "company-012"
+    },
+    "versions": [
+      {
+        "id": "ver-012-a",
+        "tenant_id": "tenant-001",
+        "strategy_id": "str-012",
+        "lead_id": "lead-012",
+        "company_id": "company-012",
+        "campaign_id": null,
+        "agent_run_id": "run-012",
+        "subject_line": "Proposal rates expire soon",
+        "preview_text": "These rates expires soon",
+        "body_text": "The pricing we outlined in the proposal expires soon and we want to make sure you have the opportunity to lock it in before the rates change.\n\nAct now to secure the proposal terms. Reply to confirm your interest.",
+        "body_html": null,
+        "message_type": "proposal_follow_up",
+        "version_label": "Reduced Friction",
+        "version_number": 1,
+        "strategy_angle": "reduced_friction",
+        "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+        "skill_versions": {"compliance_forbidden_claims": 1},
+        "source_strategy_snapshot": {},
+        "compliance_notes_applied": [],
+        "required_inclusions_satisfied": {},
+        "avoided_elements_checked": {},
+        "generation_notes": "Uses urgency language",
+        "copy_constraints": {},
+        "personalization_used": [],
+        "personalization_gaps": [],
+        "approval_status": "pending",
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "rejection_reason": null,
+        "user_edited": false,
+        "user_edit_summary": null,
+        "final_subject_line": null,
+        "final_body_text": null,
+        "created_by_agent": "copywriting_agent",
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z"
+      }
+    ],
+    "prior_context": null,
+    "system_controls": {
+      "emailGenerationEngine": "phase3b",
+      "globalAgentPause": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_review_count": 1,
+    "expected_ranking": ["ver-012-a"],
+    "expected_recommended_version_label": null,
+    "expected_scores": {
+      "ver-012-a": {
+        "composite_score_max": 69,
+        "risk_flags": ["RFL-002"]
+      }
+    },
+    "expected_errors": [],
+    "pass_fail_notes": "Urgency language 'expires soon' and 'act now' triggers RFL-002 (high), capping composite at 69."
+  }
+}

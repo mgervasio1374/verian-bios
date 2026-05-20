@@ -1,0 +1,96 @@
+{
+  "meta": {
+    "test_case_id": "TC-QRA-016",
+    "scenario_name": "Partner campaign — unconfirmed partner name triggers critical RFL-007",
+    "description": "Partner campaign uses 'CertainPath' but partner_membership_confirmed is false. Critical flag.",
+    "message_type": "partner_member_specific_campaign"
+  },
+  "input": {
+    "strategy": {
+      "id": "str-016",
+      "message_type": "partner_member_specific_campaign",
+      "primary_goal": "Leverage partner membership",
+      "offer_angle": "partner_co_sell",
+      "tone": "warm_conversational",
+      "cta": "Reply to schedule a call",
+      "proof_point": null,
+      "pain_point_hypothesis": "Member may be overpaying",
+      "industry_segment": "home_services",
+      "lead_source": "referral",
+      "sequence_position": 1,
+      "lead_stage": "new",
+      "required_inclusions": [],
+      "avoid": [],
+      "partner_membership_confirmed": false,
+      "personalization_level": "lead_specific",
+      "length_target": "short",
+      "audience_context": "CertainPath member, unconfirmed",
+      "status": "draft",
+      "confidence_score": 0.80,
+      "invalid_reasons": [],
+      "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+      "lead_id": "lead-016",
+      "company_id": "company-016"
+    },
+    "versions": [
+      {
+        "id": "ver-016-a",
+        "tenant_id": "tenant-001",
+        "strategy_id": "str-016",
+        "lead_id": "lead-016",
+        "company_id": "company-016",
+        "campaign_id": null,
+        "agent_run_id": "run-016",
+        "subject_line": "CertainPath members — exclusive processing rates",
+        "preview_text": "A benefit for CertainPath members",
+        "body_text": "As a CertainPath member, you may be eligible for specialized payment processing rates that are available through our partnership with the group.\n\nMany CertainPath business owners have found value in reviewing their current setup. Reply to schedule a call to learn more.",
+        "body_html": null,
+        "message_type": "partner_member_specific_campaign",
+        "version_label": "Partner Context",
+        "version_number": 1,
+        "strategy_angle": "partner_shared_context",
+        "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+        "skill_versions": {"compliance_forbidden_claims": 1},
+        "source_strategy_snapshot": {},
+        "compliance_notes_applied": [],
+        "required_inclusions_satisfied": {},
+        "avoided_elements_checked": {},
+        "generation_notes": "Partner name without confirmed membership",
+        "copy_constraints": {},
+        "personalization_used": ["partner_context"],
+        "personalization_gaps": [],
+        "approval_status": "pending",
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "rejection_reason": null,
+        "user_edited": false,
+        "user_edit_summary": null,
+        "final_subject_line": null,
+        "final_body_text": null,
+        "created_by_agent": "copywriting_agent",
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z"
+      }
+    ],
+    "prior_context": null,
+    "system_controls": {
+      "emailGenerationEngine": "phase3b",
+      "globalAgentPause": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_review_count": 1,
+    "expected_ranking": ["ver-016-a"],
+    "expected_recommended_version_label": null,
+    "expected_scores": {
+      "ver-016-a": {
+        "composite_score_max": 49,
+        "score_band": "do_not_use",
+        "risk_flags": ["RFL-007"]
+      }
+    },
+    "expected_errors": [],
+    "pass_fail_notes": "Partner name without confirmed membership triggers RFL-007 (critical), capping composite at 49."
+  }
+}

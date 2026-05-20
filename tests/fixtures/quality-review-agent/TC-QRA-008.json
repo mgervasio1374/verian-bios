@@ -1,0 +1,96 @@
+{
+  "meta": {
+    "test_case_id": "TC-QRA-008",
+    "scenario_name": "Statement review — invented dollar finding triggers RFL-010",
+    "description": "Statement review follow-up body contains $200 but proof_point has no dollar amount. RFL-010 critical.",
+    "message_type": "statement_review_follow_up"
+  },
+  "input": {
+    "strategy": {
+      "id": "str-008",
+      "message_type": "statement_review_follow_up",
+      "primary_goal": "Share findings",
+      "offer_angle": "confirmed_savings_review",
+      "tone": "direct",
+      "cta": "Reply to schedule a call",
+      "proof_point": "High effective rate detected in statement",
+      "pain_point_hypothesis": "Overpaying on fees",
+      "industry_segment": "retail",
+      "lead_source": "app.321swipe.com",
+      "sequence_position": 2,
+      "lead_stage": "statement_received",
+      "required_inclusions": [],
+      "avoid": [],
+      "partner_membership_confirmed": false,
+      "personalization_level": "lead_specific",
+      "length_target": "medium",
+      "audience_context": "Retail owner",
+      "status": "draft",
+      "confidence_score": 0.85,
+      "invalid_reasons": [],
+      "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+      "lead_id": "lead-008",
+      "company_id": "company-008"
+    },
+    "versions": [
+      {
+        "id": "ver-008-a",
+        "tenant_id": "tenant-001",
+        "strategy_id": "str-008",
+        "lead_id": "lead-008",
+        "company_id": "company-008",
+        "campaign_id": null,
+        "agent_run_id": "run-008",
+        "subject_line": "Your statement review — $200 opportunity found",
+        "preview_text": "We found a $200 monthly savings opportunity",
+        "body_text": "We reviewed your statement and identified a $200 per month savings opportunity based on your current processing setup.\n\nYour effective rate can likely be reduced by switching to a different pricing structure. Reply to schedule a call to go through the details.",
+        "body_html": null,
+        "message_type": "statement_review_follow_up",
+        "version_label": "Findings First",
+        "version_number": 1,
+        "strategy_angle": "findings_first",
+        "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+        "skill_versions": {"compliance_forbidden_claims": 1},
+        "source_strategy_snapshot": {},
+        "compliance_notes_applied": [],
+        "required_inclusions_satisfied": {},
+        "avoided_elements_checked": {},
+        "generation_notes": "Invented dollar finding not in proof point",
+        "copy_constraints": {},
+        "personalization_used": ["proof_point"],
+        "personalization_gaps": [],
+        "approval_status": "pending",
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "rejection_reason": null,
+        "user_edited": false,
+        "user_edit_summary": null,
+        "final_subject_line": null,
+        "final_body_text": null,
+        "created_by_agent": "copywriting_agent",
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z"
+      }
+    ],
+    "prior_context": null,
+    "system_controls": {
+      "emailGenerationEngine": "phase3b",
+      "globalAgentPause": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_review_count": 1,
+    "expected_ranking": ["ver-008-a"],
+    "expected_recommended_version_label": null,
+    "expected_scores": {
+      "ver-008-a": {
+        "composite_score_max": 49,
+        "score_band": "do_not_use",
+        "risk_flags": ["RFL-010"]
+      }
+    },
+    "expected_errors": [],
+    "pass_fail_notes": "Dollar amount in statement review body not grounded in proof point triggers RFL-010 (critical), capping composite at 49."
+  }
+}

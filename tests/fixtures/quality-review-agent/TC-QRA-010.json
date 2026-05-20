@@ -1,0 +1,96 @@
+{
+  "meta": {
+    "test_case_id": "TC-QRA-010",
+    "scenario_name": "Statement review — dollar claim without confirmed_savings_review offer angle triggers RFL-004",
+    "description": "Offer angle is statement_review_offer (not confirmed_savings_review). Dollar amounts should trigger RFL-004.",
+    "message_type": "statement_review_follow_up"
+  },
+  "input": {
+    "strategy": {
+      "id": "str-010",
+      "message_type": "statement_review_follow_up",
+      "primary_goal": "Share findings",
+      "offer_angle": "statement_review_offer",
+      "tone": "direct",
+      "cta": "Reply to schedule a call",
+      "proof_point": null,
+      "pain_point_hypothesis": "Potential overpayment",
+      "industry_segment": "retail",
+      "lead_source": "app.321swipe.com",
+      "sequence_position": 2,
+      "lead_stage": "statement_received",
+      "required_inclusions": [],
+      "avoid": [],
+      "partner_membership_confirmed": false,
+      "personalization_level": "lead_specific",
+      "length_target": "medium",
+      "audience_context": "Retail business owner",
+      "status": "draft",
+      "confidence_score": 0.85,
+      "invalid_reasons": [],
+      "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+      "lead_id": "lead-010",
+      "company_id": "company-010"
+    },
+    "versions": [
+      {
+        "id": "ver-010-a",
+        "tenant_id": "tenant-001",
+        "strategy_id": "str-010",
+        "lead_id": "lead-010",
+        "company_id": "company-010",
+        "campaign_id": null,
+        "agent_run_id": "run-010",
+        "subject_line": "Statement findings — $400 monthly opportunity",
+        "preview_text": "Estimated $400 monthly savings identified",
+        "body_text": "After reviewing your statement, we identified what appears to be a $400 monthly savings opportunity based on your current pricing structure.\n\nWe would like to walk through the analysis with you. Reply to schedule a call.",
+        "body_html": null,
+        "message_type": "statement_review_follow_up",
+        "version_label": "Findings First",
+        "version_number": 1,
+        "strategy_angle": "findings_first",
+        "selected_skills": [{"skill_slug": "compliance_forbidden_claims", "skill_version": 1}],
+        "skill_versions": {"compliance_forbidden_claims": 1},
+        "source_strategy_snapshot": {},
+        "compliance_notes_applied": [],
+        "required_inclusions_satisfied": {},
+        "avoided_elements_checked": {},
+        "generation_notes": "Dollar claim without confirmed savings angle",
+        "copy_constraints": {},
+        "personalization_used": [],
+        "personalization_gaps": ["proof_point: unavailable"],
+        "approval_status": "pending",
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "rejection_reason": null,
+        "user_edited": false,
+        "user_edit_summary": null,
+        "final_subject_line": null,
+        "final_body_text": null,
+        "created_by_agent": "copywriting_agent",
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z"
+      }
+    ],
+    "prior_context": null,
+    "system_controls": {
+      "emailGenerationEngine": "phase3b",
+      "globalAgentPause": false
+    }
+  },
+  "expected": {
+    "success": true,
+    "expected_review_count": 1,
+    "expected_ranking": ["ver-010-a"],
+    "expected_recommended_version_label": null,
+    "expected_scores": {
+      "ver-010-a": {
+        "composite_score_max": 49,
+        "score_band": "do_not_use",
+        "risk_flags": ["RFL-004"]
+      }
+    },
+    "expected_errors": [],
+    "pass_fail_notes": "Dollar claim without confirmed_savings_review offer angle triggers RFL-004 (critical), capping composite at 49."
+  }
+}
