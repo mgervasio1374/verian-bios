@@ -2,21 +2,22 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { buildRequestContext } from '@/lib/auth/context'
 import { Badge } from '@/components/ui/badge'
-import { TrendingUp } from 'lucide-react'
+import { TrendingUp, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
 }
 
 export default async function OpportunitiesPage({ params }: PageProps) {
-  await params
+  const { workspaceSlug } = await params
   const supabase = await createSupabaseServerClient()
   const ctx = await buildRequestContext(supabase)
 
   const svc = createSupabaseServiceClient()
   const { data: opportunities } = await svc
     .from('opportunities')
-    .select('id, name, stage, status, value, expected_close_date, created_at')
+    .select('id, name, stage, status, value, expected_close_date, created_at, company_id, lead_id')
     .eq('tenant_id', ctx.tenantId)
     .eq('workspace_id', ctx.workspaceId)
     .is('deleted_at', null)
@@ -51,31 +52,61 @@ export default async function OpportunitiesPage({ params }: PageProps) {
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Close Date</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Created</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground"></th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {rows.map((opp) => (
-                <tr key={opp.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-medium">{opp.name}</td>
-                  <td className="px-4 py-3 capitalize text-muted-foreground">
-                    {opp.stage.replace(/_/g, ' ')}
-                  </td>
-                  <td className="px-4 py-3 tabular-nums text-muted-foreground">
-                    {opp.value != null ? `$${Number(opp.value).toLocaleString()}` : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={opp.status} />
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {opp.expected_close_date
-                      ? new Date(opp.expected_close_date).toLocaleDateString()
-                      : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {new Date(opp.created_at).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
+              {rows.map((opp) => {
+                const target =
+                  opp.company_id
+                    ? { href: `/${workspaceSlug}/companies/${opp.company_id}`, label: 'View Company' }
+                    : opp.lead_id
+                    ? { href: `/${workspaceSlug}/leads/${opp.lead_id}`, label: 'View Lead' }
+                    : null
+
+                return (
+                  <tr key={opp.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-3">
+                      {target ? (
+                        <Link href={target.href} className="font-medium hover:underline">
+                          {opp.name}
+                        </Link>
+                      ) : (
+                        <span className="font-medium">{opp.name}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 capitalize text-muted-foreground">
+                      {opp.stage.replace(/_/g, ' ')}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums text-muted-foreground">
+                      {opp.value != null ? `$${Number(opp.value).toLocaleString()}` : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={opp.status} />
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {opp.expected_close_date
+                        ? new Date(opp.expected_close_date).toLocaleDateString()
+                        : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {new Date(opp.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3">
+                      {target ? (
+                        <Link
+                          href={target.href}
+                          className="flex items-center gap-0.5 text-xs font-medium text-blue-600 hover:text-blue-800"
+                        >
+                          {target.label} <ArrowRight className="h-3 w-3" />
+                        </Link>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No linked record</span>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

@@ -3,9 +3,15 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import * as companyService from '@/modules/crm/services/company.service'
 import * as contactService from '@/modules/crm/services/contact.service'
+import * as companyScoreRepo from '@/modules/intelligence/repositories/company-score.repo'
+import * as recommendationRepo from '@/modules/intelligence/repositories/recommendation.repo'
+import * as companyDocService from '@/modules/artifacts/services/company-document.service'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, Globe, Phone } from 'lucide-react'
+import { Users, Globe, Phone, FileText, ExternalLink } from 'lucide-react'
+import { ScoreCompanyButton } from './ScoreCompanyButton'
+import { GenerateRecommendationButton } from './GenerateRecommendationButton'
+import { DOCUMENT_TYPE_LABELS, DOCUMENT_SOURCE_LABELS } from '@/modules/artifacts/types'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string; id: string }>
@@ -16,9 +22,12 @@ export default async function CompanyDetailPage({ params }: PageProps) {
   const supabase = await createSupabaseServerClient()
   const ctx = await buildRequestContext(supabase)
 
-  const [company, contacts] = await Promise.all([
+  const [company, contacts, currentScore, currentRec, documents] = await Promise.all([
     companyService.getCompany(ctx, id).catch(() => null),
     contactService.listContacts(ctx, { companyId: id, limit: 20 }).catch(() => []),
+    companyScoreRepo.getCurrentCompanyScore(id, ctx.tenantId, 'overall').catch(() => null),
+    recommendationRepo.getLatestCompanyRecommendation(id, ctx.tenantId).catch(() => null),
+    companyDocService.listDocumentsForCompany(id, ctx.tenantId, { limit: 10 }).catch(() => []),
   ])
 
   if (!company) notFound()
@@ -109,6 +118,106 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Intelligence: Company Score + Recommendation */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Company Score</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScoreCompanyButton
+              companyId={id}
+              currentScore={currentScore?.score ?? null}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Next Best Action</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <GenerateRecommendationButton
+              companyId={id}
+              currentTitle={currentRec?.title ?? null}
+              currentType={currentRec?.recommendation_type ?? null}
+              currentPriority={currentRec?.priority ?? null}
+              currentConfidence={currentRec?.confidence ?? null}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Document Vault */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm">Documents</CardTitle>
+            <span className="text-xs text-muted-foreground">{documents.length} file{documents.length !== 1 ? 's' : ''}</span>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {documents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No documents linked to this company yet.</p>
+          ) : (
+            <div className="divide-y">
+              {documents.map((doc) => (
+                <div key={doc.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                  {/* Icon */}
+                  <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center shrink-0">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate" title={doc.name}>{doc.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className="text-xs text-muted-foreground">
+                        {DOCUMENT_TYPE_LABELS[doc.artifact_type] ?? doc.artifact_type}
+                      </span>
+                      <span className="text-xs text-muted-foreground">·</span>
+                      <span className="text-xs text-muted-foreground">
+                        {DOCUMENT_SOURCE_LABELS[doc.source] ?? doc.source}
+                      </span>
+                      {doc.file_size_bytes && (
+                        <>
+                          <span className="text-xs text-muted-foreground">·</span>
+                          <span className="text-xs text-muted-foreground">
+                            {companyDocService.formatFileSize(doc.file_size_bytes)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {new Date(doc.created_at).toLocaleDateString(undefined, {
+                        month: 'short', day: 'numeric', year: 'numeric',
+                      })}
+                    </p>
+                  </div>
+
+                  {/* Status + Open */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant={doc.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                      {doc.status}
+                    </Badge>
+                    {doc.signedUrl && (
+                      <a
+                        href={doc.signedUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        Open <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

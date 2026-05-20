@@ -2,9 +2,9 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import * as companyService from '@/modules/crm/services/company.service'
 import { Badge } from '@/components/ui/badge'
-import { buttonVariants } from '@/components/ui/button'
+import { Building2 } from 'lucide-react'
 import Link from 'next/link'
-import { Plus, Building2 } from 'lucide-react'
+import { AddCompanyDialog } from './AddCompanyDialog'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -28,9 +28,7 @@ export default async function CompaniesPage({ params, searchParams }: PageProps)
           <h1 className="text-2xl font-bold">Companies</h1>
           <p className="text-muted-foreground text-sm">{companies.length} records</p>
         </div>
-        <Link href={`/${workspaceSlug}/companies/new`} className={buttonVariants({ size: 'sm' })}>
-          <Plus className="h-4 w-4 mr-1" /> Add Company
-        </Link>
+        <AddCompanyDialog />
       </div>
 
       {companies.length === 0 ? (

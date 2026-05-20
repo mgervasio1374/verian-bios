@@ -3,10 +3,10 @@ import { buildRequestContext } from '@/lib/auth/context'
 import * as leadService from '@/modules/crm/services/lead.service'
 import { getPipelineStages } from '@/lib/config/resolve'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Zap } from 'lucide-react'
+import { Zap } from 'lucide-react'
 import Link from 'next/link'
+import { AddLeadDialog } from './AddLeadDialog'
 import type { Database } from '@/types/database'
 
 interface PageProps {
@@ -34,9 +34,7 @@ export default async function LeadsPage({ params }: PageProps) {
           <h1 className="text-2xl font-bold">Leads</h1>
           <p className="text-muted-foreground text-sm">{totalLeads} open leads</p>
         </div>
-        <Button size="sm">
-          <Plus className="h-4 w-4 mr-1" /> Add Lead
-        </Button>
+        <AddLeadDialog />
       </div>
 
       {totalLeads === 0 ? (

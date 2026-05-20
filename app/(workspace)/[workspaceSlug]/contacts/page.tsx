@@ -2,9 +2,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import * as contactService from '@/modules/crm/services/contact.service'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Plus, Users } from 'lucide-react'
-import Link from 'next/link'
+import { Users } from 'lucide-react'
+import { AddContactDialog } from './AddContactDialog'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -26,9 +25,7 @@ export default async function ContactsPage({ params, searchParams }: PageProps) 
           <h1 className="text-2xl font-bold">Contacts</h1>
           <p className="text-muted-foreground text-sm">{contacts.length} records</p>
         </div>
-        <Button size="sm">
-          <Plus className="h-4 w-4 mr-1" /> Add Contact
-        </Button>
+        <AddContactDialog />
       </div>
 
       {contacts.length === 0 ? (
