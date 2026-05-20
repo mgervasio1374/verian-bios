@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import * as strategySvc from '@/modules/messaging/strategy/message-strategy.service'
 import * as copySvc from '@/modules/messaging/copywriting/copywriting-agent.service'
+import * as qraSvc from '@/modules/messaging/quality-review/quality-review-agent.service'
 import { StrategyReviewPanel } from './StrategyReviewPanel'
 import { GeneratedVersionsPanel } from './GeneratedVersionsPanel'
 
@@ -62,6 +63,10 @@ export default async function MessageWorkspacePage({ params }: PageProps) {
   const generateGate = activeStrategy
     ? await copySvc.canGenerateMessageVersions(activeStrategy.id, ctx.tenantId).catch(() => ({ allowed: false, reason: 'Error checking generation status.' }))
     : { allowed: false, reason: 'No active strategy — generate a strategy first.' }
+
+  const qualityReviews = activeStrategy
+    ? await qraSvc.listQualityReviewsForStrategy(activeStrategy.id, ctx.tenantId).catch(() => [])
+    : []
 
   const contactName = contact
     ? [contact.first_name, contact.last_name].filter(Boolean).join(' ') || null
@@ -126,6 +131,7 @@ export default async function MessageWorkspacePage({ params }: PageProps) {
             workspaceSlug={workspaceSlug}
             canGenerate={generateGate.allowed}
             blockedReason={generateGate.allowed ? null : (generateGate.reason ?? null)}
+            qualityReviews={qualityReviews}
           />
 
           {/* History */}

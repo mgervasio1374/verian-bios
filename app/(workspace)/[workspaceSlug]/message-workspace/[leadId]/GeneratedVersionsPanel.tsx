@@ -12,23 +12,152 @@ import {
   Loader2,
   AlertTriangle,
   Shield,
+  Star,
+  BarChart2,
+  Flag,
 } from 'lucide-react'
 import {
   generateMessageVersionsAction,
   selectMessageVersionAction,
   rejectMessageVersionAction,
 } from '@/modules/messaging/actions/copywriting-agent.actions'
+import { runQualityReviewAction } from '@/modules/messaging/actions/quality-review-agent.actions'
 import type { MessageVersion } from '@/modules/messaging/copywriting/copywriting-agent.types'
+import type { QualityReview } from '@/modules/messaging/quality-review/quality-review-agent.types'
 
 // ---- Props ----
 
 interface GeneratedVersionsPanelProps {
-  versions:      MessageVersion[]
-  strategyId:    string | null
-  leadId:        string
-  workspaceSlug: string
-  canGenerate:   boolean
-  blockedReason: string | null
+  versions:           MessageVersion[]
+  strategyId:         string | null
+  leadId:             string
+  workspaceSlug:      string
+  canGenerate:        boolean
+  blockedReason:      string | null
+  qualityReviews?:    QualityReview[]
+  onRunQualityReview?:() => void
+}
+
+// ---- Quality score badge ----
+
+function QualityScoreBadge({ score, band }: { score: number; band: string }) {
+  const colorMap: Record<string, string> = {
+    excellent:    'bg-green-100 text-green-800 border-green-200',
+    strong:       'bg-blue-100 text-blue-800 border-blue-200',
+    usable:       'bg-amber-100 text-amber-800 border-amber-200',
+    needs_review: 'bg-orange-100 text-orange-800 border-orange-200',
+    do_not_use:   'bg-red-100 text-red-800 border-red-200',
+  }
+  const cls = colorMap[band] ?? colorMap.needs_review
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${cls}`}>
+      <BarChart2 className="h-2.5 w-2.5" />
+      {score} · {band.replace(/_/g, ' ')}
+    </span>
+  )
+}
+
+// ---- Recommended badge ----
+
+function RecommendedBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border bg-green-50 border-green-300 px-2 py-0.5 text-[10px] font-semibold text-green-800">
+      <Star className="h-2.5 w-2.5 fill-green-600 text-green-600" />
+      Recommended
+    </span>
+  )
+}
+
+// ---- Quality review panel ----
+
+function QualityReviewPanel({ review }: { review: QualityReview }) {
+  const [showFlags,     setShowFlags]     = useState(false)
+  const [showStrengths, setShowStrengths] = useState(false)
+  const [showWeaknesses,setShowWeaknesses]= useState(false)
+
+  return (
+    <div className="mt-3 pt-3 border-t border-dashed border-muted space-y-2">
+      {/* Score + recommendation badges */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <QualityScoreBadge score={review.compositeScore} band={review.scoreBand} />
+        {review.isRecommended && <RecommendedBadge />}
+        <span className="text-[10px] text-muted-foreground">Rank #{review.rankPosition}</span>
+      </div>
+
+      {/* Human review notes */}
+      {review.humanReviewNotes && (
+        <p className="text-[10px] text-muted-foreground bg-muted/20 rounded p-2">
+          {review.humanReviewNotes}
+        </p>
+      )}
+
+      {/* Risk flags (expandable) */}
+      {review.riskFlags.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowFlags(v => !v)}
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+          >
+            <Flag className="h-2.5 w-2.5" />
+            {showFlags ? <ChevronUp className="h-2.5 w-2.5" /> : <ChevronDown className="h-2.5 w-2.5" />}
+            {review.riskFlags.length} risk flag{review.riskFlags.length !== 1 ? 's' : ''}
+          </button>
+          {showFlags && (
+            <ul className="mt-1 space-y-1 pl-2">
+              {review.riskFlags.map((f, i) => (
+                <li key={i} className="flex items-start gap-1.5 text-[10px]">
+                  <span className={`font-mono font-semibold ${f.severity === 'critical' ? 'text-red-700' : f.severity === 'high' ? 'text-orange-700' : f.severity === 'medium' ? 'text-amber-700' : 'text-muted-foreground'}`}>
+                    {f.code}
+                  </span>
+                  <span className="text-muted-foreground">{f.message}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Strengths (collapsible) */}
+      {review.strengths.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowStrengths(v => !v)}
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+          >
+            {showStrengths ? <ChevronUp className="h-2.5 w-2.5" /> : <ChevronDown className="h-2.5 w-2.5" />}
+            {review.strengths.length} strength{review.strengths.length !== 1 ? 's' : ''}
+          </button>
+          {showStrengths && (
+            <ul className="mt-1 space-y-0.5 pl-2">
+              {review.strengths.map((s, i) => (
+                <li key={i} className="text-[10px] text-green-700">+ {s}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Weaknesses (collapsible) */}
+      {review.weaknesses.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowWeaknesses(v => !v)}
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+          >
+            {showWeaknesses ? <ChevronUp className="h-2.5 w-2.5" /> : <ChevronDown className="h-2.5 w-2.5" />}
+            {review.weaknesses.length} weakness{review.weaknesses.length !== 1 ? 'es' : ''}
+          </button>
+          {showWeaknesses && (
+            <ul className="mt-1 space-y-0.5 pl-2">
+              {review.weaknesses.map((w, i) => (
+                <li key={i} className="text-[10px] text-amber-700">— {w}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ---- Approval status badge ----
@@ -66,11 +195,13 @@ function VersionCard({
   leadId,
   workspaceSlug,
   onStatusChange,
+  qualityReview,
 }: {
   version:        MessageVersion
   leadId:         string
   workspaceSlug:  string
   onStatusChange: () => void
+  qualityReview?: QualityReview
 }) {
   const [showBody,    setShowBody]    = useState(false)
   const [showNotes,   setShowNotes]   = useState(false)
@@ -194,6 +325,9 @@ function VersionCard({
         </div>
       )}
 
+      {/* Quality Review Panel */}
+      {qualityReview && <QualityReviewPanel review={qualityReview} />}
+
       {/* Error */}
       {error && (
         <div className="flex items-start gap-1.5 text-xs text-red-700 bg-red-50 border border-red-200 rounded p-2">
@@ -251,12 +385,40 @@ export function GeneratedVersionsPanel({
   workspaceSlug,
   canGenerate,
   blockedReason,
+  qualityReviews = [],
+  onRunQualityReview,
 }: GeneratedVersionsPanelProps) {
   const router = useRouter()
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [error,        setError]        = useState<string | null>(null)
-  const [, startTransition]             = useTransition()
+  const [isGenerating,      setIsGenerating]      = useState(false)
+  const [isRunningQR,       setIsRunningQR]        = useState(false)
+  const [error,             setError]              = useState<string | null>(null)
+  const [qrError,           setQrError]            = useState<string | null>(null)
+  const [, startTransition]                        = useTransition()
   const activeVersions = versions.filter(v => v.approvalStatus !== 'superseded')
+
+  // Build a map of versionId → QualityReview for quick lookup
+  const reviewsByVersionId = new Map<string, QualityReview>()
+  for (const review of qualityReviews) {
+    if (!review.supersededAt) {
+      reviewsByVersionId.set(review.versionId, review)
+    }
+  }
+
+  function handleRunQualityReview() {
+    if (!strategyId) return
+    setQrError(null)
+    setIsRunningQR(true)
+    startTransition(async () => {
+      const result = await runQualityReviewAction(strategyId, leadId, workspaceSlug)
+      setIsRunningQR(false)
+      if (!result.success) {
+        setQrError(result.error ?? 'Quality review failed.')
+      } else {
+        onRunQualityReview?.()
+        router.refresh()
+      }
+    })
+  }
 
   function handleGenerate(forceRegenerate = false) {
     if (!strategyId) return
@@ -287,24 +449,43 @@ export function GeneratedVersionsPanel({
         </p>
         <div className="flex items-center gap-2">
           {activeVersions.length > 0 && (
-            <button
-              onClick={() => handleGenerate(true)}
-              disabled={isGenerating || !canGenerate}
-              className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title={!canGenerate ? (blockedReason ?? 'Cannot regenerate') : 'Regenerate versions'}
-            >
-              {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-              Regenerate
-            </button>
+            <>
+              <button
+                onClick={handleRunQualityReview}
+                disabled={isRunningQR || !strategyId || activeVersions.length === 0}
+                className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Run quality review on all versions"
+              >
+                {isRunningQR ? <Loader2 className="h-3 w-3 animate-spin" /> : <BarChart2 className="h-3 w-3" />}
+                {isRunningQR ? 'Reviewing…' : 'Quality Review'}
+              </button>
+              <button
+                onClick={() => handleGenerate(true)}
+                disabled={isGenerating || !canGenerate}
+                className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title={!canGenerate ? (blockedReason ?? 'Cannot regenerate') : 'Regenerate versions'}
+              >
+                {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                Regenerate
+              </button>
+            </>
           )}
         </div>
       </div>
 
-      {/* Error */}
+      {/* Generation error */}
       {error && (
         <div className="flex items-start gap-1.5 text-xs text-red-700 bg-red-50 border border-red-200 rounded p-2">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
           {error}
+        </div>
+      )}
+
+      {/* Quality review error */}
+      {qrError && (
+        <div className="flex items-start gap-1.5 text-xs text-red-700 bg-red-50 border border-red-200 rounded p-2">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          Quality review failed: {qrError}
         </div>
       )}
 
@@ -344,6 +525,7 @@ export function GeneratedVersionsPanel({
               leadId={leadId}
               workspaceSlug={workspaceSlug}
               onStatusChange={handleStatusChange}
+              qualityReview={reviewsByVersionId.get(v.id)}
             />
           ))}
         </div>
