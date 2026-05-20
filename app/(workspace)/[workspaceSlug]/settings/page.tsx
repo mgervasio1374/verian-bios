@@ -1,16 +1,17 @@
+import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Settings } from 'lucide-react'
+import { Settings, Bot, ArrowRight, ShieldAlert } from 'lucide-react'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
 }
 
 export default async function SettingsPage({ params }: PageProps) {
-  await params
+  const { workspaceSlug } = await params
   const supabase = await createSupabaseServerClient()
   const ctx = await buildRequestContext(supabase)
 
@@ -91,6 +92,42 @@ export default async function SettingsPage({ params }: PageProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* System Controls */}
+      <Link href={`/${workspaceSlug}/settings/system-controls`}>
+        <div className="rounded-lg border p-4 hover:bg-accent/40 transition-colors cursor-pointer">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <ShieldAlert className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-semibold">System Controls</p>
+                <p className="text-xs text-muted-foreground">
+                  Manage agent kill-switches, enable/disable controls, and runtime behavior gates.
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </div>
+      </Link>
+
+      {/* Agent Monitor */}
+      <Link href={`/${workspaceSlug}/settings/agent-monitor`}>
+        <div className="rounded-lg border p-4 hover:bg-accent/40 transition-colors cursor-pointer">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Bot className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-semibold">Agent Monitor</p>
+                <p className="text-xs text-muted-foreground">
+                  Inspect agent runs, decision traces, guardrails, and execution history.
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </div>
+      </Link>
 
       <div className="rounded-lg border border-dashed p-4 text-center">
         <Settings className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
