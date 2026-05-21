@@ -19,6 +19,8 @@ The following documents have been approved and locked. They serve as the specifi
 | Phase 3B Quality Review Agent — Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3b-quality-review-agent-design-test-cases.md`) |
 | Phase 3B Quality Review Agent — Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b-quality-review-agent-implementation-plan.md`) |
 | Phase 3B Quality Review Agent Foundation — Code Implementation v1.0 | Locked (`435b890`, `96f32f8`) |
+| Phase 3B Human Review / Approval Bridge — Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3b-human-review-approval-bridge-design-test-cases.md`) |
+| Phase 3B Human Review / Approval Bridge — Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b-human-review-approval-bridge-implementation-plan.md`) |
 
 ## Locked Architectural Decisions
 
@@ -77,3 +79,27 @@ The Quality Review Agent may mark one version per strategy run as `is_recommende
 ### QRA v1 Is Deterministic
 
 The Quality Review Agent uses rule-based, pure-function scoring in v1. No external LLM calls. No randomness. Future LLM-assisted scoring may be introduced only under a separately approved design.
+
+### Human Review / Approval Bridge Is Not an AI Agent
+
+The Human Review / Approval Bridge is a workflow and state-management layer only. It does not reason, generate, score, or evaluate. It surfaces agent outputs and enforces gate conditions so that a human reviewer can make an explicit decision.
+
+### HRB Stops at `approved` message_version in v1 (Option A)
+
+The bridge marks a `message_version` as `approved` and stops. It does not create `email_drafts`, does not create `approval_requests`, and does not trigger sending. The `approved` state is the handoff point for a future Send / Email Draft Bridge.
+
+### HRB Enforces One-Approved-Per-Strategy Policy
+
+Only one non-superseded `message_version` per strategy may have `approval_status = approved` at a time. A second approval attempt is blocked with `HRB_018`. No replacement workflow exists in v1.
+
+### HRB Uses activity_events for Audit Trail in v1
+
+No new database table is created for the bridge in v1. All reviewer action audit records are written to the existing `activity_events` table. A dedicated review event table is deferred until the Learning Agent or advanced analytics requires it.
+
+### HRB Critical Risk Blocks Approval Unconditionally
+
+If a `quality_review` record contains a risk flag with `severity === 'critical'`, approval is blocked. No override path exists in v1. This decision may only be changed under a separately approved design.
+
+### Send / Email Draft Bridge Is Future Work
+
+The bridge that converts an `approved` `message_version` into an `email_draft` or send event is not part of this phase. It requires its own design document and implementation plan.

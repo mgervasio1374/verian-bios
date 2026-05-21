@@ -6,7 +6,7 @@ These boundaries are active and must be preserved by all future Claude sessions 
 
 | Guardrail | Reason |
 |-----------|--------|
-| Do not begin Human Review / Approval Bridge code implementation before design is approved | Design must be produced and user-approved before any bridge code is written |
+| Do not begin Human Review / Approval Bridge code implementation before the user explicitly issues a code implementation prompt | Design and implementation plan are locked, but coding requires a separate explicit approval |
 | Do not build the Learning Agent | Not scoped — future work only |
 | Do not add external LLM calls to the Copywriting Agent v1 | Deterministic generation is a locked decision; LLM adapter is planned for a future version |
 | Do not wire email sending | Sending is a separate downstream step not owned by any v1 agent |
@@ -21,6 +21,25 @@ These boundaries are active and must be preserved by all future Claude sessions 
 | Do not create shallow synonym rewrites | Version differentiation must be substantive across 8 measured dimensions |
 | Do not skip compliance validation | All versions must pass compliance before being stored |
 | Do not skip the differentiation validator | Pairwise differentiation is required — minimum 2 dimensions must differ between any two versions |
+
+## Human Review / Approval Bridge Hard Stops
+
+These apply once HRB code implementation begins and must remain in force throughout.
+
+| Guardrail | Reason |
+|-----------|--------|
+| HRB must not send email | Sending is a future bridge; not in v1 scope |
+| HRB must not create `email_drafts` | Deferred to Send / Email Draft Bridge |
+| HRB must not create `approval_requests` | Not in v1 scope |
+| HRB must not write or rewrite copy | Bridge is a state-management layer only |
+| HRB must not modify `body_text` or `subject_line` | Original generated copy is immutable |
+| HRB must not modify QRA scores or rankings | QRA records are read-only from bridge |
+| HRB must not modify `message_strategy` fields | Strategy is read-only from bridge |
+| HRB must not call external LLMs | No AI in the bridge |
+| HRB must not trigger Learning Agent | Future work |
+| HRB critical risk block is unconditional | No override path for critical risk flags in v1 |
+| HRB must enforce one-approved-per-strategy | HRB_018 blocks second approval; no replacement workflow in v1 |
+| HRB must stop at `approved` message_version | No email_draft, no send; handoff is `approved` status only |
 
 ## Quality Review Agent Hard Stops
 
@@ -46,7 +65,7 @@ These remain in force now that QRA is implemented. The QRA is evaluation-only an
 | Do not write code before producing a recovery summary | Claude must confirm current state before coding after compaction |
 | Do not commit without explicit user approval | User controls all git operations |
 | Do not run `git add` or `git commit` without being asked | Staging and committing are always user-directed |
-| Do not start a new phase without approved design | Every phase must go through design → approval → implementation; Human Review / Approval Bridge is next |
+| Do not start a new phase without approved design | Every phase must go through design → approval → implementation plan → approval → code; Send / Email Draft Bridge is next after HRB |
 | Do not modify Message Strategy Agent files unless explicitly scoped and reported | The agent is locked; changes require user approval and must be reported |
 
 ## Architecture Guardrails

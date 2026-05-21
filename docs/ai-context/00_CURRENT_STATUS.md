@@ -11,27 +11,30 @@
 | Phase | Status |
 |-------|--------|
 | Phase 3A — Core Intelligence Infrastructure | Locked. Do not modify. |
-| Phase 3B — Revenue Learning Engine | QRA Foundation complete. Next: Human Review / Approval Bridge — Design. |
+| Phase 3B — Revenue Learning Engine | QRA Foundation complete. HRB design and plan locked. Next: HRB Code Implementation. |
 | Phase 4 — Statement Workflow | Complete. Locked. |
 
 ## Phase 3B Foundation Status
 
-All three Phase 3B foundation agents are implemented, committed, tagged, and QA-verified.
+All three Phase 3B foundation agents are implemented, committed, tagged, and QA-verified. The Human Review / Approval Bridge design and implementation plan are both locked and ready for code implementation.
 
-| Agent | Status |
-|-------|--------|
+| Deliverable | Status |
+|-------------|--------|
 | Message Strategy Agent Foundation | Complete |
 | Copywriting Agent Foundation | Complete |
-| Quality Review Agent — Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3b-quality-review-agent-design-test-cases.md`) |
-| Quality Review Agent — Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b-quality-review-agent-implementation-plan.md`) |
-| Quality Review Agent — Code Implementation v1.0 | **Complete** — committed and tagged |
-| Quality Review Agent — UI Integration v1.1 | **Complete** — committed and tagged |
-| Human Review / Approval Bridge | Not started — design phase is next |
+| Quality Review Agent — Design & Test Cases v1.0 | Locked |
+| Quality Review Agent — Implementation Plan v1.0 | Locked |
+| Quality Review Agent — Code Implementation v1.0 | Complete — committed and tagged |
+| Quality Review Agent — UI Integration v1.1 | Complete — committed and tagged |
+| Human Review / Approval Bridge — Design & Test Cases v1.0 | **Locked** (`docs/roadmap/phase-3b-human-review-approval-bridge-design-test-cases.md`) |
+| Human Review / Approval Bridge — Implementation Plan v1.0 | **Locked** (`docs/roadmap/phase-3b-human-review-approval-bridge-implementation-plan.md`) |
+| Human Review / Approval Bridge — Code Implementation | **Not started — next step** |
+| Send / Email Draft Bridge | Not started — future work |
 | Learning Agent | Not started — future work |
 
 ## QA Status (Last Verified)
 
-Verified after QRA Foundation v1.1 (UI integration) was committed. This is the current baseline.
+Verified after QRA Foundation v1.1 (UI integration) was committed. This baseline remains current — no application code has been added since.
 
 ```
 npx vitest run      → PASSED
@@ -43,6 +46,8 @@ ESLint (UI files)   → PASSED
   Copywriting Agent tests:       100 passed
   Quality Review Agent tests:    126 passed
 ```
+
+After HRB Code Implementation is complete, the test count is expected to increase by at least 35 (HRB fixture-based tests).
 
 ## Active Routes
 
@@ -59,8 +64,8 @@ Clean. No untracked or modified files outside of committed changes.
 
 ## HEAD Commit
 
-`96f32f8` — Phase 3B: add QRA UI integration to message workspace
+`4493de5` — Docs: add Phase 3B Human Review Approval Bridge implementation plan
 
 ## Last Updated
 
-2026-05-20 — after Quality Review Agent Foundation v1.1 (backend + UI) committed and tagged.
+2026-05-21 — after Human Review / Approval Bridge design and implementation plan documents were committed and locked.

@@ -2,61 +2,107 @@
 
 ## Completed — Quality Review Agent Foundation v1.1
 
-The Quality Review Agent is fully implemented, committed, and QA-verified. This phase is closed.
+Closed. All deliverables committed and tagged. See `06_GIT_MILESTONES.md` for details.
+
+## Completed — Human Review / Approval Bridge Planning
+
+Both planning documents are locked and committed.
 
 | Deliverable | Status |
 |-------------|--------|
-| Design & Test Cases v1.0 | Locked |
-| Implementation Plan v1.0 | Locked |
-| Backend (service, scoring, risk flags, composite, ranking, reasoning, validation, message type rules, repo, actions, migration, 35 fixtures, 126 tests) | Complete — `435b890` |
-| UI integration (quality score display, recommended badge, risk flags, strengths/weaknesses, "Quality Review" button) | Complete — `96f32f8` |
-| QA: 267/267 tests, build, TypeScript, lint | PASSED |
-| Tags | `phase-3b-quality-review-agent-v1`, `phase-3b-quality-review-agent-v1.1` |
+| Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3b-human-review-approval-bridge-design-test-cases.md`) |
+| Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b-human-review-approval-bridge-implementation-plan.md`) |
+| Code implementation | **Not started — next step** |
 
 ## Approved Next Phase
 
-**Phase 3B Human Review / Approval Bridge — Design & Test Cases**
+**Phase 3B Human Review / Approval Bridge — Code Implementation**
 
-Status: **Not started.** Design must be produced and approved before any code is written.
+Status: **Not started.** Both prerequisite documents are locked. Code implementation requires an explicit user prompt to begin.
 
-## What the Approval Bridge Should Accomplish
+## Locked Planning Documents
 
-The Approval Bridge connects the QRA output (ranked, scored `message_version` candidates) into the existing human workflow so a human reviewer can select a version and approve it for sending. Key requirements:
+| Document | Path | Status |
+|----------|------|--------|
+| Design & Test Cases v1.0 | `docs/roadmap/phase-3b-human-review-approval-bridge-design-test-cases.md` | Locked |
+| Implementation Plan v1.0 | `docs/roadmap/phase-3b-human-review-approval-bridge-implementation-plan.md` | Locked |
 
-- A human reviewer sees the QRA-ranked versions (score, band, recommended badge, risk flags) in the UI.
-- The reviewer can approve a specific version. Approval does not send — it only marks the version as approved.
-- Sending remains gated behind a separate, explicit human action.
-- The bridge should surface `is_recommended` from the quality review to guide the reviewer, but the reviewer is not bound by it.
-- No new agent is built. This is a UI and data-layer bridge, not a new AI agent.
-- The existing `approval_status` field on `message_versions` is the state machine to extend (`pending → selected → approved`).
-- No `email_drafts` or `approval_requests` tables exist or need to be created in v1 scope.
+The implementation must follow the locked implementation plan exactly. Do not make architectural decisions independently.
 
-## What the Design Must Specify
+## What the Code Implementation Must Build (in sequence)
 
-Before any code is written, the Design & Test Cases document must define:
+Follow the 15-step sequence from the Implementation Plan (Section 22):
 
-1. **UI changes** — what the reviewer sees, what actions are available, what state transitions are triggered
-2. **Data changes** — any new fields, status values, or tables required (minimal footprint preferred)
-3. **Service changes** — what functions are added or extended (QRA service is read-only; message-version service may gain an `approveVersion` action)
-4. **Gate conditions** — what blocks approval (e.g., version already rejected, strategy superseded)
-5. **Test cases** — covering approval happy path, rejection, guard conditions, and state machine correctness
+1. **Inspect** — Read existing `message-version.repo.ts`, `copywriting-agent.actions.ts`, `GeneratedVersionsPanel.tsx`, `modules/intelligence/types.agent.ts`
+2. **`human-review.types.ts`** — HRB error codes (HRB_001–HRB_018), action types, rejection reasons, all interfaces
+3. **`human-review.validation.ts`** — Pure functions: `validateApprovalEligibility`, `validateSelectEligibility`, `validateRejectEligibility`, risk flag helpers
+4. **`human-review.audit.ts`** — Pure event payload builders for all 6 action types
+5. **Extend `message-version.repo.ts`** — 7 new functions: `updateMessageVersionApprovalStatus`, `setMessageVersionRejectionReason`, `getMessageVersionWithStrategy`, `getSelectedVersionForStrategy`, `getApprovedVersionForStrategy`, `deselectOtherVersionsForStrategy`, `getNonSupersededVersionsForStrategy`
+6. **`human-review.repo.ts`** — Audit activity reads from `activity_events` (optional if v1 UI does not surface review history)
+7. **`human-review.service.ts`** — 10 service functions: select, reject, approve, validate eligibility, request regeneration, record event, get events, get selected/approved, deselect prior
+8. **Extend `modules/intelligence/types.agent.ts`** — Add 6 HRB activity event type constants (additive only)
+9. **`human-review.actions.ts`** — 6 server actions: select, reject, approve, acknowledgeRiskAndApprove, requestRegeneration, returnToStrategy
+10. **35 test fixtures** — `tests/fixtures/human-review-bridge/TC-HRB-001.json` through `TC-HRB-035.json`
+11. **`tests/human-review-bridge.test.ts`** — Validation unit tests, state machine tests, audit builder tests, fixture-based integration tests
+12. **Extend `GeneratedVersionsPanel.tsx`** — Full bridge UI: Approve for Next Step button, RejectModal, OverrideReasonModal, RiskAcknowledgementModal, status indicators, critical risk banner, approved/selected/rejected visual states, all-rejected prompt
+13. **QA pass** — `npx vitest run` (≥ 302 tests), `npx next build`, ESLint
+14. **Guardrail correction pass** — Verify no email_draft, no approval_request, no send, no QRA modification, no strategy modification, no body/subject writes
+15. **Implementation summary** — Report files created, test count, build status. Stop before Send Bridge.
 
-## What the Design Must NOT Do
+## Key HRB v1 Decisions (Locked)
 
-- Do not wire email sending in this phase
+| Decision | Value |
+|----------|-------|
+| Bridge stops at | `approved` message_version — no email_draft, no send |
+| Audit mechanism | `activity_events` table (existing); no new DB table in v1 |
+| One selected per strategy | Enforced — selecting V-B reverts V-A to pending |
+| One approved per strategy | Enforced — HRB_018 blocks second approval |
+| Critical risk policy | Unconditionally blocks approval; no override in v1 |
+| High risk policy | Requires `riskAcknowledged = true` |
+| Low score policy | `composite_score < 70` requires `overrideReason` (non-empty string) |
+| QRA recommendation | Advisory display only; does not gate approval |
+| Error codes | HRB_001 through HRB_018 |
+| Send / Email Draft Bridge | Future work — separate design required |
+
+## What the Code Implementation Must NOT Do
+
+- Do not send email
 - Do not create `email_drafts`
-- Do not build a new AI agent
-- Do not modify QRA scoring or recommendations
-- Do not build the Learning Agent
-- Do not expose any endpoint that sends an email without explicit human action
+- Do not create `approval_requests`
+- Do not modify `body_text` or `subject_line`
+- Do not modify QRA scores or rankings
+- Do not modify `message_strategy` fields
+- Do not call external LLMs
+- Do not trigger Learning Agent
+- Do not create a new DB table or migration
+- Do not begin Send / Email Draft Bridge work
+- Do not stop at fewer than 302 total tests (267 existing + ≥ 35 HRB)
+
+## QA Expectations After Implementation
+
+| Metric | Expected |
+|--------|---------|
+| Total tests | ≥ 302 (267 existing + ≥ 35 HRB) |
+| `npx vitest run` | PASSED |
+| `npx next build` | PASSED |
+| TypeScript | PASSED |
+| ESLint (modified UI files) | 0 errors, 0 warnings |
+| Existing 267 tests | All still passing (no regressions) |
+
+## After Human Review / Approval Bridge
+
+Once the HRB is implemented, committed, and QA-verified:
+
+- Send / Email Draft Bridge can be designed (separate design document required)
+- Body HTML generation can be scoped as a separate sub-task
+- Learning Agent design can begin (separate design session required)
 
 ## Process Reminder
 
 Standard sequence applies:
 
-1. Design & Test Cases — produce document, get user approval
-2. Implementation Plan — produce document, get user approval
-3. Code implementation — follow locked plan
-4. QA: `npx vitest run` + `npx next build`
-5. Commit, tag
-6. Update `docs/ai-context/` files
+1. Implementation Plan already locked — proceed to code implementation
+2. Code implementation — follow locked plan, with guardrail correction pass before final QA
+3. QA: `npx vitest run` + `npx next build`
+4. Commit, tag as `phase-3b-human-review-bridge-v1`
+5. Update `docs/ai-context/` files

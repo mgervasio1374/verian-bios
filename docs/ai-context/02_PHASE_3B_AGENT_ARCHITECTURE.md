@@ -31,8 +31,9 @@ Phase 3B is the Verian Revenue Learning Engine. It is a multi-agent pipeline tha
 │  └──────────┬───────────┘                                           │
 │             │                                                       │
 │             ▼                                                       │
-│  ┌──────────────────────┐                                           │
-│  │  Human Review        │  Selects, edits, approves, rejects       │
+│  ┌──────────────────────┐  (Design + plan locked; code next)       │
+│  │  Human Review /      │  Selects, rejects, approves versions     │
+│  │  Approval Bridge     │  Produces: approved message_version      │
 │  └──────────┬───────────┘                                           │
 │             │                                                       │
 │             ▼                                                       │
@@ -75,6 +76,18 @@ Phase 3B is the Verian Revenue Learning Engine. It is a multi-agent pipeline tha
 - **Does not:** Write copy, modify versions, approve, send, create email_drafts, create approval_requests, call external LLMs in v1
 - **Recommendation is advisory:** `is_recommended` marks the strongest version but does not approve or send it
 
+### Human Review / Approval Bridge (Design and plan locked — code implementation is next)
+
+- **Status:** Design & Test Cases v1.0 locked. Implementation Plan v1.0 locked. Code implementation not yet started.
+- **Input:** `message_strategy` row, `message_version[]` rows, `quality_review[]` rows, reviewer identity, system controls
+- **Output:** Updated `approval_status` on `message_version` (`selected`, `rejected`, `approved`) + `activity_event` audit records
+- **Actions:** Select preferred version, reject version (with reason), approve version for next step, request regeneration, return to strategy
+- **Gate conditions:** 18 error codes (HRB_001–HRB_018); critical risk unconditionally blocks approval
+- **One-approved-per-strategy:** HRB_018 blocks second approval under same strategy
+- **Audit:** Activity events written per action; no new DB table in v1
+- **Does not:** Write copy, modify QRA scores, send email, create email_drafts, create approval_requests, call external LLMs
+- **Handoff:** `approved` message_version is the handoff state for the future Send / Email Draft Bridge
+
 ### Learning Agent (Future work)
 
 - **Input:** Send outcomes, response data, conversion data
@@ -88,6 +101,7 @@ lead
  └── message_strategy          (1 active per lead at a time)
       └── message_version[]    (2–4 candidates per strategy)
            └── quality_review  (1 per version, from Quality Review Agent — implemented)
+                └── approved message_version  (1 per strategy, from Human Review Bridge — not yet built)
 ```
 
 ## Key Design Principles
