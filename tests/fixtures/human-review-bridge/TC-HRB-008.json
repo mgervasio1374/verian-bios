@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "test_case_id": "TC-HRB-008",
+    "scenario_name": "approve_selected_version_strong_score",
+    "description": "Approve selected version, score=85, no critical/high risk flags — should succeed"
+  },
+  "input": {
+    "action": "approve",
+    "version": {
+      "id": "uuid-version-a",
+      "tenant_id": "uuid-tenant-1",
+      "strategy_id": "uuid-strategy-1",
+      "version_label": "A",
+      "subject_line": "Are you overpaying on processing fees?",
+      "body_text": "Hi there, I help businesses identify hidden savings in payment processing. Our analysis typically reveals 15-30% in recoverable fees. Would a quick 15-minute call make sense to explore what's possible for your business?",
+      "body_html": null,
+      "approval_status": "selected",
+      "reviewed_by": "uuid-user-1",
+      "reviewed_at": "2026-05-20T09:00:00Z",
+      "rejection_reason": null
+    },
+    "strategy": {
+      "id": "uuid-strategy-1",
+      "tenant_id": "uuid-tenant-1",
+      "lead_id": "uuid-lead-1",
+      "message_type": "cold_outreach",
+      "status": "approved",
+      "invalid_reasons": [],
+      "requires_human_review": false
+    },
+    "quality_review": {
+      "id": "uuid-qr-a",
+      "tenant_id": "uuid-tenant-1",
+      "version_id": "uuid-version-a",
+      "strategy_id": "uuid-strategy-1",
+      "composite_score": 85,
+      "score_band": "strong",
+      "is_recommended": true,
+      "risk_flags": [],
+      "superseded_at": null
+    },
+    "other_versions": [],
+    "existing_approved_version": null,
+    "user": {
+      "user_id": "uuid-user-1",
+      "tenant_id": "uuid-tenant-1"
+    },
+    "system_controls": {
+      "global_agent_pause": false
+    },
+    "options": {}
+  },
+  "expected": {
+    "success": true,
+    "new_approval_status": "approved",
+    "reviewed_by_set": true,
+    "reviewed_at_set": true,
+    "error_code": null,
+    "activity_event_type": "HRB_ACTION_APPROVED",
+    "no_email_draft_created": true,
+    "no_approval_request_created": true,
+    "no_send_triggered": true,
+    "notes": "Selected version approved when all gate conditions pass"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "meta": {
+    "test_case_id": "TC-HRB-004",
+    "scenario_name": "reject_selected_version",
+    "description": "Reviewer rejects a selected version — should succeed"
+  },
+  "input": {
+    "action": "reject",
+    "version": {
+      "id": "uuid-version-a",
+      "tenant_id": "uuid-tenant-1",
+      "strategy_id": "uuid-strategy-1",
+      "version_label": "A",
+      "subject_line": "Are you overpaying on processing fees?",
+      "body_text": "Hi there, I help businesses identify hidden savings in payment processing.",
+      "body_html": null,
+      "approval_status": "selected",
+      "reviewed_by": "uuid-user-1",
+      "reviewed_at": "2026-05-20T09:00:00Z",
+      "rejection_reason": null
+    },
+    "strategy": {
+      "id": "uuid-strategy-1",
+      "tenant_id": "uuid-tenant-1",
+      "lead_id": "uuid-lead-1",
+      "message_type": "cold_outreach",
+      "status": "approved",
+      "invalid_reasons": [],
+      "requires_human_review": false
+    },
+    "quality_review": null,
+    "other_versions": [],
+    "existing_approved_version": null,
+    "user": {
+      "user_id": "uuid-user-1",
+      "tenant_id": "uuid-tenant-1"
+    },
+    "system_controls": {
+      "global_agent_pause": false
+    },
+    "options": {
+      "rejection_reason": "too_generic"
+    }
+  },
+  "expected": {
+    "success": true,
+    "new_approval_status": "rejected",
+    "reviewed_by_set": true,
+    "reviewed_at_set": true,
+    "rejection_reason_set": "too_generic",
+    "error_code": null,
+    "activity_event_type": "HRB_ACTION_REJECTED",
+    "no_email_draft_created": true,
+    "no_approval_request_created": true,
+    "no_send_triggered": true,
+    "notes": "Selected version can be rejected"
+  }
+}

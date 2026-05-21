@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "test_case_id": "TC-HRB-012",
+    "scenario_name": "medium_risk_allows_approval",
+    "description": "Medium risk flag — approval allowed without acknowledgement required"
+  },
+  "input": {
+    "action": "approve",
+    "version": {
+      "id": "uuid-version-a",
+      "tenant_id": "uuid-tenant-1",
+      "strategy_id": "uuid-strategy-1",
+      "version_label": "A",
+      "subject_line": "Improving your payment processing costs",
+      "body_text": "Hi, many businesses in your space are reducing their processing costs. We help identify where savings exist. Would a quick chat be worthwhile?",
+      "body_html": null,
+      "approval_status": "pending",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "rejection_reason": null
+    },
+    "strategy": {
+      "id": "uuid-strategy-1",
+      "tenant_id": "uuid-tenant-1",
+      "lead_id": "uuid-lead-1",
+      "message_type": "cold_outreach",
+      "status": "approved",
+      "invalid_reasons": [],
+      "requires_human_review": false
+    },
+    "quality_review": {
+      "id": "uuid-qr-a",
+      "tenant_id": "uuid-tenant-1",
+      "version_id": "uuid-version-a",
+      "strategy_id": "uuid-strategy-1",
+      "composite_score": 75,
+      "score_band": "usable",
+      "is_recommended": false,
+      "risk_flags": [
+        {
+          "code": "RFL-016",
+          "severity": "medium",
+          "message": "CTA is somewhat vague"
+        }
+      ],
+      "superseded_at": null
+    },
+    "other_versions": [],
+    "existing_approved_version": null,
+    "user": {
+      "user_id": "uuid-user-1",
+      "tenant_id": "uuid-tenant-1"
+    },
+    "system_controls": {
+      "global_agent_pause": false
+    },
+    "options": {}
+  },
+  "expected": {
+    "success": true,
+    "new_approval_status": "approved",
+    "reviewed_by_set": true,
+    "reviewed_at_set": true,
+    "error_code": null,
+    "activity_event_type": "HRB_ACTION_APPROVED",
+    "no_email_draft_created": true,
+    "no_approval_request_created": true,
+    "no_send_triggered": true,
+    "notes": "Medium risk displays warning but does not block approval"
+  }
+}

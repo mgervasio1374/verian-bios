@@ -1,0 +1,91 @@
+{
+  "meta": {
+    "test_case_id": "TC-HRB-026",
+    "scenario_name": "regeneration_preserves_approved_and_rejected",
+    "description": "Regeneration supersedes pending versions but preserves approved and rejected versions"
+  },
+  "input": {
+    "action": "regenerate",
+    "version": {
+      "id": "uuid-version-c",
+      "tenant_id": "uuid-tenant-1",
+      "strategy_id": "uuid-strategy-1",
+      "version_label": "C",
+      "subject_line": "Pending version subject",
+      "body_text": "Pending version body text here.",
+      "body_html": null,
+      "approval_status": "pending",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "rejection_reason": null
+    },
+    "strategy": {
+      "id": "uuid-strategy-1",
+      "tenant_id": "uuid-tenant-1",
+      "lead_id": "uuid-lead-1",
+      "message_type": "cold_outreach",
+      "status": "approved",
+      "invalid_reasons": [],
+      "requires_human_review": false
+    },
+    "quality_review": null,
+    "other_versions": [
+      {
+        "id": "uuid-version-a",
+        "tenant_id": "uuid-tenant-1",
+        "strategy_id": "uuid-strategy-1",
+        "version_label": "A",
+        "approval_status": "approved",
+        "reviewed_by": "uuid-user-1",
+        "reviewed_at": "2026-05-20T08:00:00Z",
+        "rejection_reason": null
+      },
+      {
+        "id": "uuid-version-b",
+        "tenant_id": "uuid-tenant-1",
+        "strategy_id": "uuid-strategy-1",
+        "version_label": "B",
+        "approval_status": "rejected",
+        "reviewed_by": "uuid-user-1",
+        "reviewed_at": "2026-05-20T08:30:00Z",
+        "rejection_reason": "weak_cta"
+      },
+      {
+        "id": "uuid-version-d",
+        "tenant_id": "uuid-tenant-1",
+        "strategy_id": "uuid-strategy-1",
+        "version_label": "D",
+        "approval_status": "pending",
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "rejection_reason": null
+      }
+    ],
+    "existing_approved_version": null,
+    "user": {
+      "user_id": "uuid-user-1",
+      "tenant_id": "uuid-tenant-1"
+    },
+    "system_controls": {
+      "global_agent_pause": false
+    },
+    "options": {}
+  },
+  "expected": {
+    "success": true,
+    "new_approval_status": "superseded",
+    "reviewed_by_set": false,
+    "reviewed_at_set": false,
+    "error_code": null,
+    "activity_event_type": "HRB_ACTION_REGENERATION_REQUESTED",
+    "no_email_draft_created": true,
+    "no_approval_request_created": true,
+    "no_send_triggered": true,
+    "preserved_versions": {
+      "uuid-version-a": "approved",
+      "uuid-version-b": "rejected"
+    },
+    "superseded_versions": ["uuid-version-c", "uuid-version-d"],
+    "notes": "Regeneration supersedes pending versions; approved and rejected versions preserved"
+  }
+}

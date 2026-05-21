@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "test_case_id": "TC-HRB-010",
+    "scenario_name": "critical_risk_blocks_approval",
+    "description": "Approval blocked when critical risk flag exists — HRB_010, no override in v1"
+  },
+  "input": {
+    "action": "approve",
+    "version": {
+      "id": "uuid-version-a",
+      "tenant_id": "uuid-tenant-1",
+      "strategy_id": "uuid-strategy-1",
+      "version_label": "A",
+      "subject_line": "Guaranteed savings on your processing fees!",
+      "body_text": "We guarantee you will save money. This offer expires soon. Act now!",
+      "body_html": null,
+      "approval_status": "pending",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "rejection_reason": null
+    },
+    "strategy": {
+      "id": "uuid-strategy-1",
+      "tenant_id": "uuid-tenant-1",
+      "lead_id": "uuid-lead-1",
+      "message_type": "cold_outreach",
+      "status": "approved",
+      "invalid_reasons": [],
+      "requires_human_review": false
+    },
+    "quality_review": {
+      "id": "uuid-qr-a",
+      "tenant_id": "uuid-tenant-1",
+      "version_id": "uuid-version-a",
+      "strategy_id": "uuid-strategy-1",
+      "composite_score": 80,
+      "score_band": "strong",
+      "is_recommended": false,
+      "risk_flags": [
+        {
+          "code": "RFL-003",
+          "severity": "critical",
+          "message": "Guaranteed outcome language detected: 'guaranteed savings'"
+        }
+      ],
+      "superseded_at": null
+    },
+    "other_versions": [],
+    "existing_approved_version": null,
+    "user": {
+      "user_id": "uuid-user-1",
+      "tenant_id": "uuid-tenant-1"
+    },
+    "system_controls": {
+      "global_agent_pause": false
+    },
+    "options": {}
+  },
+  "expected": {
+    "success": false,
+    "new_approval_status": "pending",
+    "reviewed_by_set": false,
+    "reviewed_at_set": false,
+    "error_code": "HRB_010",
+    "activity_event_type": null,
+    "no_email_draft_created": true,
+    "no_approval_request_created": true,
+    "no_send_triggered": true,
+    "notes": "Critical risk flag blocks approval unconditionally — no override in v1"
+  }
+}

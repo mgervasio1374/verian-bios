@@ -1,0 +1,55 @@
+{
+  "meta": {
+    "test_case_id": "TC-HRB-015",
+    "scenario_name": "missing_qra_blocks_approval",
+    "description": "No quality review record — should fail with HRB_009"
+  },
+  "input": {
+    "action": "approve",
+    "version": {
+      "id": "uuid-version-a",
+      "tenant_id": "uuid-tenant-1",
+      "strategy_id": "uuid-strategy-1",
+      "version_label": "A",
+      "subject_line": "Reducing your processing costs",
+      "body_text": "Hi, we specialize in helping businesses reduce payment processing fees. Can we connect?",
+      "body_html": null,
+      "approval_status": "pending",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "rejection_reason": null
+    },
+    "strategy": {
+      "id": "uuid-strategy-1",
+      "tenant_id": "uuid-tenant-1",
+      "lead_id": "uuid-lead-1",
+      "message_type": "cold_outreach",
+      "status": "approved",
+      "invalid_reasons": [],
+      "requires_human_review": false
+    },
+    "quality_review": null,
+    "other_versions": [],
+    "existing_approved_version": null,
+    "user": {
+      "user_id": "uuid-user-1",
+      "tenant_id": "uuid-tenant-1"
+    },
+    "system_controls": {
+      "global_agent_pause": false
+    },
+    "options": {}
+  },
+  "expected": {
+    "success": false,
+    "new_approval_status": "pending",
+    "reviewed_by_set": false,
+    "reviewed_at_set": false,
+    "error_code": "HRB_009",
+    "activity_event_type": null,
+    "no_email_draft_created": true,
+    "no_approval_request_created": true,
+    "no_send_triggered": true,
+    "notes": "No QRA record: blocked with HRB_009"
+  }
+}

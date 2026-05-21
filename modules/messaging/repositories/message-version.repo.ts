@@ -288,3 +288,176 @@ export async function supersedeVersionsForStrategy(
     .eq('tenant_id', tenantId)
     .eq('approval_status', 'pending')
 }
+
+// ============================================================
+// Phase 3B — Human Review / Approval Bridge additions
+// New repo functions for HRB status-update and query operations.
+// Added AFTER existing functions — do not modify above.
+// ============================================================
+
+// Minimal HRB types (inline to avoid circular import)
+export interface HumanReviewVersionRow {
+  id:               string
+  tenant_id:        string
+  strategy_id:      string
+  version_label:    string
+  subject_line:     string | null
+  body_text:        string | null
+  body_html:        string | null
+  approval_status:  string
+  reviewed_by:      string | null
+  reviewed_at:      string | null
+  rejection_reason: string | null
+}
+
+export interface HumanReviewStrategyRow {
+  id:                   string
+  tenant_id:            string
+  lead_id:              string
+  message_type:         string
+  status:               string
+  invalid_reasons:      string[]
+  requires_human_review:boolean
+}
+
+// Sets approval_status, reviewed_by, reviewed_at on a version.
+// Distinct from the existing updateMessageVersionApprovalStatus (which has a different signature).
+export async function setVersionApprovalStatus(
+  versionId:  string,
+  newStatus:  string,
+  reviewedBy: string,
+  reviewedAt: string,
+  tenantId:   string,
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const { error } = await supabase
+    .from('message_versions')
+    .update({
+      approval_status: newStatus,
+      reviewed_by:     reviewedBy,
+      reviewed_at:     reviewedAt,
+    } as never)
+    .eq('id', versionId)
+    .eq('tenant_id', tenantId)
+
+  if (error) throw new Error(`setVersionApprovalStatus: ${error.message}`)
+}
+
+// Sets rejection_reason on the version record.
+export async function setVersionRejectionReason(
+  versionId: string,
+  reason:    string,
+  tenantId:  string,
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const { error } = await supabase
+    .from('message_versions')
+    .update({ rejection_reason: reason } as never)
+    .eq('id', versionId)
+    .eq('tenant_id', tenantId)
+
+  if (error) throw new Error(`setVersionRejectionReason: ${error.message}`)
+}
+
+// Loads a message_version and its associated message_strategy in one call.
+// Returns null if the version is not found.
+export async function getVersionWithStrategy(
+  versionId: string,
+  tenantId:  string,
+): Promise<{ version: HumanReviewVersionRow; strategy: HumanReviewStrategyRow } | null> {
+  const supabase = createSupabaseServiceClient()
+
+  // Load version
+  const { data: vRow } = await supabase
+    .from('message_versions')
+    .select('id, tenant_id, strategy_id, version_label, subject_line, body_text, body_html, approval_status, reviewed_by, reviewed_at, rejection_reason')
+    .eq('id', versionId)
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+
+  if (!vRow) return null
+
+  const versionRow = vRow as unknown as HumanReviewVersionRow
+
+  // Load strategy
+  const { data: sRow } = await supabase
+    .from('message_strategies')
+    .select('id, tenant_id, lead_id, message_type, status, invalid_reasons, requires_human_review')
+    .eq('id', versionRow.strategy_id)
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+
+  if (!sRow) return null
+
+  const strategyRow = sRow as unknown as HumanReviewStrategyRow
+
+  return { version: versionRow, strategy: strategyRow }
+}
+
+// Finds the current selected version for a strategy (returns null if none).
+export async function getSelectedVersion(
+  strategyId: string,
+  tenantId:   string,
+): Promise<HumanReviewVersionRow | null> {
+  const supabase = createSupabaseServiceClient()
+  const { data } = await supabase
+    .from('message_versions')
+    .select('id, tenant_id, strategy_id, version_label, subject_line, body_text, body_html, approval_status, reviewed_by, reviewed_at, rejection_reason')
+    .eq('strategy_id', strategyId)
+    .eq('tenant_id', tenantId)
+    .eq('approval_status', 'selected')
+    .maybeSingle()
+
+  return data ? (data as unknown as HumanReviewVersionRow) : null
+}
+
+// Finds the current approved version for a strategy (for HRB_018 check).
+export async function getApprovedVersion(
+  strategyId: string,
+  tenantId:   string,
+): Promise<HumanReviewVersionRow | null> {
+  const supabase = createSupabaseServiceClient()
+  const { data } = await supabase
+    .from('message_versions')
+    .select('id, tenant_id, strategy_id, version_label, subject_line, body_text, body_html, approval_status, reviewed_by, reviewed_at, rejection_reason')
+    .eq('strategy_id', strategyId)
+    .eq('tenant_id', tenantId)
+    .eq('approval_status', 'approved')
+    .maybeSingle()
+
+  return data ? (data as unknown as HumanReviewVersionRow) : null
+}
+
+// Reverts all selected versions under a strategy to pending (except excludeVersionId).
+export async function deselectOtherVersions(
+  strategyId:       string,
+  excludeVersionId: string,
+  tenantId:         string,
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  await supabase
+    .from('message_versions')
+    .update({ approval_status: 'pending' } as never)
+    .eq('strategy_id', strategyId)
+    .eq('tenant_id', tenantId)
+    .eq('approval_status', 'selected')
+    .neq('id', excludeVersionId)
+}
+
+// Lists all non-superseded versions for a strategy (for all-rejected check).
+export async function getNonSupersededVersions(
+  strategyId: string,
+  tenantId:   string,
+): Promise<HumanReviewVersionRow[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('message_versions')
+    .select('id, tenant_id, strategy_id, version_label, subject_line, body_text, body_html, approval_status, reviewed_by, reviewed_at, rejection_reason')
+    .eq('strategy_id', strategyId)
+    .eq('tenant_id', tenantId)
+    .neq('approval_status', 'superseded')
+    .order('version_number', { ascending: true })
+
+  if (error) throw new Error(`getNonSupersededVersions: ${error.message}`)
+  return (data ?? []) as unknown as HumanReviewVersionRow[]
+}

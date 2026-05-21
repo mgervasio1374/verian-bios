@@ -175,5 +175,13 @@ export const ActivityEventType = {
   // Phase 3B — Quality Review Agent
   QUALITY_REVIEW_COMPLETED:          'quality_review_completed',
   QUALITY_REVIEW_NO_RECOMMENDATION:  'quality_review_no_recommendation',
+
+  // Phase 3B — Human Review / Approval Bridge (additive)
+  HRB_ACTION_SELECTED:               'HRB_ACTION_SELECTED',
+  HRB_ACTION_DESELECTED:             'HRB_ACTION_DESELECTED',
+  HRB_ACTION_REJECTED:               'HRB_ACTION_REJECTED',
+  HRB_ACTION_APPROVED:               'HRB_ACTION_APPROVED',
+  HRB_ACTION_REGENERATION_REQUESTED: 'HRB_ACTION_REGENERATION_REQUESTED',
+  HRB_ACTION_RETURNED_TO_STRATEGY:   'HRB_ACTION_RETURNED_TO_STRATEGY',
 } as const
 export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType]

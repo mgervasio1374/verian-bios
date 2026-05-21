@@ -1,0 +1,68 @@
+{
+  "meta": {
+    "test_case_id": "TC-HRB-013",
+    "scenario_name": "low_score_with_override_reason",
+    "description": "Score=62, no critical/high flags, overrideReason provided — should approve"
+  },
+  "input": {
+    "action": "approve",
+    "version": {
+      "id": "uuid-version-a",
+      "tenant_id": "uuid-tenant-1",
+      "strategy_id": "uuid-strategy-1",
+      "version_label": "A",
+      "subject_line": "A quick note for you",
+      "body_text": "Hi, I wanted to reach out about your payment processing. We help businesses save money. Let me know if you'd like to chat.",
+      "body_html": null,
+      "approval_status": "pending",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "rejection_reason": null
+    },
+    "strategy": {
+      "id": "uuid-strategy-1",
+      "tenant_id": "uuid-tenant-1",
+      "lead_id": "uuid-lead-1",
+      "message_type": "cold_outreach",
+      "status": "approved",
+      "invalid_reasons": [],
+      "requires_human_review": false
+    },
+    "quality_review": {
+      "id": "uuid-qr-a",
+      "tenant_id": "uuid-tenant-1",
+      "version_id": "uuid-version-a",
+      "strategy_id": "uuid-strategy-1",
+      "composite_score": 62,
+      "score_band": "needs_review",
+      "is_recommended": false,
+      "risk_flags": [],
+      "superseded_at": null
+    },
+    "other_versions": [],
+    "existing_approved_version": null,
+    "user": {
+      "user_id": "uuid-user-1",
+      "tenant_id": "uuid-tenant-1"
+    },
+    "system_controls": {
+      "global_agent_pause": false
+    },
+    "options": {
+      "override_reason": "Reviewer has relationship context not captured in the system"
+    }
+  },
+  "expected": {
+    "success": true,
+    "new_approval_status": "approved",
+    "reviewed_by_set": true,
+    "reviewed_at_set": true,
+    "error_code": null,
+    "activity_event_type": "HRB_ACTION_APPROVED",
+    "override_reason_recorded": true,
+    "no_email_draft_created": true,
+    "no_approval_request_created": true,
+    "no_send_triggered": true,
+    "notes": "Low score approved with override_reason provided"
+  }
+}
