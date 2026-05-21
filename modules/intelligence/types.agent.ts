@@ -183,5 +183,9 @@ export const ActivityEventType = {
   HRB_ACTION_APPROVED:               'HRB_ACTION_APPROVED',
   HRB_ACTION_REGENERATION_REQUESTED: 'HRB_ACTION_REGENERATION_REQUESTED',
   HRB_ACTION_RETURNED_TO_STRATEGY:   'HRB_ACTION_RETURNED_TO_STRATEGY',
+
+  // Phase 3B — Send / Email Draft Bridge (additive)
+  SEB_ACTION_DRAFT_CREATED:          'SEB_ACTION_DRAFT_CREATED',
+  SEB_ACTION_DRAFT_CREATION_BLOCKED: 'SEB_ACTION_DRAFT_CREATION_BLOCKED',
 } as const
 export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType]

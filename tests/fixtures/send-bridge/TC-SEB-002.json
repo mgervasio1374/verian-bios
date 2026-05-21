@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "test_case_id": "TC-SEB-002",
+    "scenario_name": "pending_version_blocked_seb001",
+    "description": "Pending version cannot create draft — SEB_001"
+  },
+  "input": {
+    "version": {
+      "id": "ver-002", "tenant_id": "ten-001", "strategy_id": "str-001",
+      "version_label": "B", "subject_line": "Subject", "body_text": "Body",
+      "body_html": null, "approval_status": "pending",
+      "reviewed_by": null, "reviewed_at": null
+    },
+    "strategy": { "id": "str-001", "tenant_id": "ten-001", "lead_id": "lead-001", "message_type": "close_deal_now", "status": "approved" },
+    "lead": { "contact_id": "con-001" },
+    "contact": { "id": "con-001", "email": "jane@example.com", "first_name": "Jane", "last_name": "Smith", "do_not_contact": false },
+    "sender_identity": { "id": "si-001", "name": "Sales Team", "email": "sales@biz.com" },
+    "existing_draft": null,
+    "suppression_result": { "blocked": false },
+    "has_permission": true,
+    "request_tenant_id": "ten-001"
+  },
+  "expected": {
+    "allowed": false,
+    "error": "SEB_001",
+    "error_message": "Version must be approved via the Human Review Bridge before creating a draft.",
+    "no_draft_created": true
+  }
+}

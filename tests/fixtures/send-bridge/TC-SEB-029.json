@@ -1,0 +1,35 @@
+{
+  "meta": {
+    "test_case_id": "TC-SEB-029",
+    "scenario_name": "low_score_override_creates_draft",
+    "description": "Approved version from low-score HRB override can create draft. Override context captured in metadata."
+  },
+  "input": {
+    "version": {
+      "id": "ver-029", "tenant_id": "ten-001", "strategy_id": "str-001",
+      "version_label": "A", "subject_line": "Subject", "body_text": "Body",
+      "body_html": null, "approval_status": "approved",
+      "reviewed_by": "user-001", "reviewed_at": "2026-05-21T10:00:00Z"
+    },
+    "strategy": { "id": "str-001", "tenant_id": "ten-001", "lead_id": "lead-001", "message_type": "close_deal_now", "status": "approved" },
+    "quality_review": {
+      "id": "qr-029", "composite_score": 62, "score_band": "needs_review",
+      "is_recommended": false,
+      "risk_flags": [{ "code": "RF-002", "severity": "high", "message": "Low specificity" }]
+    },
+    "lead": { "contact_id": "con-001" },
+    "contact": { "id": "con-001", "email": "jane@example.com", "first_name": "Jane", "last_name": "Smith", "do_not_contact": false },
+    "sender_identity": { "id": "si-001", "name": "Sales Team", "email": "sales@biz.com" },
+    "existing_draft": null,
+    "suppression_result": { "blocked": false },
+    "has_permission": true,
+    "request_tenant_id": "ten-001"
+  },
+  "expected": {
+    "allowed": true,
+    "new_draft_status": "approved",
+    "metadata_composite_score": 62,
+    "metadata_risk_flags_captured": true,
+    "notes": "Draft created normally regardless of score — HRB already gated the override"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "test_case_id": "TC-SEB-006",
+    "scenario_name": "no_contact_linked_seb004",
+    "description": "No contact linked to lead blocks draft creation — SEB_004"
+  },
+  "input": {
+    "version": {
+      "id": "ver-006", "tenant_id": "ten-001", "strategy_id": "str-001",
+      "version_label": "A", "subject_line": "Subject", "body_text": "Body",
+      "body_html": null, "approval_status": "approved",
+      "reviewed_by": "user-001", "reviewed_at": "2026-05-21T10:00:00Z"
+    },
+    "strategy": { "id": "str-001", "tenant_id": "ten-001", "lead_id": "lead-001", "message_type": "close_deal_now", "status": "approved" },
+    "lead": { "contact_id": null },
+    "contact": null,
+    "sender_identity": { "id": "si-001", "name": "Sales Team", "email": "sales@biz.com" },
+    "existing_draft": null,
+    "suppression_result": { "blocked": false },
+    "has_permission": true,
+    "request_tenant_id": "ten-001"
+  },
+  "expected": {
+    "allowed": false,
+    "error": "SEB_004",
+    "error_message": "No contact is linked to this lead. Link a contact in the CRM first.",
+    "no_draft_created": true,
+    "no_supersede_called": true
+  }
+}

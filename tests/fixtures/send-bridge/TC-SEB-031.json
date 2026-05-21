@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "test_case_id": "TC-SEB-031",
+    "scenario_name": "ui_create_draft_button_visible_for_approved_versions",
+    "description": "UI: 'Create Email Draft' button appears and is enabled for approved versions with no existing draft"
+  },
+  "input": {
+    "version_approval_status": "approved",
+    "draft_status": null
+  },
+  "expected": {
+    "button_label": "Create Email Draft",
+    "button_enabled": true,
+    "button_visible": true,
+    "notes": "Approved card with no draft shows enabled Create Email Draft button"
+  }
+}

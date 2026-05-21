@@ -15,6 +15,8 @@ import {
   Star,
   BarChart2,
   Flag,
+  Mail,
+  Send,
 } from 'lucide-react'
 import {
   generateMessageVersionsAction,
@@ -22,20 +24,144 @@ import {
   rejectMessageVersionAction,
 } from '@/modules/messaging/actions/copywriting-agent.actions'
 import { runQualityReviewAction } from '@/modules/messaging/actions/quality-review-agent.actions'
+import { createEmailDraftFromApprovedVersionAction } from '@/modules/messaging/actions/send-bridge.actions'
 import type { MessageVersion } from '@/modules/messaging/copywriting/copywriting-agent.types'
 import type { QualityReview } from '@/modules/messaging/quality-review/quality-review-agent.types'
 
 // ---- Props ----
 
+interface DraftStatus {
+  draftId: string
+  status:  string
+}
+
 interface GeneratedVersionsPanelProps {
-  versions:           MessageVersion[]
-  strategyId:         string | null
-  leadId:             string
-  workspaceSlug:      string
-  canGenerate:        boolean
-  blockedReason:      string | null
-  qualityReviews?:    QualityReview[]
-  onRunQualityReview?:() => void
+  versions:                MessageVersion[]
+  strategyId:              string | null
+  leadId:                  string
+  workspaceSlug:           string
+  canGenerate:             boolean
+  blockedReason:           string | null
+  qualityReviews?:         QualityReview[]
+  onRunQualityReview?:     () => void
+  draftStatusByVersionId?: Map<string, DraftStatus>
+  contactName?:            string | null
+  contactEmail?:           string | null
+}
+
+// ---- SEB error messages ----
+
+const SEB_ERROR_MESSAGES: Record<string, string> = {
+  SEB_004: 'No contact is linked to this lead — link a contact first.',
+  SEB_005: 'Contact has no email address — add one in the CRM.',
+  SEB_006: "Contact is marked 'Do Not Contact'.",
+  SEB_007: "Contact's email is suppressed or unsubscribed.",
+  SEB_008: 'The strategy has been superseded — review the current strategy first.',
+  SEB_011: 'A draft already exists for this version.',
+  SEB_009: 'Version is missing subject or body content.',
+  SEB_012: 'No sender identity configured for this workspace.',
+  SEB_013: 'Authentication issue — please refresh and try again.',
+  SEB_014: 'You do not have permission to create email drafts.',
+}
+
+function sebErrorMessage(errorCode: string | undefined, fallback: string): string {
+  if (!errorCode) return fallback
+  return SEB_ERROR_MESSAGES[errorCode] ?? fallback
+}
+
+// ---- Create Draft Confirmation Modal ----
+
+function CreateDraftConfirmModal({
+  versionId,
+  strategyId,
+  leadId,
+  workspaceSlug,
+  contactName,
+  contactEmail,
+  hasPendingDraft,
+  onClose,
+  onSuccess,
+}: {
+  versionId:       string
+  strategyId:      string
+  leadId:          string
+  workspaceSlug:   string
+  contactName:     string | null
+  contactEmail:    string | null
+  hasPendingDraft: boolean
+  onClose:         () => void
+  onSuccess:       () => void
+}) {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError]               = useState<string | null>(null)
+  const [, startTransition]             = useTransition()
+
+  function handleConfirm() {
+    setError(null)
+    setIsSubmitting(true)
+    startTransition(async () => {
+      const result = await createEmailDraftFromApprovedVersionAction(
+        versionId, strategyId, leadId, workspaceSlug
+      )
+      setIsSubmitting(false)
+      if (result.success) {
+        onSuccess()
+      } else {
+        setError(sebErrorMessage(result.errorCode, result.error ?? 'Draft creation failed.'))
+      }
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-background border rounded-lg shadow-lg p-5 max-w-sm w-full space-y-4">
+        <p className="text-sm font-semibold">Create Email Draft</p>
+
+        <p className="text-xs text-muted-foreground">
+          Create a send-ready email draft for{' '}
+          <span className="font-medium text-foreground">
+            {contactName ?? 'this lead'}
+          </span>
+          {contactEmail && (
+            <span className="text-muted-foreground"> ({contactEmail})</span>
+          )}
+          {' '}using the approved version?
+        </p>
+
+        {hasPendingDraft && (
+          <div className="flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            An existing draft will be superseded.
+          </div>
+        )}
+
+        {error && (
+          <div className="flex items-start gap-1.5 text-xs text-red-700 bg-red-50 border border-red-200 rounded p-2">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            {error}
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 pt-1">
+          <button
+            onClick={handleConfirm}
+            disabled={isSubmitting}
+            className="flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
+            {isSubmitting ? 'Creating draft…' : 'Create Draft'}
+          </button>
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted/50 disabled:opacity-50 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ---- Quality score badge ----
@@ -196,19 +322,27 @@ function VersionCard({
   workspaceSlug,
   onStatusChange,
   qualityReview,
+  draftStatus,
+  contactName,
+  contactEmail,
 }: {
   version:        MessageVersion
   leadId:         string
   workspaceSlug:  string
   onStatusChange: () => void
   qualityReview?: QualityReview
+  draftStatus?:   DraftStatus | null
+  contactName?:   string | null
+  contactEmail?:  string | null
 }) {
-  const [showBody,    setShowBody]    = useState(false)
-  const [showNotes,   setShowNotes]   = useState(false)
-  const [isSelecting, setIsSelecting] = useState(false)
-  const [isRejecting, setIsRejecting] = useState(false)
-  const [error,       setError]       = useState<string | null>(null)
-  const [, startTransition]           = useTransition()
+  const [showBody,          setShowBody]          = useState(false)
+  const [showNotes,         setShowNotes]         = useState(false)
+  const [isSelecting,       setIsSelecting]       = useState(false)
+  const [isRejecting,       setIsRejecting]       = useState(false)
+  const [error,             setError]             = useState<string | null>(null)
+  const [showDraftConfirm,  setShowDraftConfirm]  = useState(false)
+  const [draftError,        setDraftError]        = useState<string | null>(null)
+  const [, startTransition]                       = useTransition()
 
   function handleSelect() {
     setError(null)
@@ -369,8 +503,79 @@ function VersionCard({
       {version.approvalStatus === 'selected' && (
         <div className="flex items-center gap-1.5 text-xs text-green-700">
           <CheckCircle2 className="h-3.5 w-3.5" />
-          Selected as preferred candidate. Approval workflow coming in a future phase.
+          Selected as preferred candidate. Use the Human Review Bridge to approve this version.
         </div>
+      )}
+
+      {/* Approved state: Send Bridge controls */}
+      {version.approvalStatus === 'approved' && (
+        <div className="space-y-2 pt-1">
+          {/* Draft status: no draft yet */}
+          {(!draftStatus || draftStatus.status === 'superseded' || draftStatus.status === 'rejected') && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { setDraftError(null); setShowDraftConfirm(true) }}
+                className="flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
+              >
+                <Mail className="h-3 w-3" />
+                Create Email Draft
+              </button>
+            </div>
+          )}
+
+          {/* Draft status: approved (ready to send) */}
+          {draftStatus?.status === 'approved' && (
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full border bg-green-50 border-green-300 px-2 py-0.5 text-[10px] font-semibold text-green-800">
+                <Send className="h-2.5 w-2.5" />
+                Ready to Send
+              </span>
+              <span className="text-[10px] text-muted-foreground">Draft created — use the lead email section to send.</span>
+            </div>
+          )}
+
+          {/* Draft status: sent */}
+          {draftStatus?.status === 'sent' && (
+            <div className="flex items-center gap-1.5 text-xs text-blue-700">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Sent
+            </div>
+          )}
+
+          {/* Draft status: pending_approval (transient) */}
+          {draftStatus?.status === 'pending_approval' && (
+            <div className="flex items-center gap-1.5 text-xs text-amber-700">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Draft in progress…
+            </div>
+          )}
+
+          {/* SEB error */}
+          {draftError && (
+            <div className="flex items-start gap-1.5 text-xs text-red-700 bg-red-50 border border-red-200 rounded p-2">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+              {draftError}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Create Draft Confirmation Modal */}
+      {showDraftConfirm && version.approvalStatus === 'approved' && (
+        <CreateDraftConfirmModal
+          versionId={version.id}
+          strategyId={version.strategyId}
+          leadId={leadId}
+          workspaceSlug={workspaceSlug}
+          contactName={contactName ?? null}
+          contactEmail={contactEmail ?? null}
+          hasPendingDraft={false}
+          onClose={() => setShowDraftConfirm(false)}
+          onSuccess={() => {
+            setShowDraftConfirm(false)
+            onStatusChange()
+          }}
+        />
       )}
     </div>
   )
@@ -387,6 +592,9 @@ export function GeneratedVersionsPanel({
   blockedReason,
   qualityReviews = [],
   onRunQualityReview,
+  draftStatusByVersionId,
+  contactName,
+  contactEmail,
 }: GeneratedVersionsPanelProps) {
   const router = useRouter()
   const [isGenerating,      setIsGenerating]      = useState(false)
@@ -526,6 +734,9 @@ export function GeneratedVersionsPanel({
               workspaceSlug={workspaceSlug}
               onStatusChange={handleStatusChange}
               qualityReview={reviewsByVersionId.get(v.id)}
+              draftStatus={draftStatusByVersionId?.get(v.id) ?? null}
+              contactName={contactName}
+              contactEmail={contactEmail}
             />
           ))}
         </div>

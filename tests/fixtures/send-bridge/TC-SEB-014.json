@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "test_case_id": "TC-SEB-014",
+    "scenario_name": "body_html_non_null_seb010",
+    "description": "Non-null body_html blocks draft creation (Phase 3B v1 invariant) — SEB_010"
+  },
+  "input": {
+    "version": {
+      "id": "ver-014", "tenant_id": "ten-001", "strategy_id": "str-001",
+      "version_label": "A", "subject_line": "Subject", "body_text": "Body text",
+      "body_html": "<p>content</p>", "approval_status": "approved",
+      "reviewed_by": "user-001", "reviewed_at": "2026-05-21T10:00:00Z"
+    },
+    "strategy": { "id": "str-001", "tenant_id": "ten-001", "lead_id": "lead-001", "message_type": "close_deal_now", "status": "approved" },
+    "lead": { "contact_id": "con-001" },
+    "contact": { "id": "con-001", "email": "jane@example.com", "first_name": "Jane", "last_name": "Smith", "do_not_contact": false },
+    "sender_identity": { "id": "si-001", "name": "Sales Team", "email": "sales@biz.com" },
+    "existing_draft": null,
+    "suppression_result": { "blocked": false },
+    "has_permission": true,
+    "request_tenant_id": "ten-001"
+  },
+  "expected": {
+    "allowed": false,
+    "error": "SEB_010",
+    "error_message": "Phase 3B v1 invariant violated: body_html must be null.",
+    "no_draft_created": true
+  }
+}

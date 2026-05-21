@@ -1,0 +1,38 @@
+{
+  "meta": {
+    "test_case_id": "TC-SEB-030",
+    "scenario_name": "regeneration_after_approval_supersedes_version",
+    "description": "After HRB approved version-A, regeneration superseded it. Attempting draft creation is blocked."
+  },
+  "input": {
+    "version_a": {
+      "id": "ver-030a", "tenant_id": "ten-001", "strategy_id": "str-001",
+      "version_label": "A", "subject_line": "Subject", "body_text": "Body",
+      "body_html": null, "approval_status": "superseded",
+      "reviewed_by": "user-001", "reviewed_at": "2026-05-21T10:00:00Z"
+    },
+    "version_b": {
+      "id": "ver-030b", "tenant_id": "ten-001", "strategy_id": "str-001",
+      "version_label": "A", "subject_line": "New Subject", "body_text": "New Body",
+      "body_html": null, "approval_status": "pending",
+      "reviewed_by": null, "reviewed_at": null
+    },
+    "scenario_a": {
+      "version": "ver-030a", "approval_status": "superseded",
+      "expected_error": "SEB_003",
+      "notes": "Superseded version — blocked"
+    },
+    "scenario_b": {
+      "version": "ver-030b", "approval_status": "pending",
+      "expected_error": "SEB_001",
+      "notes": "Pending version — blocked"
+    }
+  },
+  "expected": {
+    "version_a_allowed": false,
+    "version_a_error": "SEB_003",
+    "version_b_allowed": false,
+    "version_b_error": "SEB_001",
+    "no_draft_created": true
+  }
+}

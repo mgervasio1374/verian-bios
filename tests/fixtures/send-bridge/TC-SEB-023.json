@@ -1,0 +1,28 @@
+{
+  "meta": {
+    "test_case_id": "TC-SEB-023",
+    "scenario_name": "draft_body_html_is_null",
+    "description": "Draft created from Phase 3B version always has body_html = null"
+  },
+  "input": {
+    "version": {
+      "id": "ver-023", "tenant_id": "ten-001", "strategy_id": "str-001",
+      "version_label": "A", "subject_line": "Subject", "body_text": "Body text",
+      "body_html": null, "approval_status": "approved",
+      "reviewed_by": "user-001", "reviewed_at": "2026-05-21T10:00:00Z"
+    },
+    "strategy": { "id": "str-001", "tenant_id": "ten-001", "lead_id": "lead-001", "message_type": "close_deal_now", "status": "approved" },
+    "lead": { "contact_id": "con-001" },
+    "contact": { "id": "con-001", "email": "jane@example.com", "first_name": "Jane", "last_name": "Smith", "do_not_contact": false },
+    "sender_identity": { "id": "si-001", "name": "Sales Team", "email": "sales@biz.com" },
+    "existing_draft": null,
+    "suppression_result": { "blocked": false },
+    "has_permission": true,
+    "request_tenant_id": "ten-001"
+  },
+  "expected": {
+    "allowed": true,
+    "body_html_null": true,
+    "notes": "email_draft.body_html IS NULL confirmed"
+  }
+}

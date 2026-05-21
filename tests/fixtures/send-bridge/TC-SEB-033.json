@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "test_case_id": "TC-SEB-033",
+    "scenario_name": "ui_error_shown_for_seb005_no_email",
+    "description": "UI: User-friendly error shown when SEB_005 (no contact email) is returned"
+  },
+  "input": {
+    "version_approval_status": "approved",
+    "draft_status": null,
+    "action_result": { "success": false, "errorCode": "SEB_005", "error": "The contact has no email address. Add one in the CRM first." }
+  },
+  "expected": {
+    "error_displayed": true,
+    "error_message": "The contact has no email address. Add one in the CRM first.",
+    "no_modal_closed": true,
+    "notes": "SEB_005 error surfaced inline in version card"
+  }
+}

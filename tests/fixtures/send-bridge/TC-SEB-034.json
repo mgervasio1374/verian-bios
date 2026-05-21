@@ -1,0 +1,21 @@
+{
+  "meta": {
+    "test_case_id": "TC-SEB-034",
+    "scenario_name": "ui_confirmation_modal_shown_before_draft_creation",
+    "description": "UI: Confirmation modal shown with contact details before draft creation when Create Email Draft is clicked"
+  },
+  "input": {
+    "version_approval_status": "approved",
+    "draft_status": null,
+    "contact_name": "Jane Smith",
+    "contact_email": "jane@example.com",
+    "has_existing_pending_draft_for_lead": false
+  },
+  "expected": {
+    "modal_shown": true,
+    "modal_shows_contact_name": true,
+    "modal_shows_contact_email": true,
+    "no_action_taken_before_confirmation": true,
+    "notes": "Reviewer must confirm before draft is created"
+  }
+}

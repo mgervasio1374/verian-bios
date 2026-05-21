@@ -4,6 +4,7 @@ import { buildRequestContext } from '@/lib/auth/context'
 import * as strategySvc from '@/modules/messaging/strategy/message-strategy.service'
 import * as copySvc from '@/modules/messaging/copywriting/copywriting-agent.service'
 import * as qraSvc from '@/modules/messaging/quality-review/quality-review-agent.service'
+import * as sendBridgeSvc from '@/modules/messaging/send-bridge/send-bridge.service'
 import { StrategyReviewPanel } from './StrategyReviewPanel'
 import { GeneratedVersionsPanel } from './GeneratedVersionsPanel'
 
@@ -67,6 +68,18 @@ export default async function MessageWorkspacePage({ params }: PageProps) {
   const qualityReviews = activeStrategy
     ? await qraSvc.listQualityReviewsForStrategy(activeStrategy.id, ctx.tenantId).catch(() => [])
     : []
+
+  // Load draft status for all approved versions (Send Bridge UI)
+  const draftStatusByVersionId = new Map<string, { draftId: string; status: string }>()
+  const approvedVersions = messageVersions.filter(v => v.approvalStatus === 'approved')
+  if (approvedVersions.length > 0) {
+    for (const version of approvedVersions) {
+      const draftStatus = await sendBridgeSvc.getDraftStatusForVersion(version.id, ctx.tenantId).catch(() => null)
+      if (draftStatus) {
+        draftStatusByVersionId.set(version.id, draftStatus)
+      }
+    }
+  }
 
   const contactName = contact
     ? [contact.first_name, contact.last_name].filter(Boolean).join(' ') || null
@@ -132,6 +145,9 @@ export default async function MessageWorkspacePage({ params }: PageProps) {
             canGenerate={generateGate.allowed}
             blockedReason={generateGate.allowed ? null : (generateGate.reason ?? null)}
             qualityReviews={qualityReviews}
+            draftStatusByVersionId={draftStatusByVersionId}
+            contactName={contactName}
+            contactEmail={contact?.email ?? null}
           />
 
           {/* History */}

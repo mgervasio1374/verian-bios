@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "test_case_id": "TC-SEB-004",
+    "scenario_name": "superseded_version_blocked_seb003",
+    "description": "Superseded version cannot create draft — SEB_003"
+  },
+  "input": {
+    "version": {
+      "id": "ver-004", "tenant_id": "ten-001", "strategy_id": "str-001",
+      "version_label": "A", "subject_line": "Subject", "body_text": "Body",
+      "body_html": null, "approval_status": "superseded",
+      "reviewed_by": null, "reviewed_at": null
+    },
+    "strategy": { "id": "str-001", "tenant_id": "ten-001", "lead_id": "lead-001", "message_type": "close_deal_now", "status": "approved" },
+    "lead": { "contact_id": "con-001" },
+    "contact": { "id": "con-001", "email": "jane@example.com", "first_name": "Jane", "last_name": "Smith", "do_not_contact": false },
+    "sender_identity": { "id": "si-001", "name": "Sales Team", "email": "sales@biz.com" },
+    "existing_draft": null,
+    "suppression_result": { "blocked": false },
+    "has_permission": true,
+    "request_tenant_id": "ten-001"
+  },
+  "expected": {
+    "allowed": false,
+    "error": "SEB_003",
+    "error_message": "This version has been superseded and is no longer available.",
+    "no_draft_created": true
+  }
+}

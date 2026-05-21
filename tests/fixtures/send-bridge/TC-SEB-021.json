@@ -1,0 +1,42 @@
+{
+  "meta": {
+    "test_case_id": "TC-SEB-021",
+    "scenario_name": "draft_has_correct_provenance_metadata",
+    "description": "Draft created with correct Phase 3B provenance in ai_generation_metadata"
+  },
+  "input": {
+    "version": {
+      "id": "ver-021", "tenant_id": "ten-001", "strategy_id": "str-021",
+      "version_label": "A", "subject_line": "Ready to close?", "body_text": "Hi Jane...",
+      "body_html": null, "approval_status": "approved",
+      "reviewed_by": "user-001", "reviewed_at": "2026-05-21T10:00:00Z"
+    },
+    "strategy": { "id": "str-021", "tenant_id": "ten-001", "lead_id": "lead-001", "message_type": "close_deal_now", "status": "approved" },
+    "quality_review": {
+      "id": "qr-021", "composite_score": 82, "score_band": "strong",
+      "is_recommended": true, "risk_flags": []
+    },
+    "lead": { "contact_id": "con-001" },
+    "contact": { "id": "con-001", "email": "jane@example.com", "first_name": "Jane", "last_name": "Smith", "do_not_contact": false },
+    "sender_identity": { "id": "si-001", "name": "Sales Team", "email": "sales@biz.com" },
+    "existing_draft": null,
+    "suppression_result": { "blocked": false },
+    "has_permission": true,
+    "request_tenant_id": "ten-001"
+  },
+  "expected": {
+    "allowed": true,
+    "error": null,
+    "metadata_fields": {
+      "source": "phase_3b_send_bridge",
+      "message_version_id": "ver-021",
+      "strategy_id": "str-021",
+      "quality_review_id": "qr-021",
+      "composite_score": 82,
+      "score_band": "strong",
+      "is_recommended": true,
+      "approved_by": "user-001",
+      "reason_created": "phase_3b_hrb_approval"
+    }
+  }
+}

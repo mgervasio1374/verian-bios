@@ -1,0 +1,28 @@
+{
+  "meta": {
+    "test_case_id": "TC-SEB-010",
+    "scenario_name": "unsubscribed_email_seb007",
+    "description": "Unsubscribed contact email blocks draft creation — SEB_007"
+  },
+  "input": {
+    "version": {
+      "id": "ver-010", "tenant_id": "ten-001", "strategy_id": "str-001",
+      "version_label": "A", "subject_line": "Subject", "body_text": "Body",
+      "body_html": null, "approval_status": "approved",
+      "reviewed_by": "user-001", "reviewed_at": "2026-05-21T10:00:00Z"
+    },
+    "strategy": { "id": "str-001", "tenant_id": "ten-001", "lead_id": "lead-001", "message_type": "close_deal_now", "status": "approved" },
+    "lead": { "contact_id": "con-010" },
+    "contact": { "id": "con-010", "email": "unsub@example.com", "first_name": "Jane", "last_name": "Smith", "do_not_contact": false },
+    "sender_identity": { "id": "si-001", "name": "Sales Team", "email": "sales@biz.com" },
+    "existing_draft": null,
+    "suppression_result": { "blocked": true, "reason": "email_unsubscribed" },
+    "has_permission": true,
+    "request_tenant_id": "ten-001"
+  },
+  "expected": {
+    "allowed": false,
+    "error": "SEB_007",
+    "no_draft_created": true
+  }
+}

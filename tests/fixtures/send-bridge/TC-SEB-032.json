@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "test_case_id": "TC-SEB-032",
+    "scenario_name": "ui_ready_to_send_shown_when_draft_approved",
+    "description": "UI: 'Ready to Send' state shown when draft already exists and is approved"
+  },
+  "input": {
+    "version_approval_status": "approved",
+    "draft_status": "approved",
+    "draft_id": "draft-approved-001"
+  },
+  "expected": {
+    "shows_ready_to_send": true,
+    "create_draft_button_hidden": true,
+    "view_send_draft_link_visible": true,
+    "notes": "Approved draft state — reviewer sees Ready to Send, not Create Email Draft"
+  }
+}

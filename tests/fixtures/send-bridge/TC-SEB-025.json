@@ -1,0 +1,33 @@
+{
+  "meta": {
+    "test_case_id": "TC-SEB-025",
+    "scenario_name": "approval_request_created_and_auto_resolved",
+    "description": "approval_request created as pending and immediately auto-resolved to approved. No pending approval queue entry."
+  },
+  "input": {
+    "version": {
+      "id": "ver-025", "tenant_id": "ten-001", "strategy_id": "str-001",
+      "version_label": "A", "subject_line": "Subject", "body_text": "Body",
+      "body_html": null, "approval_status": "approved",
+      "reviewed_by": "user-001", "reviewed_at": "2026-05-21T10:00:00Z"
+    },
+    "strategy": { "id": "str-001", "tenant_id": "ten-001", "lead_id": "lead-001", "message_type": "close_deal_now", "status": "approved" },
+    "lead": { "contact_id": "con-001" },
+    "contact": { "id": "con-001", "email": "jane@example.com", "first_name": "Jane", "last_name": "Smith", "do_not_contact": false },
+    "sender_identity": { "id": "si-001", "name": "Sales Team", "email": "sales@biz.com" },
+    "existing_draft": null,
+    "suppression_result": { "blocked": false },
+    "has_permission": true,
+    "request_tenant_id": "ten-001"
+  },
+  "expected": {
+    "allowed": true,
+    "approval_request_created": true,
+    "approval_request_request_type": "email_draft_review",
+    "approval_request_status": "approved",
+    "approval_request_draft_id_in_payload": true,
+    "email_draft_approval_request_id_set": true,
+    "no_pending_approval_queue_entry": true,
+    "notes": "HRB approval is the human gate. approval_request is auto-resolved to satisfy Phase 3A double-gate."
+  }
+}

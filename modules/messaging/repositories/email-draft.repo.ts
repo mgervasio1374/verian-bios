@@ -294,3 +294,25 @@ export async function getLeadEmailDrafts(
   if (error) throw new Error(`getLeadEmailDrafts: ${error.message}`)
   return data ?? []
 }
+
+// ---- Phase 3B Send Bridge: duplicate guard read helper ----
+// Finds the most recent draft linked to a specific message_version_id via
+// ai_generation_metadata. Used by the Send Bridge before creating a new draft.
+// Application-level guard only — no DB-enforced uniqueness constraint in v1.
+
+export async function getEmailDraftForVersion(
+  versionId: string,
+  tenantId:  string
+): Promise<Pick<EmailDraftRow, 'id' | 'status'> | null> {
+  const supabase = createSupabaseServiceClient()
+  const { data } = await supabase
+    .from('email_drafts')
+    .select('id, status')
+    .eq('tenant_id', tenantId)
+    .filter('ai_generation_metadata->>message_version_id', 'eq', versionId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return data ?? null
+}

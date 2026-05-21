@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "test_case_id": "TC-SEB-001",
+    "scenario_name": "approved_version_creates_draft_successfully",
+    "description": "Happy path: approved version, active strategy, contact with email, not suppressed, sender identity present, no existing draft"
+  },
+  "input": {
+    "version": {
+      "id": "ver-001",
+      "tenant_id": "ten-001",
+      "strategy_id": "str-001",
+      "version_label": "A",
+      "subject_line": "Ready to close your deal?",
+      "body_text": "Hi Jane, following up on our conversation...",
+      "body_html": null,
+      "approval_status": "approved",
+      "reviewed_by": "user-001",
+      "reviewed_at": "2026-05-21T10:00:00Z"
+    },
+    "strategy": {
+      "id": "str-001",
+      "tenant_id": "ten-001",
+      "lead_id": "lead-001",
+      "message_type": "close_deal_now",
+      "status": "approved"
+    },
+    "lead": { "contact_id": "con-001" },
+    "contact": {
+      "id": "con-001",
+      "email": "jane@example.com",
+      "first_name": "Jane",
+      "last_name": "Smith",
+      "do_not_contact": false
+    },
+    "sender_identity": { "id": "si-001", "name": "Sales Team", "email": "sales@biz.com" },
+    "existing_draft": null,
+    "suppression_result": { "blocked": false },
+    "has_permission": true,
+    "request_tenant_id": "ten-001"
+  },
+  "expected": {
+    "allowed": true,
+    "error": null,
+    "error_message": null,
+    "new_draft_status": "approved",
+    "approval_request_created": true,
+    "approval_request_status": "approved",
+    "body_html_null": true,
+    "no_email_sends_created": true,
+    "no_resend_called": true,
+    "activity_event_type": "SEB_ACTION_DRAFT_CREATED",
+    "notes": "Full happy path — draft immediately sendable via sendApprovedDraftAction"
+  }
+}
