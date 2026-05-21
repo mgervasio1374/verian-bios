@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3b-human-review-bridge-v1` | Human Review / Approval Bridge Foundation complete |
 | `phase-3b-quality-review-agent-v1.1` | QRA Foundation complete — backend + UI integration |
 | `phase-3b-quality-review-agent-v1` | QRA Foundation backend committed |
 | `phase-3b-copywriting-agent-v1` | Copywriting Agent Foundation locked |
@@ -20,6 +21,7 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `ea3342c` | Phase 3B: implement Human Review Approval Bridge foundation | Phase 3B HRB |
 | `4493de5` | Docs: add Phase 3B Human Review Approval Bridge implementation plan | Phase 3B Docs |
 | `96f32f8` | Phase 3B: add QRA UI integration to message workspace | Phase 3B QRA |
 | `38d1f12` | Chore: ignore Claude worktrees | Chore |
@@ -99,17 +101,30 @@
 - `docs/roadmap/phase-3b-human-review-approval-bridge-design-test-cases.md` — Design & Test Cases v1.0 (locked)
 - `docs/roadmap/phase-3b-human-review-approval-bridge-implementation-plan.md` — Implementation Plan v1.0 (locked)
 
+### Phase 3B: Human Review / Approval Bridge Foundation (`ea3342c`)
+- `modules/messaging/human-review/human-review.types.ts` — HRB_ERROR_CODES (HRB_001–HRB_018), HRB_ACTION_TYPES (6), REJECTION_REASONS (12), all interfaces
+- `modules/messaging/human-review/human-review.validation.ts` — Pure validation: `validateApprovalEligibility` (18 gates), `validateSelectEligibility`, `validateRejectEligibility`, risk flag helpers
+- `modules/messaging/human-review/human-review.audit.ts` — Pure event payload builders for all 6 HRB action types
+- `modules/messaging/human-review/human-review.service.ts` — Orchestration: select, reject, approve, eligibility check, regeneration request, event recording
+- `modules/messaging/actions/human-review.actions.ts` — 6 server actions (select, reject, approve, acknowledgeRiskAndApprove, requestRegeneration, returnToStrategy)
+- `modules/messaging/repositories/message-version.repo.ts` — Extended: 7 new HRB status-update and query functions
+- `modules/intelligence/types.agent.ts` — Added 6 HRB `ActivityEventType` constants (additive only)
+- `app/(workspace)/[workspaceSlug]/message-workspace/[leadId]/GeneratedVersionsPanel.tsx` — Full bridge UI: Approve button, RejectModal, OverrideReasonModal, RiskAcknowledgementModal, status indicators, critical risk banner, all-rejected prompt
+- `tests/fixtures/human-review-bridge/TC-HRB-001.json` through `TC-HRB-035.json` — 35 HRB fixtures
+- `tests/human-review-bridge.test.ts` — 100 HRB tests
+
 ## QA Verification Log
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-21 | 367/367 passed | PASSED | HRB Foundation v1.0 — full bridge UI, 100 HRB tests. ESLint 0 errors. |
 | 2026-05-21 | 267/267 passed | PASSED | Baseline before HRB code implementation. ESLint 0 errors. |
 | 2026-05-20 | 267/267 passed | PASSED | QRA Foundation v1.1 — backend + UI integration. ESLint 0 errors. |
 | 2026-05-19 | 141/141 passed | PASSED | Final QA before Phase 3B commit sequence |
 
 ## Current HEAD
 
-`4493de5` — Docs: add Phase 3B Human Review Approval Bridge implementation plan
+`ea3342c` — Phase 3B: implement Human Review Approval Bridge foundation
 
 ## Migrations Sequence
 
@@ -121,3 +136,5 @@
 | `20240022` | Phase 3B message_strategies table |
 | `20240023` | Phase 3B message_versions table |
 | `20240024` | Phase 3B quality_reviews table |
+
+Note: No new migration was added for the Human Review / Approval Bridge. The bridge uses existing `message_versions` fields and the existing `activity_events` table.

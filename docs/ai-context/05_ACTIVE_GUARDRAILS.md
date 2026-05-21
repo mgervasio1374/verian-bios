@@ -6,7 +6,7 @@ These boundaries are active and must be preserved by all future Claude sessions 
 
 | Guardrail | Reason |
 |-----------|--------|
-| Do not begin Human Review / Approval Bridge code implementation before the user explicitly issues a code implementation prompt | Design and implementation plan are locked, but coding requires a separate explicit approval |
+| Do not begin Send / Email Draft Bridge code implementation before design is approved | The Send Bridge requires its own design document and implementation plan before any code is written |
 | Do not build the Learning Agent | Not scoped — future work only |
 | Do not add external LLM calls to the Copywriting Agent v1 | Deterministic generation is a locked decision; LLM adapter is planned for a future version |
 | Do not wire email sending | Sending is a separate downstream step not owned by any v1 agent |
@@ -24,7 +24,7 @@ These boundaries are active and must be preserved by all future Claude sessions 
 
 ## Human Review / Approval Bridge Hard Stops
 
-These apply once HRB code implementation begins and must remain in force throughout.
+These remain in force now that HRB is implemented. The bridge is a state-management layer only and must stay that way.
 
 | Guardrail | Reason |
 |-----------|--------|
@@ -65,7 +65,7 @@ These remain in force now that QRA is implemented. The QRA is evaluation-only an
 | Do not write code before producing a recovery summary | Claude must confirm current state before coding after compaction |
 | Do not commit without explicit user approval | User controls all git operations |
 | Do not run `git add` or `git commit` without being asked | Staging and committing are always user-directed |
-| Do not start a new phase without approved design | Every phase must go through design → approval → implementation plan → approval → code; Send / Email Draft Bridge is next after HRB |
+| Do not start a new phase without approved design | Every phase must go through design → approval → implementation plan → approval → code; Send / Email Draft Bridge Design is next |
 | Do not modify Message Strategy Agent files unless explicitly scoped and reported | The agent is locked; changes require user approval and must be reported |
 
 ## Architecture Guardrails

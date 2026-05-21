@@ -21,6 +21,7 @@ The following documents have been approved and locked. They serve as the specifi
 | Phase 3B Quality Review Agent Foundation — Code Implementation v1.0 | Locked (`435b890`, `96f32f8`) |
 | Phase 3B Human Review / Approval Bridge — Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3b-human-review-approval-bridge-design-test-cases.md`) |
 | Phase 3B Human Review / Approval Bridge — Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b-human-review-approval-bridge-implementation-plan.md`) |
+| Phase 3B Human Review / Approval Bridge Foundation — Code Implementation v1.0 | Locked (`ea3342c`) |
 
 ## Locked Architectural Decisions
 

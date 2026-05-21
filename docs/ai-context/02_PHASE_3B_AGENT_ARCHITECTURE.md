@@ -31,7 +31,7 @@ Phase 3B is the Verian Revenue Learning Engine. It is a multi-agent pipeline tha
 │  └──────────┬───────────┘                                           │
 │             │                                                       │
 │             ▼                                                       │
-│  ┌──────────────────────┐  (Design + plan locked; code next)       │
+│  ┌──────────────────────┐  (Implemented)                           │
 │  │  Human Review /      │  Selects, rejects, approves versions     │
 │  │  Approval Bridge     │  Produces: approved message_version      │
 │  └──────────┬───────────┘                                           │
@@ -76,9 +76,9 @@ Phase 3B is the Verian Revenue Learning Engine. It is a multi-agent pipeline tha
 - **Does not:** Write copy, modify versions, approve, send, create email_drafts, create approval_requests, call external LLMs in v1
 - **Recommendation is advisory:** `is_recommended` marks the strongest version but does not approve or send it
 
-### Human Review / Approval Bridge (Design and plan locked — code implementation is next)
+### Human Review / Approval Bridge (Implemented — v1.0 committed and tagged)
 
-- **Status:** Design & Test Cases v1.0 locked. Implementation Plan v1.0 locked. Code implementation not yet started.
+- **Status:** Complete. Design, plan, and code implementation all committed. Tag: `phase-3b-human-review-bridge-v1`.
 - **Input:** `message_strategy` row, `message_version[]` rows, `quality_review[]` rows, reviewer identity, system controls
 - **Output:** Updated `approval_status` on `message_version` (`selected`, `rejected`, `approved`) + `activity_event` audit records
 - **Actions:** Select preferred version, reject version (with reason), approve version for next step, request regeneration, return to strategy
@@ -101,7 +101,7 @@ lead
  └── message_strategy          (1 active per lead at a time)
       └── message_version[]    (2–4 candidates per strategy)
            └── quality_review  (1 per version, from Quality Review Agent — implemented)
-                └── approved message_version  (1 per strategy, from Human Review Bridge — not yet built)
+                └── approved message_version  (1 per strategy, from Human Review Bridge — implemented)
 ```
 
 ## Key Design Principles
