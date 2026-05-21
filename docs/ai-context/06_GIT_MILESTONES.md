@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3b-send-bridge-v1` | Send / Email Draft Bridge Foundation complete |
 | `phase-3b-human-review-bridge-v1` | Human Review / Approval Bridge Foundation complete |
 | `phase-3b-quality-review-agent-v1.1` | QRA Foundation complete — backend + UI integration |
 | `phase-3b-quality-review-agent-v1` | QRA Foundation backend committed |
@@ -21,6 +22,7 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `fd8a4fb` | Phase 3B: implement Send Email Draft Bridge foundation | Phase 3B SEB |
 | `ea3342c` | Phase 3B: implement Human Review Approval Bridge foundation | Phase 3B HRB |
 | `4493de5` | Docs: add Phase 3B Human Review Approval Bridge implementation plan | Phase 3B Docs |
 | `96f32f8` | Phase 3B: add QRA UI integration to message workspace | Phase 3B QRA |
@@ -113,10 +115,24 @@
 - `tests/fixtures/human-review-bridge/TC-HRB-001.json` through `TC-HRB-035.json` — 35 HRB fixtures
 - `tests/human-review-bridge.test.ts` — 100 HRB tests
 
+### Phase 3B: Send / Email Draft Bridge Foundation (`fd8a4fb`)
+- `modules/messaging/send-bridge/send-bridge.types.ts` — SEB_ERROR_CODES (SEB_001–SEB_014), SEB_ACTION_TYPES (2), all interfaces
+- `modules/messaging/send-bridge/send-bridge.validation.ts` — Pure validation: `validateDraftCreationEligibility` (14 gates), helper functions
+- `modules/messaging/send-bridge/send-bridge.audit.ts` — Pure event payload builders: `buildDraftCreatedPayload`, `buildDraftCreationBlockedPayload`
+- `modules/messaging/send-bridge/send-bridge.service.ts` — Orchestration: `createEmailDraftFromApprovedVersion` (17-step flow), `getDraftStatusForVersion`
+- `modules/messaging/actions/send-bridge.actions.ts` — 1 server action: `createEmailDraftFromApprovedVersionAction`
+- `modules/messaging/repositories/email-draft.repo.ts` — Extended: added `getEmailDraftForVersion` read helper (duplicate guard via `ai_generation_metadata->>'message_version_id'`)
+- `modules/intelligence/types.agent.ts` — Added 2 SEB `ActivityEventType` constants (`SEB_ACTION_DRAFT_CREATED`, `SEB_ACTION_DRAFT_CREATION_BLOCKED`) — additive only
+- `app/(workspace)/[workspaceSlug]/message-workspace/[leadId]/GeneratedVersionsPanel.tsx` — Extended: "Create Email Draft" button, `CreateDraftConfirmModal`, draft status indicators for approved versions
+- `app/(workspace)/[workspaceSlug]/message-workspace/[leadId]/page.tsx` — Extended: `sendBridgeSvc` import, draft status loading loop, new props to panel
+- `tests/fixtures/send-bridge/TC-SEB-001.json` through `TC-SEB-035.json` — 35 SEB fixtures
+- `tests/send-bridge.test.ts` — 89 SEB tests
+
 ## QA Verification Log
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-21 | 456/456 passed | PASSED | SEB Foundation v1.0 — 89 SEB tests, 367 existing tests all pass. TypeScript clean. |
 | 2026-05-21 | 367/367 passed | PASSED | HRB Foundation v1.0 — full bridge UI, 100 HRB tests. ESLint 0 errors. |
 | 2026-05-21 | 267/267 passed | PASSED | Baseline before HRB code implementation. ESLint 0 errors. |
 | 2026-05-20 | 267/267 passed | PASSED | QRA Foundation v1.1 — backend + UI integration. ESLint 0 errors. |
@@ -124,7 +140,7 @@
 
 ## Current HEAD
 
-`ea3342c` — Phase 3B: implement Human Review Approval Bridge foundation
+`fd8a4fb` — Phase 3B: implement Send Email Draft Bridge foundation
 
 ## Migrations Sequence
 
@@ -137,4 +153,4 @@
 | `20240023` | Phase 3B message_versions table |
 | `20240024` | Phase 3B quality_reviews table |
 
-Note: No new migration was added for the Human Review / Approval Bridge. The bridge uses existing `message_versions` fields and the existing `activity_events` table.
+Note: No new migration was added for the Human Review / Approval Bridge or the Send / Email Draft Bridge. Both bridges use existing tables (`message_versions`, `email_drafts`, `approval_requests`, `activity_events`) and existing columns only. Phase 3B provenance is stored in the existing `ai_generation_metadata` jsonb column on `email_drafts`.

@@ -13,41 +13,79 @@ All deliverables committed, tagged, and QA-verified.
 | Design & Test Cases v1.0 | Locked |
 | Implementation Plan v1.0 | Locked |
 | Code implementation | Complete — `ea3342c`, tag `phase-3b-human-review-bridge-v1` |
-| QA: 367/367 tests, build, TypeScript, ESLint | PASSED |
+| QA: 367/367 tests, build, TypeScript | PASSED |
+
+## Completed — Send / Email Draft Bridge Foundation v1.0
+
+All deliverables committed, tagged, and QA-verified.
+
+| Deliverable | Status |
+|-------------|--------|
+| Design & Test Cases v1.1 | Locked (`docs/roadmap/phase-3b-send-email-draft-bridge-design-test-cases.md`) |
+| Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b-send-email-draft-bridge-implementation-plan.md`) |
+| Code implementation | Complete — `fd8a4fb`, tag `phase-3b-send-bridge-v1` |
+| QA: 456/456 tests, build, TypeScript | PASSED |
+
+### What was delivered
+
+- `send-bridge.types.ts` — SEB_ERROR_CODES (SEB_001–SEB_014), SEB_ACTION_TYPES, all interfaces
+- `send-bridge.validation.ts` — `validateDraftCreationEligibility` (14 gates, pure function)
+- `send-bridge.audit.ts` — `buildDraftCreatedPayload`, `buildDraftCreationBlockedPayload` (pure functions)
+- `send-bridge.service.ts` — `createEmailDraftFromApprovedVersion` (17-step write flow), `getDraftStatusForVersion`
+- `send-bridge.actions.ts` — `createEmailDraftFromApprovedVersionAction`
+- `email-draft.repo.ts` extended with `getEmailDraftForVersion` (duplicate guard)
+- `types.agent.ts` extended with 2 SEB event types (additive)
+- `GeneratedVersionsPanel.tsx` extended: "Create Email Draft" button, confirmation modal, draft status indicators
+- `page.tsx` extended: draft status loading for approved versions
+- 35 SEB test fixtures + 89-test suite
+
+### Key behavior
+
+The reviewer clicks **"Create Email Draft"** on an approved version card. The bridge:
+1. Validates 14 gate conditions (no writes if any fail)
+2. Creates `email_draft` as `pending_approval`
+3. Creates `approval_request` as `pending`
+4. Links `approval_request_id` to the draft
+5. Auto-resolves `approval_request` to `approved` (HRB approval is the human gate)
+6. Syncs `email_draft.status` to `approved`
+7. Supersedes prior pending drafts for the lead (runs last)
+8. Emits `SEB_ACTION_DRAFT_CREATED` activity event
+
+The draft is immediately sendable via the existing `sendApprovedDraftAction`. No second approval step. No auto-send.
 
 ## Approved Next Phase
 
-**Phase 3B Send / Email Draft Bridge — Design & Test Cases**
+**Phase 3B Event Tracking / Send Outcome Tracking — Design & Test Cases**
 
-Status: **Not started.** Design must be produced and approved before any code is written. No code must be written for the Send Bridge until this design document is locked.
+Status: **Not started.** Design must be produced and approved before any code is written.
 
-## What the Send / Email Draft Bridge Should Accomplish
+## What Event Tracking Should Accomplish
 
-The Send / Email Draft Bridge converts an `approved` `message_version` into an `email_draft` or triggers the appropriate Phase 3A send workflow. Key requirements:
+Event Tracking closes the feedback loop on the pipeline by recording what happens after an email is sent:
 
-- Consumes `message_version` records with `approval_status = approved`
-- May create `email_draft` records (this is its purpose — first bridge where email_draft creation is in scope)
-- Sending may require further human confirmation — the design must define where the final send gate lives
-- No auto-send; a human must trigger the final send action
-- The bridge should be a thin translation layer between the Phase 3B approval state and the Phase 3A sending workflow
+- Consumes `email_sends` records (the send outcome from Phase 3A)
+- Tracks opens, clicks, bounces, replies — linking them back to the `message_version` and `message_strategy` that produced the email
+- Stores outcome records that the Learning Agent can consume in a future phase
+- Does not build the Learning Agent
+- Does not modify Phase 3A send behavior
 
 ## What the Design Must Specify
 
 Before any code is written, the Design & Test Cases document must define:
 
-1. Whether `email_drafts` are created immediately on approval, or only when reviewer clicks a separate "Create Draft" action
-2. The exact schema of `email_draft` records (or whether existing Phase 3A constructs are reused)
-3. Whether Phase 3A approval workflow applies after `email_draft` creation
-4. Gate conditions that block draft creation (e.g., version already sent, strategy superseded)
-5. Test cases covering draft creation, blocking conditions, and no-auto-send guarantee
+1. What outcome events to track (open, click, bounce, reply, conversion)
+2. Where outcome data comes from (Resend webhooks already exist at `/api/webhooks/resend`; supplement as needed)
+3. Schema for outcome records (new table, or extend `activity_events`)
+4. How outcome records link back to `message_version_id` and `strategy_id`
+5. Gate conditions and idempotency rules
+6. Test cases covering all event types and link-back logic
 
 ## What the Design Must NOT Do
 
-- Do not auto-send email without explicit human action
-- Do not create a new AI agent
-- Do not modify QRA scores or HRB decisions
 - Do not build the Learning Agent
-- Do not modify the HRB `approved` state machine
+- Do not modify Phase 3A send behavior
+- Do not modify QRA, HRB, or Send Bridge logic
+- Do not auto-update strategy weights or priors
 
 ## Process Reminder
 

@@ -22,6 +22,9 @@ The following documents have been approved and locked. They serve as the specifi
 | Phase 3B Human Review / Approval Bridge — Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3b-human-review-approval-bridge-design-test-cases.md`) |
 | Phase 3B Human Review / Approval Bridge — Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b-human-review-approval-bridge-implementation-plan.md`) |
 | Phase 3B Human Review / Approval Bridge Foundation — Code Implementation v1.0 | Locked (`ea3342c`) |
+| Phase 3B Send / Email Draft Bridge — Design & Test Cases v1.1 | Locked (`docs/roadmap/phase-3b-send-email-draft-bridge-design-test-cases.md`) |
+| Phase 3B Send / Email Draft Bridge — Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b-send-email-draft-bridge-implementation-plan.md`) |
+| Phase 3B Send / Email Draft Bridge Foundation — Code Implementation v1.0 | Locked (`fd8a4fb`) |
 
 ## Locked Architectural Decisions
 
@@ -101,6 +104,25 @@ No new database table is created for the bridge in v1. All reviewer action audit
 
 If a `quality_review` record contains a risk flag with `severity === 'critical'`, approval is blocked. No override path exists in v1. This decision may only be changed under a separately approved design.
 
-### Send / Email Draft Bridge Is Future Work
+### Send / Email Draft Bridge Is Implemented (v1.0)
 
-The bridge that converts an `approved` `message_version` into an `email_draft` or send event is not part of this phase. It requires its own design document and implementation plan.
+The bridge that converts an `approved` `message_version` into a send-ready `email_draft` is now implemented and locked (`fd8a4fb`, tag `phase-3b-send-bridge-v1`).
+
+**What it does:**
+- Validates 14 gate conditions (SEB_001–SEB_014) before any DB write
+- Creates `email_draft` as `pending_approval`, then creates and auto-resolves an `approval_request` to `approved`, satisfying the Phase 3A double-gate required by `sendApprovedDraftAction`
+- Supersedes prior pending drafts for the lead (runs last, after all writes succeed)
+- Emits `SEB_ACTION_DRAFT_CREATED` or `SEB_ACTION_DRAFT_CREATION_BLOCKED` activity events
+- Triggered by an explicit "Create Email Draft" human action — not automatic on HRB approval
+
+**What it does not do:**
+- Does not call Resend API
+- Does not insert into `email_sends`
+- Does not call `sendApprovedDraftAction`
+- Does not modify `message_version` content or `approval_status`
+- Does not modify QRA records or HRB logic
+- Does not create new database tables or migrations
+- Does not call external LLMs
+- Does not trigger the Learning Agent
+
+**Sending still requires a separate explicit human action** through the existing Phase 3A send flow (`sendApprovedDraftAction`).

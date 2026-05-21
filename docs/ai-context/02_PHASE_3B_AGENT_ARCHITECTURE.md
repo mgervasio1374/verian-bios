@@ -37,9 +37,15 @@ Phase 3B is the Verian Revenue Learning Engine. It is a multi-agent pipeline tha
 │  └──────────┬───────────┘                                           │
 │             │                                                       │
 │             ▼                                                       │
+│  ┌──────────────────────┐  (Implemented)                           │
+│  │  Send / Email Draft  │  Creates send-ready email_draft          │
+│  │  Bridge              │  Produces: approved email_draft          │
+│  └──────────┬───────────┘                                           │
+│             │                                                       │
+│             ▼                                                       │
 │  ┌──────────────────────┐  (Future work)                           │
-│  │  Send + Outcome      │  Sends, tracks, logs outcomes            │
-│  │  Tracking            │                                           │
+│  │  Event Tracking /    │  Tracks sends, outcomes, responses       │
+│  │  Outcome Tracking    │                                           │
 │  └──────────┬───────────┘                                           │
 │             │                                                       │
 │             ▼                                                       │
@@ -86,7 +92,26 @@ Phase 3B is the Verian Revenue Learning Engine. It is a multi-agent pipeline tha
 - **One-approved-per-strategy:** HRB_018 blocks second approval under same strategy
 - **Audit:** Activity events written per action; no new DB table in v1
 - **Does not:** Write copy, modify QRA scores, send email, create email_drafts, create approval_requests, call external LLMs
-- **Handoff:** `approved` message_version is the handoff state for the future Send / Email Draft Bridge
+- **Handoff:** `approved` message_version is the handoff state consumed by the Send / Email Draft Bridge
+
+### Send / Email Draft Bridge (Implemented — v1.0 committed and tagged)
+
+- **Status:** Complete. Design, plan, and code implementation all committed. Tag: `phase-3b-send-bridge-v1`.
+- **Input:** `approved` `message_version`, reviewer identity, lead/contact/sender identity data
+- **Output:** `email_draft` with `status = 'approved'` + linked `approval_request` (auto-resolved) + `activity_event` audit record
+- **Trigger:** Explicit "Create Email Draft" human action in the message workspace — not automatic on HRB approval
+- **14 gate conditions:** SEB_001–SEB_014 (version approved, strategy active, contact linked, email present, not suppressed, sender identity present, no duplicate, etc.)
+- **Write sequence (safe ordering):** CREATE draft (pending_approval) → CREATE approval_request (pending) → LINK → RESOLVE approval_request (approved) → SYNC draft (approved) → SUPERSEDE prior pending drafts
+- **Double-gate:** The auto-resolved `approval_request` satisfies `sendApprovedDraftAction`'s Phase 3A double-gate check; no second manual approval step required
+- **Audit:** `SEB_ACTION_DRAFT_CREATED` or `SEB_ACTION_DRAFT_CREATION_BLOCKED` written to `activity_events`; no new DB table
+- **Does not:** Call Resend, insert `email_sends`, call `sendApprovedDraftAction`, modify `message_version`, modify QRA records, call external LLMs, create migrations
+- **Handoff:** `approved` `email_draft` is immediately sendable via the existing `sendApprovedDraftAction`; reviewer must explicitly trigger send
+
+### Event Tracking / Outcome Tracking (Future work)
+
+- **Input:** Send outcomes, response data
+- **Output:** Logged send events, outcome records
+- **Not scoped yet** — design phase is next
 
 ### Learning Agent (Future work)
 
@@ -102,6 +127,8 @@ lead
       └── message_version[]    (2–4 candidates per strategy)
            └── quality_review  (1 per version, from Quality Review Agent — implemented)
                 └── approved message_version  (1 per strategy, from Human Review Bridge — implemented)
+                     └── email_draft (approved, from Send Bridge — implemented)
+                          └── approval_request (auto-resolved, satisfies Phase 3A double-gate)
 ```
 
 ## Key Design Principles
