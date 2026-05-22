@@ -1,0 +1,14 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-032",
+    "scenario_name": "no_external_llm_call",
+    "description": "Learning Agent computes all signals. No call to external LLM. Deterministic arithmetic only."
+  },
+  "input": {
+    "events_present": true
+  },
+  "expected": {
+    "no_llm_call": true,
+    "deterministic_output": true
+  }
+}

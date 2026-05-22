@@ -1,0 +1,15 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-020",
+    "scenario_name": "malformed_composite_score_skipped",
+    "description": "Events with compositeScore='eighty' (string) are skipped for score_band grouping. No error thrown."
+  },
+  "input": {
+    "valid_score_events": 5,
+    "malformed_score_events": 3
+  },
+  "expected": {
+    "no_error_thrown": true,
+    "malformed_events_excluded_from_score_band": true
+  }
+}

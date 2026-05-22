@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-007",
+    "scenario_name": "send_failure_rate_correct",
+    "description": "30 ET_SEND_INITIATED, 28 ET_SEND_SUCCEEDED, 2 ET_SEND_FAILED. send_success_rate≈0.933, send_failure_rate≈0.067."
+  },
+  "input": {
+    "send_initiated_count": 30,
+    "send_succeeded_count": 28,
+    "send_failed_count": 2
+  },
+  "expected": {
+    "send_success_rate_numerator": 28,
+    "send_success_rate_denominator": 30,
+    "send_failure_rate_numerator": 2,
+    "send_failure_rate_denominator": 30,
+    "send_success_rate_confidence": "moderate",
+    "send_failure_rate_confidence": "moderate"
+  }
+}

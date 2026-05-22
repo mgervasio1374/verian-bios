@@ -1,0 +1,23 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-002",
+    "scenario_name": "single_send_returns_insufficient",
+    "description": "1 ET_SEND_SUCCEEDED, 1 ET_EMAIL_DELIVERED. N=1 < 5, so delivery_rate confidence = insufficient."
+  },
+  "input": {
+    "events": [
+      { "entityId": "ver-001", "eventType": "ET_SEND_INITIATED",  "strategyId": "str-001", "qualityReviewId": "qr-001", "versionLabel": "A", "compositeScore": 75, "occurredAt": "2026-05-01T10:00:00Z" },
+      { "entityId": "ver-001", "eventType": "ET_SEND_SUCCEEDED",  "strategyId": "str-001", "qualityReviewId": "qr-001", "versionLabel": "A", "compositeScore": 75, "occurredAt": "2026-05-01T10:00:01Z" },
+      { "entityId": "ver-001", "eventType": "ET_EMAIL_DELIVERED", "strategyId": "str-001", "qualityReviewId": "qr-001", "versionLabel": "A", "compositeScore": 75, "occurredAt": "2026-05-01T10:01:00Z" }
+    ],
+    "version_dimensions": {
+      "ver-001": { "versionId": "ver-001", "strategyAngle": "urgency", "messageType": "follow_up", "scoreBand": "strong", "isRecommended": true }
+    },
+    "approved_version_ids": []
+  },
+  "expected": {
+    "delivery_rate_confidence": "insufficient",
+    "delivery_rate_value": null,
+    "delivery_rate_denominator": 1
+  }
+}

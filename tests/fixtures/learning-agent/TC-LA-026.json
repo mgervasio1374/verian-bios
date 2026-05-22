@@ -1,0 +1,16 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-026",
+    "scenario_name": "learning_output_no_automation",
+    "description": "High-confidence signals are written. No strategy auto-update, no HRB gate change, no version regeneration."
+  },
+  "input": {
+    "high_confidence_signals_present": true
+  },
+  "expected": {
+    "only_learning_snapshots_written": true,
+    "no_strategy_auto_update": true,
+    "no_hrb_gate_change": true,
+    "no_version_regeneration": true
+  }
+}

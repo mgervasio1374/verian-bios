@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-013",
+    "scenario_name": "strategy_level_grouping_correct",
+    "description": "10 versions for strategy-001, 15 for strategy-002. Both grouped by strategy_id via metadata. Rates do not bleed across strategies."
+  },
+  "input": {
+    "strategy_001_succeeded_count": 10,
+    "strategy_001_delivered_count": 9,
+    "strategy_002_succeeded_count": 15,
+    "strategy_002_delivered_count": 12
+  },
+  "expected": {
+    "both_groups_calculated_independently": true,
+    "tenant_wide_denominator": 25,
+    "tenant_wide_delivered": 21
+  }
+}

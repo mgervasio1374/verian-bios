@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-008",
+    "scenario_name": "open_rate_zero_events_notes",
+    "description": "20 ET_EMAIL_DELIVERED, 0 ET_EMAIL_OPENED. Open rate = 0.0 with note (not null), since denominator >= engagement threshold (10)."
+  },
+  "input": {
+    "delivered_count": 20,
+    "opened_count": 0
+  },
+  "expected": {
+    "open_rate": 0.0,
+    "open_rate_confidence": "moderate",
+    "open_rate_notes": "Zero open events recorded. Open tracking may not be enabled in Resend.",
+    "open_rate_denominator": 20,
+    "open_rate_numerator": 0
+  }
+}

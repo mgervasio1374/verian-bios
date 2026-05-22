@@ -1,0 +1,19 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-015",
+    "scenario_name": "strategy_angle_grouping_correct",
+    "description": "20 versions with strategy_angle=urgency, 15 with strategy_angle=social_proof. Two separate angle rows produced."
+  },
+  "input": {
+    "urgency_succeeded_count": 20,
+    "urgency_delivered_count": 19,
+    "social_proof_succeeded_count": 15,
+    "social_proof_delivered_count": 11
+  },
+  "expected": {
+    "angle_urgency_delivery_rate": 0.95,
+    "angle_urgency_denominator": 20,
+    "angle_social_proof_delivery_rate": 0.7333,
+    "angle_social_proof_denominator": 15
+  }
+}

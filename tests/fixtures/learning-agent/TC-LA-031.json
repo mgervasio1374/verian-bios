@@ -1,0 +1,14 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-031",
+    "scenario_name": "all_signals_advisory_true",
+    "description": "Every LearningSignal produced by calculateAllSignals must have advisory=true."
+  },
+  "input": {
+    "send_succeeded_count": 10,
+    "delivered_count": 8
+  },
+  "expected": {
+    "all_signals_advisory_true": true
+  }
+}

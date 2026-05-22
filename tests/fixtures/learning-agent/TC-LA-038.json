@@ -1,0 +1,15 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-038",
+    "scenario_name": "tenant_scoping_enforced",
+    "description": "Tenant A events and Tenant B events mixed. Only Tenant A events appear in Tenant A signals."
+  },
+  "input": {
+    "tenant_a_send_succeeded": 10,
+    "tenant_b_send_succeeded": 5
+  },
+  "expected": {
+    "tenant_a_denominator": 10,
+    "tenant_b_events_excluded": true
+  }
+}

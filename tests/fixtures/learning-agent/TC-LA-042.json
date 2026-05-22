@@ -1,0 +1,16 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-042",
+    "scenario_name": "score_band_with_no_sends_omitted",
+    "description": "Score band 'do_not_use' has 0 Phase 3B sends. No learning_snapshots row for that band. Not an error."
+  },
+  "input": {
+    "active_bands_with_sends": ["strong", "usable"],
+    "empty_band": "do_not_use"
+  },
+  "expected": {
+    "no_snapshot_row_for_empty_band": true,
+    "active_band_signals_present": true,
+    "no_error": true
+  }
+}

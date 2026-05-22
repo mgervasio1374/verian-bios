@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-018",
+    "scenario_name": "duplicate_webhook_events_deduplicated",
+    "description": "2 ET_EMAIL_DELIVERED events for same entity_id. Delivery counted once (deduplication by entity_id)."
+  },
+  "input": {
+    "delivered_version_id": "ver-001",
+    "duplicate_delivered_event_count": 2,
+    "total_succeeded_versions": 5
+  },
+  "expected": {
+    "delivery_rate_numerator": 1,
+    "delivery_rate_denominator": 5,
+    "deduplication_confirmed": true
+  }
+}

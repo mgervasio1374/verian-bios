@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-039",
+    "scenario_name": "high_confidence_delivery_comparison",
+    "description": "score_band=excellent N=52 delivery=98%. score_band=do_not_use N=12 delivery=55%. Two signal rows with different confidence levels."
+  },
+  "input": {
+    "excellent_succeeded_count": 52,
+    "excellent_delivered_count": 51,
+    "do_not_use_succeeded_count": 12,
+    "do_not_use_delivered_count": 7
+  },
+  "expected": {
+    "excellent_delivery_rate": 0.9808,
+    "excellent_confidence": "high",
+    "do_not_use_delivery_rate": 0.5833,
+    "do_not_use_confidence": "moderate",
+    "both_signals_advisory_true": true
+  }
+}

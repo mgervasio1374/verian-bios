@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-028",
+    "scenario_name": "confidence_increases_with_sample_size",
+    "description": "Same signal at N=5 (low), N=20 (moderate), N=50 (high). Confidence labels match thresholds."
+  },
+  "input": {
+    "n5_denominator": 5,
+    "n20_denominator": 20,
+    "n50_denominator": 50
+  },
+  "expected": {
+    "n5_confidence": "low",
+    "n20_confidence": "moderate",
+    "n50_confidence": "high"
+  }
+}

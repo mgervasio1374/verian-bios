@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-009",
+    "scenario_name": "open_rate_correct_when_events_exist",
+    "description": "30 ET_EMAIL_DELIVERED, 12 distinct versions with ET_EMAIL_OPENED. open_rate=12/30=0.40, confidence=moderate."
+  },
+  "input": {
+    "delivered_count": 30,
+    "opened_count": 12
+  },
+  "expected": {
+    "open_rate": 0.4,
+    "open_rate_confidence": "moderate",
+    "open_rate_denominator": 30,
+    "open_rate_numerator": 12
+  }
+}

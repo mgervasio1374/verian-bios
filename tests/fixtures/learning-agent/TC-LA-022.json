@@ -1,0 +1,15 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-022",
+    "scenario_name": "no_qra_score_update",
+    "description": "Learning Agent computes signals. quality_reviews table is not modified. Advisory only."
+  },
+  "input": {
+    "events_present": true
+  },
+  "expected": {
+    "quality_reviews_not_modified": true,
+    "no_qra_insert": true,
+    "no_qra_update": true
+  }
+}

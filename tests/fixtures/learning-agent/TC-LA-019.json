@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-019",
+    "scenario_name": "missing_strategy_id_excluded_from_dimension_groups",
+    "description": "Some ET_ events have strategyId=null. Excluded from dimension groupings. Still counted in tenant-wide signals if entity_id present."
+  },
+  "input": {
+    "events_with_strategy_id": 8,
+    "events_without_strategy_id": 3,
+    "delivered_with_strategy": 7,
+    "delivered_without_strategy": 2
+  },
+  "expected": {
+    "tenant_wide_delivery_denominator_includes_all": true,
+    "null_strategy_versions_in_tenant_wide": true
+  }
+}

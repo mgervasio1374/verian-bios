@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-027",
+    "scenario_name": "insufficient_data_presented_honestly",
+    "description": "3 sends for social_proof angle. 2 delivered. rate=null, confidence=insufficient, notes mention N<5."
+  },
+  "input": {
+    "strategy_angle": "social_proof",
+    "send_succeeded_count": 3,
+    "delivered_count": 2
+  },
+  "expected": {
+    "delivery_rate": null,
+    "confidence": "insufficient",
+    "sample_n": 3,
+    "notes_mentions_insufficient": true
+  }
+}

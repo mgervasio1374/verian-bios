@@ -1,0 +1,21 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-014",
+    "scenario_name": "score_band_grouping_correct",
+    "description": "20 versions with score_band=strong, 10 with score_band=usable. Delivery events present for both. Two separate score_band rows produced."
+  },
+  "input": {
+    "strong_succeeded_count": 20,
+    "strong_delivered_count": 19,
+    "usable_succeeded_count": 10,
+    "usable_delivered_count": 7
+  },
+  "expected": {
+    "score_band_strong_delivery_rate": 0.95,
+    "score_band_strong_denominator": 20,
+    "score_band_usable_delivery_rate": 0.7,
+    "score_band_usable_denominator": 10,
+    "score_band_strong_confidence": "moderate",
+    "score_band_usable_confidence": "moderate"
+  }
+}

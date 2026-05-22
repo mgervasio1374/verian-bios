@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-001",
+    "scenario_name": "no_phase3b_sends_returns_insufficient_data",
+    "description": "No ET_ events for this tenant in the lookback window. All signals should be insufficient."
+  },
+  "input": {
+    "events": [],
+    "version_dimensions": {},
+    "approved_version_ids": []
+  },
+  "expected": {
+    "signals_count": 0,
+    "all_signals_insufficient": true,
+    "rate_null": true,
+    "total_sends": 0
+  }
+}

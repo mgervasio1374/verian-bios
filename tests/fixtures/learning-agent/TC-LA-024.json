@@ -1,0 +1,15 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-024",
+    "scenario_name": "no_message_version_copy_update",
+    "description": "Learning Agent computes signals. message_versions body_text and subject_line are not modified."
+  },
+  "input": {
+    "events_present": true
+  },
+  "expected": {
+    "message_versions_not_modified": true,
+    "no_body_text_change": true,
+    "no_subject_line_change": true
+  }
+}

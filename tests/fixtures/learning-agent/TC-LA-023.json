@@ -1,0 +1,15 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-023",
+    "scenario_name": "no_message_strategy_update",
+    "description": "Learning Agent computes signals. message_strategies table is not modified."
+  },
+  "input": {
+    "events_present": true
+  },
+  "expected": {
+    "message_strategies_not_modified": true,
+    "no_strategy_insert": true,
+    "no_strategy_update": true
+  }
+}

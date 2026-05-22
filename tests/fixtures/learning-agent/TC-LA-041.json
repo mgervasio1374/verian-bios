@@ -1,0 +1,15 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-041",
+    "scenario_name": "versions_outside_lookback_excluded",
+    "description": "50 sends in last 90 days. 100 sends older than 180 days. Only recent 50 contribute. N=50."
+  },
+  "input": {
+    "recent_send_count": 50,
+    "old_send_count": 100
+  },
+  "expected": {
+    "tenant_wide_send_denominator": 50,
+    "old_sends_excluded": true
+  }
+}

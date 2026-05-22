@@ -198,5 +198,9 @@ export const ActivityEventType = {
   ET_EMAIL_DELIVERY_FAILED: 'ET_EMAIL_DELIVERY_FAILED',
   ET_EMAIL_OPENED:          'ET_EMAIL_OPENED',
   ET_EMAIL_CLICKED:         'ET_EMAIL_CLICKED',
+
+  // Phase 3B — Learning Agent (additive)
+  LA_SIGNALS_COMPUTED:           'LA_SIGNALS_COMPUTED',
+  LA_SIGNALS_COMPUTATION_FAILED: 'LA_SIGNALS_COMPUTATION_FAILED',
 } as const
 export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType]

@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-011",
+    "scenario_name": "click_rate_zero_events_notes",
+    "description": "15 ET_EMAIL_DELIVERED, 0 ET_EMAIL_CLICKED. click_rate=0.0 with note (delivered >=10)."
+  },
+  "input": {
+    "delivered_count": 15,
+    "clicked_count": 0
+  },
+  "expected": {
+    "click_rate": 0.0,
+    "click_rate_confidence": "low",
+    "click_rate_notes": "Zero click events recorded. Click tracking may not be enabled in Resend.",
+    "click_rate_denominator": 15,
+    "click_rate_numerator": 0
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-016",
+    "scenario_name": "approval_to_send_rate_correct",
+    "description": "10 HRB_ACTION_APPROVED events, 6 ET_SEND_INITIATED events (4 approved versions not yet sent). approval_to_send_rate=6/10=0.60."
+  },
+  "input": {
+    "hrb_approved_count": 10,
+    "et_sent_count": 6,
+    "overlap_count": 6
+  },
+  "expected": {
+    "approval_to_send_rate": 0.6,
+    "approval_to_send_denominator": 10,
+    "approval_to_send_numerator": 6,
+    "notes_mentions_unsent": true
+  }
+}

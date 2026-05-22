@@ -5,8 +5,11 @@ import { requirePermission } from '@/lib/auth/permissions'
 import { getAgentMonitorListData } from '@/modules/intelligence/actions/agent-monitor.actions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Bot, ShieldAlert, ArrowRight } from 'lucide-react'
+import { Bot, ShieldAlert, ArrowRight, Brain } from 'lucide-react'
 import { ReconcileButton } from './ReconcileButton'
+import { RunAnalysisButton } from './RunAnalysisButton'
+import * as learningSnapshotRepo from '@/modules/messaging/repositories/learning-snapshot.repo'
+import type { LearningSnapshotRow } from '@/modules/messaging/learning-agent/learning-agent.types'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -74,6 +77,14 @@ export default async function AgentMonitorPage({ params }: PageProps) {
   requirePermission(ctx, 'crm.companies.view')
 
   const { summary, runs, controls } = await getAgentMonitorListData(ctx.tenantId)
+
+  // Load latest learning snapshots (non-fatal)
+  let learningSnapshots: LearningSnapshotRow[] = []
+  try {
+    learningSnapshots = await learningSnapshotRepo.getLatestSnapshotsForTenant(ctx.tenantId)
+  } catch {
+    // Silent — snapshots are advisory; failure must not break the agent monitor page
+  }
 
   const isAdmin = ['system', 'platform_admin', 'tenant_admin'].includes(ctx.roleSlug)
 
@@ -216,6 +227,107 @@ export default async function AgentMonitorPage({ params }: PageProps) {
                 </tbody>
               </table>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Learning Signals (Phase 3B Revenue Learning Engine) */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Brain className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm">Learning Signals — Phase 3B Revenue Learning Engine</CardTitle>
+            </div>
+            <RunAnalysisButton workspaceSlug={workspaceSlug} />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground mb-3">
+            All signals are advisory only. No automatic actions are taken based on these findings.
+          </p>
+          {learningSnapshots.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No learning analysis has been run yet. Click &quot;Run Learning Analysis&quot; to compute outcome signals from your Phase 3B send history.
+            </p>
+          ) : (
+            <>
+              {(() => {
+                const first = learningSnapshots[0]
+                const computedAt = first ? new Date(first.computed_at).toLocaleString(undefined, {
+                  month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                }) : '—'
+                const tenantWideSend = learningSnapshots.find(s => s.signal_name === 'send_success_rate' && s.dimension === 'tenant_wide')
+                const totalSends = tenantWideSend?.denominator ?? 0
+                return (
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Last computed: {computedAt} · {totalSends} Phase 3B sends analysed · {first?.lookback_days ?? 90}-day window
+                  </p>
+                )
+              })()}
+
+              {/* Advisory alerts */}
+              {learningSnapshots
+                .filter(s => {
+                  if (s.confidence === 'insufficient' || s.confidence === 'low') return false
+                  if (s.rate === null) return false
+                  if (s.signal_name === 'complaint_rate' && s.rate >= 0.005 && s.denominator >= 20) return true
+                  if (s.signal_name === 'bounce_rate' && s.rate >= 0.10 && s.denominator >= 20) return true
+                  return false
+                })
+                .map(s => (
+                  <div key={`${s.run_id}-${s.signal_name}-${s.dimension}-${s.dimension_value}`}
+                    className="mb-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+                  >
+                    ⚠ Advisory: {s.signal_name.replace(/_/g, ' ')} for {s.dimension.replace(/_/g, ' ')} ={' '}
+                    {s.dimension_value} is {((s.rate ?? 0) * 100).toFixed(1)}% — review send practices.
+                    This is informational only. No automatic action has been taken.
+                  </div>
+                ))
+              }
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b text-muted-foreground">
+                      <th className="px-3 py-2 text-left font-medium">Signal</th>
+                      <th className="px-3 py-2 text-left font-medium">Dimension</th>
+                      <th className="px-3 py-2 text-left font-medium">Value</th>
+                      <th className="px-3 py-2 text-right font-medium">Rate</th>
+                      <th className="px-3 py-2 text-right font-medium">N</th>
+                      <th className="px-3 py-2 text-left font-medium">Confidence</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {learningSnapshots.map(s => (
+                      <tr key={`${s.run_id}-${s.signal_name}-${s.dimension}-${s.dimension_value}`} className="hover:bg-muted/30">
+                        <td className="px-3 py-2 font-mono">{s.signal_name.replace(/_/g, ' ')}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{s.dimension.replace(/_/g, ' ')}</td>
+                        <td className="px-3 py-2">{s.dimension_value}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {s.confidence === 'insufficient' || s.rate === null
+                            ? <span className="text-muted-foreground">—</span>
+                            : `${(s.rate * 100).toFixed(1)}%`}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{s.sample_n}</td>
+                        <td className="px-3 py-2">
+                          <Badge
+                            variant={
+                              s.confidence === 'high'     ? 'default'  :
+                              s.confidence === 'moderate' ? 'secondary' :
+                              'outline'
+                            }
+                            className="text-xs"
+                          >
+                            {s.confidence}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

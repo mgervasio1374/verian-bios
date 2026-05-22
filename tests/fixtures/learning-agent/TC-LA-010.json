@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-010",
+    "scenario_name": "multiple_opens_same_version_deduplicated",
+    "description": "One version with 5 ET_EMAIL_OPENED events (same entity_id). 10 versions delivered. open_rate=1/10=0.10 (deduplication by entity_id)."
+  },
+  "input": {
+    "delivered_count": 10,
+    "opened_version_id": "ver-001",
+    "open_event_count_for_version": 5
+  },
+  "expected": {
+    "open_rate": 0.1,
+    "open_rate_denominator": 10,
+    "open_rate_numerator": 1,
+    "deduplication_confirmed": true
+  }
+}

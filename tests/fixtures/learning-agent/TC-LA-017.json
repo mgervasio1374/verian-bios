@@ -1,0 +1,22 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-017",
+    "scenario_name": "sent_no_webhook_unknown_outcome",
+    "description": "10 ET_SEND_SUCCEEDED, 0 delivery/bounce/complaint/delivery_failed events. unknown_outcome_rate=10/10=1.0."
+  },
+  "input": {
+    "send_succeeded_count": 10,
+    "delivered_count": 0,
+    "bounced_count": 0,
+    "complained_count": 0,
+    "delivery_failed_count": 0
+  },
+  "expected": {
+    "unknown_outcome_rate": 1.0,
+    "unknown_outcome_denominator": 10,
+    "unknown_outcome_numerator": 10,
+    "delivery_rate_denominator": 10,
+    "delivery_rate_numerator": 0,
+    "delivery_rate_confidence": "moderate"
+  }
+}

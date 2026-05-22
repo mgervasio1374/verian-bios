@@ -1,0 +1,19 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-036",
+    "scenario_name": "audit_payload_la_signals_computation_failed",
+    "description": "buildSignalsFailedPayload produces correct LA_SIGNALS_COMPUTATION_FAILED payload."
+  },
+  "input": {
+    "run_id": "run-002",
+    "tenant_id": "ten-001",
+    "error_reason": "Database timeout",
+    "triggered_by": "user-001"
+  },
+  "expected": {
+    "action_type": "LA_SIGNALS_COMPUTATION_FAILED",
+    "run_id": "run-002",
+    "error_reason": "Database timeout",
+    "triggered_by": "user-001"
+  }
+}

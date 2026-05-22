@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-030",
+    "scenario_name": "output_explainable_with_counts",
+    "description": "Delivery rate signal includes numerator, denominator, signal_name, lookback window. Fully auditable."
+  },
+  "input": {
+    "send_succeeded_count": 47,
+    "delivered_count": 44
+  },
+  "expected": {
+    "delivery_rate_numerator": 44,
+    "delivery_rate_denominator": 47,
+    "signal_name_present": "delivery_rate",
+    "advisory_true": true,
+    "all_output_fields_populated": true
+  }
+}

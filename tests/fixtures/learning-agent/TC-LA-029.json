@@ -1,0 +1,19 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-029",
+    "scenario_name": "complaint_bounce_warnings_advisory_only",
+    "description": "complaint_rate=0.12, bounce_rate=0.25, sample_n=30. Advisory signals produced. No automatic action."
+  },
+  "input": {
+    "send_succeeded_count": 30,
+    "complained_count": 4,
+    "bounced_count": 8,
+    "delivered_count": 18
+  },
+  "expected": {
+    "complaint_rate": 0.1333,
+    "bounce_rate": 0.2667,
+    "advisory_flag_true": true,
+    "no_auto_suppression": true
+  }
+}

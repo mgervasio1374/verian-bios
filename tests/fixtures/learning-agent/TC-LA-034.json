@@ -1,0 +1,16 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-034",
+    "scenario_name": "computation_idempotency",
+    "description": "Same event data passed to calculateAllSignals twice produces identical results. Pure function — no state."
+  },
+  "input": {
+    "send_succeeded_count": 10,
+    "delivered_count": 8
+  },
+  "expected": {
+    "first_run_equals_second_run": true,
+    "same_signal_count": true,
+    "same_rates": true
+  }
+}

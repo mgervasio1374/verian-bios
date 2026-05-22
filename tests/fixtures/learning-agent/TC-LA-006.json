@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-006",
+    "scenario_name": "complaint_rate_advisory_threshold",
+    "description": "20 ET_SEND_SUCCEEDED, 1 ET_EMAIL_COMPLAINED. complaint_rate=0.05 (5%), advisory alert triggered (>=0.5%)."
+  },
+  "input": {
+    "send_succeeded_count": 20,
+    "complained_count": 1,
+    "delivered_count": 19
+  },
+  "expected": {
+    "complaint_rate": 0.05,
+    "complaint_rate_confidence": "moderate",
+    "complaint_rate_denominator": 20,
+    "complaint_rate_numerator": 1
+  }
+}

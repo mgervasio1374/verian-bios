@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-012",
+    "scenario_name": "phase3a_events_excluded",
+    "description": "Phase 3A activity events (no metadata.source = phase_3b_send_bridge) must be excluded from all calculations."
+  },
+  "input": {
+    "phase3b_send_succeeded_count": 5,
+    "phase3b_delivered_count": 4,
+    "phase3a_events_count": 20
+  },
+  "expected": {
+    "tenant_wide_delivery_rate_denominator": 5,
+    "tenant_wide_delivery_rate_numerator": 4,
+    "phase3a_events_not_counted": true
+  }
+}

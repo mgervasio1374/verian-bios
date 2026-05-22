@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-033",
+    "scenario_name": "qra_recommended_version_tracking",
+    "description": "10 strategies: QRA marked is_recommended=true. 7 sent. 6 delivered. approval_to_send for recommended=7/10, delivery=6/7."
+  },
+  "input": {
+    "recommended_approved_count": 10,
+    "recommended_sent_count": 7,
+    "recommended_delivered_count": 6,
+    "non_recommended_count": 5,
+    "non_recommended_sent_count": 3,
+    "non_recommended_delivered_count": 2
+  },
+  "expected": {
+    "qra_recommended_true_delivery_rate": 0.8571,
+    "qra_recommended_false_delivery_rate": 0.6667,
+    "two_qra_dimension_rows": true
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-005",
+    "scenario_name": "high_bounce_rate_advisory_threshold",
+    "description": "25 ET_SEND_SUCCEEDED, 5 ET_EMAIL_BOUNCED, 20 ET_EMAIL_DELIVERED. bounce_rate=0.20, advisory alert triggered (>=10%, N>=20)."
+  },
+  "input": {
+    "send_succeeded_count": 25,
+    "bounced_count": 5,
+    "delivered_count": 20
+  },
+  "expected": {
+    "bounce_rate": 0.2,
+    "bounce_rate_confidence": "moderate",
+    "bounce_rate_denominator": 25,
+    "bounce_rate_numerator": 5,
+    "delivery_rate": 0.8,
+    "delivery_rate_numerator": 20
+  }
+}

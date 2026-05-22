@@ -1,0 +1,16 @@
+{
+  "meta": {
+    "test_case_id": "TC-LA-021",
+    "scenario_name": "zero_denominator_returns_null_rate",
+    "description": "A score band with 0 ET_SEND_SUCCEEDED events. delivery_rate=null, confidence=insufficient. No division by zero."
+  },
+  "input": {
+    "score_band": "do_not_use",
+    "send_succeeded_count": 0
+  },
+  "expected": {
+    "rate": null,
+    "confidence": "insufficient",
+    "no_error": true
+  }
+}
