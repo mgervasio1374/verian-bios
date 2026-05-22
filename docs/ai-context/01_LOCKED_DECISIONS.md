@@ -28,6 +28,9 @@ The following documents have been approved and locked. They serve as the specifi
 | Phase 3B Event Tracking — Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3b-event-tracking-send-outcome-design-test-cases.md`) |
 | Phase 3B Event Tracking — Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b-event-tracking-send-outcome-implementation-plan.md`) |
 | Phase 3B Event Tracking Foundation — Code Implementation v1.0 | Locked (`28db22a`) |
+| Phase 3B Learning Agent — Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3b-learning-agent-design-test-cases.md`) |
+| Phase 3B Learning Agent — Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b-learning-agent-implementation-plan.md`) |
+| Phase 3B Learning Agent Foundation — Code Implementation v1.0 | Locked (`44ea577`) |
 
 ## Locked Architectural Decisions
 
@@ -51,9 +54,36 @@ Quality scoring, best-version ranking, strategic fit evaluation, and risk flaggi
 
 No agent approves a message for sending. No agent triggers sending. Human approval and send triggering are separate, downstream steps not owned by any v1 agent.
 
-### Learning Agent Is Future Work
+### Learning Agent Foundation Is Implemented (v1.0)
 
-The Learning Agent is not part of Phase 3B Foundation. It is not to be designed or implemented until explicitly scoped.
+The Learning Agent is implemented, committed, and tagged (`44ea577`, tag `phase-3b-learning-agent-v1`). It is advisory-only and must remain that way.
+
+**What it does:**
+- On-demand trigger only in v1 — a "Run Learning Analysis" button in the agent monitor
+- Reads Phase 3B `ET_` activity events filtered to `metadata.source === 'phase_3b_send_bridge'` for all send/outcome signals
+- Reads `HRB_ACTION_APPROVED` events (by `event_type` only, no source filter) for the `approval_to_send_rate` denominator
+- Uses a 90-day lookback window (`LEARNING_AGENT_LOOKBACK_DAYS = 90`, hardcoded in v1)
+- Calculates 10 signals: `send_success_rate`, `send_failure_rate`, `delivery_rate`, `bounce_rate`, `complaint_rate`, `delivery_failure_rate`, `open_rate`, `click_rate`, `approval_to_send_rate`, `unknown_outcome_rate`
+- Groups each signal by 6 dimensions: `tenant_wide`, `message_type`, `strategy_angle`, `score_band`, `qra_recommended`, `version_label`
+- Applies minimum sample thresholds and confidence levels (`insufficient` / `low` / `moderate` / `high`) — standard thresholds for most signals, higher engagement thresholds for `open_rate` and `click_rate`
+- When `open_rate` or `click_rate` denominator ≥ threshold but zero open/click events exist, rate = 0.0 with a note — not null
+- Deduplicates events by `entity_id` per event type (multiple opens/clicks for same version = one counted)
+- Writes advisory `learning_snapshots` rows — one per signal × dimension × dimension_value combination per `run_id`
+- Emits `LA_SIGNALS_COMPUTED` on success or `LA_SIGNALS_COMPUTATION_FAILED` on failure (both non-fatal `.catch(() => {})`)
+- Displays read-only learning signals in the agent monitor settings page
+
+**What it does not do:**
+- Does not automatically change `message_strategy` parameters — advisory only
+- Does not update `quality_reviews` scores or rankings
+- Does not modify `message_version` copy (`body_text`, `subject_line`)
+- Does not create `email_drafts` or `email_sends`
+- Does not call Resend API
+- Does not call external LLMs — all arithmetic aggregation, deterministic
+- Does not auto-suppress, auto-send, auto-retry, or trigger any automated follow-up
+- Does not share data across tenants — all queries include `tenant_id =` filter
+- Does not process Phase 3A template sends — `isPhase3bSend()` gate enforced
+
+**DB enforcement:** Every `learning_snapshots` row has `advisory = true` enforced by a `CHECK (advisory = true)` DB constraint in migration `20240025`.
 
 ### body_html Is Always Null in v1
 

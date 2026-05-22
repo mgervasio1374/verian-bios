@@ -6,8 +6,6 @@ These boundaries are active and must be preserved by all future Claude sessions 
 
 | Guardrail | Reason |
 |-----------|--------|
-| Do not begin Learning Agent code before design is approved | The Learning Agent requires its own design document and implementation plan before any code is written |
-| Do not build the Learning Agent | Not scoped — future work only |
 | Do not add external LLM calls to the Copywriting Agent v1 | Deterministic generation is a locked decision; LLM adapter is planned for a future version |
 | Do not auto-send email from the Send Bridge | The bridge stops at `email_draft.status = 'approved'`; sending requires a separate explicit human action |
 | Do not call `sendApprovedDraftAction` from the Send Bridge | The bridge creates the draft; the reviewer calls send independently |
@@ -41,6 +39,27 @@ These remain in force now that Event Tracking is implemented. The layer is obser
 | ET must not emit Phase 3B activity events for Phase 3A template sends | `isPhase3bSend()` gate enforces this separation |
 | ET must not emit an activity event for `email.delivery_delayed` | Log-only in v1 |
 | ET duplicate webhook must not produce duplicate activity events | Phase 3B block runs only after the `23505` idempotency guard passes |
+
+## Learning Agent Hard Stops
+
+These remain in force now that the Learning Agent is implemented. The agent is analytics-only and advisory-only and must stay that way.
+
+| Guardrail | Reason |
+|-----------|--------|
+| LA must not modify `message_strategy` parameters | Advisory only; active learning is future work |
+| LA must not update `quality_reviews` scores or rankings | QRA is evaluation-only; locked |
+| LA must not modify `message_version` copy (`body_text`, `subject_line`) | Copy is immutable |
+| LA must not create `email_drafts` | Draft creation belongs to the Send Bridge |
+| LA must not create `email_sends` | Sends belong to the Phase 3A send flow |
+| LA must not call Resend API | Observation and analysis only |
+| LA must not call external LLMs | Deterministic arithmetic aggregation only in v1 |
+| LA must not auto-send, auto-retry, or auto-follow-up | All sending requires explicit human action |
+| LA must not share data across tenants | All queries include `tenant_id =` filter |
+| LA must not process Phase 3A template sends | `metadata.source === 'phase_3b_send_bridge'` gate required for ET_ events |
+| LA must not write `advisory = false` to `learning_snapshots` | DB `CHECK (advisory = true)` constraint enforces this |
+| LA activity event failures must never block the analysis result | All LA audit calls wrapped in `.catch(() => {})` |
+| LA must not schedule automated analysis runs in v1 | On-demand trigger only; cron deferred to v2 |
+| LA write path is `learning_snapshots` only | No other table receives writes from the Learning Agent |
 
 ## Send / Email Draft Bridge Hard Stops
 
@@ -105,7 +124,7 @@ These remain in force now that QRA is implemented. The QRA is evaluation-only an
 | Do not write code before producing a recovery summary | Claude must confirm current state before coding after compaction |
 | Do not commit without explicit user approval | User controls all git operations |
 | Do not run `git add` or `git commit` without being asked | Staging and committing are always user-directed |
-| Do not start a new phase without approved design | Every phase must go through design → approval → implementation plan → approval → code; Learning Agent Design is next |
+| Do not start a new phase without approved design | Every phase must go through design → approval → implementation plan → approval → code |
 | Do not modify Message Strategy Agent files unless explicitly scoped and reported | The agent is locked; changes require user approval and must be reported |
 
 ## Architecture Guardrails

@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3b-learning-agent-v1` | Learning Agent Foundation complete — advisory signals, learning_snapshots, agent monitor UI |
 | `phase-3b-event-tracking-v1` | Event Tracking / Send Outcome Tracking Foundation complete |
 | `phase-3b-send-bridge-v1` | Send / Email Draft Bridge Foundation complete |
 | `phase-3b-human-review-bridge-v1` | Human Review / Approval Bridge Foundation complete |
@@ -23,6 +24,10 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `44ea577` | Phase 3B: implement Learning Agent foundation | Phase 3B LA |
+| `c631fc0` | Docs: add Phase 3B Learning Agent implementation plan | Phase 3B Docs |
+| `352e602` | Docs: add Phase 3B Learning Agent design | Phase 3B Docs |
+| `5f63d94` | Docs: update AI context after Event Tracking completion | Phase 3B Docs |
 | `28db22a` | Phase 3B: implement Event Tracking Send Outcome Tracking foundation | Phase 3B ET |
 | `fd8a4fb` | Phase 3B: implement Send Email Draft Bridge foundation | Phase 3B SEB |
 | `ea3342c` | Phase 3B: implement Human Review Approval Bridge foundation | Phase 3B HRB |
@@ -143,10 +148,26 @@
 - `tests/fixtures/event-tracking/TC-ET-001.json` through `TC-ET-035.json` — 35 ET fixtures
 - `tests/event-tracking.test.ts` — 81 ET tests
 
+### Phase 3B: Learning Agent Foundation (`44ea577`)
+- `supabase/migrations/20240025_phase3b_learning_snapshots.sql` — new `learning_snapshots` table with `advisory = true` DB constraint, 10 signal names check constraint, 6 dimension values check constraint, partial unique index on `(tenant_id, run_id, signal_name, dimension, dimension_value) WHERE deleted_at IS NULL`
+- `modules/messaging/learning-agent/learning-agent.types.ts` — `LA_SIGNAL_NAMES` (10 constants), `LA_DIMENSIONS` (6 constants), `LA_CONFIDENCE` (4 constants), `LA_ACTION_TYPES` (2 constants), thresholds, all interfaces
+- `modules/messaging/learning-agent/learning-agent.confidence.ts` — `classifyConfidence`, `calculateRate`, `isEngagementSignal`, `getThresholds`
+- `modules/messaging/learning-agent/learning-agent.signals.ts` — `buildVersionEventMap`, `calculateAllSignals`, all 10 signals × 6 dimensions, pure functions
+- `modules/messaging/learning-agent/learning-agent.audit.ts` — `buildSignalsComputedPayload`, `buildSignalsFailedPayload`
+- `modules/messaging/learning-agent/learning-agent.service.ts` — `runLearningAnalysis` (9-step orchestration)
+- `modules/messaging/repositories/learning-snapshot.repo.ts` — `writeSnapshots`, `getLatestRunId`, `getSnapshotsByRunId`, `getLatestSnapshotsForTenant`, `listRunIds`, `loadPhase3bActivityEvents`, `loadVersionDimensions`
+- `modules/messaging/actions/learning-agent.actions.ts` — server action: `runLearningAnalysisAction`
+- `modules/intelligence/types.agent.ts` — added `LA_SIGNALS_COMPUTED`, `LA_SIGNALS_COMPUTATION_FAILED` (additive only)
+- `app/(workspace)/[workspaceSlug]/settings/agent-monitor/page.tsx` — extended: learning snapshots loader, Learning Signals section, advisory alert display
+- `app/(workspace)/[workspaceSlug]/settings/agent-monitor/RunAnalysisButton.tsx` — new client component: "Run Learning Analysis" button with loading state
+- `tests/fixtures/learning-agent/TC-LA-001.json` through `TC-LA-042.json` — 42 fixtures
+- `tests/learning-agent.test.ts` — 53 LA tests
+
 ## QA Verification Log
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-21 | 590/590 passed | PASSED | LA Foundation v1.0 — 53 LA tests, 537 existing tests all pass. TypeScript clean. |
 | 2026-05-21 | 537/537 passed | PASSED | ET Foundation v1.0 — 81 ET tests, 456 existing tests all pass. TypeScript clean. |
 | 2026-05-21 | 456/456 passed | PASSED | SEB Foundation v1.0 — 89 SEB tests, 367 existing tests all pass. TypeScript clean. |
 | 2026-05-21 | 367/367 passed | PASSED | HRB Foundation v1.0 — full bridge UI, 100 HRB tests. ESLint 0 errors. |
@@ -156,7 +177,7 @@
 
 ## Current HEAD
 
-`28db22a` — Phase 3B: implement Event Tracking Send Outcome Tracking foundation
+`44ea577` — Phase 3B: implement Learning Agent foundation
 
 ## Migrations Sequence
 
@@ -168,5 +189,6 @@
 | `20240022` | Phase 3B message_strategies table |
 | `20240023` | Phase 3B message_versions table |
 | `20240024` | Phase 3B quality_reviews table |
+| `20240025` | Phase 3B learning_snapshots table (Learning Agent) |
 
-Note: No new migration was added for the Human Review / Approval Bridge, the Send / Email Draft Bridge, or Event Tracking. All three use existing tables and columns only. Phase 3B provenance travels via `email_drafts.ai_generation_metadata` (jsonb) at draft creation, then is copied into `email_sends.metadata` (jsonb) at send time. Event Tracking activity events are appended to the existing `activity_events` table. No new columns or tables were created.
+Note: No new migration was added for the Human Review / Approval Bridge, the Send / Email Draft Bridge, or Event Tracking. All three use existing tables and columns only. Phase 3B provenance travels via `email_drafts.ai_generation_metadata` (jsonb) at draft creation, then is copied into `email_sends.metadata` (jsonb) at send time. Event Tracking activity events are appended to the existing `activity_events` table. The Learning Agent adds migration `20240025` for `learning_snapshots` — its only write target.

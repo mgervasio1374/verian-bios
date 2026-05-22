@@ -49,8 +49,8 @@ Phase 3B is the Verian Revenue Learning Engine. It is a multi-agent pipeline tha
 │  └──────────┬───────────┘                                           │
 │             │                                                       │
 │             ▼                                                       │
-│  ┌──────────────────────┐  (Future work)                           │
-│  │  Learning Agent      │  Learns from outcomes, updates priors    │
+│  ┌──────────────────────┐  (Implemented)                           │
+│  │  Learning Agent      │  Computes advisory outcome signals       │
 │  └──────────────────────┘                                           │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -122,11 +122,18 @@ Phase 3B is the Verian Revenue Learning Engine. It is a multi-agent pipeline tha
 - **Phase 3A template emails:** Unchanged — `source !== 'phase_3b_send_bridge'` → no ET_ activity events emitted
 - **Handoff:** `activity_events` with `ET_` types carry full Phase 3B attribution — pre-attributed feed for the Learning Agent
 
-### Learning Agent (Future work)
+### Learning Agent (Implemented — v1.0 committed and tagged)
 
-- **Input:** Send outcomes, response data, conversion data
-- **Output:** Updated priors, strategy weight adjustments
-- **Not scoped yet**
+- **Status:** Complete. Design, plan, and code implementation all committed. Tag: `phase-3b-learning-agent-v1`.
+- **Input:** Phase 3B `ET_` activity events (filtered by `metadata.source === 'phase_3b_send_bridge'`); `HRB_ACTION_APPROVED` events (for `approval_to_send_rate` denominator); `message_versions` and `quality_reviews` for dimension context
+- **Output:** `learning_snapshots` rows — one per signal × dimension × dimension_value per `run_id` — and one `LA_SIGNALS_COMPUTED` or `LA_SIGNALS_COMPUTATION_FAILED` activity event per run
+- **Trigger:** On-demand "Run Learning Analysis" button in the agent monitor settings page (v1); scheduled cron deferred to v2
+- **Lookback window:** 90 days hardcoded in v1 (`LEARNING_AGENT_LOOKBACK_DAYS = 90`)
+- **10 signals calculated:** `send_success_rate`, `send_failure_rate`, `delivery_rate`, `bounce_rate`, `complaint_rate`, `delivery_failure_rate`, `open_rate`, `click_rate`, `approval_to_send_rate`, `unknown_outcome_rate`
+- **6 dimensions:** `tenant_wide`, `message_type`, `strategy_angle`, `score_band`, `qra_recommended`, `version_label`
+- **Confidence model:** `insufficient` / `low` / `moderate` / `high` with minimum sample thresholds; standard for most signals, higher for open/click engagement signals
+- **All outputs advisory:** `advisory = true` on every `learning_snapshots` row, enforced by DB `CHECK` constraint in migration `20240025`
+- **Does not:** Change strategies, update QRA scores, modify copy, create drafts or sends, call Resend, call external LLMs, trigger auto-send or auto-retry, share data across tenants
 
 ## Data Model Relationships
 
@@ -141,6 +148,11 @@ lead
                                └── email_send → ET_ activity_events (from Event Tracking — implemented)
                                     ├── ET_SEND_INITIATED / ET_SEND_SUCCEEDED / ET_SEND_FAILED
                                     └── ET_EMAIL_DELIVERED / ET_EMAIL_BOUNCED / ET_EMAIL_OPENED / ...
+
+ET_ activity_events + HRB_ACTION_APPROVED activity_events
+ └── Learning Agent (implemented) reads events + message_versions + quality_reviews
+      └── learning_snapshots (advisory, run_id-grouped, 10 signals × 6 dimensions)
+           └── LA_SIGNALS_COMPUTED activity_event (audit trail per run)
 ```
 
 ## Key Design Principles
