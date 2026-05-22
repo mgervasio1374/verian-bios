@@ -43,9 +43,9 @@ Phase 3B is the Verian Revenue Learning Engine. It is a multi-agent pipeline tha
 │  └──────────┬───────────┘                                           │
 │             │                                                       │
 │             ▼                                                       │
-│  ┌──────────────────────┐  (Future work)                           │
+│  ┌──────────────────────┐  (Implemented)                           │
 │  │  Event Tracking /    │  Tracks sends, outcomes, responses       │
-│  │  Outcome Tracking    │                                           │
+│  │  Send Outcome Track. │  Produces: ET_ activity_events           │
 │  └──────────┬───────────┘                                           │
 │             │                                                       │
 │             ▼                                                       │
@@ -107,11 +107,20 @@ Phase 3B is the Verian Revenue Learning Engine. It is a multi-agent pipeline tha
 - **Does not:** Call Resend, insert `email_sends`, call `sendApprovedDraftAction`, modify `message_version`, modify QRA records, call external LLMs, create migrations
 - **Handoff:** `approved` `email_draft` is immediately sendable via the existing `sendApprovedDraftAction`; reviewer must explicitly trigger send
 
-### Event Tracking / Outcome Tracking (Future work)
+### Event Tracking / Send Outcome Tracking (Implemented — v1.0 committed and tagged)
 
-- **Input:** Send outcomes, response data
-- **Output:** Logged send events, outcome records
-- **Not scoped yet** — design phase is next
+- **Status:** Complete. Design, plan, and code implementation all committed. Tag: `phase-3b-event-tracking-v1`.
+- **Input:** Phase 3B send events (from `sendApprovedDraft`) and Resend webhook events (via `/api/webhooks/resend/route.ts`)
+- **Output:** `ET_` activity event rows in `activity_events` with full Phase 3B provenance; send delivery status visible in message workspace UI
+- **Internal events (from send service):** `ET_SEND_INITIATED`, `ET_SEND_SUCCEEDED`, `ET_SEND_FAILED`
+- **Webhook events (from Resend):** `ET_EMAIL_DELIVERED`, `ET_EMAIL_BOUNCED`, `ET_EMAIL_COMPLAINED`, `ET_EMAIL_DELIVERY_FAILED`, `ET_EMAIL_OPENED`, `ET_EMAIL_CLICKED`
+- **Attribution:** Phase 3B provenance (`message_version_id`, `strategy_id`, `quality_review_id`) is copied into `email_sends.metadata` at send time; webhook handler reads it back via `metadata.source === 'phase_3b_send_bridge'` detection
+- **Idempotency:** Duplicate webhook protection via existing `provider_event_id` unique constraint; Phase 3B activity event block placed after the `23505` early-return guard
+- **Non-fatal:** All activity event calls wrapped in `.catch(() => {})` — event tracking failures never block sends
+- **UI:** Message workspace version cards show Delivered / Bounced / Complaint / Send Failed / Sent badges
+- **Does not:** Update scores, modify copy, send email, call Resend, create migrations, trigger Learning Agent, auto-suppress on bounce
+- **Phase 3A template emails:** Unchanged — `source !== 'phase_3b_send_bridge'` → no ET_ activity events emitted
+- **Handoff:** `activity_events` with `ET_` types carry full Phase 3B attribution — pre-attributed feed for the Learning Agent
 
 ### Learning Agent (Future work)
 
@@ -129,6 +138,9 @@ lead
                 └── approved message_version  (1 per strategy, from Human Review Bridge — implemented)
                      └── email_draft (approved, from Send Bridge — implemented)
                           └── approval_request (auto-resolved, satisfies Phase 3A double-gate)
+                               └── email_send → ET_ activity_events (from Event Tracking — implemented)
+                                    ├── ET_SEND_INITIATED / ET_SEND_SUCCEEDED / ET_SEND_FAILED
+                                    └── ET_EMAIL_DELIVERED / ET_EMAIL_BOUNCED / ET_EMAIL_OPENED / ...
 ```
 
 ## Key Design Principles

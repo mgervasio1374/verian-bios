@@ -11,12 +11,12 @@
 | Phase | Status |
 |-------|--------|
 | Phase 3A — Core Intelligence Infrastructure | Locked. Do not modify. |
-| Phase 3B — Revenue Learning Engine | Send Bridge Foundation complete. Next: Event Tracking — Design. |
+| Phase 3B — Revenue Learning Engine | Event Tracking Foundation complete. Next: Learning Agent — Design. |
 | Phase 4 — Statement Workflow | Complete. Locked. |
 
 ## Phase 3B Foundation Status
 
-All Phase 3B foundation components through the Send / Email Draft Bridge are implemented, committed, tagged, and QA-verified.
+All Phase 3B foundation components through Event Tracking / Send Outcome Tracking are implemented, committed, tagged, and QA-verified.
 
 | Deliverable | Status |
 |-------------|--------|
@@ -31,24 +31,27 @@ All Phase 3B foundation components through the Send / Email Draft Bridge are imp
 | Human Review / Approval Bridge — Code Implementation v1.0 | Complete — committed, tagged `phase-3b-human-review-bridge-v1` |
 | Send / Email Draft Bridge — Design & Test Cases v1.1 | Locked (`docs/roadmap/phase-3b-send-email-draft-bridge-design-test-cases.md`) |
 | Send / Email Draft Bridge — Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b-send-email-draft-bridge-implementation-plan.md`) |
-| Send / Email Draft Bridge — Code Implementation v1.0 | **Complete** — committed, tagged `phase-3b-send-bridge-v1` |
-| Event Tracking / Send Outcome Tracking | Not started — design phase is next |
-| Learning Agent | Not started — future work |
+| Send / Email Draft Bridge — Code Implementation v1.0 | Complete — committed, tagged `phase-3b-send-bridge-v1` |
+| Event Tracking — Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3b-event-tracking-send-outcome-design-test-cases.md`) |
+| Event Tracking — Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b-event-tracking-send-outcome-implementation-plan.md`) |
+| Event Tracking — Code Implementation v1.0 | **Complete** — committed, tagged `phase-3b-event-tracking-v1` |
+| Learning Agent | Not started — design phase is next |
 
 ## QA Status (Last Verified)
 
-Verified after Send / Email Draft Bridge Foundation was committed and tagged. This is the current baseline.
+Verified after Event Tracking / Send Outcome Tracking Foundation was committed and tagged. This is the current baseline.
 
 ```
 npx vitest run      → PASSED
 npx next build      → PASSED
 TypeScript          → PASSED
-456/456 tests passed
+537/537 tests passed
   Message Strategy Agent tests:  41 passed
   Copywriting Agent tests:       100 passed
   Quality Review Agent tests:    126 passed
   Human Review Bridge tests:     100 passed
   Send Bridge tests:             89 passed
+  Event Tracking tests:          81 passed
 ```
 
 ## Active Routes
@@ -56,7 +59,7 @@ TypeScript          → PASSED
 | Route | Status |
 |-------|--------|
 | `/[workspaceSlug]/message-workspace` | Active |
-| `/[workspaceSlug]/message-workspace/[leadId]` | Active — includes QRA display, "Quality Review" button, HRB bridge UI, and Send Bridge "Create Email Draft" button for approved versions |
+| `/[workspaceSlug]/message-workspace/[leadId]` | Active — includes QRA display, "Quality Review" button, HRB bridge UI, Send Bridge "Create Email Draft" button, and Event Tracking delivery status badges (Delivered / Bounced / Complaint / Send Failed) |
 | `/[workspaceSlug]/settings/agent-monitor` | Active |
 | `/[workspaceSlug]/settings/system-controls` | Active |
 
@@ -66,8 +69,8 @@ Clean. No untracked or modified files outside of committed changes.
 
 ## HEAD Commit
 
-`fd8a4fb` — Phase 3B: implement Send Email Draft Bridge foundation
+`28db22a` — Phase 3B: implement Event Tracking Send Outcome Tracking foundation
 
 ## Last Updated
 
-2026-05-21 — after Send / Email Draft Bridge Foundation committed and tagged.
+2026-05-21 — after Event Tracking / Send Outcome Tracking Foundation committed and tagged.

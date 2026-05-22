@@ -6,7 +6,7 @@ These boundaries are active and must be preserved by all future Claude sessions 
 
 | Guardrail | Reason |
 |-----------|--------|
-| Do not begin Event Tracking / Outcome Tracking code before design is approved | Event Tracking requires its own design document and implementation plan before any code is written |
+| Do not begin Learning Agent code before design is approved | The Learning Agent requires its own design document and implementation plan before any code is written |
 | Do not build the Learning Agent | Not scoped — future work only |
 | Do not add external LLM calls to the Copywriting Agent v1 | Deterministic generation is a locked decision; LLM adapter is planned for a future version |
 | Do not auto-send email from the Send Bridge | The bridge stops at `email_draft.status = 'approved'`; sending requires a separate explicit human action |
@@ -23,6 +23,24 @@ These boundaries are active and must be preserved by all future Claude sessions 
 | Do not create shallow synonym rewrites | Version differentiation must be substantive across 8 measured dimensions |
 | Do not skip compliance validation | All versions must pass compliance before being stored |
 | Do not skip the differentiation validator | Pairwise differentiation is required — minimum 2 dimensions must differ between any two versions |
+
+## Event Tracking Hard Stops
+
+These remain in force now that Event Tracking is implemented. The layer is observation-only and must stay that way.
+
+| Guardrail | Reason |
+|-----------|--------|
+| ET must not update QRA scores, HRB decisions, or strategy weights | Observation only; learning belongs to the Learning Agent |
+| ET must not send email or call Resend API | Event tracking observes; it does not initiate |
+| ET must not insert into `email_sends` | Inserts come only from the Phase 3A send flow |
+| ET must not modify generated message copy (`body_text`, `subject_line`) | Copy is immutable |
+| ET must not auto-suppress on bounce | Only complaint auto-unsubscribe exists (existing Phase 3A behavior) |
+| ET must not create new DB tables or migrations | All data in existing `email_sends.metadata` and `activity_events` jsonb |
+| ET must not trigger the Learning Agent | Future work |
+| ET activity event failures must never block sends | All ET calls wrapped in `.catch(() => {})` |
+| ET must not emit Phase 3B activity events for Phase 3A template sends | `isPhase3bSend()` gate enforces this separation |
+| ET must not emit an activity event for `email.delivery_delayed` | Log-only in v1 |
+| ET duplicate webhook must not produce duplicate activity events | Phase 3B block runs only after the `23505` idempotency guard passes |
 
 ## Send / Email Draft Bridge Hard Stops
 
@@ -87,7 +105,7 @@ These remain in force now that QRA is implemented. The QRA is evaluation-only an
 | Do not write code before producing a recovery summary | Claude must confirm current state before coding after compaction |
 | Do not commit without explicit user approval | User controls all git operations |
 | Do not run `git add` or `git commit` without being asked | Staging and committing are always user-directed |
-| Do not start a new phase without approved design | Every phase must go through design → approval → implementation plan → approval → code; Event Tracking Design is next |
+| Do not start a new phase without approved design | Every phase must go through design → approval → implementation plan → approval → code; Learning Agent Design is next |
 | Do not modify Message Strategy Agent files unless explicitly scoped and reported | The agent is locked; changes require user approval and must be reported |
 
 ## Architecture Guardrails

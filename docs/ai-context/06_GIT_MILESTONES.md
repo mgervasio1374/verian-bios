@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3b-event-tracking-v1` | Event Tracking / Send Outcome Tracking Foundation complete |
 | `phase-3b-send-bridge-v1` | Send / Email Draft Bridge Foundation complete |
 | `phase-3b-human-review-bridge-v1` | Human Review / Approval Bridge Foundation complete |
 | `phase-3b-quality-review-agent-v1.1` | QRA Foundation complete — backend + UI integration |
@@ -22,6 +23,7 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `28db22a` | Phase 3B: implement Event Tracking Send Outcome Tracking foundation | Phase 3B ET |
 | `fd8a4fb` | Phase 3B: implement Send Email Draft Bridge foundation | Phase 3B SEB |
 | `ea3342c` | Phase 3B: implement Human Review Approval Bridge foundation | Phase 3B HRB |
 | `4493de5` | Docs: add Phase 3B Human Review Approval Bridge implementation plan | Phase 3B Docs |
@@ -128,10 +130,24 @@
 - `tests/fixtures/send-bridge/TC-SEB-001.json` through `TC-SEB-035.json` — 35 SEB fixtures
 - `tests/send-bridge.test.ts` — 89 SEB tests
 
+### Phase 3B: Event Tracking / Send Outcome Tracking Foundation (`28db22a`)
+- `modules/messaging/event-tracking/event-tracking.types.ts` — `ET_ACTION_TYPES` (9 constants), `EtPhase3bMeta`, `EtSendEventPayload`, `EtOutcomeEventPayload`, `SendStatusResult` interfaces
+- `modules/messaging/event-tracking/event-tracking.attribution.ts` — Pure helpers: `extractPhase3bMeta`, `isPhase3bSend`, `buildPhase3bSendMetadata`, `RESEND_EVENT_TO_ET_TYPE`
+- `modules/messaging/event-tracking/event-tracking.audit.ts` — Pure payload builders: `buildSendInitiatedPayload`, `buildSendSucceededPayload`, `buildSendFailedPayload`, `buildWebhookOutcomePayload`
+- `modules/messaging/services/email-send.service.ts` — Extended: Phase 3B metadata extraction + `email_sends.metadata` enrichment; `ET_SEND_INITIATED`, `ET_SEND_SUCCEEDED`, `ET_SEND_FAILED` emissions (all `.catch(() => {})`)
+- `modules/messaging/repositories/email-send.repo.ts` — Extended: added `getSendStatusForDraft` read helper
+- `modules/intelligence/types.agent.ts` — Added 9 ET_ `ActivityEventType` constants (additive only)
+- `app/api/webhooks/resend/route.ts` — Extended: 3 new imports; `RESEND_EVENT_TO_ET_TYPE` map; `email_sends` select expanded from `id, tenant_id, status` → `id, tenant_id, workspace_id, contact_id, company_id, draft_id, metadata, status`; Phase 3B activity event block after `23505` idempotency guard
+- `app/(workspace)/[workspaceSlug]/message-workspace/[leadId]/page.tsx` — Extended: `emailSendRepo` import, `sendStatusByDraftId` loading loop, passes new prop to panel
+- `app/(workspace)/[workspaceSlug]/message-workspace/[leadId]/GeneratedVersionsPanel.tsx` — Extended: `SendStatus` interface, `sendStatusByDraftId` prop, delivery status badges (Delivered / Bounced / Complaint / Send Failed / Sent)
+- `tests/fixtures/event-tracking/TC-ET-001.json` through `TC-ET-035.json` — 35 ET fixtures
+- `tests/event-tracking.test.ts` — 81 ET tests
+
 ## QA Verification Log
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-21 | 537/537 passed | PASSED | ET Foundation v1.0 — 81 ET tests, 456 existing tests all pass. TypeScript clean. |
 | 2026-05-21 | 456/456 passed | PASSED | SEB Foundation v1.0 — 89 SEB tests, 367 existing tests all pass. TypeScript clean. |
 | 2026-05-21 | 367/367 passed | PASSED | HRB Foundation v1.0 — full bridge UI, 100 HRB tests. ESLint 0 errors. |
 | 2026-05-21 | 267/267 passed | PASSED | Baseline before HRB code implementation. ESLint 0 errors. |
@@ -140,7 +156,7 @@
 
 ## Current HEAD
 
-`fd8a4fb` — Phase 3B: implement Send Email Draft Bridge foundation
+`28db22a` — Phase 3B: implement Event Tracking Send Outcome Tracking foundation
 
 ## Migrations Sequence
 
@@ -153,4 +169,4 @@
 | `20240023` | Phase 3B message_versions table |
 | `20240024` | Phase 3B quality_reviews table |
 
-Note: No new migration was added for the Human Review / Approval Bridge or the Send / Email Draft Bridge. Both bridges use existing tables (`message_versions`, `email_drafts`, `approval_requests`, `activity_events`) and existing columns only. Phase 3B provenance is stored in the existing `ai_generation_metadata` jsonb column on `email_drafts`.
+Note: No new migration was added for the Human Review / Approval Bridge, the Send / Email Draft Bridge, or Event Tracking. All three use existing tables and columns only. Phase 3B provenance travels via `email_drafts.ai_generation_metadata` (jsonb) at draft creation, then is copied into `email_sends.metadata` (jsonb) at send time. Event Tracking activity events are appended to the existing `activity_events` table. No new columns or tables were created.

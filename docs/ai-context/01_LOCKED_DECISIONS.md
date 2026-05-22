@@ -25,6 +25,9 @@ The following documents have been approved and locked. They serve as the specifi
 | Phase 3B Send / Email Draft Bridge — Design & Test Cases v1.1 | Locked (`docs/roadmap/phase-3b-send-email-draft-bridge-design-test-cases.md`) |
 | Phase 3B Send / Email Draft Bridge — Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b-send-email-draft-bridge-implementation-plan.md`) |
 | Phase 3B Send / Email Draft Bridge Foundation — Code Implementation v1.0 | Locked (`fd8a4fb`) |
+| Phase 3B Event Tracking — Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3b-event-tracking-send-outcome-design-test-cases.md`) |
+| Phase 3B Event Tracking — Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b-event-tracking-send-outcome-implementation-plan.md`) |
+| Phase 3B Event Tracking Foundation — Code Implementation v1.0 | Locked (`28db22a`) |
 
 ## Locked Architectural Decisions
 
@@ -126,3 +129,34 @@ The bridge that converts an `approved` `message_version` into a send-ready `emai
 - Does not trigger the Learning Agent
 
 **Sending still requires a separate explicit human action** through the existing Phase 3A send flow (`sendApprovedDraftAction`).
+
+### Event Tracking / Send Outcome Tracking Is Implemented (v1.0)
+
+The observation and attribution layer that records what happens after a Phase 3B-originated email is sent is now implemented and locked (`28db22a`, tag `phase-3b-event-tracking-v1`).
+
+**What it does:**
+- Enriches `email_sends.metadata` with Phase 3B provenance at send time (`message_version_id`, `strategy_id`, `quality_review_id`, `version_label`, `composite_score`, `approved_by`, `send_initiated_by`, `lead_id`)
+- Emits `ET_SEND_INITIATED` after the `email_send` record is created (before Resend API call)
+- Emits `ET_SEND_SUCCEEDED` after Resend accepts the email
+- Emits `ET_SEND_FAILED` after a Resend failure is recorded
+- Expands the `email_sends` select in `processResendEvent` (webhook handler) to include `metadata`, `workspace_id`, `contact_id`, `company_id`, `draft_id` — enabling Phase 3B attribution at webhook time
+- Emits `ET_EMAIL_DELIVERED`, `ET_EMAIL_BOUNCED`, `ET_EMAIL_COMPLAINED`, `ET_EMAIL_DELIVERY_FAILED`, `ET_EMAIL_OPENED`, `ET_EMAIL_CLICKED` from the webhook handler for Phase 3B-originated sends only
+- All activity event calls are non-fatal (`.catch(() => {})`) — event tracking failures never block sends
+- Duplicate webhook protection: Phase 3B block runs only after the existing `23505` idempotency guard passes
+- Surfaces delivery status (Delivered / Bounced / Complaint / Send Failed / Sent) in the message workspace version card UI
+
+**What it does not do:**
+- Does not update QRA scores, HRB decisions, or strategy weights
+- Does not send email or call Resend API beyond the existing send flow
+- Does not insert into `email_sends`
+- Does not modify generated message copy
+- Does not create new database tables or migrations
+- Does not trigger the Learning Agent
+- Does not auto-suppress bounces (complaint auto-unsubscribe is existing Phase 3A behavior, unchanged)
+- Does not change Phase 3A template email behavior
+
+**Phase 3B detection:** `email_sends.metadata.source === 'phase_3b_send_bridge'` distinguishes Phase 3B sends from Phase 3A template sends. Phase 3A sends are unaffected.
+
+**`email.delivery_delayed`** remains log-only — no activity event emitted.
+
+**Learning Agent feed:** `activity_events` rows with `ET_` event types carry full Phase 3B attribution (`message_version_id`, `strategy_id`, `quality_review_id`) — queryable by the future Learning Agent without reconstructing the join chain.
