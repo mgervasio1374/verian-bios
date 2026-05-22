@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-016",
+    "scenario_name": "attribution_traces_to_strategy_id",
+    "description": "strategy_id present and correct in ET_ event payload"
+  },
+  "input": {
+    "phase3b_meta": {
+      "source": "phase_3b_send_bridge",
+      "message_version_id": "ver-016",
+      "strategy_id": "str-016",
+      "quality_review_id": "qr-016",
+      "version_label": "A",
+      "composite_score": 77,
+      "approved_by": "user-approver",
+      "lead_id": "lead-016",
+      "send_initiated_by": "user-sender"
+    },
+    "email_send_id": "send-016",
+    "draft_id": "draft-016",
+    "resend_message_id": "resend-016",
+    "resend_event_type": "email.delivered",
+    "occurred_at": "2026-05-21T12:05:00Z"
+  },
+  "expected": {
+    "et_type": "ET_EMAIL_DELIVERED",
+    "payload_strategy_id": "str-016"
+  }
+}

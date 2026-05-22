@@ -1,0 +1,36 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-004",
+    "scenario_name": "delivery_webhook_event_captured_and_attributed",
+    "description": "ET_EMAIL_DELIVERED has full Phase 3B attribution chain"
+  },
+  "input": {
+    "resend_event_type": "email.delivered",
+    "phase3b_meta": {
+      "source": "phase_3b_send_bridge",
+      "message_version_id": "ver-004",
+      "strategy_id": "str-001",
+      "quality_review_id": "qr-004",
+      "version_label": "A",
+      "composite_score": 82,
+      "approved_by": "user-approver",
+      "lead_id": "lead-001",
+      "send_initiated_by": "user-sender"
+    },
+    "email_send_id": "send-004",
+    "draft_id": "draft-004",
+    "resend_message_id": "resend-xyz",
+    "occurred_at": "2026-05-21T12:00:00Z"
+  },
+  "expected": {
+    "et_type": "ET_EMAIL_DELIVERED",
+    "action_type": "ET_EMAIL_DELIVERED",
+    "has_message_version_id": true,
+    "has_strategy_id": true,
+    "has_quality_review_id": true,
+    "has_resend_event_type": true,
+    "resend_event_type": "email.delivered",
+    "no_score_update": true,
+    "no_new_send": true
+  }
+}

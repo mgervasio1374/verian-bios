@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { headers } from 'next/headers'
 import crypto from 'crypto'
+import * as activityEventService from '@/modules/intelligence/services/activity-event.service'
+import * as etAttribution from '@/modules/messaging/event-tracking/event-tracking.attribution'
+import * as etAudit from '@/modules/messaging/event-tracking/event-tracking.audit'
 
 // ---- Types ----
 
@@ -21,12 +24,16 @@ interface ResendWebhookPayload {
 // (they cannot override 'delivered', 'bounced', etc.).
 
 const EVENT_TO_SEND_STATUS: Record<string, string> = {
-  'email.delivered': 'delivered',
-  'email.bounced':   'bounced',
+  'email.delivered':  'delivered',
+  'email.bounced':    'bounced',
   'email.complained': 'complained',
-  'email.failed':    'failed',
+  'email.failed':     'failed',
   // email.opened, email.clicked, email.delivery_delayed → no status change
 }
+
+// Phase 3B Event Tracking: Resend event type → ET_ activity type map.
+// email.delivery_delayed is deliberately absent — log-only, no activity event.
+const RESEND_EVENT_TO_ET_TYPE = etAttribution.RESEND_EVENT_TO_ET_TYPE
 
 // ---- Signature verification ----
 // Uses Standard Webhooks HMAC-SHA256 spec (same as Resend/svix).
@@ -168,10 +175,12 @@ async function processResendEvent(
     return
   }
 
-  // Find the email_send record by provider message ID
+  // Find the email_send record by provider message ID.
+  // Select includes metadata, workspace_id, contact_id, company_id, draft_id
+  // for Phase 3B Event Tracking attribution.
   const { data: emailSend } = await supabase
     .from('email_sends')
-    .select('id, tenant_id, status')
+    .select('id, tenant_id, workspace_id, contact_id, company_id, draft_id, metadata, status')
     .eq('resend_message_id', resendMessageId)
     .single()
 
@@ -204,6 +213,37 @@ async function processResendEvent(
       return
     }
     throw new Error(`email_events insert: ${insertError.message}`)
+  }
+
+  // Phase 3B Event Tracking: emit activity event for Phase 3B-originated sends.
+  // Runs AFTER the 23505 idempotency guard — duplicate webhooks skip this block.
+  // All errors are non-fatal; webhook continues to return 200.
+  const sendMeta = (emailSend.metadata ?? {}) as Record<string, unknown>
+  if (etAttribution.isPhase3bSend(sendMeta)) {
+    const phase3bMeta = etAttribution.extractPhase3bMeta(sendMeta)
+    const etType = RESEND_EVENT_TO_ET_TYPE[eventType]
+    if (etType && phase3bMeta) {
+      activityEventService.recordActivity({
+        tenantId:     emailSend.tenant_id,
+        workspaceId:  (emailSend.workspace_id as string | null) ?? undefined,
+        eventType:    etType,
+        entityType:   'message_version',
+        entityId:     phase3bMeta.message_version_id ?? undefined,
+        eventSummary: `${etType} for version ${phase3bMeta.version_label ?? '?'}`,
+        leadId:       phase3bMeta.lead_id ?? undefined,
+        contactId:    (emailSend.contact_id as string | null) ?? undefined,
+        companyId:    (emailSend.company_id as string | null) ?? undefined,
+        metadata: etAudit.buildWebhookOutcomePayload({
+          etActionType:    etType,
+          emailSendId:     emailSend.id,
+          draftId:         (emailSend.draft_id as string | null) ?? null,
+          phase3bMeta,
+          resendMessageId,
+          resendEventType: eventType,
+          occurredAt,
+        }) as unknown as Record<string, unknown>,
+      }).catch(() => {})
+    }
   }
 
   // ---- Update email_send status (terminal delivery states only) ----

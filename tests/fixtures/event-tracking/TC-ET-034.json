@@ -1,0 +1,16 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-034",
+    "scenario_name": "ui_send_failed_badge_shown_when_send_status_failed",
+    "description": "UI: Send Failed badge rendered when email_send.status = failed"
+  },
+  "input": {
+    "draft_status": "sent",
+    "send_status": "failed"
+  },
+  "expected": {
+    "badge_label": "Send Failed",
+    "badge_color": "red",
+    "no_action_button": true
+  }
+}

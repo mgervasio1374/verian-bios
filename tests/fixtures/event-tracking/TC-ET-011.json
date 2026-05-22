@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-011",
+    "scenario_name": "missing_email_id_in_webhook_handled_safely",
+    "description": "Webhook payload has no data.email_id → cannot link to email_send → early return, no activity event"
+  },
+  "input": {
+    "resend_event_type": "email.delivered",
+    "email_id": null,
+    "note": "payload.data.email_id is absent"
+  },
+  "expected": {
+    "no_email_events_insert": true,
+    "no_et_activity_event": true,
+    "returns_200": true
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-003",
+    "scenario_name": "send_failed_event_captured",
+    "description": "ET_SEND_FAILED payload includes error_reason"
+  },
+  "input": {
+    "phase3b_meta": {
+      "source": "phase_3b_send_bridge",
+      "message_version_id": "ver-003",
+      "strategy_id": "str-001",
+      "quality_review_id": "qr-003",
+      "version_label": "A",
+      "composite_score": 80,
+      "approved_by": "user-approver",
+      "lead_id": "lead-001",
+      "send_initiated_by": "user-sender"
+    },
+    "email_send_id": "send-003",
+    "draft_id": "draft-003",
+    "to_email": "jane@example.com",
+    "error_reason": "rate_limit_exceeded"
+  },
+  "expected": {
+    "action_type": "ET_SEND_FAILED",
+    "has_error_reason": true,
+    "error_reason": "rate_limit_exceeded",
+    "no_resend_message_id": true,
+    "no_score_update": true
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-020",
+    "scenario_name": "no_new_email_sent_by_event_tracking",
+    "description": "Event tracking observes only — no new email_sends rows, no Resend calls"
+  },
+  "input": {
+    "resend_event_type": "email.delivered",
+    "phase3b_meta": {
+      "source": "phase_3b_send_bridge",
+      "message_version_id": "ver-020",
+      "strategy_id": "str-020",
+      "quality_review_id": "qr-020",
+      "version_label": "A",
+      "composite_score": 80,
+      "approved_by": "user-approver",
+      "lead_id": "lead-020",
+      "send_initiated_by": "user-sender"
+    }
+  },
+  "expected": {
+    "no_new_email_sends_insert": true,
+    "no_resend_api_call": true,
+    "observation_only": true
+  }
+}

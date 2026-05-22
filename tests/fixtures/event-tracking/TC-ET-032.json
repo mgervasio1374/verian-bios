@@ -1,0 +1,16 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-032",
+    "scenario_name": "ui_delivered_badge_shown_when_send_status_delivered",
+    "description": "UI: Delivered badge rendered when email_send.status = delivered"
+  },
+  "input": {
+    "draft_status": "sent",
+    "send_status": "delivered"
+  },
+  "expected": {
+    "badge_label": "Delivered",
+    "badge_color": "green",
+    "no_action_button": true
+  }
+}

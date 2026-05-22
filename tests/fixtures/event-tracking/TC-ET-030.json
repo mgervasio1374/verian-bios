@@ -1,0 +1,16 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-030",
+    "scenario_name": "enrichment_failure_does_not_block_send",
+    "description": "Phase 3B metadata enrichment error is caught; send still proceeds; no ET_ event emitted"
+  },
+  "input": {
+    "scenario": "enrichment_error",
+    "note": "ai_generation_metadata read throws; phase3bMeta is null; send continues"
+  },
+  "expected": {
+    "send_proceeds": true,
+    "no_et_activity_event": true,
+    "send_result_unaffected": true
+  }
+}

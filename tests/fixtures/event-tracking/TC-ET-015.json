@@ -1,0 +1,28 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-015",
+    "scenario_name": "attribution_carried_from_send_to_webhook_event",
+    "description": "Phase 3B attribution in email_sends.metadata flows correctly into ET_EMAIL_DELIVERED payload"
+  },
+  "input": {
+    "send_metadata": {
+      "source": "phase_3b_send_bridge",
+      "message_version_id": "ver-015",
+      "strategy_id": "str-015",
+      "quality_review_id": "qr-015",
+      "version_label": "A",
+      "composite_score": 85,
+      "approved_by": "user-approver",
+      "lead_id": "lead-015",
+      "send_initiated_by": "user-sender"
+    },
+    "resend_event_type": "email.delivered"
+  },
+  "expected": {
+    "et_type": "ET_EMAIL_DELIVERED",
+    "payload_message_version_id": "ver-015",
+    "payload_strategy_id": "str-015",
+    "payload_quality_review_id": "qr-015",
+    "full_attribution_correct": true
+  }
+}

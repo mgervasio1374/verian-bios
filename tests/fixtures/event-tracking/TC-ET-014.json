@@ -1,0 +1,23 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-014",
+    "scenario_name": "phase3a_template_send_does_not_emit_et_events",
+    "description": "Phase 3A template send (source !== phase_3b_send_bridge) — no ET_ activity events emitted"
+  },
+  "input": {
+    "send_metadata": {
+      "source": "lead_created_workflow",
+      "template_used": "email_close_deal",
+      "recommendation_used": "rec-001",
+      "send_initiated_by": "system",
+      "draft_id": "draft-phase3a"
+    },
+    "resend_event_type": "email.delivered"
+  },
+  "expected": {
+    "isPhase3bSend_result": false,
+    "extractPhase3bMeta_result": null,
+    "no_et_activity_event": true,
+    "phase3a_behavior_unchanged": true
+  }
+}

@@ -187,5 +187,16 @@ export const ActivityEventType = {
   // Phase 3B — Send / Email Draft Bridge (additive)
   SEB_ACTION_DRAFT_CREATED:          'SEB_ACTION_DRAFT_CREATED',
   SEB_ACTION_DRAFT_CREATION_BLOCKED: 'SEB_ACTION_DRAFT_CREATION_BLOCKED',
+
+  // Phase 3B — Event Tracking / Send Outcome Tracking (additive)
+  ET_SEND_INITIATED:        'ET_SEND_INITIATED',
+  ET_SEND_SUCCEEDED:        'ET_SEND_SUCCEEDED',
+  ET_SEND_FAILED:           'ET_SEND_FAILED',
+  ET_EMAIL_DELIVERED:       'ET_EMAIL_DELIVERED',
+  ET_EMAIL_BOUNCED:         'ET_EMAIL_BOUNCED',
+  ET_EMAIL_COMPLAINED:      'ET_EMAIL_COMPLAINED',
+  ET_EMAIL_DELIVERY_FAILED: 'ET_EMAIL_DELIVERY_FAILED',
+  ET_EMAIL_OPENED:          'ET_EMAIL_OPENED',
+  ET_EMAIL_CLICKED:         'ET_EMAIL_CLICKED',
 } as const
 export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType]

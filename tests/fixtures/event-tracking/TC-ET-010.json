@@ -1,0 +1,19 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-010",
+    "scenario_name": "unknown_webhook_event_type_safely_ignored",
+    "description": "email.delivery_delayed → log-only; no ET_ activity event; no status change"
+  },
+  "input": {
+    "resend_event_type": "email.delivery_delayed",
+    "email_send_id": "send-010",
+    "resend_message_id": "resend-delayed"
+  },
+  "expected": {
+    "et_type": null,
+    "no_et_activity_event": true,
+    "email_send_status_unchanged": true,
+    "email_events_row_written": true,
+    "returns_200": true
+  }
+}

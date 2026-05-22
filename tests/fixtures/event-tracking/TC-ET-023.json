@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-023",
+    "scenario_name": "send_initiated_by_is_reviewer_who_clicked_send",
+    "description": "send_initiated_by in payload matches ctx.userId (the reviewer who clicked Send)"
+  },
+  "input": {
+    "ctx_user_id": "user-clicker-123",
+    "phase3b_meta": {
+      "source": "phase_3b_send_bridge",
+      "message_version_id": "ver-023",
+      "strategy_id": "str-023",
+      "quality_review_id": "qr-023",
+      "version_label": "A",
+      "composite_score": 82,
+      "approved_by": "user-approver-456",
+      "lead_id": "lead-023",
+      "send_initiated_by": "user-clicker-123"
+    },
+    "email_send_id": "send-023",
+    "draft_id": "draft-023",
+    "to_email": "contact@example.com"
+  },
+  "expected": {
+    "action_type": "ET_SEND_INITIATED",
+    "send_initiated_by": "user-clicker-123",
+    "approved_by": "user-approver-456",
+    "distinct_users": true
+  }
+}

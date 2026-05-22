@@ -1,0 +1,27 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-022",
+    "scenario_name": "complaint_auto_suppresses_and_emits_activity_event",
+    "description": "ET_EMAIL_COMPLAINED emitted AND existing auto-unsubscribe behavior occurs (both effects)"
+  },
+  "input": {
+    "resend_event_type": "email.complained",
+    "phase3b_meta": {
+      "source": "phase_3b_send_bridge",
+      "message_version_id": "ver-022",
+      "strategy_id": "str-022",
+      "quality_review_id": "qr-022",
+      "version_label": "A",
+      "composite_score": 55,
+      "approved_by": "user-approver",
+      "lead_id": "lead-022",
+      "send_initiated_by": "user-sender"
+    }
+  },
+  "expected": {
+    "et_type": "ET_EMAIL_COMPLAINED",
+    "activity_event_emitted": true,
+    "auto_unsubscribe_occurs": true,
+    "both_effects_confirmed": true
+  }
+}

@@ -7,6 +7,9 @@ import * as suppressionRepo from '@/modules/messaging/repositories/suppression.r
 import * as rateLimitService from '@/modules/messaging/services/rate-limit.service'
 import * as contactRepo from '@/modules/crm/repositories/contact.repo'
 import * as approvalRepo from '@/modules/workflow/repositories/approval.repo'
+import * as activityEventService from '@/modules/intelligence/services/activity-event.service'
+import * as etAttribution from '@/modules/messaging/event-tracking/event-tracking.attribution'
+import * as etAudit from '@/modules/messaging/event-tracking/event-tracking.audit'
 
 // ---- Result type ----
 
@@ -132,14 +135,21 @@ export async function sendApprovedDraft(
   }
 
   // ---- Persist email_send (status='queued') ----
-  const draftMeta = (draft.ai_generation_metadata ?? {}) as Record<string, unknown>
-  const sendMetadata: Record<string, unknown> = {
+  const draftMeta   = (draft.ai_generation_metadata ?? {}) as Record<string, unknown>
+  // Phase 3B Event Tracking: extract provenance if this draft came from the Send Bridge.
+  const phase3bMeta = etAttribution.extractPhase3bMeta(draftMeta)
+
+  const baseMetadata: Record<string, unknown> = {
     template_used:       draftMeta.template_used       ?? null,
     recommendation_used: draftMeta.recommendation_used ?? null,
     score_snapshot:      draftMeta.score_snapshot       ?? null,
     send_initiated_by:   ctx.userId,
     draft_id:            draftId,
   }
+  // If Phase 3B send, enrich metadata with full provenance for webhook attribution.
+  const sendMetadata: Record<string, unknown> = phase3bMeta !== null
+    ? etAttribution.buildPhase3bSendMetadata(phase3bMeta, ctx.userId, (draft as unknown as Record<string, unknown>)['lead_id'] as string | null, baseMetadata)
+    : baseMetadata
 
   let emailSend
   try {
@@ -157,6 +167,27 @@ export async function sendApprovedDraft(
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'failed_to_queue_send'
     return { ok: false, reason: msg }
+  }
+
+  // Phase 3B Event Tracking: ET_SEND_INITIATED (non-fatal)
+  if (phase3bMeta !== null) {
+    activityEventService.recordActivity({
+      tenantId:     ctx.tenantId,
+      workspaceId:  ctx.workspaceId,
+      eventType:    'ET_SEND_INITIATED',
+      entityType:   'message_version',
+      entityId:     phase3bMeta.message_version_id ?? undefined,
+      eventSummary: `Send initiated for version ${phase3bMeta.version_label ?? '?'} to ${draft.to_email}`,
+      leadId:       phase3bMeta.lead_id ?? undefined,
+      contactId:    draft.contact_id ?? undefined,
+      companyId:    draft.company_id ?? undefined,
+      metadata: etAudit.buildSendInitiatedPayload({
+        emailSendId: emailSend.id,
+        draftId,
+        phase3bMeta,
+        toEmail: draft.to_email,
+      }) as unknown as Record<string, unknown>,
+    }).catch(() => {})
   }
 
   // ---- Call Resend ----
@@ -199,6 +230,28 @@ export async function sendApprovedDraft(
       }),
     ])
 
+    // Phase 3B Event Tracking: ET_SEND_SUCCEEDED (non-fatal)
+    if (phase3bMeta !== null) {
+      activityEventService.recordActivity({
+        tenantId:     ctx.tenantId,
+        workspaceId:  ctx.workspaceId,
+        eventType:    'ET_SEND_SUCCEEDED',
+        entityType:   'message_version',
+        entityId:     phase3bMeta.message_version_id ?? undefined,
+        eventSummary: `Send succeeded for version ${phase3bMeta.version_label ?? '?'}`,
+        leadId:       phase3bMeta.lead_id ?? undefined,
+        contactId:    draft.contact_id ?? undefined,
+        companyId:    draft.company_id ?? undefined,
+        metadata: etAudit.buildSendSucceededPayload({
+          emailSendId:     emailSend.id,
+          draftId,
+          phase3bMeta,
+          toEmail:         draft.to_email,
+          resendMessageId,
+        }) as unknown as Record<string, unknown>,
+      }).catch(() => {})
+    }
+
     return { ok: true, sendId: emailSend.id, resendMessageId }
   } catch (err) {
     // ---- Failure path ----
@@ -210,6 +263,28 @@ export async function sendApprovedDraft(
       errorMessage,
       metadata:      { ...sendMetadata, error: errorMessage },
     })
+
+    // Phase 3B Event Tracking: ET_SEND_FAILED (non-fatal)
+    if (phase3bMeta !== null) {
+      activityEventService.recordActivity({
+        tenantId:     ctx.tenantId,
+        workspaceId:  ctx.workspaceId,
+        eventType:    'ET_SEND_FAILED',
+        entityType:   'message_version',
+        entityId:     phase3bMeta.message_version_id ?? undefined,
+        eventSummary: `Send failed for version ${phase3bMeta.version_label ?? '?'}: ${errorMessage}`,
+        leadId:       phase3bMeta.lead_id ?? undefined,
+        contactId:    draft.contact_id ?? undefined,
+        companyId:    draft.company_id ?? undefined,
+        metadata: etAudit.buildSendFailedPayload({
+          emailSendId:  emailSend.id,
+          draftId,
+          phase3bMeta,
+          toEmail:      draft.to_email,
+          errorReason:  errorMessage,
+        }) as unknown as Record<string, unknown>,
+      }).catch(() => {})
+    }
 
     return { ok: false, reason: `send_failed: ${errorMessage}` }
   }

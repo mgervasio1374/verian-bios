@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-017",
+    "scenario_name": "attribution_traces_to_quality_review_id",
+    "description": "quality_review_id present and correct in ET_ event payload"
+  },
+  "input": {
+    "phase3b_meta": {
+      "source": "phase_3b_send_bridge",
+      "message_version_id": "ver-017",
+      "strategy_id": "str-017",
+      "quality_review_id": "qr-017",
+      "version_label": "B",
+      "composite_score": 65,
+      "approved_by": "user-approver",
+      "lead_id": "lead-017",
+      "send_initiated_by": "user-sender"
+    },
+    "email_send_id": "send-017",
+    "draft_id": "draft-017",
+    "resend_message_id": "resend-017",
+    "resend_event_type": "email.delivered",
+    "occurred_at": "2026-05-21T12:06:00Z"
+  },
+  "expected": {
+    "et_type": "ET_EMAIL_DELIVERED",
+    "payload_quality_review_id": "qr-017"
+  }
+}

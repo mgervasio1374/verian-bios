@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-025",
+    "scenario_name": "tenant_and_workspace_scoped_correctly",
+    "description": "All ET_ events scoped to correct tenant_id and workspace_id — no cross-tenant contamination"
+  },
+  "input": {
+    "tenant_id": "ten-001",
+    "workspace_id": "ws-001",
+    "phase3b_meta": {
+      "source": "phase_3b_send_bridge",
+      "message_version_id": "ver-025",
+      "strategy_id": "str-025",
+      "quality_review_id": "qr-025",
+      "version_label": "A",
+      "composite_score": 82,
+      "approved_by": "user-approver",
+      "lead_id": "lead-025",
+      "send_initiated_by": "user-sender"
+    },
+    "email_send_id": "send-025",
+    "draft_id": "draft-025",
+    "to_email": "contact@example.com"
+  },
+  "expected": {
+    "activity_event_tenant_id": "ten-001",
+    "activity_event_workspace_id": "ws-001",
+    "no_cross_tenant_contamination": true
+  }
+}

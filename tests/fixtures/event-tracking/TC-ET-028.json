@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-028",
+    "scenario_name": "is_phase3b_send_returns_false_for_non_phase3b_metadata",
+    "description": "isPhase3bSend correctly returns false for null or non-phase3b metadata"
+  },
+  "input": {
+    "metadata_cases": [
+      null,
+      {},
+      { "source": "other_source" },
+      { "source": "lead_created_workflow" }
+    ]
+  },
+  "expected": {
+    "all_return_false": true
+  }
+}

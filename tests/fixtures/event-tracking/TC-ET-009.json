@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-009",
+    "scenario_name": "duplicate_webhook_ignored_idempotency",
+    "description": "Duplicate webhook (same provider_event_id) → 23505 early return → no duplicate activity event"
+  },
+  "input": {
+    "scenario": "duplicate",
+    "provider_event_id": "evt-dup-001",
+    "resend_event_type": "email.delivered",
+    "email_send_id": "send-009",
+    "note": "Second delivery of same webhook-id causes 23505 on email_events insert. The Phase 3B block is after the 23505 guard and must not be reached."
+  },
+  "expected": {
+    "email_events_count": 1,
+    "activity_events_count": 1,
+    "no_duplicate_activity_event": true,
+    "early_return_on_duplicate": true
+  }
+}

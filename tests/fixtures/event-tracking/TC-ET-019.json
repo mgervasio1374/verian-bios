@@ -1,0 +1,28 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-019",
+    "scenario_name": "no_score_update_on_open_event",
+    "description": "QRA/HRB/version records unchanged after ET_EMAIL_OPENED"
+  },
+  "input": {
+    "resend_event_type": "email.opened",
+    "phase3b_meta": {
+      "source": "phase_3b_send_bridge",
+      "message_version_id": "ver-019",
+      "strategy_id": "str-019",
+      "quality_review_id": "qr-019",
+      "version_label": "A",
+      "composite_score": 78,
+      "approved_by": "user-approver",
+      "lead_id": "lead-019",
+      "send_initiated_by": "user-sender"
+    }
+  },
+  "expected": {
+    "et_type": "ET_EMAIL_OPENED",
+    "quality_review_unchanged": true,
+    "message_version_unchanged": true,
+    "no_score_update": true,
+    "no_learning_agent_update": true
+  }
+}

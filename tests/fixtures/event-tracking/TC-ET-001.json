@@ -1,0 +1,36 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-001",
+    "scenario_name": "send_initiated_event_captured_for_phase3b_send",
+    "description": "ET_SEND_INITIATED payload has full Phase 3B attribution for a Phase 3B-originated send"
+  },
+  "input": {
+    "phase3b_meta": {
+      "source": "phase_3b_send_bridge",
+      "message_version_id": "ver-001",
+      "strategy_id": "str-001",
+      "quality_review_id": "qr-001",
+      "version_label": "A",
+      "composite_score": 82,
+      "approved_by": "user-approver",
+      "lead_id": "lead-001",
+      "send_initiated_by": "user-sender"
+    },
+    "email_send_id": "send-001",
+    "draft_id": "draft-001",
+    "to_email": "jane@example.com"
+  },
+  "expected": {
+    "action_type": "ET_SEND_INITIATED",
+    "has_message_version_id": true,
+    "has_strategy_id": true,
+    "has_quality_review_id": true,
+    "has_version_label": true,
+    "has_composite_score": true,
+    "has_approved_by": true,
+    "has_send_initiated_by": true,
+    "no_resend_message_id": true,
+    "no_error_reason": true,
+    "no_score_update": true
+  }
+}

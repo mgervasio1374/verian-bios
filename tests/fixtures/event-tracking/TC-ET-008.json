@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-008",
+    "scenario_name": "click_event_captured_no_status_change",
+    "description": "ET_EMAIL_CLICKED captured; email_send.status does not change"
+  },
+  "input": {
+    "resend_event_type": "email.clicked",
+    "phase3b_meta": {
+      "source": "phase_3b_send_bridge",
+      "message_version_id": "ver-008",
+      "strategy_id": "str-001",
+      "quality_review_id": "qr-008",
+      "version_label": "B",
+      "composite_score": 78,
+      "approved_by": "user-approver",
+      "lead_id": "lead-001",
+      "send_initiated_by": "user-sender"
+    },
+    "email_send_id": "send-008",
+    "draft_id": "draft-008",
+    "resend_message_id": "resend-click",
+    "occurred_at": "2026-05-21T12:04:00Z"
+  },
+  "expected": {
+    "et_type": "ET_EMAIL_CLICKED",
+    "action_type": "ET_EMAIL_CLICKED",
+    "email_send_status_unchanged": true,
+    "no_score_update": true
+  }
+}

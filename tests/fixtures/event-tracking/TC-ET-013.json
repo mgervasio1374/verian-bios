@@ -1,0 +1,15 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-013",
+    "scenario_name": "malformed_webhook_payload_rejected_safely",
+    "description": "POST body is not valid JSON → 400 response, no rows inserted"
+  },
+  "input": {
+    "raw_body": "not-valid-json{{",
+    "note": "Malformed JSON causes parse failure"
+  },
+  "expected": {
+    "http_status": 400,
+    "no_rows_inserted": true
+  }
+}

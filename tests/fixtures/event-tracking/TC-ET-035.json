@@ -1,0 +1,24 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-035",
+    "scenario_name": "activity_event_query_returns_full_chain_for_one_send",
+    "description": "activity_events query by message_version_id returns all ET_ events in attribution chain"
+  },
+  "input": {
+    "message_version_id": "ver-035",
+    "events_emitted": [
+      "ET_SEND_INITIATED",
+      "ET_SEND_SUCCEEDED",
+      "ET_EMAIL_DELIVERED",
+      "ET_EMAIL_OPENED"
+    ]
+  },
+  "expected": {
+    "all_events_attributed_to_version_id": true,
+    "all_events_have_strategy_id": true,
+    "all_events_have_quality_review_id": true,
+    "events_queryable_by_entity_id": true,
+    "no_learning_agent_update": true,
+    "notes": "Pre-attributed feed ready for future Learning Agent consumption"
+  }
+}

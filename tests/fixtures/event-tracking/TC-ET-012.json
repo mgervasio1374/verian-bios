@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-012",
+    "scenario_name": "webhook_no_matching_email_send_handled_safely",
+    "description": "resend_message_id matches no email_sends record → warning logged → no activity event → 200"
+  },
+  "input": {
+    "resend_event_type": "email.delivered",
+    "resend_message_id": "resend-unknown-id",
+    "note": "No email_sends row matches this resend_message_id"
+  },
+  "expected": {
+    "no_email_events_insert": true,
+    "no_et_activity_event": true,
+    "returns_200": true
+  }
+}

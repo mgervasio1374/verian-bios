@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-026",
+    "scenario_name": "extract_phase3b_meta_returns_null_for_phase3a_source",
+    "description": "extractPhase3bMeta returns null when source !== phase_3b_send_bridge"
+  },
+  "input": {
+    "ai_generation_metadata": {
+      "source": "lead_created_workflow",
+      "template_used": "email_close_deal",
+      "recommendation_used": "rec-001"
+    }
+  },
+  "expected": {
+    "extract_result": null,
+    "isPhase3bSend_result": false
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-027",
+    "scenario_name": "extract_phase3b_meta_returns_null_for_null_input",
+    "description": "extractPhase3bMeta returns null when input is null or undefined"
+  },
+  "input": {
+    "ai_generation_metadata": null
+  },
+  "expected": {
+    "extract_result": null,
+    "isPhase3bSend_result": false
+  }
+}

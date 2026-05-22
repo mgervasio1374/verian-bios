@@ -5,6 +5,7 @@ import * as strategySvc from '@/modules/messaging/strategy/message-strategy.serv
 import * as copySvc from '@/modules/messaging/copywriting/copywriting-agent.service'
 import * as qraSvc from '@/modules/messaging/quality-review/quality-review-agent.service'
 import * as sendBridgeSvc from '@/modules/messaging/send-bridge/send-bridge.service'
+import * as emailSendRepo from '@/modules/messaging/repositories/email-send.repo'
 import { StrategyReviewPanel } from './StrategyReviewPanel'
 import { GeneratedVersionsPanel } from './GeneratedVersionsPanel'
 
@@ -81,6 +82,18 @@ export default async function MessageWorkspacePage({ params }: PageProps) {
     }
   }
 
+  // Load send delivery status for sent draft versions (Event Tracking UI)
+  const sendStatusByDraftId = new Map<string, { sendId: string; sendStatus: string }>()
+  for (const [, draftStatus] of draftStatusByVersionId) {
+    if (draftStatus.status === 'sent') {
+      const sendStatus = await emailSendRepo.getSendStatusForDraft(draftStatus.draftId, ctx.tenantId)
+        .catch(() => null)
+      if (sendStatus) {
+        sendStatusByDraftId.set(draftStatus.draftId, sendStatus)
+      }
+    }
+  }
+
   const contactName = contact
     ? [contact.first_name, contact.last_name].filter(Boolean).join(' ') || null
     : null
@@ -146,6 +159,7 @@ export default async function MessageWorkspacePage({ params }: PageProps) {
             blockedReason={generateGate.allowed ? null : (generateGate.reason ?? null)}
             qualityReviews={qualityReviews}
             draftStatusByVersionId={draftStatusByVersionId}
+            sendStatusByDraftId={sendStatusByDraftId}
             contactName={contactName}
             contactEmail={contact?.email ?? null}
           />

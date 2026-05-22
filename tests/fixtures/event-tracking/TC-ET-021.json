@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-021",
+    "scenario_name": "bounce_does_not_auto_suppress_contact",
+    "description": "ET_EMAIL_BOUNCED — unsubscribes table NOT updated; no auto-suppression"
+  },
+  "input": {
+    "resend_event_type": "email.bounced",
+    "phase3b_meta": {
+      "source": "phase_3b_send_bridge",
+      "message_version_id": "ver-021",
+      "strategy_id": "str-021",
+      "quality_review_id": null,
+      "version_label": "A",
+      "composite_score": 70,
+      "approved_by": "user-approver",
+      "lead_id": "lead-021",
+      "send_initiated_by": "user-sender"
+    }
+  },
+  "expected": {
+    "et_type": "ET_EMAIL_BOUNCED",
+    "unsubscribes_table_unchanged": true,
+    "contact_do_not_contact_unchanged": true
+  }
+}

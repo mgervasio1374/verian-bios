@@ -1,0 +1,27 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-029",
+    "scenario_name": "resend_event_to_et_type_covers_6_events_delivery_delayed_absent",
+    "description": "RESEND_EVENT_TO_ET_TYPE maps 6 events; email.delivery_delayed is deliberately absent"
+  },
+  "input": {
+    "events_that_must_map": [
+      "email.delivered",
+      "email.bounced",
+      "email.complained",
+      "email.failed",
+      "email.opened",
+      "email.clicked"
+    ],
+    "events_that_must_not_map": [
+      "email.delivery_delayed",
+      "email.sent",
+      "unknown.event"
+    ]
+  },
+  "expected": {
+    "mapped_count": 6,
+    "delivery_delayed_absent": true,
+    "all_6_map_to_et_type": true
+  }
+}

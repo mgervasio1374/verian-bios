@@ -1,0 +1,16 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-033",
+    "scenario_name": "ui_bounced_badge_shown_when_send_status_bounced",
+    "description": "UI: Bounced badge rendered when email_send.status = bounced"
+  },
+  "input": {
+    "draft_status": "sent",
+    "send_status": "bounced"
+  },
+  "expected": {
+    "badge_label": "Bounced",
+    "badge_color": "amber",
+    "no_action_button": true
+  }
+}

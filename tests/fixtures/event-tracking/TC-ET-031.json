@@ -1,0 +1,16 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-031",
+    "scenario_name": "activity_event_failure_does_not_block_send",
+    "description": "Activity event emission error is caught via .catch(() => {}); send result is unaffected"
+  },
+  "input": {
+    "scenario": "activity_event_error",
+    "note": "activityEventService.recordActivity throws; .catch swallows; send returns ok:true"
+  },
+  "expected": {
+    "send_result_ok": true,
+    "send_result_unchanged": true,
+    "error_swallowed": true
+  }
+}

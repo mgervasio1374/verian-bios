@@ -99,6 +99,31 @@ export async function createEmailSend(
   return data
 }
 
+// ---- Phase 3B Event Tracking: delivery status lookup for UI ----
+
+/**
+ * Returns the most recent send attempt for a given draft.
+ * Used by the message workspace page loader to surface delivery status
+ * (delivered, bounced, complained, etc.) in the version card UI.
+ * Read-only — does not modify any data.
+ */
+export async function getSendStatusForDraft(
+  draftId:  string,
+  tenantId: string
+): Promise<{ sendId: string; sendStatus: string } | null> {
+  const supabase = createSupabaseServiceClient()
+  const { data } = await supabase
+    .from('email_sends')
+    .select('id, status')
+    .eq('draft_id', draftId)
+    .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (!data) return null
+  return { sendId: data.id, sendStatus: data.status }
+}
+
 // ---- Update ----
 
 interface UpdateEmailSendInput {

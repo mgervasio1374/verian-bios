@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-006",
+    "scenario_name": "complaint_webhook_triggers_auto_unsubscribe_and_activity_event",
+    "description": "ET_EMAIL_COMPLAINED emitted; existing Phase 3A auto-unsubscribe behavior unchanged"
+  },
+  "input": {
+    "resend_event_type": "email.complained",
+    "phase3b_meta": {
+      "source": "phase_3b_send_bridge",
+      "message_version_id": "ver-006",
+      "strategy_id": "str-001",
+      "quality_review_id": "qr-006",
+      "version_label": "A",
+      "composite_score": 60,
+      "approved_by": "user-approver",
+      "lead_id": "lead-001",
+      "send_initiated_by": "user-sender"
+    },
+    "email_send_id": "send-006",
+    "draft_id": "draft-006",
+    "resend_message_id": "resend-complaint",
+    "occurred_at": "2026-05-21T12:02:00Z"
+  },
+  "expected": {
+    "et_type": "ET_EMAIL_COMPLAINED",
+    "action_type": "ET_EMAIL_COMPLAINED",
+    "existing_auto_unsubscribe_unchanged": true,
+    "no_score_update": true
+  }
+}

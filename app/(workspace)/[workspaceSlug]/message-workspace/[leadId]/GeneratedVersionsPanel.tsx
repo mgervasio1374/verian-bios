@@ -35,6 +35,11 @@ interface DraftStatus {
   status:  string
 }
 
+interface SendStatus {
+  sendId:     string
+  sendStatus: string
+}
+
 interface GeneratedVersionsPanelProps {
   versions:                MessageVersion[]
   strategyId:              string | null
@@ -45,6 +50,7 @@ interface GeneratedVersionsPanelProps {
   qualityReviews?:         QualityReview[]
   onRunQualityReview?:     () => void
   draftStatusByVersionId?: Map<string, DraftStatus>
+  sendStatusByDraftId?:    Map<string, SendStatus>
   contactName?:            string | null
   contactEmail?:           string | null
 }
@@ -323,6 +329,7 @@ function VersionCard({
   onStatusChange,
   qualityReview,
   draftStatus,
+  sendStatus,
   contactName,
   contactEmail,
 }: {
@@ -332,6 +339,7 @@ function VersionCard({
   onStatusChange: () => void
   qualityReview?: QualityReview
   draftStatus?:   DraftStatus | null
+  sendStatus?:    SendStatus | null
   contactName?:   string | null
   contactEmail?:  string | null
 }) {
@@ -534,13 +542,40 @@ function VersionCard({
             </div>
           )}
 
-          {/* Draft status: sent */}
-          {draftStatus?.status === 'sent' && (
-            <div className="flex items-center gap-1.5 text-xs text-blue-700">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Sent
-            </div>
-          )}
+          {/* Draft status: sent — show delivery status from event tracking */}
+          {draftStatus?.status === 'sent' && (() => {
+            const ss = sendStatus?.sendStatus
+            if (ss === 'delivered') return (
+              <div className="flex items-center gap-1.5 text-xs text-green-700">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Delivered
+              </div>
+            )
+            if (ss === 'bounced') return (
+              <div className="flex items-center gap-1.5 text-xs text-amber-700">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Bounced
+              </div>
+            )
+            if (ss === 'complained') return (
+              <div className="flex items-center gap-1.5 text-xs text-red-700">
+                <XCircle className="h-3.5 w-3.5" />
+                Complaint
+              </div>
+            )
+            if (ss === 'failed') return (
+              <div className="flex items-center gap-1.5 text-xs text-red-700">
+                <XCircle className="h-3.5 w-3.5" />
+                Send Failed
+              </div>
+            )
+            return (
+              <div className="flex items-center gap-1.5 text-xs text-blue-700">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Sent ✓
+              </div>
+            )
+          })()}
 
           {/* Draft status: pending_approval (transient) */}
           {draftStatus?.status === 'pending_approval' && (
@@ -593,6 +628,7 @@ export function GeneratedVersionsPanel({
   qualityReviews = [],
   onRunQualityReview,
   draftStatusByVersionId,
+  sendStatusByDraftId,
   contactName,
   contactEmail,
 }: GeneratedVersionsPanelProps) {
@@ -726,7 +762,12 @@ export function GeneratedVersionsPanel({
       {/* Version cards */}
       {activeVersions.length > 0 && (
         <div className="space-y-3">
-          {activeVersions.map(v => (
+          {activeVersions.map(v => {
+            const draftStatus = draftStatusByVersionId?.get(v.id) ?? null
+            const sendStatus = draftStatus?.draftId
+              ? sendStatusByDraftId?.get(draftStatus.draftId) ?? null
+              : null
+            return (
             <VersionCard
               key={v.id}
               version={v}
@@ -734,11 +775,13 @@ export function GeneratedVersionsPanel({
               workspaceSlug={workspaceSlug}
               onStatusChange={handleStatusChange}
               qualityReview={reviewsByVersionId.get(v.id)}
-              draftStatus={draftStatusByVersionId?.get(v.id) ?? null}
+              draftStatus={draftStatus}
+              sendStatus={sendStatus}
               contactName={contactName}
               contactEmail={contactEmail}
             />
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

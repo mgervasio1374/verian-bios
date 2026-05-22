@@ -1,0 +1,32 @@
+{
+  "meta": {
+    "test_case_id": "TC-ET-005",
+    "scenario_name": "bounce_webhook_event_captured_no_auto_suppression",
+    "description": "ET_EMAIL_BOUNCED captured; no unsubscribes upsert on bounce"
+  },
+  "input": {
+    "resend_event_type": "email.bounced",
+    "phase3b_meta": {
+      "source": "phase_3b_send_bridge",
+      "message_version_id": "ver-005",
+      "strategy_id": "str-001",
+      "quality_review_id": "qr-005",
+      "version_label": "A",
+      "composite_score": 70,
+      "approved_by": "user-approver",
+      "lead_id": "lead-001",
+      "send_initiated_by": "user-sender"
+    },
+    "email_send_id": "send-005",
+    "draft_id": "draft-005",
+    "resend_message_id": "resend-bounce",
+    "occurred_at": "2026-05-21T12:01:00Z"
+  },
+  "expected": {
+    "et_type": "ET_EMAIL_BOUNCED",
+    "action_type": "ET_EMAIL_BOUNCED",
+    "no_auto_suppression": true,
+    "no_unsubscribes_upsert": true,
+    "no_score_update": true
+  }
+}
