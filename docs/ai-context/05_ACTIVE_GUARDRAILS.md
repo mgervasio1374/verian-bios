@@ -58,8 +58,26 @@ These remain in force now that the Learning Agent is implemented. The agent is a
 | LA must not process Phase 3A template sends | `metadata.source === 'phase_3b_send_bridge'` gate required for ET_ events |
 | LA must not write `advisory = false` to `learning_snapshots` | DB `CHECK (advisory = true)` constraint enforces this |
 | LA activity event failures must never block the analysis result | All LA audit calls wrapped in `.catch(() => {})` |
-| LA must not schedule automated analysis runs in v1 | On-demand trigger only; cron deferred to v2 |
 | LA write path is `learning_snapshots` only | No other table receives writes from the Learning Agent |
+| Scheduled LA runs must remain advisory-only | `scheduled-learning-agent-run` calls the same `runLearningAnalysis` service as the manual button; advisory = true enforced by existing DB constraint |
+
+## Phase 3B.1 Stabilization Hard Stops
+
+These remain in force now that Phase 3B.1 Stabilization / Hardening is implemented.
+
+| Guardrail | Reason |
+|-----------|--------|
+| SEB reconciler must not auto-resolve `approval_requests` | State A and B are report-only; resolving approval_requests autonomously requires human judgment |
+| SEB reconciler must not create `email_drafts` | Reconciler reads and (for State C) soft-deletes old drafts only; no new draft creation |
+| SEB reconciler must not create `email_sends` | `email_sends` rows come only from the Phase 3A send flow |
+| SEB reconciler must not call Resend API or `sendApprovedDraftAction` | Reconciler is a diagnostic tool; no send triggering |
+| SEB reconciler must not modify `message_version` content | Copy is immutable; reconciler only reads drafts |
+| Scheduled Learning Agent must not change strategy selection parameters | `scheduled-learning-agent-run` is advisory only; same guardrails as manual run |
+| Scheduled Learning Agent must not update QRA scores, rankings, or risk flags | Advisory observation only |
+| Operational Health card must not include action buttons | The card is read-only and informational; no pipeline state modifications from the UI |
+| JSONB metadata in `email_sends` must not be removed | FK columns are additive; old JSONB-only Phase 3B sends use the JSONB fallback path |
+| Phase 3A template send behavior must remain unchanged | Explicit FK columns default to null for Phase 3A sends; `resolvePhase3bAttributionFromSend` returns null |
+| `types/database.ts` must reflect `message_version_id` and `strategy_id` as nullable | Both are optional on `email_sends.Insert` and nullable on `.Row`; existing callers that omit them remain valid |
 
 ## Send / Email Draft Bridge Hard Stops
 

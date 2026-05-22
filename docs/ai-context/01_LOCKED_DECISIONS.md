@@ -31,6 +31,9 @@ The following documents have been approved and locked. They serve as the specifi
 | Phase 3B Learning Agent — Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3b-learning-agent-design-test-cases.md`) |
 | Phase 3B Learning Agent — Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b-learning-agent-implementation-plan.md`) |
 | Phase 3B Learning Agent Foundation — Code Implementation v1.0 | Locked (`44ea577`) |
+| Phase 3B.1 Stabilization / Hardening — Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3b1-stabilization-hardening-design-test-cases.md`) |
+| Phase 3B.1 Stabilization / Hardening — Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b1-stabilization-hardening-implementation-plan.md`) |
+| Phase 3B.1 Stabilization / Hardening Foundation — Code Implementation v1.0 | Locked (`0af660e`) |
 
 ## Locked Architectural Decisions
 
@@ -189,4 +192,32 @@ The observation and attribution layer that records what happens after a Phase 3B
 
 **`email.delivery_delayed`** remains log-only — no activity event emitted.
 
-**Learning Agent feed:** `activity_events` rows with `ET_` event types carry full Phase 3B attribution (`message_version_id`, `strategy_id`, `quality_review_id`) — queryable by the future Learning Agent without reconstructing the join chain.
+**Learning Agent feed:** `activity_events` rows with `ET_` event types carry full Phase 3B attribution (`message_version_id`, `strategy_id`, `quality_review_id`) — queryable by the Learning Agent without reconstructing the join chain.
+
+**Phase 3B.1 update:** The webhook handler now uses `resolvePhase3bAttributionFromSend` (FK-first with JSONB fallback). See the Phase 3B.1 locked decision entry below.
+
+### Phase 3B.1 Stabilization / Hardening Is Implemented (v1.0)
+
+Attribution hardening, Send Bridge reconciliation, scheduled Learning Agent runs, and operational visibility are now implemented and locked (`0af660e`, tag `phase-3b1-stabilization-v1`).
+
+**What it does:**
+
+- Adds `message_version_id uuid` and `strategy_id uuid` FK columns (nullable, `ON DELETE SET NULL`) to `email_sends` via migration `20240026`, with partial indexes
+- Populates explicit FK columns for all new Phase 3B sends at send time (`email-send.service.ts`); Phase 3A sends leave both columns null
+- Adds `resolvePhase3bAttributionFromSend` to `event-tracking.attribution.ts`: FK-first Phase 3B detection with JSONB fallback for old records
+- Updates webhook handler (`app/api/webhooks/resend/route.ts`) to use FK-first attribution; select expanded to include `message_version_id, strategy_id`
+- Adds `send-bridge-reconciliation.types.ts` and `send-bridge-reconciliation.service.ts`: detects States A, B, C — State A/B report-only; State C auto-fixed by idempotent `supersedePendingDraftsForLead`
+- Adds `reconcile-send-bridge-stuck-drafts` Inngest function: `*/15 * * * *` cron, calls reconciliation service
+- Adds `scheduled-learning-agent-run` Inngest function: `0 6 * * *` daily cron, enumerates active tenants, runs `runLearningAnalysis` per tenant with `triggeredBy: 'scheduled:inngest'`
+- Adds `operational-health.repo.ts`: `getSebStuckDraftCounts`, `getFailedSendCount`, `getLatestLaRunStatus` — read-only, tenant-scoped
+- Extends agent monitor page: Operational Health card (stuck drafts, failed sends last 24h, LA last run status) — positioned between System Controls and Learning Signals; advisory disclaimer; no action buttons
+
+**What it does not do:**
+- Does not change any Phase 3B intelligence agent behavior (MSA, CA, QRA, HRB, SEB, ET, LA signal math)
+- Does not auto-resolve `approval_requests`
+- Does not create `email_drafts` or `email_sends` from the reconciler or scheduled function
+- Does not call Resend API outside the existing send flow
+- Does not introduce active learning or strategy weight updates
+- Does not change Phase 3A template email behavior
+- Does not remove or modify existing JSONB metadata — FK columns are additive
+- `manual RunAnalysisButton` remains unchanged; scheduled run adds a parallel trigger

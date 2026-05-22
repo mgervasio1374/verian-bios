@@ -127,7 +127,7 @@ Phase 3B is the Verian Revenue Learning Engine. It is a multi-agent pipeline tha
 - **Status:** Complete. Design, plan, and code implementation all committed. Tag: `phase-3b-learning-agent-v1`.
 - **Input:** Phase 3B `ET_` activity events (filtered by `metadata.source === 'phase_3b_send_bridge'`); `HRB_ACTION_APPROVED` events (for `approval_to_send_rate` denominator); `message_versions` and `quality_reviews` for dimension context
 - **Output:** `learning_snapshots` rows — one per signal × dimension × dimension_value per `run_id` — and one `LA_SIGNALS_COMPUTED` or `LA_SIGNALS_COMPUTATION_FAILED` activity event per run
-- **Trigger:** On-demand "Run Learning Analysis" button in the agent monitor settings page (v1); scheduled cron deferred to v2
+- **Trigger:** On-demand "Run Learning Analysis" button in the agent monitor settings page AND daily `0 6 * * *` Inngest cron (Phase 3B.1). `triggeredBy = 'scheduled:inngest'` for scheduled runs; user ID for manual runs.
 - **Lookback window:** 90 days hardcoded in v1 (`LEARNING_AGENT_LOOKBACK_DAYS = 90`)
 - **10 signals calculated:** `send_success_rate`, `send_failure_rate`, `delivery_rate`, `bounce_rate`, `complaint_rate`, `delivery_failure_rate`, `open_rate`, `click_rate`, `approval_to_send_rate`, `unknown_outcome_rate`
 - **6 dimensions:** `tenant_wide`, `message_type`, `strategy_angle`, `score_band`, `qra_recommended`, `version_label`
@@ -146,13 +146,23 @@ lead
                      └── email_draft (approved, from Send Bridge — implemented)
                           └── approval_request (auto-resolved, satisfies Phase 3A double-gate)
                                └── email_send → ET_ activity_events (from Event Tracking — implemented)
+                                    ├── message_version_id FK (Phase 3B.1 explicit attribution column)
+                                    ├── strategy_id FK (Phase 3B.1 explicit attribution column)
                                     ├── ET_SEND_INITIATED / ET_SEND_SUCCEEDED / ET_SEND_FAILED
                                     └── ET_EMAIL_DELIVERED / ET_EMAIL_BOUNCED / ET_EMAIL_OPENED / ...
 
 ET_ activity_events + HRB_ACTION_APPROVED activity_events
  └── Learning Agent (implemented) reads events + message_versions + quality_reviews
       └── learning_snapshots (advisory, run_id-grouped, 10 signals × 6 dimensions)
-           └── LA_SIGNALS_COMPUTED activity_event (audit trail per run)
+           └── LA_SIGNALS_COMPUTED activity_event (audit trail per run — manual or scheduled:inngest)
+
+Phase 3B.1 Stabilization (implemented)
+ └── reconcile-send-bridge-stuck-drafts (Inngest, */15 * * * *)
+      └── detects State A (no approval_request link), State B (pending approval_request), State C (unsuperseded siblings)
+      └── State A/B: report-only; State C: auto-fixes via supersedePendingDraftsForLead
+ └── scheduled-learning-agent-run (Inngest, 0 6 * * *)
+      └── enumerates all active tenants → calls runLearningAnalysis per tenant → advisory snapshots
+ └── Operational Health card on agent monitor (stuck draft counts, failed sends, LA run status)
 ```
 
 ## Key Design Principles

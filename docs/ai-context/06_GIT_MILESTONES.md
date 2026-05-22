@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3b1-stabilization-v1` | Phase 3B.1 Stabilization / Hardening Foundation complete — FK attribution, SEB reconciler, scheduled LA, Operational Health |
 | `phase-3b-learning-agent-v1` | Learning Agent Foundation complete — advisory signals, learning_snapshots, agent monitor UI |
 | `phase-3b-event-tracking-v1` | Event Tracking / Send Outcome Tracking Foundation complete |
 | `phase-3b-send-bridge-v1` | Send / Email Draft Bridge Foundation complete |
@@ -24,6 +25,7 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `0af660e` | Phase 3B.1: implement Stabilization Hardening foundation | Phase 3B.1 |
 | `44ea577` | Phase 3B: implement Learning Agent foundation | Phase 3B LA |
 | `c631fc0` | Docs: add Phase 3B Learning Agent implementation plan | Phase 3B Docs |
 | `352e602` | Docs: add Phase 3B Learning Agent design | Phase 3B Docs |
@@ -163,10 +165,27 @@
 - `tests/fixtures/learning-agent/TC-LA-001.json` through `TC-LA-042.json` — 42 fixtures
 - `tests/learning-agent.test.ts` — 53 LA tests
 
+### Phase 3B.1: Stabilization / Hardening Foundation (`0af660e`)
+- `supabase/migrations/20240026_phase3b1_email_sends_attribution.sql` — adds `message_version_id uuid` and `strategy_id uuid` (nullable, `ON DELETE SET NULL`) to `email_sends`; partial indexes `idx_email_sends_message_version` and `idx_email_sends_strategy`
+- `types/database.ts` — manually updated: `message_version_id` and `strategy_id` added to `email_sends` Row/Insert/Update/Relationships
+- `modules/messaging/repositories/email-send.repo.ts` — `CreateEmailSendInput` extended with optional `messageVersionId?` and `strategyId?`; both included in INSERT
+- `modules/messaging/services/email-send.service.ts` — passes `messageVersionId` and `strategyId` from `phase3bMeta` to `createEmailSend`
+- `modules/messaging/event-tracking/event-tracking.attribution.ts` — added `EmailSendAttributionFields` interface and `resolvePhase3bAttributionFromSend` pure function (FK-first with JSONB fallback)
+- `app/api/webhooks/resend/route.ts` — select expanded to include `message_version_id, strategy_id`; Phase 3B attribution block uses `resolvePhase3bAttributionFromSend`
+- `modules/messaging/send-bridge/send-bridge-reconciliation.types.ts` — `StuckDraftStateA`, `StuckDraftStateB`, `StuckStateC`, `SebReconciliationResult` types
+- `modules/messaging/send-bridge/send-bridge-reconciliation.service.ts` — `runSebReconciliation`: detects State A (no approval_request_id), State B (pending approval_request linked), State C (approved draft + unsuperseded siblings); State A/B report-only; State C auto-fixed via `supersedePendingDraftsForLead`
+- `inngest/functions/reconcile-send-bridge-stuck-drafts.ts` — Inngest function `*/15 * * * *`: calls `runSebReconciliation`, logs results
+- `inngest/functions/scheduled-learning-agent-run.ts` — Inngest function `0 6 * * *`: enumerates active tenants, calls `runLearningAnalysis` per tenant with `triggeredBy: 'scheduled:inngest'`
+- `inngest/index.ts` — registers both new Inngest functions (8 total)
+- `modules/messaging/repositories/operational-health.repo.ts` — `getSebStuckDraftCounts`, `getFailedSendCount`, `getLatestLaRunStatus` (all read-only, tenant-scoped)
+- `app/(workspace)/[workspaceSlug]/settings/agent-monitor/page.tsx` — extended: Operational Health card (stuck draft counts, failed sends last 24h, LA run status); positioned between System Controls and Learning Signals
+- `tests/phase-3b1-stabilization.test.ts` — 56 tests: attribution helpers (FK-first, JSONB fallback, Phase 3A null), reconciliation type shapes, scheduled LA sentinel/result, operational health result shapes, migration SQL assertions, Inngest schedule assertions, guardrail file-content checks
+
 ## QA Verification Log
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-22 | 646/646 passed | PASSED | Phase 3B.1 Foundation — 56 new tests, 590 existing pass. TypeScript clean. |
 | 2026-05-21 | 590/590 passed | PASSED | LA Foundation v1.0 — 53 LA tests, 537 existing tests all pass. TypeScript clean. |
 | 2026-05-21 | 537/537 passed | PASSED | ET Foundation v1.0 — 81 ET tests, 456 existing tests all pass. TypeScript clean. |
 | 2026-05-21 | 456/456 passed | PASSED | SEB Foundation v1.0 — 89 SEB tests, 367 existing tests all pass. TypeScript clean. |
@@ -177,7 +196,7 @@
 
 ## Current HEAD
 
-`44ea577` — Phase 3B: implement Learning Agent foundation
+`0af660e` — Phase 3B.1: implement Stabilization Hardening foundation
 
 ## Migrations Sequence
 
@@ -190,5 +209,6 @@
 | `20240023` | Phase 3B message_versions table |
 | `20240024` | Phase 3B quality_reviews table |
 | `20240025` | Phase 3B learning_snapshots table (Learning Agent) |
+| `20240026` | Phase 3B.1 email_sends attribution FK columns (Stabilization) |
 
 Note: No new migration was added for the Human Review / Approval Bridge, the Send / Email Draft Bridge, or Event Tracking. All three use existing tables and columns only. Phase 3B provenance travels via `email_drafts.ai_generation_metadata` (jsonb) at draft creation, then is copied into `email_sends.metadata` (jsonb) at send time. Event Tracking activity events are appended to the existing `activity_events` table. The Learning Agent adds migration `20240025` for `learning_snapshots` — its only write target.

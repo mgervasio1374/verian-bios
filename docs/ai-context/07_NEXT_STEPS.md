@@ -139,18 +139,55 @@ All deliverables committed, tagged, and QA-verified.
 | Event Tracking / Send Outcome Tracking | `phase-3b-event-tracking-v1` |
 | Learning Agent | `phase-3b-learning-agent-v1` |
 
+## Completed — Phase 3B.1 Stabilization / Hardening Foundation v1.0
+
+All deliverables committed, tagged, and QA-verified.
+
+| Deliverable | Status |
+|-------------|--------|
+| Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3b1-stabilization-hardening-design-test-cases.md`) |
+| Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b1-stabilization-hardening-implementation-plan.md`) |
+| Code implementation | Complete — `0af660e`, tag `phase-3b1-stabilization-v1` |
+| QA: 646/646 tests, build, TypeScript | PASSED |
+
+### What was delivered
+
+- `supabase/migrations/20240026_phase3b1_email_sends_attribution.sql` — `message_version_id` and `strategy_id` FK columns (nullable, `ON DELETE SET NULL`) + partial indexes on `email_sends`
+- `types/database.ts` — updated with new `email_sends` columns in Row/Insert/Update/Relationships
+- `email-send.repo.ts` — `CreateEmailSendInput` extended; both new FK fields included in INSERT
+- `email-send.service.ts` — populates FK fields from `phase3bMeta` at send time; Phase 3A sends default to null
+- `event-tracking.attribution.ts` — `EmailSendAttributionFields` interface + `resolvePhase3bAttributionFromSend` (FK-first, JSONB fallback)
+- `app/api/webhooks/resend/route.ts` — webhook handler select expanded; Phase 3B block uses FK-first attribution
+- `send-bridge-reconciliation.types.ts` — stuck state types and `SebReconciliationResult`
+- `send-bridge-reconciliation.service.ts` — `runSebReconciliation`: State A/B report-only; State C auto-fixed via `supersedePendingDraftsForLead`
+- `reconcile-send-bridge-stuck-drafts.ts` — Inngest function `*/15 * * * *`
+- `scheduled-learning-agent-run.ts` — Inngest function `0 6 * * *`; `triggeredBy: 'scheduled:inngest'`; per-tenant, continues on individual failure
+- `inngest/index.ts` — both new functions registered (8 total)
+- `operational-health.repo.ts` — `getSebStuckDraftCounts`, `getFailedSendCount`, `getLatestLaRunStatus`
+- `agent-monitor/page.tsx` — Operational Health card added (stuck drafts, failed sends last 24h, LA run status; advisory disclaimer; no action buttons)
+- `tests/phase-3b1-stabilization.test.ts` — 56 tests
+
+### Key behavior
+
+- New Phase 3B sends have `email_sends.message_version_id` and `strategy_id` populated; old sends use JSONB fallback
+- Webhook handler is FK-first; old JSONB-only Phase 3B sends continue to emit ET_ events via fallback
+- State C stuck drafts (approved Phase 3B draft + unsuperseded pending siblings) are auto-fixed nightly by the SEB reconciler
+- State A and State B stuck drafts are reported-only and visible in the Operational Health card
+- Learning Agent runs daily at 06:00 UTC without requiring manual trigger; manual trigger still works
+- Operational Health card in agent monitor surfaces stuck drafts, failed sends, and LA run status — advisory, no auto-action
+
 ## Approved Next Phase
 
-**Phase 3B Final QA / Lock Report / Architecture Closeout**
+**Phase 3B.1 Final QA / Lock Report / Stabilization Closeout**
 
 Status: **Not started.**
 
 This phase should:
-1. Produce a comprehensive final QA report covering all 7 Phase 3B layers end-to-end
-2. Verify the complete data flow from strategy generation through learning signal output
-3. Document the full architecture as a locked reference for future development phases
-4. Identify any technical debt, known limitations, or deferred items that the next phase should address
-5. Lock the Phase 3B foundation as a stable baseline
+1. Produce a comprehensive closeout report for Phase 3B.1
+2. Verify the complete attribution hardening chain end-to-end
+3. Confirm stuck draft detection and scheduled Learning Agent behavior
+4. Document what was added vs. the original Phase 3B foundation
+5. Lock Phase 3B.1 as a stable baseline
 
 Do not code new features until this closeout is approved.
 
