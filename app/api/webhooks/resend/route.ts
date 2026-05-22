@@ -4,6 +4,7 @@ import { headers } from 'next/headers'
 import crypto from 'crypto'
 import * as activityEventService from '@/modules/intelligence/services/activity-event.service'
 import * as etAttribution from '@/modules/messaging/event-tracking/event-tracking.attribution'
+import type { EmailSendAttributionFields } from '@/modules/messaging/event-tracking/event-tracking.attribution'
 import * as etAudit from '@/modules/messaging/event-tracking/event-tracking.audit'
 
 // ---- Types ----
@@ -178,9 +179,11 @@ async function processResendEvent(
   // Find the email_send record by provider message ID.
   // Select includes metadata, workspace_id, contact_id, company_id, draft_id
   // for Phase 3B Event Tracking attribution.
+  // Phase 3B.1: also select message_version_id and strategy_id FK columns for
+  // FK-first attribution (resolvePhase3bAttributionFromSend prefers these over JSONB).
   const { data: emailSend } = await supabase
     .from('email_sends')
-    .select('id, tenant_id, workspace_id, contact_id, company_id, draft_id, metadata, status')
+    .select('id, tenant_id, workspace_id, contact_id, company_id, draft_id, metadata, status, message_version_id, strategy_id')
     .eq('resend_message_id', resendMessageId)
     .single()
 
@@ -218,11 +221,20 @@ async function processResendEvent(
   // Phase 3B Event Tracking: emit activity event for Phase 3B-originated sends.
   // Runs AFTER the 23505 idempotency guard — duplicate webhooks skip this block.
   // All errors are non-fatal; webhook continues to return 200.
-  const sendMeta = (emailSend.metadata ?? {}) as Record<string, unknown>
-  if (etAttribution.isPhase3bSend(sendMeta)) {
-    const phase3bMeta = etAttribution.extractPhase3bMeta(sendMeta)
+  //
+  // Phase 3B.1: use resolvePhase3bAttributionFromSend for FK-first attribution.
+  // Prefers explicit message_version_id/strategy_id columns (populated for new sends).
+  // Falls back to extractPhase3bMeta(metadata) for old JSONB-only Phase 3B sends.
+  // Returns null for Phase 3A sends (no source marker, no FK columns).
+  const emailSendFields: EmailSendAttributionFields = {
+    message_version_id: (emailSend as unknown as Record<string, unknown>)['message_version_id'] as string | null,
+    strategy_id:        (emailSend as unknown as Record<string, unknown>)['strategy_id'] as string | null,
+    metadata:           (emailSend.metadata ?? {}) as Record<string, unknown>,
+  }
+  const phase3bMeta = etAttribution.resolvePhase3bAttributionFromSend(emailSendFields)
+  if (phase3bMeta) {
     const etType = RESEND_EVENT_TO_ET_TYPE[eventType]
-    if (etType && phase3bMeta) {
+    if (etType) {
       activityEventService.recordActivity({
         tenantId:     emailSend.tenant_id,
         workspaceId:  (emailSend.workspace_id as string | null) ?? undefined,

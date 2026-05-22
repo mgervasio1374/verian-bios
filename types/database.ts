@@ -2300,11 +2300,13 @@ export type Database = {
           draft_id: string | null
           error_message: string | null
           id: string
+          message_version_id: string | null
           metadata: Json
           resend_message_id: string | null
           sender_identity_id: string | null
           sent_at: string | null
           status: string
+          strategy_id: string | null
           subject: string
           tenant_id: string
           to_email: string
@@ -2317,11 +2319,13 @@ export type Database = {
           draft_id?: string | null
           error_message?: string | null
           id?: string
+          message_version_id?: string | null
           metadata?: Json
           resend_message_id?: string | null
           sender_identity_id?: string | null
           sent_at?: string | null
           status?: string
+          strategy_id?: string | null
           subject: string
           tenant_id: string
           to_email: string
@@ -2334,11 +2338,13 @@ export type Database = {
           draft_id?: string | null
           error_message?: string | null
           id?: string
+          message_version_id?: string | null
           metadata?: Json
           resend_message_id?: string | null
           sender_identity_id?: string | null
           sent_at?: string | null
           status?: string
+          strategy_id?: string | null
           subject?: string
           tenant_id?: string
           to_email?: string
@@ -2367,10 +2373,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "email_sends_message_version_id_fkey"
+            columns: ["message_version_id"]
+            isOneToOne: false
+            referencedRelation: "message_versions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "email_sends_sender_identity_id_fkey"
             columns: ["sender_identity_id"]
             isOneToOne: false
             referencedRelation: "sender_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_sends_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "message_strategies"
             referencedColumns: ["id"]
           },
           {

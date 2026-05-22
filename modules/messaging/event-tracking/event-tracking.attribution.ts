@@ -63,6 +63,47 @@ export function isPhase3bSend(
   return sendMetadata?.['source'] === 'phase_3b_send_bridge'
 }
 
+// ---- resolvePhase3bAttributionFromSend ----
+// Phase 3B.1 hardening: FK-first attribution with JSONB fallback.
+//
+// Strategy:
+//   1. If message_version_id FK column is non-null → Phase 3B send.
+//      Combine explicit FK fields with JSONB metadata for supplementary fields.
+//   2. Else fall back to extractPhase3bMeta(metadata) — handles old JSONB-only sends.
+//   3. If both are null/missing → return null (Phase 3A or unattributed send).
+//
+// Pure function — no I/O, no side effects.
+
+export interface EmailSendAttributionFields {
+  message_version_id: string | null   // explicit FK column (null for old records or Phase 3A)
+  strategy_id:        string | null   // explicit FK column
+  metadata:           Record<string, unknown> | null
+}
+
+export function resolvePhase3bAttributionFromSend(
+  send: EmailSendAttributionFields
+): EtPhase3bMeta | null {
+  // Primary path: explicit FK column is the reliable Phase 3B marker
+  if (send.message_version_id !== null) {
+    const jsonbMeta = send.metadata ?? {}
+    const fromJsonb = extractPhase3bMeta(jsonbMeta)
+    return {
+      source:             'phase_3b_send_bridge',
+      message_version_id: send.message_version_id,
+      strategy_id:        send.strategy_id,
+      // Supplementary fields not yet promoted to explicit columns — read from JSONB
+      quality_review_id:  fromJsonb?.quality_review_id  ?? null,
+      version_label:      fromJsonb?.version_label       ?? null,
+      composite_score:    fromJsonb?.composite_score     ?? null,
+      approved_by:        fromJsonb?.approved_by         ?? null,
+      lead_id:            fromJsonb?.lead_id             ?? null,
+      send_initiated_by:  fromJsonb?.send_initiated_by   ?? null,
+    }
+  }
+  // Fallback: FK columns not populated (pre-migration send or Phase 3A)
+  return extractPhase3bMeta(send.metadata ?? null)
+}
+
 // ---- buildPhase3bSendMetadata ----
 // Merges Phase 3B fields into the existing email_sends.metadata object.
 // Called at send time when the draft came from the Phase 3B Send Bridge.

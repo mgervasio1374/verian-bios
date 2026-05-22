@@ -3,6 +3,8 @@ import { onLeadCreated } from './functions/on-lead-created'
 import { onApprovalApproved, onApprovalRejected } from './functions/on-approval-decided'
 import { reconcileEmailDraftStatus } from './functions/reconcile-email-draft-status'
 import { onStatementReceived } from './functions/on-statement-received'
+import { reconcileSendBridgeStuckDrafts } from './functions/reconcile-send-bridge-stuck-drafts'
+import { scheduledLearningAgentRun } from './functions/scheduled-learning-agent-run'
 
 export const inngestFunctions = [
   dispatchOutbox,
@@ -11,4 +13,6 @@ export const inngestFunctions = [
   onApprovalRejected,
   reconcileEmailDraftStatus,
   onStatementReceived,
+  reconcileSendBridgeStuckDrafts,  // Phase 3B.1: SEB stuck-draft detection/reconciliation
+  scheduledLearningAgentRun,       // Phase 3B.1: daily advisory Learning Agent run
 ]

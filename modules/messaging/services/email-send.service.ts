@@ -163,6 +163,10 @@ export async function sendApprovedDraft(
       contactId:        draft.contact_id,
       companyId:        draft.company_id,
       metadata:         sendMetadata,
+      // Phase 3B.1 attribution hardening: explicit FK columns alongside JSONB metadata.
+      // phase3bMeta is null for Phase 3A sends, so both columns default to null correctly.
+      messageVersionId: phase3bMeta?.message_version_id ?? null,
+      strategyId:       phase3bMeta?.strategy_id ?? null,
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'failed_to_queue_send'

@@ -66,6 +66,10 @@ interface CreateEmailSendInput {
   contactId?: string | null
   companyId?: string | null
   metadata: Record<string, unknown>
+  // Phase 3B.1 attribution hardening: explicit FK columns alongside JSONB metadata.
+  // Null for Phase 3A sends (phase3bMeta === null at send time).
+  messageVersionId?: string | null
+  strategyId?: string | null
 }
 
 export async function createEmailSend(
@@ -85,6 +89,8 @@ export async function createEmailSend(
       company_id:         input.companyId ?? null,
       status:             'queued',
       metadata:           input.metadata as Json,
+      message_version_id: input.messageVersionId ?? null,
+      strategy_id:        input.strategyId ?? null,
     })
     .select()
     .single()

@@ -10,6 +10,8 @@ import { ReconcileButton } from './ReconcileButton'
 import { RunAnalysisButton } from './RunAnalysisButton'
 import * as learningSnapshotRepo from '@/modules/messaging/repositories/learning-snapshot.repo'
 import type { LearningSnapshotRow } from '@/modules/messaging/learning-agent/learning-agent.types'
+import * as operationalHealthRepo from '@/modules/messaging/repositories/operational-health.repo'
+import type { SebStuckDraftCounts, LatestLaRunStatus } from '@/modules/messaging/repositories/operational-health.repo'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -85,6 +87,24 @@ export default async function AgentMonitorPage({ params }: PageProps) {
   } catch {
     // Silent — snapshots are advisory; failure must not break the agent monitor page
   }
+
+  // Phase 3B.1: Load operational health metrics (all non-fatal)
+  let sebStuckCounts: SebStuckDraftCounts = { stateA: 0, stateB: 0 }
+  let failedSendCount = 0
+  let latestLaRun: LatestLaRunStatus | null = null
+
+  try {
+    sebStuckCounts = await operationalHealthRepo.getSebStuckDraftCounts(ctx.tenantId)
+  } catch { /* silent */ }
+
+  try {
+    const metrics = await operationalHealthRepo.getFailedSendCount(ctx.tenantId)
+    failedSendCount = metrics.count
+  } catch { /* silent */ }
+
+  try {
+    latestLaRun = await operationalHealthRepo.getLatestLaRunStatus(ctx.tenantId)
+  } catch { /* silent */ }
 
   const isAdmin = ['system', 'platform_admin', 'tenant_admin'].includes(ctx.roleSlug)
 
@@ -228,6 +248,91 @@ export default async function AgentMonitorPage({ params }: PageProps) {
               </table>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Phase 3B.1 Operational Health */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Operational Health</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Stuck Phase 3B Drafts */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">Stuck Phase 3B Drafts</p>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">No approval link (State A)</span>
+                {sebStuckCounts.stateA === 0 ? (
+                  <span className="text-xs text-muted-foreground">None</span>
+                ) : (
+                  <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 border-amber-300">
+                    {sebStuckCounts.stateA} stuck
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Pending approval (State B)</span>
+                {sebStuckCounts.stateB === 0 ? (
+                  <span className="text-xs text-muted-foreground">None</span>
+                ) : (
+                  <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 border-amber-300">
+                    {sebStuckCounts.stateB} stuck
+                  </Badge>
+                )}
+              </div>
+            </div>
+            {(sebStuckCounts.stateA > 0 || sebStuckCounts.stateB > 0) && (
+              <p className="text-xs text-amber-700 mt-1.5">
+                Stuck drafts cannot be sent until resolved. Contact your administrator.
+              </p>
+            )}
+          </div>
+
+          {/* Failed sends */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Failed sends (last 24h)</span>
+            {failedSendCount === 0 ? (
+              <span className="text-xs text-muted-foreground">None</span>
+            ) : (
+              <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 border-amber-300">
+                {failedSendCount} failed
+              </Badge>
+            )}
+          </div>
+
+          {/* Learning Agent last run */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Learning Agent Last Run</p>
+            {latestLaRun === null ? (
+              <p className="text-xs text-muted-foreground">No analysis has run yet.</p>
+            ) : (
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(latestLaRun.computedAt).toLocaleString(undefined, {
+                      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                    })}
+                  </span>
+                  <Badge
+                    variant={latestLaRun.ok ? 'default' : 'destructive'}
+                    className="text-xs"
+                  >
+                    {latestLaRun.ok ? 'Completed' : 'Failed'}
+                  </Badge>
+                </div>
+                {latestLaRun.ok && latestLaRun.snapshotCount !== null && (
+                  <p className="text-xs text-muted-foreground">
+                    {latestLaRun.snapshotCount} signals · {latestLaRun.totalSends ?? 0} sends analysed
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <p className="text-xs text-muted-foreground border-t pt-3">
+            All indicators above are informational only. No automatic action is taken.
+          </p>
         </CardContent>
       </Card>
 
