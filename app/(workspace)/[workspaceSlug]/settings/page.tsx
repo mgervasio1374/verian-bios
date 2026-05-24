@@ -4,7 +4,7 @@ import { buildRequestContext } from '@/lib/auth/context'
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Settings, Bot, ArrowRight, ShieldAlert } from 'lucide-react'
+import { Settings, Bot, ArrowRight, ShieldAlert, Activity } from 'lucide-react'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -121,6 +121,24 @@ export default async function SettingsPage({ params }: PageProps) {
                 <p className="text-sm font-semibold">Agent Monitor</p>
                 <p className="text-xs text-muted-foreground">
                   Inspect agent runs, decision traces, guardrails, and execution history.
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </div>
+      </Link>
+
+      {/* Workflow Health */}
+      <Link href={`/${workspaceSlug}/settings/health`}>
+        <div className="rounded-lg border p-4 hover:bg-accent/40 transition-colors cursor-pointer">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Activity className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-semibold">Workflow Health</p>
+                <p className="text-xs text-muted-foreground">
+                  Monitor queues, background jobs, failed workflows, email draft metrics, and send health.
                 </p>
               </div>
             </div>
