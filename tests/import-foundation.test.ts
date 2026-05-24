@@ -461,6 +461,10 @@ describe('Import Foundation — Migration SQL Assertions', () => {
     expect(sqlFile).not.toContain('ALTER TABLE contacts')
     expect(sqlFile).not.toContain('ALTER TABLE leads')
   })
+
+  it('Risk Fix — import_rows.normalized_data column exists in migration', () => {
+    expect(sqlFile).toContain('normalized_data')
+  })
 })
 
 // -------------------------------------------------------
@@ -500,6 +504,33 @@ describe('Import Foundation — Workflow Safety (source-level)', () => {
   it('process-import-batch.ts has no Resend import', () => {
     const source = readProjectFile('inngest/functions/process-import-batch.ts')
     expect(source.toLowerCase()).not.toContain('resend')
+  })
+
+  it('Risk Fix — import.commit.ts exports findOrCreateCompany', () => {
+    const source = readProjectFile('modules/imports/import.commit.ts')
+    expect(source).toContain('findOrCreateCompany')
+  })
+
+  it('Risk Fix — import.commit.ts does not export or call upsertCompany', () => {
+    const source = readProjectFile('modules/imports/import.commit.ts')
+    expect(source).not.toContain('upsertCompany')
+  })
+
+  it('Risk Fix — import.commit.ts insertLead sets workflow_enabled: false', () => {
+    const source = readProjectFile('modules/imports/import.commit.ts')
+    expect(source).toContain('workflow_enabled:  false')
+  })
+
+  it('Risk Fix — import.commit.ts writes only to companies, contacts, and leads', () => {
+    const source = readProjectFile('modules/imports/import.commit.ts')
+    expect(source).toContain(".from('companies')")
+    expect(source).toContain(".from('contacts')")
+    expect(source).toContain(".from('leads')")
+    expect(source).not.toContain(".from('message_strategies')")
+    expect(source).not.toContain(".from('message_versions')")
+    expect(source).not.toContain(".from('quality_reviews')")
+    expect(source).not.toContain(".from('email_drafts')")
+    expect(source).not.toContain(".from('email_sends')")
   })
 })
 

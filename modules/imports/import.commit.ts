@@ -23,12 +23,44 @@ interface CommitRowResult {
   leadId:     string
 }
 
-export async function upsertCompany(
-  normalized: NormalizedImportRow,
-  tenantId:   string,
+export async function findOrCreateCompany(
+  normalized:  NormalizedImportRow,
+  tenantId:    string,
   workspaceId: string,
 ): Promise<CompanyRow> {
   const supabase = createSupabaseServiceClient()
+
+  // Try to find an existing company before creating a new one.
+  // Strategy 1: match by normalized website domain (set by normalizeWebsite).
+  // Strategy 2: match by name + city (case-insensitive) when no website is available.
+  // Both strategies are conservative — prefer false misses over false merges.
+  let existing: CompanyRow | null = null
+
+  if (normalized.website) {
+    const { data } = await supabase
+      .from('companies')
+      .select()
+      .eq('tenant_id', tenantId)
+      .eq('website', normalized.website)
+      .limit(1)
+      .maybeSingle()
+    existing = data ?? null
+  }
+
+  if (!existing && normalized.companyName && normalized.city) {
+    const { data } = await supabase
+      .from('companies')
+      .select()
+      .eq('tenant_id', tenantId)
+      .ilike('name', normalized.companyName)
+      .ilike('city', normalized.city)
+      .limit(1)
+      .maybeSingle()
+    existing = data ?? null
+  }
+
+  if (existing) return existing
+
   const { data, error } = await supabase
     .from('companies')
     .insert({
@@ -47,7 +79,7 @@ export async function upsertCompany(
     })
     .select()
     .single()
-  if (error) throw new Error(`upsertCompany: ${error.message}`)
+  if (error) throw new Error(`findOrCreateCompany: ${error.message}`)
   return data
 }
 
@@ -119,7 +151,7 @@ export async function commitRow(
   ctx:        CommitRowContext,
 ): Promise<CommitRowResult | { error: string }> {
   try {
-    const company = await upsertCompany(normalized, ctx.tenantId, ctx.workspaceId)
+    const company = await findOrCreateCompany(normalized, ctx.tenantId, ctx.workspaceId)
 
     let contactId: string | null = null
     const hasContactData = normalized.contactFirstName || normalized.contactLastName ||
