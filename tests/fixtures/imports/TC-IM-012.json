@@ -1,0 +1,19 @@
+{
+  "input": {
+    "rowCount": 10,
+    "headers": [
+      "Company Name",
+      "Email",
+      "Phone"
+    ]
+  },
+  "description": "XLSX parse returns headers array",
+  "expected": {
+    "headers": [
+      "Company Name",
+      "Email",
+      "Phone"
+    ]
+  },
+  "check": "xlsxHeaders"
+}

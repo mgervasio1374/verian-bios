@@ -1,0 +1,6 @@
+{
+  "file": "supabase/migrations/20240027_phase3b2_import_tables.sql",
+  "description": "import_batches is tenant-scoped via RLS",
+  "pattern": "tenant_id IN (SELECT tenant_id FROM memberships",
+  "check": "sql_contains"
+}

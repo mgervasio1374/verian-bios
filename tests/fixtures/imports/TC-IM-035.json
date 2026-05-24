@@ -1,0 +1,15 @@
+{
+  "input": {
+    "website": "acme.com",
+    "companyName": "Acme",
+    "phone": "555",
+    "email": null
+  },
+  "description": "Short phone is warning not error",
+  "expected": {
+    "status": "valid",
+    "warningCode": "PHONE_TOO_SHORT",
+    "hasWarning": true
+  },
+  "check": "validateRow"
+}

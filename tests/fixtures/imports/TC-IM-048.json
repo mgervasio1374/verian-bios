@@ -1,0 +1,9 @@
+{
+  "input": {
+    "function": "checkExternalIdDuplicate",
+    "includesTenantId": true
+  },
+  "description": "checkExternalIdDuplicate checks tenant-scoped",
+  "expected": true,
+  "check": "dedupeScope"
+}

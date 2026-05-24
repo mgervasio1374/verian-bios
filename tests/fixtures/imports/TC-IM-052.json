@@ -1,0 +1,12 @@
+{
+  "input": {
+    "workflow_enabled": false,
+    "import_batch_id": "batch-uuid",
+    "import_row_id": "row-uuid"
+  },
+  "description": "Committed lead has metadata.workflow_enabled false",
+  "expected": {
+    "workflow_enabled": false
+  },
+  "check": "leadMetadata"
+}

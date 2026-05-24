@@ -1,0 +1,6 @@
+{
+  "file": "supabase/migrations/20240027_phase3b2_import_tables.sql",
+  "description": "import_batches.workflow_enabled_default defaults to false",
+  "pattern": "workflow_enabled_default boolean NOT NULL DEFAULT false",
+  "check": "sql_contains"
+}

@@ -1,0 +1,6 @@
+{
+  "pattern": "workspace_id",
+  "description": "import-batch.repo.ts queries include workspace_id",
+  "file": "modules/imports/repositories/import-batch.repo.ts",
+  "check": "source_grep_present"
+}

@@ -1,0 +1,6 @@
+{
+  "file": "supabase/migrations/20240027_phase3b2_import_tables.sql",
+  "description": "import_rows raw_data defaults to empty object",
+  "pattern": "raw_data",
+  "check": "sql_contains"
+}

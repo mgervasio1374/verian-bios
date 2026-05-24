@@ -1,0 +1,14 @@
+{
+  "input": {
+    "website": null,
+    "companyName": "Acme",
+    "phone": null,
+    "email": "john@acme.com"
+  },
+  "description": "Valid email passes validation",
+  "expected": {
+    "hasEmailError": false,
+    "status": "valid"
+  },
+  "check": "validateRow"
+}

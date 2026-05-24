@@ -1,0 +1,17 @@
+{
+  "input": {
+    "failedCommitRows": 2,
+    "batchId": "b1",
+    "tenantId": "t1",
+    "committedRows": 45,
+    "skippedRows": 5
+  },
+  "description": "buildImportCommitCompletedPayload includes counts",
+  "builder": "buildImportCommitCompletedPayload",
+  "check": "auditPayload",
+  "expected": {
+    "committed_rows": 45,
+    "action_type": "IMPORT_COMMIT_COMPLETED",
+    "failed_commit_rows": 2
+  }
+}

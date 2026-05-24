@@ -1,0 +1,16 @@
+{
+  "input": {
+    "sourceType": "csv",
+    "uploadedBy": "u1",
+    "batchId": "b1",
+    "tenantId": "t1",
+    "filename": "test.csv"
+  },
+  "description": "buildImportBatchCreatedPayload returns correct action_type",
+  "builder": "buildImportBatchCreatedPayload",
+  "check": "auditPayload",
+  "expected": {
+    "action_type": "IMPORT_BATCH_CREATED",
+    "batch_id": "b1"
+  }
+}

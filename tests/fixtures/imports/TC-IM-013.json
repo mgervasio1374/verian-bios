@@ -1,0 +1,8 @@
+{
+  "input": "Company Name,Email",
+  "description": "CSV header only returns zero rows",
+  "expected": {
+    "rowCount": 0
+  },
+  "check": "parseCsv"
+}

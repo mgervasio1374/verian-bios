@@ -1,0 +1,15 @@
+{
+  "input": {
+    "website": null,
+    "companyName": null,
+    "phone": null,
+    "email": "a@acme.com"
+  },
+  "description": "Row without company_name is invalid",
+  "expected": {
+    "status": "invalid",
+    "errorCode": "MISSING_REQUIRED_FIELD",
+    "field": "company_name"
+  },
+  "check": "validateRow"
+}

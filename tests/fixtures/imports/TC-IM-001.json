@@ -1,0 +1,6 @@
+{
+  "file": "supabase/migrations/20240027_phase3b2_import_tables.sql",
+  "description": "import_batches table exists after migration",
+  "pattern": "CREATE TABLE import_batches",
+  "check": "sql_contains"
+}

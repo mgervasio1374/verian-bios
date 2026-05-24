@@ -1,0 +1,14 @@
+{
+  "input": {
+    "website": null,
+    "companyName": null,
+    "phone": null,
+    "email": "not-an-email"
+  },
+  "description": "Multiple validation errors accumulated",
+  "expected": {
+    "errorCount": 2,
+    "status": "invalid"
+  },
+  "check": "validateRow"
+}

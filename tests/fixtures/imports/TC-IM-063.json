@@ -1,0 +1,6 @@
+{
+  "pattern": "uploaded_by",
+  "description": "import-batch.repo.ts createBatch includes uploaded_by",
+  "file": "modules/imports/repositories/import-batch.repo.ts",
+  "check": "source_grep_present"
+}

@@ -1,0 +1,8 @@
+{
+  "input": "Company Name,Email\nAcme,a@acme.com\n,\nBeta,b@beta.com",
+  "description": "Entirely blank rows are skipped",
+  "expected": {
+    "rowCount": 2
+  },
+  "check": "parseCsv"
+}

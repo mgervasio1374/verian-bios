@@ -1,0 +1,6 @@
+{
+  "pattern": "resend",
+  "description": "import.commit.ts has no Resend import",
+  "file": "modules/imports/import.commit.ts",
+  "check": "source_grep_absent"
+}

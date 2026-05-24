@@ -1,0 +1,6 @@
+{
+  "constant": "IMPORT_BACKGROUND_THRESHOLD",
+  "description": "Large file background threshold constant",
+  "expected": 1000,
+  "check": "constant"
+}

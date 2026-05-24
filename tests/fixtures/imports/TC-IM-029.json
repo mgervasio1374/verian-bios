@@ -1,0 +1,12 @@
+{
+  "input": {
+    "headers": [
+      "EMAIL"
+    ]
+  },
+  "description": "Case-insensitive header EMAIL auto-detected as email",
+  "expected": {
+    "email": "EMAIL"
+  },
+  "check": "detectMapping"
+}

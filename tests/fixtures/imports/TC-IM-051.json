@@ -1,0 +1,10 @@
+{
+  "input": {
+    "status": "imported_unreviewed"
+  },
+  "description": "Committed lead has status imported_unreviewed",
+  "expected": {
+    "status": "imported_unreviewed"
+  },
+  "check": "leadStatus"
+}

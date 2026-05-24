@@ -1,0 +1,6 @@
+{
+  "input": "https://www.acme.com/path",
+  "description": "normalizeWebsite extracts domain from URL",
+  "expected": "acme.com",
+  "check": "normalizeWebsite"
+}

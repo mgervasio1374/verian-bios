@@ -1,0 +1,9 @@
+{
+  "input": "Company Name,Email\n\"Acme, Inc.\",john@acme.com",
+  "description": "Quoted commas in CSV parse correctly",
+  "expected": {
+    "rowCount": 1,
+    "firstCompany": "Acme, Inc."
+  },
+  "check": "parseCsv"
+}

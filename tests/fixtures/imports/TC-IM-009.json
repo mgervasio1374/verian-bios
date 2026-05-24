@@ -1,0 +1,6 @@
+{
+  "file": "supabase/migrations/20240027_phase3b2_import_tables.sql",
+  "description": "import_rows target_lead_id FK references leads",
+  "pattern": "target_lead_id        uuid REFERENCES leads(id)",
+  "check": "sql_contains"
+}

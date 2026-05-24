@@ -1,0 +1,14 @@
+{
+  "input": {
+    "matchType": "email",
+    "entityType": "contact",
+    "detail": "Contact with email exists",
+    "entityId": "uuid-123"
+  },
+  "description": "DuplicateMatch shape has matchType and entityId",
+  "expected": {
+    "hasMatchType": true,
+    "hasEntityId": true
+  },
+  "check": "dupeMatchShape"
+}

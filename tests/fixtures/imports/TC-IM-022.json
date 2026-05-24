@@ -1,0 +1,12 @@
+{
+  "input": {
+    "headers": [
+      "Company Name"
+    ]
+  },
+  "description": "Auto-detection maps Company Name to company_name",
+  "expected": {
+    "company_name": "Company Name"
+  },
+  "check": "detectMapping"
+}

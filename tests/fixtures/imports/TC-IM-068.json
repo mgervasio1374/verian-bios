@@ -1,0 +1,19 @@
+{
+  "input": {
+    "mapping": {
+      "company_name": "Company",
+      "email": "Email",
+      "external_id": "External ID"
+    },
+    "rawRow": {
+      "External ID": "apify-xyz",
+      "Email": "a@acme.com",
+      "Company": "Acme"
+    }
+  },
+  "description": "external_id preserved in normalized row",
+  "expected": {
+    "externalId": "apify-xyz"
+  },
+  "check": "normalizeRow"
+}

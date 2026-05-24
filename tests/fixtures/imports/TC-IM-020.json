@@ -1,0 +1,11 @@
+{
+  "input": {
+    "sheetCount": 3,
+    "firstSheetRows": 5
+  },
+  "description": "XLSX only first worksheet is used",
+  "expected": {
+    "rowCount": 5
+  },
+  "check": "xlsxFirstSheetOnly"
+}

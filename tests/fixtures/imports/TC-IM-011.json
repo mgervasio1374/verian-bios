@@ -1,0 +1,9 @@
+{
+  "input": "Company Name,Email\nAcme,a@acme.com\nBeta,b@beta.com\nGamma,g@gamma.com\nDelta,d@delta.com",
+  "description": "CSV with 4 data rows parses correctly",
+  "expected": {
+    "firstEmail": "a@acme.com",
+    "rowCount": 4
+  },
+  "check": "parseCsv"
+}

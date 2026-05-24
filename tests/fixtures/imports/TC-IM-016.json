@@ -1,0 +1,9 @@
+{
+  "input": "Company Name,Email\nAcme,a@acme.com\nBeta,b@beta.com",
+  "description": "Row number tracks source file position",
+  "expected": {
+    "row1Number": 1,
+    "row2Number": 2
+  },
+  "check": "rowNumber"
+}

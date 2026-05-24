@@ -1,0 +1,9 @@
+{
+  "input": "Company Name,Email\nAcme,a@acme.com",
+  "description": "CSV with BOM prefix parses correctly",
+  "expected": {
+    "rowCount": 1,
+    "firstHeader": "Company Name"
+  },
+  "check": "parseCsv_bom"
+}

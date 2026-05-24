@@ -1,0 +1,6 @@
+{
+  "constant": "IMPORT_SOURCE_TYPE.SCRAPER",
+  "description": "source_type scraper is in IMPORT_SOURCE_TYPE constants",
+  "expected": "scraper",
+  "check": "constant_value"
+}

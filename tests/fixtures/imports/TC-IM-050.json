@@ -1,0 +1,11 @@
+{
+  "input": {
+    "duplicateStatus": "duplicate",
+    "validationStatus": "valid"
+  },
+  "description": "Duplicate row commit_status is skipped",
+  "expected": {
+    "commitStatus": "skipped"
+  },
+  "check": "commitStatus"
+}

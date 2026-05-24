@@ -1,0 +1,13 @@
+{
+  "input": {
+    "mapping": {
+      "email": "Email",
+      "company_name": "Company Name"
+    }
+  },
+  "description": "validateMapping passes when company_name is mapped",
+  "expected": {
+    "valid": true
+  },
+  "check": "validateMapping"
+}

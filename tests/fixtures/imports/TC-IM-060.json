@@ -1,0 +1,6 @@
+{
+  "pattern": "message_versions",
+  "description": "import.commit.ts does not write to message_versions",
+  "file": "modules/imports/import.commit.ts",
+  "check": "source_grep_absent"
+}

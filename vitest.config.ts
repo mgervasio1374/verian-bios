@@ -8,11 +8,14 @@ export default defineConfig({
     include:     ['tests/**/*.test.ts'],
     alias: {
       '@': resolve(__dirname, '.'),
+      // server-only is a Next.js guard — safe to stub in test environment
+      'server-only': resolve(__dirname, 'tests/__mocks__/server-only.ts'),
     },
   },
   resolve: {
     alias: {
       '@': resolve(__dirname, '.'),
+      'server-only': resolve(__dirname, 'tests/__mocks__/server-only.ts'),
     },
   },
 })

@@ -1,0 +1,6 @@
+{
+  "input": "John.Smith@ACME.COM",
+  "description": "Email normalized to lowercase",
+  "expected": "john.smith@acme.com",
+  "check": "normalizeEmail"
+}

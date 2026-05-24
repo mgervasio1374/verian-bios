@@ -1,0 +1,6 @@
+{
+  "pattern": "resend",
+  "description": "import.service.ts has no Resend import",
+  "file": "modules/imports/import.service.ts",
+  "check": "source_grep_absent"
+}

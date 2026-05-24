@@ -1,0 +1,6 @@
+{
+  "pattern": "requirePermission",
+  "description": "import.actions.ts calls requirePermission",
+  "file": "modules/imports/actions/import.actions.ts",
+  "check": "source_grep_present"
+}

@@ -3076,6 +3076,237 @@ export type Database = {
           },
         ]
       }
+      import_batches: {
+        Row: {
+          id: string
+          tenant_id: string
+          workspace_id: string
+          source_type: string
+          source_name: string | null
+          original_filename: string | null
+          uploaded_by: string
+          approved_by: string | null
+          status: string
+          total_rows: number
+          parsed_rows: number
+          valid_rows: number
+          invalid_rows: number
+          duplicate_rows: number
+          committed_rows: number
+          failed_commit_rows: number
+          default_lead_status: string
+          default_workflow_status: string
+          workflow_enabled_default: boolean
+          column_mapping: Json
+          metadata: Json
+          created_at: string
+          validated_at: string | null
+          approved_at: string | null
+          committed_at: string | null
+          failed_at: string | null
+          canceled_at: string | null
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          workspace_id: string
+          source_type: string
+          source_name?: string | null
+          original_filename?: string | null
+          uploaded_by: string
+          approved_by?: string | null
+          status?: string
+          total_rows?: number
+          parsed_rows?: number
+          valid_rows?: number
+          invalid_rows?: number
+          duplicate_rows?: number
+          committed_rows?: number
+          failed_commit_rows?: number
+          default_lead_status?: string
+          default_workflow_status?: string
+          workflow_enabled_default?: boolean
+          column_mapping?: Json
+          metadata?: Json
+          created_at?: string
+          validated_at?: string | null
+          approved_at?: string | null
+          committed_at?: string | null
+          failed_at?: string | null
+          canceled_at?: string | null
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          workspace_id?: string
+          source_type?: string
+          source_name?: string | null
+          original_filename?: string | null
+          uploaded_by?: string
+          approved_by?: string | null
+          status?: string
+          total_rows?: number
+          parsed_rows?: number
+          valid_rows?: number
+          invalid_rows?: number
+          duplicate_rows?: number
+          committed_rows?: number
+          failed_commit_rows?: number
+          default_lead_status?: string
+          default_workflow_status?: string
+          workflow_enabled_default?: boolean
+          column_mapping?: Json
+          metadata?: Json
+          created_at?: string
+          validated_at?: string | null
+          approved_at?: string | null
+          committed_at?: string | null
+          failed_at?: string | null
+          canceled_at?: string | null
+          deleted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_batches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_batches_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_batches_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_batches_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_rows: {
+        Row: {
+          id: string
+          import_batch_id: string
+          tenant_id: string
+          workspace_id: string
+          row_number: number
+          raw_data: Json
+          normalized_data: Json
+          validation_status: string
+          validation_errors: Json
+          duplicate_status: string
+          duplicate_matches: Json
+          commit_status: string
+          commit_error: string | null
+          target_company_id: string | null
+          target_contact_id: string | null
+          target_lead_id: string | null
+          created_at: string
+          validated_at: string | null
+          committed_at: string | null
+        }
+        Insert: {
+          id?: string
+          import_batch_id: string
+          tenant_id: string
+          workspace_id: string
+          row_number: number
+          raw_data?: Json
+          normalized_data?: Json
+          validation_status?: string
+          validation_errors?: Json
+          duplicate_status?: string
+          duplicate_matches?: Json
+          commit_status?: string
+          commit_error?: string | null
+          target_company_id?: string | null
+          target_contact_id?: string | null
+          target_lead_id?: string | null
+          created_at?: string
+          validated_at?: string | null
+          committed_at?: string | null
+        }
+        Update: {
+          id?: string
+          import_batch_id?: string
+          tenant_id?: string
+          workspace_id?: string
+          row_number?: number
+          raw_data?: Json
+          normalized_data?: Json
+          validation_status?: string
+          validation_errors?: Json
+          duplicate_status?: string
+          duplicate_matches?: Json
+          commit_status?: string
+          commit_error?: string | null
+          target_company_id?: string | null
+          target_contact_id?: string | null
+          target_lead_id?: string | null
+          created_at?: string
+          validated_at?: string | null
+          committed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_rows_import_batch_id_fkey"
+            columns: ["import_batch_id"]
+            isOneToOne: false
+            referencedRelation: "import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_rows_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_rows_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_rows_target_company_id_fkey"
+            columns: ["target_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_rows_target_contact_id_fkey"
+            columns: ["target_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_rows_target_lead_id_fkey"
+            columns: ["target_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           assigned_to: string | null

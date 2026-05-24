@@ -1,0 +1,13 @@
+{
+  "input": {
+    "website": null,
+    "companyName": "Acme",
+    "phone": "555",
+    "email": "john@acme.com"
+  },
+  "description": "Warning row is valid",
+  "expected": {
+    "status": "valid"
+  },
+  "check": "validateRow"
+}

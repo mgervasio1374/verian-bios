@@ -1,0 +1,17 @@
+{
+  "input": {
+    "mapping": {
+      "email": "Email",
+      "company_name": "Company"
+    },
+    "rawRow": {
+      "Company": "Acme",
+      "Email": ""
+    }
+  },
+  "description": "Empty column value is null after normalizeRow",
+  "expected": {
+    "email": null
+  },
+  "check": "normalizeRow"
+}

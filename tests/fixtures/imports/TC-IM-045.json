@@ -1,0 +1,6 @@
+{
+  "input": "www.acme.com",
+  "description": "normalizeWebsite strips www prefix",
+  "expected": "acme.com",
+  "check": "normalizeWebsite"
+}

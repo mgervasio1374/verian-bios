@@ -1,0 +1,6 @@
+{
+  "file": "supabase/migrations/20240027_phase3b2_import_tables.sql",
+  "description": "import_rows validated_at is nullable",
+  "pattern": "validated_at          timestamptz",
+  "check": "sql_contains"
+}

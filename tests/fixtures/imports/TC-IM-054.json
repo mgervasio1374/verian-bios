@@ -1,0 +1,10 @@
+{
+  "input": {
+    "error": "DB error: duplicate key"
+  },
+  "description": "commitRow returns error object on failure",
+  "expected": {
+    "hasError": true
+  },
+  "check": "commitRowError"
+}

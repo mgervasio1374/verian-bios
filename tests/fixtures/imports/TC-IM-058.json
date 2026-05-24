@@ -1,0 +1,6 @@
+{
+  "pattern": "sendApprovedDraftAction",
+  "description": "import.commit.ts has no sendApprovedDraftAction",
+  "file": "modules/imports/import.commit.ts",
+  "check": "source_grep_absent"
+}

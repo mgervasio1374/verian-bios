@@ -1,0 +1,6 @@
+{
+  "constant": "IMPORT_BACKGROUND_THRESHOLD",
+  "description": "IMPORT_BACKGROUND_THRESHOLD equals 1000",
+  "expected": 1000,
+  "check": "constant"
+}

@@ -1,0 +1,18 @@
+{
+  "input": {
+    "mapping": {
+      "email": "Email",
+      "company_name": "Company Name"
+    },
+    "rawRow": {
+      "Company Name": "Acme",
+      "Email": "a@acme.com"
+    }
+  },
+  "description": "applyMapping produces canonical keys",
+  "expected": {
+    "email": "a@acme.com",
+    "company_name": "Acme"
+  },
+  "check": "applyMapping"
+}

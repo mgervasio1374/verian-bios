@@ -5,6 +5,7 @@ import { reconcileEmailDraftStatus } from './functions/reconcile-email-draft-sta
 import { onStatementReceived } from './functions/on-statement-received'
 import { reconcileSendBridgeStuckDrafts } from './functions/reconcile-send-bridge-stuck-drafts'
 import { scheduledLearningAgentRun } from './functions/scheduled-learning-agent-run'
+import { processImportBatch } from './functions/process-import-batch'
 
 export const inngestFunctions = [
   dispatchOutbox,
@@ -15,4 +16,5 @@ export const inngestFunctions = [
   onStatementReceived,
   reconcileSendBridgeStuckDrafts,  // Phase 3B.1: SEB stuck-draft detection/reconciliation
   scheduledLearningAgentRun,       // Phase 3B.1: daily advisory Learning Agent run
+  processImportBatch,              // Phase 3B.2: background large-file import processing
 ]

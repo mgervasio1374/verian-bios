@@ -1,0 +1,14 @@
+{
+  "input": {
+    "canceledBy": "u1",
+    "batchId": "b1",
+    "tenantId": "t1"
+  },
+  "description": "buildImportCanceledPayload returns correct action_type",
+  "builder": "buildImportCanceledPayload",
+  "check": "auditPayload",
+  "expected": {
+    "action_type": "IMPORT_CANCELED",
+    "canceled_by": "u1"
+  }
+}

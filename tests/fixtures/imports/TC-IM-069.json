@@ -1,0 +1,9 @@
+{
+  "input": "Madonna",
+  "description": "splitFullName single token produces empty last name",
+  "expected": {
+    "firstName": "Madonna",
+    "lastName": ""
+  },
+  "check": "splitFullName"
+}

@@ -1,0 +1,9 @@
+{
+  "input": {
+    "function": "checkEmailDuplicate",
+    "includesTenantId": true
+  },
+  "description": "checkEmailDuplicate is tenant-scoped",
+  "expected": true,
+  "check": "dedupeScope"
+}

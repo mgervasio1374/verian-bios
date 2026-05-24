@@ -1,0 +1,6 @@
+{
+  "input": "  Acme Corp  ",
+  "description": "Company name trimmed of whitespace",
+  "expected": "Acme Corp",
+  "check": "normalizeName"
+}

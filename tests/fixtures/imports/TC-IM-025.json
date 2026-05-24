@@ -1,0 +1,18 @@
+{
+  "input": {
+    "mapping": {
+      "contact_full_name": "Full Name",
+      "company_name": "Company"
+    },
+    "rawRow": {
+      "Company": "Acme",
+      "Full Name": "John Michael Smith"
+    }
+  },
+  "description": "contact_full_name split into first and last",
+  "expected": {
+    "contactLastName": "Smith",
+    "contactFirstName": "John"
+  },
+  "check": "normalizeRow"
+}

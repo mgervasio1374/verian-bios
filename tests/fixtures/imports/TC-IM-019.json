@@ -1,0 +1,11 @@
+{
+  "input": {
+    "sourceType": "csv",
+    "content": "Company,Email\nAcme,test@acme.com"
+  },
+  "description": "parseFile returns rows for valid CSV",
+  "expected": {
+    "hasRows": true
+  },
+  "check": "parseFileErrors"
+}

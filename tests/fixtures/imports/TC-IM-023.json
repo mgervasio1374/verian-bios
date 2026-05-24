@@ -1,0 +1,14 @@
+{
+  "input": {
+    "headers": [
+      "Revenue (USD)"
+    ]
+  },
+  "description": "Unknown header is not mapped",
+  "expected": {
+    "unmapped": [
+      "Revenue (USD)"
+    ]
+  },
+  "check": "detectMapping"
+}

@@ -1,0 +1,12 @@
+{
+  "input": {
+    "source": "import",
+    "status": "imported_unreviewed"
+  },
+  "description": "insertLead uses imported_unreviewed status",
+  "expected": {
+    "source": "import",
+    "status": "imported_unreviewed"
+  },
+  "check": "insertLeadStatus"
+}

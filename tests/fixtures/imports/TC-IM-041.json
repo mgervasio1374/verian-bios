@@ -1,0 +1,12 @@
+{
+  "input": {
+    "email": "existing@acme.com",
+    "matchType": "email"
+  },
+  "description": "checkRowForDuplicates shape has status and matches",
+  "expected": {
+    "matchType": "email",
+    "status": "duplicate"
+  },
+  "check": "dedupeResult"
+}

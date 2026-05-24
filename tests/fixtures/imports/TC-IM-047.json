@@ -1,0 +1,9 @@
+{
+  "input": {
+    "function": "checkWithinBatchDuplicate",
+    "includesBatchId": true
+  },
+  "description": "checkWithinBatchDuplicate checks email within batch",
+  "expected": true,
+  "check": "dedupeScope"
+}

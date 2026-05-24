@@ -1,0 +1,14 @@
+{
+  "input": {
+    "website": null,
+    "companyName": "Acme",
+    "phone": null,
+    "email": null
+  },
+  "description": "Row without email phone or website is invalid",
+  "expected": {
+    "errorCode": "MISSING_CONTACT_METHOD",
+    "status": "invalid"
+  },
+  "check": "validateRow"
+}

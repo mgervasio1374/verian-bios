@@ -1,0 +1,16 @@
+{
+  "input": {
+    "city": null,
+    "externalId": null,
+    "companyName": null,
+    "website": null,
+    "phone": null,
+    "email": null
+  },
+  "description": "checkRowForDuplicates returns unique when no match fields",
+  "expected": {
+    "matchCount": 0,
+    "status": "unique"
+  },
+  "check": "dedupeResult"
+}

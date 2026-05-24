@@ -1,0 +1,12 @@
+{
+  "input": {
+    "hasLeadId": true,
+    "hasCompanyId": true
+  },
+  "description": "commitRow returns companyId contactId leadId on success",
+  "expected": {
+    "hasLeadId": true,
+    "hasCompanyId": true
+  },
+  "check": "commitRowShape"
+}

@@ -17,6 +17,7 @@ import {
   Bot,
   ShieldAlert,
   MessageSquare,
+  Upload,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -48,6 +49,7 @@ export function Sidebar({ workspaceSlug, tenantName }: SidebarProps) {
     { label: 'Artifacts',     href: `${base}/artifacts`,               icon: <FolderOpen className="h-4 w-4" /> },
     { label: 'Agent Monitor',    href: `${base}/settings/agent-monitor`,    icon: <Bot className="h-4 w-4" /> },
     { label: 'System Controls', href: `${base}/settings/system-controls`, icon: <ShieldAlert className="h-4 w-4" /> },
+    { label: 'Imports',          href: `${base}/settings/imports`,          icon: <Upload className="h-4 w-4" /> },
     { label: 'Settings',        href: `${base}/settings`,                  icon: <Settings className="h-4 w-4" /> },
   ]
 

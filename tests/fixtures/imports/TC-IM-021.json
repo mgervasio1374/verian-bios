@@ -1,0 +1,12 @@
+{
+  "input": {
+    "headers": [
+      "Email Address"
+    ]
+  },
+  "description": "Auto-detection maps Email Address to email",
+  "expected": {
+    "email": "Email Address"
+  },
+  "check": "detectMapping"
+}

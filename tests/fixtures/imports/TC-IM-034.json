@@ -1,0 +1,14 @@
+{
+  "input": {
+    "website": null,
+    "companyName": "Acme",
+    "phone": null,
+    "email": "not-an-email"
+  },
+  "description": "Invalid email format marks row invalid",
+  "expected": {
+    "errorCode": "INVALID_EMAIL_FORMAT",
+    "status": "invalid"
+  },
+  "check": "validateRow"
+}

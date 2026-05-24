@@ -1,0 +1,15 @@
+{
+  "input": {
+    "mapping": {
+      "email": "Email"
+    }
+  },
+  "description": "Missing company_name fails validateMapping",
+  "expected": {
+    "valid": false,
+    "missing": [
+      "company_name"
+    ]
+  },
+  "check": "validateMapping"
+}

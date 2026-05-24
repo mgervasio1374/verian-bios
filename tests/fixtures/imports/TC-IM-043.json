@@ -1,0 +1,6 @@
+{
+  "input": "(555) 123-4567",
+  "description": "Phone normalized to digits only",
+  "expected": "5551234567",
+  "check": "normalizePhone"
+}
