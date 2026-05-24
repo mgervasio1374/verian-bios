@@ -176,20 +176,51 @@ All deliverables committed, tagged, and QA-verified.
 - Learning Agent runs daily at 06:00 UTC without requiring manual trigger; manual trigger still works
 - Operational Health card in agent monitor surfaces stuck drafts, failed sends, and LA run status — advisory, no auto-action
 
+## Completed — Phase 3B.2 Data Import Foundation v1.0
+
+All deliverables committed, tagged, and QA-verified.
+
+| Deliverable | Status |
+|-------------|--------|
+| Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3b2-data-import-foundation-design.md`) |
+| Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b2-data-import-foundation-implementation-plan.md`) |
+| Code implementation | Complete — `6a39849`, tag `phase-3b2-data-import-foundation-v1` |
+| QA: 802/802 tests, build, TypeScript, guardrails | PASSED |
+
+### What was delivered
+
+- Three-layer import pipeline: Source → Staging (import_batches/import_rows) → CRM Commit
+- Parser: CSV (PapaParse, skipEmptyLines:'greedy') and XLSX (xlsx ESM namespace import); server-only guard
+- Column mapping: case-insensitive alias detection from ~50 IMPORT_FIELD_ALIASES; validateMapping
+- Normalization: email, phone, website (domain extraction), state (→ 2-letter abbr), postal code, name
+- Validation: RFC 5322 email, phone length warning, required fields (company_name)
+- Dedupe: email, phone, domain, name+city, externalId, within-batch; runs in parallel
+- Commit: upsertCompany → insertContact (if contact data) → insertLead (status='imported_unreviewed', workflow_enabled=false); writes ONLY to companies/contacts/leads
+- Orchestration: sync (≤1000 rows inline) and async (>1000 rows → Inngest `import/batch.approved` event)
+- Inngest function `process-import-batch`: 2-arg v4 createFunction form, retries: 1
+- 9 server actions: createImportBatchAction, approveAndCommitAction, cancelImportBatchAction, getImportBatchDetailAction, listImportBatchesAction
+- Admin UI: 3 pages (list, new, detail) + 2 client components; Imports nav link in Sidebar
+- 69 test fixtures + 156 tests; all 6 guardrails clean
+
+### Guardrail verification (all PASS)
+
+- No Resend calls in import module or process-import-batch.ts
+- No sendApprovedDraftAction references in import module
+- No message_strategies/message_versions/quality_reviews writes in import module
+- No external LLM calls in import module
+- `metadata.workflow_enabled = false` present in import.commit.ts insertLead
+
 ## Approved Next Phase
 
-**Phase 3B.1 Final QA / Lock Report / Stabilization Closeout**
+Status: **Awaiting user direction.**
 
-Status: **Not started.**
-
-This phase should:
-1. Produce a comprehensive closeout report for Phase 3B.1
-2. Verify the complete attribution hardening chain end-to-end
-3. Confirm stuck draft detection and scheduled Learning Agent behavior
-4. Document what was added vs. the original Phase 3B foundation
-5. Lock Phase 3B.1 as a stable baseline
-
-Do not code new features until this closeout is approved.
+No next phase has been approved. Follow the standard sequence:
+1. Design & Test Cases — produce document, get user approval
+2. Implementation Plan — produce document, get user approval
+3. Code implementation — follow locked plan
+4. QA: `npx vitest run` + `npx next build`
+5. Commit, tag
+6. Update `docs/ai-context/` files
 
 ## Process Reminder
 

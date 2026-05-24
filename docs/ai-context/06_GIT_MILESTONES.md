@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3b2-data-import-foundation-v1` | Phase 3B.2 Data Import Foundation complete — CSV/XLSX pipeline, staging tables, dedupe, CRM commit, Inngest async path, admin UI |
 | `phase-3b1-stabilization-v1` | Phase 3B.1 Stabilization / Hardening Foundation complete — FK attribution, SEB reconciler, scheduled LA, Operational Health |
 | `phase-3b-learning-agent-v1` | Learning Agent Foundation complete — advisory signals, learning_snapshots, agent monitor UI |
 | `phase-3b-event-tracking-v1` | Event Tracking / Send Outcome Tracking Foundation complete |
@@ -25,6 +26,7 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `6a39849` | Phase 3B.2: implement Data Import Foundation | Phase 3B.2 |
 | `0af660e` | Phase 3B.1: implement Stabilization Hardening foundation | Phase 3B.1 |
 | `44ea577` | Phase 3B: implement Learning Agent foundation | Phase 3B LA |
 | `c631fc0` | Docs: add Phase 3B Learning Agent implementation plan | Phase 3B Docs |
@@ -165,6 +167,35 @@
 - `tests/fixtures/learning-agent/TC-LA-001.json` through `TC-LA-042.json` — 42 fixtures
 - `tests/learning-agent.test.ts` — 53 LA tests
 
+### Phase 3B.2: Data Import Foundation (`6a39849`)
+- `supabase/migrations/20240027_phase3b2_import_tables.sql` — `import_batches` (11-status CHECK, workflow_enabled_default DEFAULT false, column_mapping jsonb) + `import_rows` (validation/duplicate/commit status CHECKs, FK to companies/contacts/leads); RLS: memberships-based SELECT; writes via service client
+- `types/database.ts` — `import_batches` and `import_rows` Row/Insert/Update/Relationships added
+- `modules/intelligence/types.agent.ts` — 9 IMPORT_ ActivityEventType constants added (additive)
+- `modules/imports/import.types.ts` — IMPORT_BATCH_STATUS (11), IMPORT_ROW_VALIDATION_STATUS, IMPORT_ROW_DUPLICATE_STATUS, IMPORT_ROW_COMMIT_STATUS, IMPORT_SOURCE_TYPE (5), IMPORT_FIELD_ALIASES (~50 header aliases), IMPORT_BACKGROUND_THRESHOLD=1000, NormalizedImportRow, 9 audit payload interfaces
+- `modules/imports/import.normalization.ts` — normalizeEmail, normalizePhone, normalizeWebsite, normalizeState, normalizePostalCode, normalizeName, splitFullName, normalizeRow
+- `modules/imports/import.mapping.ts` — detectColumnMapping (case-insensitive alias matching), applyMapping, validateMapping
+- `modules/imports/import.validation.ts` — validateEmail (RFC 5322), validatePhone (PHONE_TOO_SHORT warning), validateRequiredFields, validateRow
+- `modules/imports/import.audit.ts` — 9 pure payload builder functions for all IMPORT_ event types
+- `modules/imports/import.parser.ts` — `import 'server-only'`; `import * as XLSX from 'xlsx'` (ESM namespace import); parseCsv (skipEmptyLines: 'greedy'), parseXlsx, parseFile
+- `modules/imports/repositories/import-batch.repo.ts` — createBatch, getBatch, updateBatchStatus, updateBatchCounts, listBatchesForWorkspace
+- `modules/imports/repositories/import-row.repo.ts` — createRows, listRowsByBatch, listInvalidRowsByBatch, listDuplicateRowsByBatch, listCommittableRows, updateRowValidation, updateRowDedupe, updateRowCommit, updateRowNormalizedData
+- `modules/imports/import.dedupe.ts` — checkEmailDuplicate, checkPhoneDuplicate, checkDomainDuplicate, checkNameCityDuplicate, checkExternalIdDuplicate, checkWithinBatchDuplicate, checkRowForDuplicates
+- `modules/imports/import.commit.ts` — upsertCompany, insertContact, insertLead (status='imported_unreviewed', workflow_enabled=false), commitRow; writes ONLY to companies/contacts/leads
+- `modules/imports/import.service.ts` — orchestration: createImportBatch, parseAndStage, validateBatch, dedupeBatch, approveBatch, commitBatch; sync (≤1000 rows) and Inngest async (>1000 rows) paths; all emitEvent calls non-fatal
+- `modules/imports/actions/import.actions.ts` — server actions: createImportBatchAction, approveAndCommitAction, cancelImportBatchAction, getImportBatchDetailAction, listImportBatchesAction
+- `inngest/functions/process-import-batch.ts` — Inngest function (2-arg v4 form) for `import/batch.approved`; verifies approved/committing status before commit
+- `inngest/index.ts` — processImportBatch registered (9 functions total)
+- `app/(workspace)/[workspaceSlug]/settings/imports/page.tsx` — import batch list
+- `app/(workspace)/[workspaceSlug]/settings/imports/new/page.tsx` — upload page
+- `app/(workspace)/[workspaceSlug]/settings/imports/[batchId]/page.tsx` — detail page: validation/dedupe summary, approve/cancel
+- `app/(workspace)/[workspaceSlug]/settings/imports/[batchId]/ImportUploadForm.tsx` — client component
+- `app/(workspace)/[workspaceSlug]/settings/imports/[batchId]/CommitConfirmModal.tsx` — client component
+- `components/layout/Sidebar.tsx` — "Imports" nav entry added
+- `tests/__mocks__/server-only.ts` — empty export for Vitest compatibility
+- `vitest.config.ts` — server-only alias added
+- `tests/fixtures/imports/TC-IM-001.json` through `TC-IM-069.json` — 69 fixtures
+- `tests/import-foundation.test.ts` — 156 tests (69 fixture existence + 87 unit)
+
 ### Phase 3B.1: Stabilization / Hardening Foundation (`0af660e`)
 - `supabase/migrations/20240026_phase3b1_email_sends_attribution.sql` — adds `message_version_id uuid` and `strategy_id uuid` (nullable, `ON DELETE SET NULL`) to `email_sends`; partial indexes `idx_email_sends_message_version` and `idx_email_sends_strategy`
 - `types/database.ts` — manually updated: `message_version_id` and `strategy_id` added to `email_sends` Row/Insert/Update/Relationships
@@ -185,6 +216,7 @@
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-24 | 802/802 passed | PASSED | Phase 3B.2 Data Import Foundation — 156 new tests, 646 existing pass. TypeScript clean. Guardrails pass. |
 | 2026-05-22 | 646/646 passed | PASSED | Phase 3B.1 Foundation — 56 new tests, 590 existing pass. TypeScript clean. |
 | 2026-05-21 | 590/590 passed | PASSED | LA Foundation v1.0 — 53 LA tests, 537 existing tests all pass. TypeScript clean. |
 | 2026-05-21 | 537/537 passed | PASSED | ET Foundation v1.0 — 81 ET tests, 456 existing tests all pass. TypeScript clean. |
@@ -196,7 +228,7 @@
 
 ## Current HEAD
 
-`0af660e` — Phase 3B.1: implement Stabilization Hardening foundation
+`6a39849` — Phase 3B.2: implement Data Import Foundation
 
 ## Migrations Sequence
 
@@ -210,5 +242,6 @@
 | `20240024` | Phase 3B quality_reviews table |
 | `20240025` | Phase 3B learning_snapshots table (Learning Agent) |
 | `20240026` | Phase 3B.1 email_sends attribution FK columns (Stabilization) |
+| `20240027` | Phase 3B.2 import_batches + import_rows tables (Data Import Foundation) |
 
 Note: No new migration was added for the Human Review / Approval Bridge, the Send / Email Draft Bridge, or Event Tracking. All three use existing tables and columns only. Phase 3B provenance travels via `email_drafts.ai_generation_metadata` (jsonb) at draft creation, then is copied into `email_sends.metadata` (jsonb) at send time. Event Tracking activity events are appended to the existing `activity_events` table. The Learning Agent adds migration `20240025` for `learning_snapshots` — its only write target.

@@ -12,7 +12,8 @@
 |-------|--------|
 | Phase 3A — Core Intelligence Infrastructure | Locked. Do not modify. |
 | Phase 3B — Revenue Learning Engine | Foundation complete and locked. |
-| Phase 3B.1 — Stabilization / Hardening | Complete. Committed, tagged. Next: Final QA / Lock Report / Closeout. |
+| Phase 3B.1 — Stabilization / Hardening | Complete. Committed, tagged. |
+| Phase 3B.2 — Data Import Foundation | Complete. Committed, tagged `phase-3b2-data-import-foundation-v1`. |
 | Phase 4 — Statement Workflow | Complete. Locked. |
 
 ## Phase 3B Foundation Status
@@ -50,13 +51,13 @@ All Phase 3B foundation components through the Learning Agent are implemented, c
 
 ## QA Status (Last Verified)
 
-Verified after Phase 3B.1 Stabilization / Hardening Foundation was committed and tagged. This is the current baseline.
+Verified after Phase 3B.2 Data Import Foundation was committed and tagged. This is the current baseline.
 
 ```
 npx vitest run      → PASSED
 npx next build      → PASSED
 TypeScript          → PASSED
-646/646 tests passed
+802/802 tests passed
   Message Strategy Agent tests:  41 passed
   Copywriting Agent tests:       100 passed
   Quality Review Agent tests:    126 passed
@@ -65,6 +66,8 @@ TypeScript          → PASSED
   Event Tracking tests:          81 passed
   Learning Agent tests:          53 passed
   Phase 3B.1 Stabilization tests: 56 passed
+  Data Import Foundation tests:  156 passed
+Guardrails: PASSED (no Resend/sendApprovedDraftAction/message_strategies/LLM calls in import module)
 ```
 
 ## Active Routes
@@ -75,6 +78,9 @@ TypeScript          → PASSED
 | `/[workspaceSlug]/message-workspace/[leadId]` | Active — includes QRA display, "Quality Review" button, HRB bridge UI, Send Bridge "Create Email Draft" button, and Event Tracking delivery status badges (Delivered / Bounced / Complaint / Send Failed) |
 | `/[workspaceSlug]/settings/agent-monitor` | Active — includes Learning Signals section, "Run Learning Analysis" button, and Phase 3B.1 Operational Health card (stuck drafts, failed sends, LA run status) |
 | `/[workspaceSlug]/settings/system-controls` | Active |
+| `/[workspaceSlug]/settings/imports` | Active — import batch list |
+| `/[workspaceSlug]/settings/imports/new` | Active — upload new import file |
+| `/[workspaceSlug]/settings/imports/[batchId]` | Active — batch detail: validation summary, dedupe results, approve/cancel |
 
 ## Working Tree
 
@@ -82,8 +88,8 @@ Clean. No untracked or modified files outside of committed changes.
 
 ## HEAD Commit
 
-`0af660e` — Phase 3B.1: implement Stabilization Hardening foundation
+`6a39849` — Phase 3B.2: implement Data Import Foundation
 
 ## Last Updated
 
-2026-05-22 — after Phase 3B.1 Stabilization / Hardening Foundation committed and tagged.
+2026-05-24 — after Phase 3B.2 Data Import Foundation committed and tagged.
