@@ -3,6 +3,7 @@ import type { Database } from '@/types/database'
 import * as healthRepo from '@/modules/workflow/repositories/health.repo'
 import type { EmailSendStatusCount } from '@/modules/workflow/repositories/health.repo'
 import { getEmailDraftMetrics, type EmailDraftMetrics } from '@/modules/messaging/services/email-draft-metrics.service'
+import { getOpenErrorsSummary, type OpenErrorsSummary } from '@/modules/intelligence/structured-errors/structured-error.service'
 
 type WorkflowRunRow = Database['public']['Tables']['workflow_runs']['Row']
 type JobExecutionRow = Database['public']['Tables']['job_executions']['Row']
@@ -43,6 +44,7 @@ export interface WorkflowHealthReport {
   scoringJobs: ScoringJobHealth
   emailDrafts: EmailDraftMetrics
   emailSends: EmailSendHealth
+  openErrors: OpenErrorsSummary
   generatedAt: string
 }
 
@@ -64,6 +66,7 @@ export async function getWorkflowHealth(
     latestScoringJobs,
     emailDrafts,
     emailSendStatusCounts,
+    openErrors,
   ] = await Promise.all([
     healthRepo.getOutboxCounts(tenantId),
     healthRepo.getFailedOutboxEvents(tenantId),
@@ -72,6 +75,7 @@ export async function getWorkflowHealth(
     healthRepo.getLatestScoringJobs(tenantId),
     getEmailDraftMetrics(ctx),
     healthRepo.getEmailSendStatusCounts(tenantId),
+    getOpenErrorsSummary(ctx),
   ])
 
   // Scoring job aggregates from the recent jobs sample
@@ -110,6 +114,7 @@ export async function getWorkflowHealth(
       totalBounced:   emailSendStatusCounts.find(r => r.status === 'bounced')?.count   ?? 0,
       totalFailed:    emailSendStatusCounts.find(r => r.status === 'failed')?.count    ?? 0,
     },
+    openErrors,
     generatedAt: new Date().toISOString(),
   }
 }

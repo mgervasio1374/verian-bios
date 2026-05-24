@@ -12,6 +12,13 @@ interface AutomationFailureInput {
   errorMessage?: string | null
   stackTrace?: string | null
   context?: Record<string, unknown>
+  // Phase 3C.1 lifecycle fields (optional — existing callers unaffected)
+  workspaceId?: string | null
+  severity?: string
+  module?: string | null
+  route?: string | null
+  correlationId?: string | null
+  payloadSnapshot?: Record<string, unknown>
 }
 
 export async function createAutomationFailure(
@@ -22,15 +29,22 @@ export async function createAutomationFailure(
   const { data, error } = await supabase
     .from('automation_failures')
     .insert({
-      tenant_id: input.tenantId,
-      workflow_run_id: input.workflowRunId ?? null,
-      job_execution_id: input.jobExecutionId ?? null,
-      failure_type: input.failureType,
-      error_code: input.errorCode ?? null,
-      error_message: input.errorMessage ?? null,
-      stack_trace: input.stackTrace ?? null,
-      context: input.context ?? {},
-      resolved: false,
+      tenant_id:        input.tenantId,
+      workspace_id:     input.workspaceId     ?? null,
+      workflow_run_id:  input.workflowRunId   ?? null,
+      job_execution_id: input.jobExecutionId  ?? null,
+      failure_type:     input.failureType,
+      error_code:       input.errorCode       ?? null,
+      error_message:    input.errorMessage    ?? null,
+      stack_trace:      input.stackTrace      ?? null,
+      context:          input.context         ?? {},
+      resolved:         false,
+      severity:         input.severity        ?? 'error',
+      status:           'open',
+      module:           input.module          ?? null,
+      route:            input.route           ?? null,
+      correlation_id:   input.correlationId   ?? null,
+      payload_snapshot: input.payloadSnapshot ?? {},
     })
     .select()
     .single()

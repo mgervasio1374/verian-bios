@@ -20,6 +20,9 @@ interface RecommendationInput {
   reason?: string | null
   requiresApproval?: boolean
   outcomeStatus?: string
+  // Phase 3C.1 fields (all optional — existing callers unaffected)
+  sourceAgent?: string | null
+  severity?: string | null
 }
 
 export async function persistRecommendation(
@@ -58,6 +61,8 @@ export async function persistRecommendation(
       reason:              input.reason           ?? null,
       requires_approval:   input.requiresApproval ?? false,
       outcome_status:      input.outcomeStatus    ?? 'pending',
+      source_agent:        input.sourceAgent      ?? null,
+      severity:            input.severity         ?? null,
     })
     .select()
     .single()

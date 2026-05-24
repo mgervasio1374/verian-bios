@@ -340,6 +340,8 @@ export type Database = {
           requires_approval: boolean
           resolved_at: string | null
           resolved_by: string | null
+          severity: string | null
+          source_agent: string | null
           status: string
           subject_id: string
           subject_type: string
@@ -373,6 +375,8 @@ export type Database = {
           requires_approval?: boolean
           resolved_at?: string | null
           resolved_by?: string | null
+          severity?: string | null
+          source_agent?: string | null
           status?: string
           subject_id: string
           subject_type: string
@@ -406,6 +410,8 @@ export type Database = {
           requires_approval?: boolean
           resolved_at?: string | null
           resolved_by?: string | null
+          severity?: string | null
+          source_agent?: string | null
           status?: string
           subject_id?: string
           subject_type?: string
@@ -992,48 +998,69 @@ export type Database = {
       automation_failures: {
         Row: {
           context: Json
+          correlation_id: string | null
           created_at: string
           error_code: string | null
           error_message: string | null
           failure_type: string
           id: string
           job_execution_id: string | null
+          module: string | null
+          payload_snapshot: Json
           resolved: boolean
           resolved_at: string | null
           resolved_by: string | null
+          route: string | null
+          severity: string
           stack_trace: string | null
+          status: string
           tenant_id: string
           workflow_run_id: string | null
+          workspace_id: string | null
         }
         Insert: {
           context?: Json
+          correlation_id?: string | null
           created_at?: string
           error_code?: string | null
           error_message?: string | null
           failure_type: string
           id?: string
           job_execution_id?: string | null
+          module?: string | null
+          payload_snapshot?: Json
           resolved?: boolean
           resolved_at?: string | null
           resolved_by?: string | null
+          route?: string | null
+          severity?: string
           stack_trace?: string | null
+          status?: string
           tenant_id: string
           workflow_run_id?: string | null
+          workspace_id?: string | null
         }
         Update: {
           context?: Json
+          correlation_id?: string | null
           created_at?: string
           error_code?: string | null
           error_message?: string | null
           failure_type?: string
           id?: string
           job_execution_id?: string | null
+          module?: string | null
+          payload_snapshot?: Json
           resolved?: boolean
           resolved_at?: string | null
           resolved_by?: string | null
+          route?: string | null
+          severity?: string
           stack_trace?: string | null
+          status?: string
           tenant_id?: string
           workflow_run_id?: string | null
+          workspace_id?: string | null
         }
         Relationships: [
           {
