@@ -477,3 +477,147 @@ describe('Phase 3C.1 — Database Types Extension', () => {
     expect(section).toContain('severity: string | null')
   })
 })
+
+// -------------------------------------------------------
+// Phase 3C.2 — ActivityEventType: lifecycle constants
+// -------------------------------------------------------
+describe('Phase 3C.2 — ActivityEventType: lifecycle constants', () => {
+  it('SE_ERROR_RESOLVED is defined', () => {
+    expect(ActivityEventType.SE_ERROR_RESOLVED).toBe('SE_ERROR_RESOLVED')
+  })
+  it('SE_ERROR_INVESTIGATING is defined', () => {
+    expect(ActivityEventType.SE_ERROR_INVESTIGATING).toBe('SE_ERROR_INVESTIGATING')
+  })
+  it('SE_ERROR_IGNORED is defined', () => {
+    expect(ActivityEventType.SE_ERROR_IGNORED).toBe('SE_ERROR_IGNORED')
+  })
+  it('SE_REC_DISMISSED is defined', () => {
+    expect(ActivityEventType.SE_REC_DISMISSED).toBe('SE_REC_DISMISSED')
+  })
+  it('all four new constants are unique strings', () => {
+    const vals = [
+      ActivityEventType.SE_ERROR_RESOLVED,
+      ActivityEventType.SE_ERROR_INVESTIGATING,
+      ActivityEventType.SE_ERROR_IGNORED,
+      ActivityEventType.SE_REC_DISMISSED,
+    ]
+    expect(new Set(vals).size).toBe(4)
+  })
+})
+
+// -------------------------------------------------------
+// Phase 3C.2 — Server actions: exports and 'use server'
+// -------------------------------------------------------
+describe('Phase 3C.2 — Structured Error Actions: source assertions', () => {
+  const actionsSource = readProjectFile(
+    'modules/intelligence/structured-errors/structured-error.actions.ts'
+  )
+
+  it("actions file has 'use server' directive", () => {
+    expect(actionsSource).toContain("'use server'")
+  })
+  it('exports resolveErrorAction', () => {
+    expect(actionsSource).toContain('resolveErrorAction')
+  })
+  it('exports investigateErrorAction', () => {
+    expect(actionsSource).toContain('investigateErrorAction')
+  })
+  it('exports ignoreErrorAction', () => {
+    expect(actionsSource).toContain('ignoreErrorAction')
+  })
+  it('exports dismissRecommendationAction', () => {
+    expect(actionsSource).toContain('dismissRecommendationAction')
+  })
+})
+
+// -------------------------------------------------------
+// Phase 3C.2 — Repo: updateErrorStatus and dismissRecommendation
+// -------------------------------------------------------
+describe('Phase 3C.2 — Structured Error Repo: new functions', () => {
+  const repoSource = readProjectFile(
+    'modules/intelligence/structured-errors/structured-error.repo.ts'
+  )
+
+  it('exports updateErrorStatus', () => {
+    expect(repoSource).toContain('updateErrorStatus')
+  })
+  it('exports dismissRecommendation', () => {
+    expect(repoSource).toContain('dismissRecommendation')
+  })
+})
+
+// -------------------------------------------------------
+// Phase 3C.2 — Service: investigateError and ignoreError
+// -------------------------------------------------------
+describe('Phase 3C.2 — Structured Error Service: new functions', () => {
+  const serviceSource = readProjectFile(
+    'modules/intelligence/structured-errors/structured-error.service.ts'
+  )
+
+  it('exports investigateError', () => {
+    expect(serviceSource).toContain('investigateError')
+  })
+  it('exports ignoreError', () => {
+    expect(serviceSource).toContain('ignoreError')
+  })
+})
+
+// -------------------------------------------------------
+// Phase 3C.2 — Emission: import.service.ts
+// -------------------------------------------------------
+describe('Phase 3C.2 — Error emission: import.service.ts', () => {
+  const serviceSource = readProjectFile('modules/imports/import.service.ts')
+
+  it('import.service.ts calls createStructuredError', () => {
+    expect(serviceSource).toContain('createStructuredError')
+  })
+  it('createStructuredError call in import.service.ts is non-fatal (.catch)', () => {
+    expect(serviceSource).toContain('createStructuredError(')
+    expect(serviceSource).toContain('.catch(() => {})')
+  })
+  it('import.service.ts does not call Resend', () => {
+    expect(serviceSource).not.toContain('resend')
+    expect(serviceSource).not.toContain('Resend')
+  })
+  it('import.service.ts does not call sendApprovedDraftAction', () => {
+    expect(serviceSource).not.toContain('sendApprovedDraftAction')
+  })
+})
+
+// -------------------------------------------------------
+// Phase 3C.2 — Emission: process-import-batch.ts
+// -------------------------------------------------------
+describe('Phase 3C.2 — Error emission: process-import-batch.ts', () => {
+  const fnSource = readProjectFile('inngest/functions/process-import-batch.ts')
+
+  it('process-import-batch.ts calls createStructuredError', () => {
+    expect(fnSource).toContain('createStructuredError')
+  })
+  it('createStructuredError call in process-import-batch.ts is non-fatal (.catch)', () => {
+    expect(fnSource).toContain('createStructuredError(')
+    expect(fnSource).toContain('.catch(() => {})')
+  })
+  it('process-import-batch.ts does not call Resend', () => {
+    expect(fnSource).not.toContain('resend')
+    expect(fnSource).not.toContain('Resend')
+  })
+})
+
+// -------------------------------------------------------
+// Phase 3C.2 — UI: action buttons in System Intelligence page
+// -------------------------------------------------------
+describe('Phase 3C.2 — System Intelligence page: action buttons', () => {
+  const pageSource = readProjectFile(
+    'app/(workspace)/[workspaceSlug]/settings/system-intelligence/page.tsx'
+  )
+
+  it('page imports resolveErrorAction', () => {
+    expect(pageSource).toContain('resolveErrorAction')
+  })
+  it('page imports dismissRecommendationAction', () => {
+    expect(pageSource).toContain('dismissRecommendationAction')
+  })
+  it('page remains a server component (no "use client")', () => {
+    expect(pageSource).not.toContain("'use client'")
+  })
+})

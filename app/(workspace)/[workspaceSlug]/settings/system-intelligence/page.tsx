@@ -3,6 +3,12 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import { requirePermission } from '@/lib/auth/permissions'
 import { getOpenErrorsSummary } from '@/modules/intelligence/structured-errors/structured-error.service'
+import {
+  resolveErrorAction,
+  investigateErrorAction,
+  ignoreErrorAction,
+  dismissRecommendationAction,
+} from '@/modules/intelligence/structured-errors/structured-error.actions'
 import { getWorkflowHealth } from '@/modules/workflow/services/health.service'
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -134,6 +140,7 @@ export default async function SystemIntelligencePage({ params }: PageProps) {
                   <th className="text-left p-3 font-medium">Module</th>
                   <th className="text-left p-3 font-medium">Message</th>
                   <th className="text-left p-3 font-medium">Created</th>
+                  <th className="p-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -148,6 +155,31 @@ export default async function SystemIntelligencePage({ params }: PageProps) {
                     <td className="p-3 text-muted-foreground">{err.module ?? '—'}</td>
                     <td className="p-3 text-muted-foreground max-w-xs truncate">{err.error_message ?? '—'}</td>
                     <td className="p-3 text-muted-foreground">{fmtDate(err.created_at)}</td>
+                    <td className="p-3">
+                      <div className="flex gap-1">
+                        <form action={resolveErrorAction}>
+                          <input type="hidden" name="id" value={err.id} />
+                          <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
+                          <button type="submit" className="text-xs text-primary hover:underline">
+                            Resolve
+                          </button>
+                        </form>
+                        <form action={investigateErrorAction}>
+                          <input type="hidden" name="id" value={err.id} />
+                          <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
+                          <button type="submit" className="text-xs text-muted-foreground hover:underline">
+                            Investigate
+                          </button>
+                        </form>
+                        <form action={ignoreErrorAction}>
+                          <input type="hidden" name="id" value={err.id} />
+                          <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
+                          <button type="submit" className="text-xs text-muted-foreground hover:underline">
+                            Ignore
+                          </button>
+                        </form>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -262,6 +294,7 @@ export default async function SystemIntelligencePage({ params }: PageProps) {
                   <th className="text-left p-3 font-medium">Severity</th>
                   <th className="text-left p-3 font-medium">Source</th>
                   <th className="text-left p-3 font-medium">Created</th>
+                  <th className="p-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -278,6 +311,15 @@ export default async function SystemIntelligencePage({ params }: PageProps) {
                     </td>
                     <td className="p-3 text-muted-foreground">{rec.source_agent ?? '—'}</td>
                     <td className="p-3 text-muted-foreground">{fmtDate(rec.created_at)}</td>
+                    <td className="p-3 text-right">
+                      <form action={dismissRecommendationAction}>
+                        <input type="hidden" name="id" value={rec.id} />
+                        <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
+                        <button type="submit" className="text-xs text-muted-foreground hover:underline">
+                          Dismiss
+                        </button>
+                      </form>
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -1,6 +1,7 @@
 import type { RequestContext } from '@/types/context'
 import * as repo from './structured-error.repo'
 import type { CreateStructuredErrorInput, StructuredErrorStats } from './structured-error.types'
+import { SE_STATUS } from './structured-error.types'
 import type { Database } from '@/types/database'
 
 type AutomationFailureRow = Database['public']['Tables']['automation_failures']['Row']
@@ -53,6 +54,20 @@ export async function resolveError(
   id:  string,
 ): Promise<void> {
   return repo.resolveStructuredError(id, ctx.tenantId)
+}
+
+export async function investigateError(
+  ctx: RequestContext,
+  id:  string,
+): Promise<void> {
+  return repo.updateErrorStatus(id, ctx.tenantId, SE_STATUS.INVESTIGATING)
+}
+
+export async function ignoreError(
+  ctx: RequestContext,
+  id:  string,
+): Promise<void> {
+  return repo.updateErrorStatus(id, ctx.tenantId, SE_STATUS.IGNORED)
 }
 
 export async function getStats(

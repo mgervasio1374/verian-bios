@@ -3,6 +3,7 @@ import type { Database } from '@/types/database'
 import type {
   CreateStructuredErrorInput,
   StructuredErrorStats,
+  SeStatus,
 } from './structured-error.types'
 import { SE_STATUS } from './structured-error.types'
 
@@ -69,6 +70,33 @@ export async function resolveStructuredError(
     .eq('id', id)
     .eq('tenant_id', tenantId)
   if (error) throw new Error(`resolveStructuredError: ${error.message}`)
+}
+
+export async function updateErrorStatus(
+  id:       string,
+  tenantId: string,
+  status:   SeStatus,
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const { error } = await supabase
+    .from('automation_failures')
+    .update({ status })
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+  if (error) throw new Error(`updateErrorStatus: ${error.message}`)
+}
+
+export async function dismissRecommendation(
+  id:       string,
+  tenantId: string,
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const { error } = await supabase
+    .from('agent_recommendations')
+    .update({ status: 'dismissed' })
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+  if (error) throw new Error(`dismissRecommendation: ${error.message}`)
 }
 
 export async function getErrorStats(

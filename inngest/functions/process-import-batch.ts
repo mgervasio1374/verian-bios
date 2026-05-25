@@ -5,6 +5,7 @@ import { inngest } from '@/lib/inngest/client'
 import { commitBatch } from '@/modules/imports/import.service'
 import { IMPORT_BATCH_STATUS } from '@/modules/imports/import.types'
 import { getBatch } from '@/modules/imports/repositories/import-batch.repo'
+import { createStructuredError } from '@/modules/intelligence/structured-errors/structured-error.repo'
 
 interface ImportBatchApprovedPayload {
   batchId:     string
@@ -33,7 +34,21 @@ export const processImportBatch = inngest.createFunction(
       return { ok: false, reason: `Batch ${batchId} is not in approved state (status: ${batch.status})` }
     }
 
-    const result = await commitBatch(batchId, tenantId, workspaceId)
+    let result: Awaited<ReturnType<typeof commitBatch>>
+    try {
+      result = await commitBatch(batchId, tenantId, workspaceId)
+    } catch (err) {
+      createStructuredError({
+        tenantId,
+        workspaceId,
+        failureType:     'INNGEST_IMPORT_BATCH_FAILURE',
+        severity:        'critical',
+        module:          'imports',
+        errorMessage:    err instanceof Error ? err.message : String(err),
+        payloadSnapshot: { batchId },
+      }).catch(() => {})
+      throw err
+    }
 
     return {
       ok:               true,

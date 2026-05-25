@@ -2,6 +2,7 @@
 
 import { recordActivityEvent } from '@/modules/intelligence/repositories/activity-event.repo'
 import { ActivityEventType } from '@/modules/intelligence/types.agent'
+import { createStructuredError } from '@/modules/intelligence/structured-errors/structured-error.repo'
 import {
   createBatch,
   getBatch,
@@ -267,79 +268,92 @@ export async function commitBatch(
   tenantId:    string,
   workspaceId: string,
 ): Promise<{ committedRows: number; skippedRows: number; failedCommitRows: number }> {
-  const batch = await getBatch(batchId, tenantId)
-  if (!batch) throw new Error(`commitBatch: batch ${batchId} not found`)
-  if (batch.status !== IMPORT_BATCH_STATUS.APPROVED && batch.status !== IMPORT_BATCH_STATUS.COMMITTING) {
-    throw new Error(`commitBatch: batch ${batchId} is not in approved state (status: ${batch.status})`)
-  }
+  try {
+    const batch = await getBatch(batchId, tenantId)
+    if (!batch) throw new Error(`commitBatch: batch ${batchId} not found`)
+    if (batch.status !== IMPORT_BATCH_STATUS.APPROVED && batch.status !== IMPORT_BATCH_STATUS.COMMITTING) {
+      throw new Error(`commitBatch: batch ${batchId} is not in approved state (status: ${batch.status})`)
+    }
 
-  await updateBatchStatus(batchId, tenantId, IMPORT_BATCH_STATUS.COMMITTING)
+    await updateBatchStatus(batchId, tenantId, IMPORT_BATCH_STATUS.COMMITTING)
 
-  const startPayload = buildImportCommitStartedPayload({ batchId, tenantId })
-  emitEvent(tenantId, workspaceId, ActivityEventType.IMPORT_COMMIT_STARTED, startPayload, batchId)
+    const startPayload = buildImportCommitStartedPayload({ batchId, tenantId })
+    emitEvent(tenantId, workspaceId, ActivityEventType.IMPORT_COMMIT_STARTED, startPayload, batchId)
 
-  const committableRows = await listCommittableRows(batchId, tenantId)
-  let committedRows = 0
-  let skippedRows = 0
-  let failedCommitRows = 0
+    const committableRows = await listCommittableRows(batchId, tenantId)
+    let committedRows = 0
+    let skippedRows = 0
+    let failedCommitRows = 0
 
-  for (const row of committableRows) {
-    const normalized = row.normalized_data as unknown as import('./import.types').NormalizedImportRow
-    const result = await commitRow(normalized, {
-      tenantId,
-      workspaceId,
-      batchId,
-      rowId: row.id,
+    for (const row of committableRows) {
+      const normalized = row.normalized_data as unknown as import('./import.types').NormalizedImportRow
+      const result = await commitRow(normalized, {
+        tenantId,
+        workspaceId,
+        batchId,
+        rowId: row.id,
+      })
+
+      if ('error' in result) {
+        await updateRowCommit(row.id, 'failed', { commitError: result.error })
+        failedCommitRows++
+      } else {
+        await updateRowCommit(row.id, 'committed', {
+          targetCompanyId: result.companyId,
+          targetContactId: result.contactId,
+          targetLeadId:    result.leadId,
+        })
+        committedRows++
+      }
+    }
+
+    // Rows that were duplicate or invalid → skipped
+    const allRows = await listRowsByBatch(batchId, tenantId)
+    skippedRows = allRows.filter(r =>
+      r.commit_status === 'pending' &&
+      (r.duplicate_status === 'duplicate' || r.validation_status === 'invalid')
+    ).length
+    for (const row of allRows) {
+      if (row.commit_status === 'pending') {
+        await updateRowCommit(row.id, 'skipped')
+      }
+    }
+
+    const finalStatus = failedCommitRows > 0 && committedRows === 0
+      ? IMPORT_BATCH_STATUS.FAILED
+      : failedCommitRows > 0
+        ? IMPORT_BATCH_STATUS.PARTIALLY_COMMITTED
+        : IMPORT_BATCH_STATUS.COMMITTED
+
+    await updateBatchStatus(batchId, tenantId, finalStatus, {
+      committed_at: new Date().toISOString(),
+    })
+    await updateBatchCounts(batchId, tenantId, {
+      committed_rows:     committedRows,
+      failed_commit_rows: failedCommitRows,
     })
 
-    if ('error' in result) {
-      await updateRowCommit(row.id, 'failed', { commitError: result.error })
-      failedCommitRows++
+    if (finalStatus === IMPORT_BATCH_STATUS.FAILED) {
+      const failPayload = buildImportCommitFailedPayload({ batchId, tenantId, error: 'All rows failed to commit' })
+      emitEvent(tenantId, workspaceId, ActivityEventType.IMPORT_COMMIT_FAILED, failPayload, batchId)
     } else {
-      await updateRowCommit(row.id, 'committed', {
-        targetCompanyId: result.companyId,
-        targetContactId: result.contactId,
-        targetLeadId:    result.leadId,
-      })
-      committedRows++
+      const donePayload = buildImportCommitCompletedPayload({ batchId, tenantId, committedRows, skippedRows, failedCommitRows })
+      emitEvent(tenantId, workspaceId, ActivityEventType.IMPORT_COMMIT_COMPLETED, donePayload, batchId)
     }
+
+    return { committedRows, skippedRows, failedCommitRows }
+  } catch (err) {
+    createStructuredError({
+      tenantId,
+      workspaceId,
+      failureType:     'IMPORT_COMMIT_FAILURE',
+      severity:        'error',
+      module:          'imports',
+      errorMessage:    err instanceof Error ? err.message : String(err),
+      payloadSnapshot: { batchId },
+    }).catch(() => {})
+    throw err
   }
-
-  // Rows that were duplicate or invalid → skipped
-  const allRows = await listRowsByBatch(batchId, tenantId)
-  skippedRows = allRows.filter(r =>
-    r.commit_status === 'pending' &&
-    (r.duplicate_status === 'duplicate' || r.validation_status === 'invalid')
-  ).length
-  for (const row of allRows) {
-    if (row.commit_status === 'pending') {
-      await updateRowCommit(row.id, 'skipped')
-    }
-  }
-
-  const finalStatus = failedCommitRows > 0 && committedRows === 0
-    ? IMPORT_BATCH_STATUS.FAILED
-    : failedCommitRows > 0
-      ? IMPORT_BATCH_STATUS.PARTIALLY_COMMITTED
-      : IMPORT_BATCH_STATUS.COMMITTED
-
-  await updateBatchStatus(batchId, tenantId, finalStatus, {
-    committed_at: new Date().toISOString(),
-  })
-  await updateBatchCounts(batchId, tenantId, {
-    committed_rows:     committedRows,
-    failed_commit_rows: failedCommitRows,
-  })
-
-  if (finalStatus === IMPORT_BATCH_STATUS.FAILED) {
-    const failPayload = buildImportCommitFailedPayload({ batchId, tenantId, error: 'All rows failed to commit' })
-    emitEvent(tenantId, workspaceId, ActivityEventType.IMPORT_COMMIT_FAILED, failPayload, batchId)
-  } else {
-    const donePayload = buildImportCommitCompletedPayload({ batchId, tenantId, committedRows, skippedRows, failedCommitRows })
-    emitEvent(tenantId, workspaceId, ActivityEventType.IMPORT_COMMIT_COMPLETED, donePayload, batchId)
-  }
-
-  return { committedRows, skippedRows, failedCommitRows }
 }
 
 // -------------------------------------------------------

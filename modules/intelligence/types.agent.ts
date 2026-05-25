@@ -220,5 +220,11 @@ export const ActivityEventType = {
   SYSTEM_PERFORMANCE_WARNING:       'SYSTEM_PERFORMANCE_WARNING',
   SYSTEM_IMPORT_HEALTH:             'SYSTEM_IMPORT_HEALTH',
   SYSTEM_DOCUMENTATION_NEEDED:      'SYSTEM_DOCUMENTATION_NEEDED',
+
+  // Phase 3C.2 — Structured Error Lifecycle (additive)
+  SE_ERROR_RESOLVED:      'SE_ERROR_RESOLVED',
+  SE_ERROR_INVESTIGATING: 'SE_ERROR_INVESTIGATING',
+  SE_ERROR_IGNORED:       'SE_ERROR_IGNORED',
+  SE_REC_DISMISSED:       'SE_REC_DISMISSED',
 } as const
 export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType]
