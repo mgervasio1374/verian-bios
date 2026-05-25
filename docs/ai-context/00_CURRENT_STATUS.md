@@ -14,60 +14,64 @@
 | Phase 3B — Revenue Learning Engine | Foundation complete and locked. |
 | Phase 3B.1 — Stabilization / Hardening | Complete. Committed, tagged. |
 | Phase 3B.2 — Data Import Foundation | Complete. Committed, tagged `phase-3b2-data-import-foundation-v1`. |
-| Phase 4 — Statement Workflow | Complete. Locked. |
+| Phase 3C.1 — Structured Errors + System Intelligence | Complete. Committed, tagged `phase-3c1-system-intelligence-v1`. |
+| Staging Foundation v1 | Complete. Committed, tagged `staging-foundation-v1`. |
+| Phase 3C.2 | Not started. Awaiting design approval. |
 
-## Phase 3B Foundation Status
+## Staging Foundation v1 — Locked
 
-All Phase 3B foundation components through the Learning Agent are implemented, committed, tagged, and QA-verified. The outbound intelligence loop is foundation-complete.
+**Tag:** `staging-foundation-v1`
+**Commit:** `0b6441f` — Debug: remove temporary staging auth diagnostic route
+**Staging URL:** `https://verian-bios-staging.vercel.app`
+**Staging Supabase project ref:** `smbausuyetlgxflyhmfg`
 
-| Deliverable | Status |
-|-------------|--------|
-| Message Strategy Agent Foundation | Complete |
-| Copywriting Agent Foundation | Complete |
-| Quality Review Agent — Design & Test Cases v1.0 | Locked |
-| Quality Review Agent — Implementation Plan v1.0 | Locked |
-| Quality Review Agent — Code Implementation v1.0 | Complete — committed and tagged |
-| Quality Review Agent — UI Integration v1.1 | Complete — committed and tagged |
-| Human Review / Approval Bridge — Design & Test Cases v1.0 | Locked |
-| Human Review / Approval Bridge — Implementation Plan v1.0 | Locked |
-| Human Review / Approval Bridge — Code Implementation v1.0 | Complete — committed, tagged `phase-3b-human-review-bridge-v1` |
-| Send / Email Draft Bridge — Design & Test Cases v1.1 | Locked |
-| Send / Email Draft Bridge — Implementation Plan v1.0 | Locked |
-| Send / Email Draft Bridge — Code Implementation v1.0 | Complete — committed, tagged `phase-3b-send-bridge-v1` |
-| Event Tracking — Design & Test Cases v1.0 | Locked |
-| Event Tracking — Implementation Plan v1.0 | Locked |
-| Event Tracking — Code Implementation v1.0 | Complete — committed, tagged `phase-3b-event-tracking-v1` |
-| Learning Agent — Design & Test Cases v1.0 | Locked |
-| Learning Agent — Implementation Plan v1.0 | Locked |
-| Learning Agent — Code Implementation v1.0 | Complete — committed, tagged `phase-3b-learning-agent-v1` |
+### Verified Environment Chain
 
-## Phase 3B.1 Stabilization / Hardening Status
+| Environment | Supabase ref | Migrations applied | Auth/Access |
+|-------------|-------------|-------------------|-------------|
+| Local | Docker / `127.0.0.1:54321` | 001–031 | Local seed user `dev@verian.local` |
+| Remote dev | `kxrplupzbsmujjznzhpy` | 001–031 | Standard dev access |
+| Staging | `smbausuyetlgxflyhmfg` | 001–031 | `staging@verian.internal` / platform_admin |
 
-| Deliverable | Status |
-|-------------|--------|
-| Phase 3B.1 Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3b1-stabilization-hardening-design-test-cases.md`) |
-| Phase 3B.1 Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3b1-stabilization-hardening-implementation-plan.md`) |
-| Phase 3B.1 Code Implementation v1.0 | **Complete** — committed, tagged `phase-3b1-stabilization-v1` |
+### Verified Access Paths
+
+| Path | Status |
+|------|--------|
+| Login (`/login`) | Working — redirects to workspace on success |
+| Workspace loading (`/main/dashboard`) | Working — no "No workspace access" error |
+| Authenticated / RLS access | Working — `authenticated` role has table privileges; RLS evaluates correctly |
+| Service-role access | Working — `service_role` role has table privileges; bypasses RLS as designed |
+| DB grants (migrations 20240030 + 20240031) | Applied to all three environments |
+
+### DB Grant Migrations
+
+| Migration | Purpose |
+|-----------|---------|
+| `20240030_service_role_grants.sql` | Grants `service_role` USAGE + ALL on tables/sequences/routines + DEFAULT PRIVILEGES for future objects |
+| `20240031_anon_authenticated_grants.sql` | Grants `anon` + `authenticated` same set — prerequisite for RLS evaluation on newer Supabase cloud projects |
+
+**Why these were needed:** Supabase cloud projects created after mid-2024 do not automatically apply a catch-all `GRANT ALL ON ALL TABLES` at project creation. PostgreSQL enforces object-level privilege checks before RLS evaluation. Without explicit grants, any query fails with `42501: permission denied for table <name>` before RLS runs — even when RLS policies would allow the row.
+
+### Safety State at Lock
+
+| Item | State |
+|------|-------|
+| `RESEND_API_KEY` on staging | Dummy value — email sending disabled, safe |
+| Production Supabase | Untouched — no migrations applied |
+| Production Vercel | Untouched — no deployments triggered |
+| Temporary debug route | Removed (`0b6441f`) — `/api/debug/staging-auth` returns 404 |
+| Local dev seed | `supabase/seed.sql` committed at `9153a86` — local-only, never run on staging/production |
 
 ## QA Status (Last Verified)
 
-Verified after Phase 3B.2 Data Import Foundation was committed and tagged. This is the current baseline.
+Verified after staging foundation cleanup commit `0b6441f`.
 
 ```
 npx vitest run      → PASSED
 npx next build      → PASSED
 TypeScript          → PASSED
-802/802 tests passed
-  Message Strategy Agent tests:  41 passed
-  Copywriting Agent tests:       100 passed
-  Quality Review Agent tests:    126 passed
-  Human Review Bridge tests:     100 passed
-  Send Bridge tests:             89 passed
-  Event Tracking tests:          81 passed
-  Learning Agent tests:          53 passed
-  Phase 3B.1 Stabilization tests: 56 passed
-  Data Import Foundation tests:  156 passed
-Guardrails: PASSED (no Resend/sendApprovedDraftAction/message_strategies/LLM calls in import module)
+879/879 tests passed
+  (77 new tests added since Phase 3B.2: Phase 3C.1 Structured Errors + System Intelligence)
 ```
 
 ## Active Routes
@@ -75,21 +79,35 @@ Guardrails: PASSED (no Resend/sendApprovedDraftAction/message_strategies/LLM cal
 | Route | Status |
 |-------|--------|
 | `/[workspaceSlug]/message-workspace` | Active |
-| `/[workspaceSlug]/message-workspace/[leadId]` | Active — includes QRA display, "Quality Review" button, HRB bridge UI, Send Bridge "Create Email Draft" button, and Event Tracking delivery status badges (Delivered / Bounced / Complaint / Send Failed) |
-| `/[workspaceSlug]/settings/agent-monitor` | Active — includes Learning Signals section, "Run Learning Analysis" button, and Phase 3B.1 Operational Health card (stuck drafts, failed sends, LA run status) |
+| `/[workspaceSlug]/message-workspace/[leadId]` | Active — includes QRA display, "Quality Review" button, HRB bridge UI, Send Bridge "Create Email Draft" button, and Event Tracking delivery status badges |
+| `/[workspaceSlug]/settings/agent-monitor` | Active — includes Learning Signals section, "Run Learning Analysis" button, and Phase 3B.1 Operational Health card |
 | `/[workspaceSlug]/settings/system-controls` | Active |
+| `/[workspaceSlug]/settings/system-intelligence` | Active — Phase 3C.1 System Intelligence UI |
+| `/[workspaceSlug]/settings/health` | Active — Workflow Health page |
 | `/[workspaceSlug]/settings/imports` | Active — import batch list |
 | `/[workspaceSlug]/settings/imports/new` | Active — upload new import file |
 | `/[workspaceSlug]/settings/imports/[batchId]` | Active — batch detail: validation summary, dedupe results, approve/cancel |
 
 ## Working Tree
 
-Clean. No untracked or modified files outside of committed changes.
+Clean. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`6a39849` — Phase 3B.2: implement Data Import Foundation
+`0b6441f` — Debug: remove temporary staging auth diagnostic route
+
+## Guardrails for Next Work
+
+| Guardrail | Reason |
+|-----------|--------|
+| Production remains untouched unless explicitly instructed | No production migrations or deployments have been performed; this boundary must be maintained |
+| Staging must remain deployable | Both DB grant migrations and all app code must stay compatible with staging at all times |
+| Tests must stay green | 879/879 is the current baseline; no regression allowed |
+| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes |
+| No environment-crossing assumptions | Local seed data, staging users, and remote dev state are not shared; never assume data from one env exists in another |
+| No debug routes left behind | Temporary diagnostic routes must be removed within the same work session; do not merge to master without cleanup |
+| Phase 3C.2 requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
 
 ## Last Updated
 
-2026-05-24 — after Phase 3B.2 Data Import Foundation committed and tagged.
+2026-05-25 — after Staging Foundation v1 locked and tagged `staging-foundation-v1`.

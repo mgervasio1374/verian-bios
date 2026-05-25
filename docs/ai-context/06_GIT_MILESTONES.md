@@ -8,6 +8,8 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `staging-foundation-v1` | Staging Foundation v1 — Supabase staging, Vercel staging, auth, workspace access, and DB grants (migrations 030+031) verified |
+| `phase-3c1-system-intelligence-v1` | Phase 3C.1 Structured Errors + System Intelligence Foundation complete |
 | `phase-3b2-data-import-foundation-v1` | Phase 3B.2 Data Import Foundation complete — CSV/XLSX pipeline, staging tables, dedupe, CRM commit, Inngest async path, admin UI |
 | `phase-3b1-stabilization-v1` | Phase 3B.1 Stabilization / Hardening Foundation complete — FK attribution, SEB reconciler, scheduled LA, Operational Health |
 | `phase-3b-learning-agent-v1` | Learning Agent Foundation complete — advisory signals, learning_snapshots, agent monitor UI |
@@ -26,6 +28,15 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `0b6441f` | Debug: remove temporary staging auth diagnostic route | Staging Foundation |
+| `4d3bcb8` | DB: grant anon authenticated access for RLS evaluation | Staging Foundation |
+| `d696f28` | DB: grant service role access for server-side flows | Staging Foundation |
+| `9b7d33a` | Debug: add temporary staging auth diagnostic route | Staging Foundation (removed) |
+| `9153a86` | Dev: add local Supabase seed file | Staging Foundation |
+| `039fea3` | UI: add Workflow Health link to Settings page | Staging Foundation |
+| `ea4b0b0` | Phase 3C.1: implement Structured Errors and System Intelligence foundation | Phase 3C.1 |
+| `34f25c0` | Fix Phase 3B.2 lock report risks: findOrCreateCompany + test assertions | Phase 3B.2 |
+| `4340105` | Docs: update AI context after Phase 3B.2 Data Import Foundation completion | Docs |
 | `6a39849` | Phase 3B.2: implement Data Import Foundation | Phase 3B.2 |
 | `0af660e` | Phase 3B.1: implement Stabilization Hardening foundation | Phase 3B.1 |
 | `44ea577` | Phase 3B: implement Learning Agent foundation | Phase 3B LA |
@@ -216,6 +227,8 @@
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-25 | 879/879 passed | PASSED | Staging Foundation v1 locked — migrations 030+031 applied, debug route removed, staging smoke test passed. Tag: `staging-foundation-v1`. |
+| 2026-05-25 | 879/879 passed | PASSED | Phase 3C.1 Structured Errors + System Intelligence — 77 new tests, 802 existing pass. Tag: `phase-3c1-system-intelligence-v1`. |
 | 2026-05-24 | 802/802 passed | PASSED | Phase 3B.2 Data Import Foundation — 156 new tests, 646 existing pass. TypeScript clean. Guardrails pass. |
 | 2026-05-22 | 646/646 passed | PASSED | Phase 3B.1 Foundation — 56 new tests, 590 existing pass. TypeScript clean. |
 | 2026-05-21 | 590/590 passed | PASSED | LA Foundation v1.0 — 53 LA tests, 537 existing tests all pass. TypeScript clean. |
@@ -228,7 +241,7 @@
 
 ## Current HEAD
 
-`6a39849` — Phase 3B.2: implement Data Import Foundation
+`0b6441f` — Debug: remove temporary staging auth diagnostic route
 
 ## Migrations Sequence
 
@@ -243,5 +256,9 @@
 | `20240025` | Phase 3B learning_snapshots table (Learning Agent) |
 | `20240026` | Phase 3B.1 email_sends attribution FK columns (Stabilization) |
 | `20240027` | Phase 3B.2 import_batches + import_rows tables (Data Import Foundation) |
+| `20240028` | Phase 3C.1 (see Phase 3C.1 commit `ea4b0b0`) |
+| `20240029` | Phase 3C.1 (see Phase 3C.1 commit `ea4b0b0`) |
+| `20240030` | Staging Foundation — `service_role` GRANT ALL on all tables/sequences/routines + ALTER DEFAULT PRIVILEGES |
+| `20240031` | Staging Foundation — `anon`+`authenticated` GRANT ALL on all tables/sequences/routines + ALTER DEFAULT PRIVILEGES |
 
 Note: No new migration was added for the Human Review / Approval Bridge, the Send / Email Draft Bridge, or Event Tracking. All three use existing tables and columns only. Phase 3B provenance travels via `email_drafts.ai_generation_metadata` (jsonb) at draft creation, then is copied into `email_sends.metadata` (jsonb) at send time. Event Tracking activity events are appended to the existing `activity_events` table. The Learning Agent adds migration `20240025` for `learning_snapshots` — its only write target.
