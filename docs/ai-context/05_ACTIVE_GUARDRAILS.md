@@ -145,6 +145,8 @@ Discovered during Phase 3C.2 staging validation (2026-05-26).
 | Production Supabase is the guarded boundary, not the Vercel project | The `verian-bios.vercel.app` Vercel project deploys app code only; it cannot apply Supabase migrations. Migrations must be applied explicitly and intentionally. |
 | Recommend decoupling production Vercel from the master push trigger before production-sensitive phases | See Track A in `07_NEXT_STEPS.md` for options. No action required yet — this is advisory until a production-Supabase-touching phase is planned. |
 
+Track A Option C verification in progress: production Vercel Git disconnected; staging Git remains connected.
+
 ## Process Guardrails
 
 | Guardrail | Reason |
