@@ -17,6 +17,7 @@
 | Phase 3C.1 — Structured Errors + System Intelligence | Complete. Committed, tagged `phase-3c1-system-intelligence-v1`. |
 | Staging Foundation v1 | Complete. Committed, tagged `staging-foundation-v1`. |
 | Phase 3C.2 — Structured Error Lifecycle Actions | Complete. Committed, tagged `phase-3c2-structured-error-lifecycle-v1`. |
+| Track A — Deployment Flow Cleanup | Complete. Production Vercel Git disconnected; staging unchanged. Verified 2026-05-26. |
 | Phase 3C.3 | Not started. Awaiting design approval. |
 
 ## Staging Foundation v1 — Locked
@@ -59,7 +60,7 @@
 |------|-------|
 | `RESEND_API_KEY` on staging | Dummy value — email sending disabled, safe |
 | Production Supabase | Untouched — no migrations applied |
-| Production Vercel (`verian-bios.vercel.app`) | Auto-deployed on every `origin/master` push — both Vercel projects share the same trigger. No Supabase prod migrations applied. See deployment note in Phase 3C.2 lock report. |
+| Production Vercel (`verian-bios.vercel.app`) | **Git disconnected (Track A complete, 2026-05-26).** Production no longer auto-deploys from `origin/master`. Staging (`verian-bios-staging`) continues to auto-deploy from master. Production deploys are now explicit and manual via `vercel --prod` or Vercel dashboard only. |
 | Temporary debug route | Removed (`0b6441f`) — `/api/debug/staging-auth` returns 404 (unauthenticated requests receive 307 → /login from middleware before reaching the absent route handler) |
 | Local dev seed | `supabase/seed.sql` committed at `9153a86` — local-only, never run on staging/production |
 
@@ -95,14 +96,16 @@ Clean. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`b5ab433` — Phase 3C.2: implement structured error lifecycle actions
+`cbfb790` — Docs: start deployment flow cleanup verification
 
 ## Guardrails for Next Work
 
 | Guardrail | Reason |
 |-----------|--------|
 | Production Supabase remains untouched unless explicitly instructed | No production migrations have been applied; this boundary must be maintained |
-| Pushing `origin/master` auto-deploys both `verian-bios-staging` and `verian-bios` Vercel projects | Both are connected to master; production Supabase is not affected, but be aware of the shared deploy trigger |
+| Production Vercel (`verian-bios`) no longer auto-deploys from `origin/master` | Track A complete — Git disconnected. Production deploys must be explicit via `vercel --prod` or Vercel dashboard |
+| Do not reconnect production Vercel Git without explicit user approval | Reconnecting restores auto-deploy on every master push |
+| Staging (`verian-bios-staging`) auto-deploys from master — unchanged | Staging is the continuous integration target; every push to master deploys staging |
 | Staging must remain deployable | All app code must stay compatible with staging at all times |
 | Tests must stay green | 903/903 is the current baseline; no regression allowed |
 | Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes |
@@ -112,4 +115,4 @@ Clean. `master` up to date with `origin/master`.
 
 ## Last Updated
 
-2026-05-26 — after Phase 3C.2 locked and tagged `phase-3c2-structured-error-lifecycle-v1`.
+2026-05-26 — after Track A Deployment Flow Cleanup complete (production Vercel Git disconnected; verified via test push `cbfb790`).

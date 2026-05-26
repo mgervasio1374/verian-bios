@@ -235,21 +235,31 @@ All deliverables committed, tagged, and staging-smoke-tested.
 
 ---
 
-## Next Recommended Steps
+## Completed — Track A Deployment Flow Cleanup
 
-**Two independent tracks are available. Neither has started. Both require user direction before any work begins.**
+All deliverables complete and verified.
 
-### Track A — Deployment Flow Cleanup
+| Deliverable | Status |
+|-------------|--------|
+| Design (`docs/roadmap/deployment-flow-cleanup-design.md`) | Locked — `bdd6b00` |
+| Implementation Plan Option C (`docs/roadmap/deployment-flow-cleanup-option-c-implementation-plan.md`) | Locked — `b29093d` |
+| Vercel setting change — `verian-bios` Git disconnected | Complete — 2026-05-26 |
+| Verification test push `cbfb790` | Complete — staging deployed ✓, production did not ✓ |
+| Final report (`docs/roadmap/deployment-flow-cleanup-final-report.md`) | Locked |
+| AI context updated | Complete |
 
-**Context:** Pushing `origin/master` auto-deploys both `verian-bios-staging` and `verian-bios` Vercel projects because both are connected to the master branch trigger. Production Supabase is unaffected by Vercel deploys, but the shared trigger is a process risk for future phases that require production-sensitive coordination.
+### What was delivered
 
-**Recommended action:** Audit Vercel project settings and either:
-- Decouple the `verian-bios` Vercel project from the master push trigger (use a separate branch or manual deploy gate), or
-- Document the shared trigger as accepted behavior with explicit confirmation that Supabase prod is always the guarded boundary.
+- `verian-bios` production Vercel project Git connection disconnected (Option C).
+- `verian-bios-staging` continues to auto-deploy from `origin/master` — unchanged.
+- Production deploys are now explicit and manual via `vercel --prod` or Vercel dashboard.
+- No code changed. No migrations created. No Supabase touched.
 
-This is a process/infrastructure task. No code changes required.
+---
 
-### Track B — Phase 3C.3 Design
+## Next Recommended Step
+
+### Phase 3C.3 Design
 
 No Phase 3C.3 scope has been defined. When user direction is given, follow the standard sequence:
 

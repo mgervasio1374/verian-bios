@@ -137,15 +137,15 @@ These remain in force now that QRA is implemented. The QRA is evaluation-only an
 
 ## Deployment Guardrails
 
-Discovered during Phase 3C.2 staging validation (2026-05-26).
+Updated 2026-05-26 — Track A Deployment Flow Cleanup complete (Option C implemented and verified).
 
 | Guardrail | Reason |
 |-----------|--------|
-| Pushing `origin/master` auto-deploys both `verian-bios-staging` and `verian-bios` Vercel projects | Both Vercel projects are connected to the master branch trigger. Production Supabase is not affected by Vercel deploys, but any future phase requiring production-sensitive coordination should audit this shared trigger before pushing. |
-| Production Supabase is the guarded boundary, not the Vercel project | The `verian-bios.vercel.app` Vercel project deploys app code only; it cannot apply Supabase migrations. Migrations must be applied explicitly and intentionally. |
-| Recommend decoupling production Vercel from the master push trigger before production-sensitive phases | See Track A in `07_NEXT_STEPS.md` for options. No action required yet — this is advisory until a production-Supabase-touching phase is planned. |
-
-Track A Option C verification in progress: production Vercel Git disconnected; staging Git remains connected.
+| `verian-bios` production Vercel does NOT auto-deploy from `origin/master` | Git connection disconnected on 2026-05-26 as part of Track A. Verified via test push `cbfb790`: staging deployed, production did not. |
+| Production Vercel deploys must be explicit and manual | Use `vercel --prod` from the project root or the Vercel dashboard manual trigger only. No automatic trigger exists. |
+| Do not reconnect production Vercel Git without explicit user approval | Reconnecting restores auto-deploy on every master push, which was the problem Track A solved. |
+| `verian-bios-staging` continues to auto-deploy from `origin/master` | Staging is the continuous integration target. This connection was not changed. |
+| Production Supabase is the guarded boundary, not the Vercel project | Vercel deployments cannot apply migrations or touch database data. Migrations require explicit Supabase CLI action. |
 
 ## Process Guardrails
 

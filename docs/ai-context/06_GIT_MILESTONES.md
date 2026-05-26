@@ -29,6 +29,10 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `cbfb790` | Docs: start deployment flow cleanup verification | Track A |
+| `b29093d` | Docs: add deployment flow cleanup Option C implementation plan | Track A |
+| `bdd6b00` | Docs: add deployment flow cleanup design | Track A |
+| `45eebdf` | Docs: add Phase 3C.2 final lock report | Phase 3C.2 Docs |
 | `b5ab433` | Phase 3C.2: implement structured error lifecycle actions | Phase 3C.2 |
 | `4179ea9` | Docs: add Phase 3C.2 structured error lifecycle implementation plan | Phase 3C.2 Docs |
 | `d42cbbd` | Docs: add Phase 3C.2 structured error lifecycle design | Phase 3C.2 Docs |
@@ -232,6 +236,7 @@
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-26 | 903/903 passed (baseline unchanged) | N/A | Track A Deployment Flow Cleanup verified. Test push `cbfb790` (docs-only): staging (`verian-bios-staging`) deployed ✓; production (`verian-bios`) did not deploy ✓; production URL live ✓. No code or migrations changed. |
 | 2026-05-26 | 903/903 passed | PASSED | Phase 3C.2 Structured Error Lifecycle Actions — 24 new tests, 879 existing pass. Manual staging smoke: login ✓, workspace ✓, pages ✓. Tag: `phase-3c2-structured-error-lifecycle-v1`. |
 | 2026-05-25 | 879/879 passed | PASSED | Staging Foundation v1 locked — migrations 030+031 applied, debug route removed, staging smoke test passed. Tag: `staging-foundation-v1`. |
 | 2026-05-25 | 879/879 passed | PASSED | Phase 3C.1 Structured Errors + System Intelligence — 77 new tests, 802 existing pass. Tag: `phase-3c1-system-intelligence-v1`. |
@@ -247,7 +252,7 @@
 
 ## Current HEAD
 
-`b5ab433` — Phase 3C.2: implement structured error lifecycle actions
+`cbfb790` — Docs: start deployment flow cleanup verification
 
 ## Migrations Sequence
 
