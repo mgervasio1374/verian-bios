@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3c2-structured-error-lifecycle-v1` | Phase 3C.2 Structured Error Lifecycle Actions complete — resolve/investigate/ignore/dismiss, emission in import callsites, activity events, 24 new tests |
 | `staging-foundation-v1` | Staging Foundation v1 — Supabase staging, Vercel staging, auth, workspace access, and DB grants (migrations 030+031) verified |
 | `phase-3c1-system-intelligence-v1` | Phase 3C.1 Structured Errors + System Intelligence Foundation complete |
 | `phase-3b2-data-import-foundation-v1` | Phase 3B.2 Data Import Foundation complete — CSV/XLSX pipeline, staging tables, dedupe, CRM commit, Inngest async path, admin UI |
@@ -28,6 +29,10 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `b5ab433` | Phase 3C.2: implement structured error lifecycle actions | Phase 3C.2 |
+| `4179ea9` | Docs: add Phase 3C.2 structured error lifecycle implementation plan | Phase 3C.2 Docs |
+| `d42cbbd` | Docs: add Phase 3C.2 structured error lifecycle design | Phase 3C.2 Docs |
+| `145e3b3` | Docs: update AI context after Staging Foundation v1 lock | Docs |
 | `0b6441f` | Debug: remove temporary staging auth diagnostic route | Staging Foundation |
 | `4d3bcb8` | DB: grant anon authenticated access for RLS evaluation | Staging Foundation |
 | `d696f28` | DB: grant service role access for server-side flows | Staging Foundation |
@@ -227,6 +232,7 @@
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-26 | 903/903 passed | PASSED | Phase 3C.2 Structured Error Lifecycle Actions — 24 new tests, 879 existing pass. Manual staging smoke: login ✓, workspace ✓, pages ✓. Tag: `phase-3c2-structured-error-lifecycle-v1`. |
 | 2026-05-25 | 879/879 passed | PASSED | Staging Foundation v1 locked — migrations 030+031 applied, debug route removed, staging smoke test passed. Tag: `staging-foundation-v1`. |
 | 2026-05-25 | 879/879 passed | PASSED | Phase 3C.1 Structured Errors + System Intelligence — 77 new tests, 802 existing pass. Tag: `phase-3c1-system-intelligence-v1`. |
 | 2026-05-24 | 802/802 passed | PASSED | Phase 3B.2 Data Import Foundation — 156 new tests, 646 existing pass. TypeScript clean. Guardrails pass. |
@@ -241,7 +247,7 @@
 
 ## Current HEAD
 
-`0b6441f` — Debug: remove temporary staging auth diagnostic route
+`b5ab433` — Phase 3C.2: implement structured error lifecycle actions
 
 ## Migrations Sequence
 

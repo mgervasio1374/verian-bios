@@ -210,17 +210,57 @@ All deliverables committed, tagged, and QA-verified.
 - No external LLM calls in import module
 - `metadata.workflow_enabled = false` present in import.commit.ts insertLead
 
-## Approved Next Phase
+## Completed — Phase 3C.2 Structured Error Lifecycle Actions v1.0
 
-Status: **Awaiting user direction.**
+All deliverables committed, tagged, and staging-smoke-tested.
 
-No next phase has been approved. Follow the standard sequence:
+| Deliverable | Status |
+|-------------|--------|
+| Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3c2-structured-error-lifecycle-design-test-cases.md`) |
+| Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3c2-structured-error-lifecycle-implementation-plan.md`) |
+| Code implementation | Complete — `b5ab433`, tag `phase-3c2-structured-error-lifecycle-v1` |
+| QA: 903/903 tests, build, TypeScript | PASSED |
+| Manual staging smoke | PASSED — login, workspace, page load confirmed |
+
+### What was delivered
+
+- `structured-error.actions.ts` — four `'use server'` actions: `resolveErrorAction`, `investigateErrorAction`, `ignoreErrorAction`, `dismissRecommendationAction`
+- `structured-error.repo.ts` — added `updateErrorStatus()` and `dismissRecommendation()`
+- `structured-error.service.ts` — added `investigateError()` and `ignoreError()`
+- `types.agent.ts` — added 4 ActivityEventType constants: `SE_ERROR_RESOLVED`, `SE_ERROR_INVESTIGATING`, `SE_ERROR_IGNORED`, `SE_REC_DISMISSED`
+- `import.service.ts` — `commitBatch()` emits `IMPORT_COMMIT_FAILURE` structured error non-fatally on catastrophic failure; re-throws
+- `process-import-batch.ts` — Inngest handler emits `INNGEST_IMPORT_BATCH_FAILURE` structured error non-fatally; re-throws
+- `system-intelligence/page.tsx` — Resolve / Investigate / Ignore buttons in errors table; Dismiss button in recommendations table; page remains a server component
+- `tests/phase3c-system-intelligence.test.ts` — 24 new test cases appended
+
+---
+
+## Next Recommended Steps
+
+**Two independent tracks are available. Neither has started. Both require user direction before any work begins.**
+
+### Track A — Deployment Flow Cleanup
+
+**Context:** Pushing `origin/master` auto-deploys both `verian-bios-staging` and `verian-bios` Vercel projects because both are connected to the master branch trigger. Production Supabase is unaffected by Vercel deploys, but the shared trigger is a process risk for future phases that require production-sensitive coordination.
+
+**Recommended action:** Audit Vercel project settings and either:
+- Decouple the `verian-bios` Vercel project from the master push trigger (use a separate branch or manual deploy gate), or
+- Document the shared trigger as accepted behavior with explicit confirmation that Supabase prod is always the guarded boundary.
+
+This is a process/infrastructure task. No code changes required.
+
+### Track B — Phase 3C.3 Design
+
+No Phase 3C.3 scope has been defined. When user direction is given, follow the standard sequence:
+
 1. Design & Test Cases — produce document, get user approval
 2. Implementation Plan — produce document, get user approval
 3. Code implementation — follow locked plan
 4. QA: `npx vitest run` + `npx next build`
 5. Commit, tag
 6. Update `docs/ai-context/` files
+
+---
 
 ## Process Reminder
 

@@ -135,6 +135,16 @@ These remain in force now that QRA is implemented. The QRA is evaluation-only an
 | QRA recommendation (`is_recommended`) is advisory | It marks the strongest version; it does not approve or send |
 | QRA must not proceed beyond QRA implementation | Do not begin approval/send bridge or Learning Agent without explicit scope |
 
+## Deployment Guardrails
+
+Discovered during Phase 3C.2 staging validation (2026-05-26).
+
+| Guardrail | Reason |
+|-----------|--------|
+| Pushing `origin/master` auto-deploys both `verian-bios-staging` and `verian-bios` Vercel projects | Both Vercel projects are connected to the master branch trigger. Production Supabase is not affected by Vercel deploys, but any future phase requiring production-sensitive coordination should audit this shared trigger before pushing. |
+| Production Supabase is the guarded boundary, not the Vercel project | The `verian-bios.vercel.app` Vercel project deploys app code only; it cannot apply Supabase migrations. Migrations must be applied explicitly and intentionally. |
+| Recommend decoupling production Vercel from the master push trigger before production-sensitive phases | See Track A in `07_NEXT_STEPS.md` for options. No action required yet — this is advisory until a production-Supabase-touching phase is planned. |
+
 ## Process Guardrails
 
 | Guardrail | Reason |

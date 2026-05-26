@@ -16,7 +16,8 @@
 | Phase 3B.2 — Data Import Foundation | Complete. Committed, tagged `phase-3b2-data-import-foundation-v1`. |
 | Phase 3C.1 — Structured Errors + System Intelligence | Complete. Committed, tagged `phase-3c1-system-intelligence-v1`. |
 | Staging Foundation v1 | Complete. Committed, tagged `staging-foundation-v1`. |
-| Phase 3C.2 | Not started. Awaiting design approval. |
+| Phase 3C.2 — Structured Error Lifecycle Actions | Complete. Committed, tagged `phase-3c2-structured-error-lifecycle-v1`. |
+| Phase 3C.3 | Not started. Awaiting design approval. |
 
 ## Staging Foundation v1 — Locked
 
@@ -58,20 +59,20 @@
 |------|-------|
 | `RESEND_API_KEY` on staging | Dummy value — email sending disabled, safe |
 | Production Supabase | Untouched — no migrations applied |
-| Production Vercel | Untouched — no deployments triggered |
-| Temporary debug route | Removed (`0b6441f`) — `/api/debug/staging-auth` returns 404 |
+| Production Vercel (`verian-bios.vercel.app`) | Auto-deployed on every `origin/master` push — both Vercel projects share the same trigger. No Supabase prod migrations applied. See deployment note in Phase 3C.2 lock report. |
+| Temporary debug route | Removed (`0b6441f`) — `/api/debug/staging-auth` returns 404 (unauthenticated requests receive 307 → /login from middleware before reaching the absent route handler) |
 | Local dev seed | `supabase/seed.sql` committed at `9153a86` — local-only, never run on staging/production |
 
 ## QA Status (Last Verified)
 
-Verified after staging foundation cleanup commit `0b6441f`.
+Verified at Phase 3C.2 commit `b5ab433`.
 
 ```
 npx vitest run      → PASSED
 npx next build      → PASSED
 TypeScript          → PASSED
-879/879 tests passed
-  (77 new tests added since Phase 3B.2: Phase 3C.1 Structured Errors + System Intelligence)
+903/903 tests passed
+  (24 new tests added since Phase 3C.1: Phase 3C.2 Structured Error Lifecycle Actions)
 ```
 
 ## Active Routes
@@ -82,7 +83,7 @@ TypeScript          → PASSED
 | `/[workspaceSlug]/message-workspace/[leadId]` | Active — includes QRA display, "Quality Review" button, HRB bridge UI, Send Bridge "Create Email Draft" button, and Event Tracking delivery status badges |
 | `/[workspaceSlug]/settings/agent-monitor` | Active — includes Learning Signals section, "Run Learning Analysis" button, and Phase 3B.1 Operational Health card |
 | `/[workspaceSlug]/settings/system-controls` | Active |
-| `/[workspaceSlug]/settings/system-intelligence` | Active — Phase 3C.1 System Intelligence UI |
+| `/[workspaceSlug]/settings/system-intelligence` | Active — Phase 3C.2: includes Resolve / Investigate / Ignore buttons for open errors; Dismiss button for system recommendations |
 | `/[workspaceSlug]/settings/health` | Active — Workflow Health page |
 | `/[workspaceSlug]/settings/imports` | Active — import batch list |
 | `/[workspaceSlug]/settings/imports/new` | Active — upload new import file |
@@ -94,20 +95,21 @@ Clean. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`0b6441f` — Debug: remove temporary staging auth diagnostic route
+`b5ab433` — Phase 3C.2: implement structured error lifecycle actions
 
 ## Guardrails for Next Work
 
 | Guardrail | Reason |
 |-----------|--------|
-| Production remains untouched unless explicitly instructed | No production migrations or deployments have been performed; this boundary must be maintained |
-| Staging must remain deployable | Both DB grant migrations and all app code must stay compatible with staging at all times |
-| Tests must stay green | 879/879 is the current baseline; no regression allowed |
+| Production Supabase remains untouched unless explicitly instructed | No production migrations have been applied; this boundary must be maintained |
+| Pushing `origin/master` auto-deploys both `verian-bios-staging` and `verian-bios` Vercel projects | Both are connected to master; production Supabase is not affected, but be aware of the shared deploy trigger |
+| Staging must remain deployable | All app code must stay compatible with staging at all times |
+| Tests must stay green | 903/903 is the current baseline; no regression allowed |
 | Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes |
 | No environment-crossing assumptions | Local seed data, staging users, and remote dev state are not shared; never assume data from one env exists in another |
 | No debug routes left behind | Temporary diagnostic routes must be removed within the same work session; do not merge to master without cleanup |
-| Phase 3C.2 requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
+| Phase 3C.3 requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
 
 ## Last Updated
 
-2026-05-25 — after Staging Foundation v1 locked and tagged `staging-foundation-v1`.
+2026-05-26 — after Phase 3C.2 locked and tagged `phase-3c2-structured-error-lifecycle-v1`.
