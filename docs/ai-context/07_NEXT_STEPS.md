@@ -393,20 +393,46 @@ All deliverables committed, tagged, and staging-smoke-tested.
 
 ---
 
+## Completed — Phase 3D Revenue Analytics v1.0
+
+All deliverables committed, tagged, and staging-smoke-tested.
+
+| Deliverable | Status |
+|-------------|--------|
+| Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3d-design-test-cases.md`) |
+| Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3d-implementation-plan.md`) |
+| Code implementation | Complete — `08c3cdd`, tag `phase-3d-revenue-analytics-v1` |
+| QA: 1009/1009 tests, build, TypeScript | PASSED |
+| Manual staging smoke | PASSED — login ✓, workspace ✓, Analytics sidebar link ✓, /main/settings/analytics loads ✓, all 3 panels render ✓ |
+
+### What was delivered
+
+- `modules/analytics/` — self-contained new module; imports nothing from existing modules except the service client
+- `analytics.types.ts` — 5 interfaces: `LeadPipelineStats`, `EmailSendMetrics`, `LearningSignalRow`, `LearningSignalSummary`, `RevenueDashboard`
+- `analytics.repo.ts` — 4 read-only query functions; all use `createSupabaseServiceClient()` and `.eq('tenant_id', tenantId)`
+- `analytics.service.ts` — `buildRevenueDashboard` orchestrates all 4 sources in `Promise.all`
+- `app/(workspace)/[workspaceSlug]/settings/analytics/page.tsx` — server component, 4 summary cards, 3 panels, empty states, footer navigation
+- `components/layout/Sidebar.tsx` — Analytics nav item added between Imports and Settings (`BarChart2` icon)
+- `tests/phase3d-revenue-analytics.test.ts` — 22 tests, source-reading pattern
+- No migrations — all data already in existing tables
+
+---
+
 ## Next Recommended Step
 
-### Phase 3C.7 Design (or Phase 3C Wrap-Up Review)
+### Phase 3E Design
 
-Phase 3C.6 is locked. No Phase 3C.7 scope has been defined.
+Phase 3D is locked. No Phase 3E scope has been defined.
 
 **Possible next directions (user direction required before any work starts):**
 
-- **Phase 3C.7** — potential candidates from open questions across Phase 3C:
-  - Workflow failure reconciler: scan `workflow_runs.status = 'failed'` and back-fill missing `automation_failures` rows
-  - Auto-resolve structured errors when a failed workflow run is retried and completes
-  - Severity escalation for repeated failures within a time window
-  - Pagination or filtering on the Critical & Open Errors list (currently limited to 50 rows)
-- **Phase 3C wrap-up review** — review overall Phase 3C scope completeness before advancing to Phase 3D or a new area
+- **Phase 3E** — potential candidates based on current platform gaps:
+  - Active workflow control: ability to enable/disable workflow per lead from the CRM surface
+  - Email scheduling and throttle controls: operator-configurable rate limits and send windows
+  - Lead detail enrichment: deeper per-lead view surfacing full strategy history, version history, and outcome trail
+  - Analytics improvements: date range picker, export, trend charts (Phase 3D v2 items)
+  - Phase 3C.7 targeted hardening (intentionally skipped; may be revisited)
+- **Phase 3D improvements** — review open Phase 3D v2 items: `ANALYTICS_DASHBOARD_VIEWED` event, date range selector, chart visualizations
 
 When user direction is given, follow the standard sequence:
 

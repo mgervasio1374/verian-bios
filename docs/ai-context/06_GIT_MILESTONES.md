@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3d-revenue-analytics-v1` | Phase 3D Revenue Analytics complete — read-only analytics dashboard, 3 panels (Lead Pipeline, Email Performance, Strategy Performance), Analytics sidebar nav, 22 new tests, 1009/1009 total |
 | `phase-3c6-system-intelligence-wrap-up-v1` | Phase 3C.6 System Intelligence Wrap-Up complete — resolved_by attribution in resolveStructuredError, SYSTEM_PERFORMANCE_WARNING recommendation generator with OUTBOX_QUEUE_DEPTH_MIN=10, 12 new tests |
 | `phase-3c5-system-intelligence-detail-views-v1` | Phase 3C.5 System Intelligence Detail Views complete — `getStructuredErrorById`, dual revalidation in lifecycle actions, View link on list page, full error detail server component, 20 new tests |
 | `phase-3c4-workflow-outbox-error-emission-v1` | Phase 3C.4 Workflow & Outbox Error Emission complete — structured errors from `failWorkflowRun` and `dispatchPendingEvents`, final-attempt-only outbox guard, 25 new tests |
@@ -33,6 +34,11 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `08c3cdd` | Phase 3D: implement revenue analytics dashboard | Phase 3D |
+| `bb5a68d` | Docs: add Phase 3D implementation plan | Phase 3D Docs |
+| `201f8b2` | Docs: add Phase 3D revenue analytics design | Phase 3D Docs |
+| `835e11c` | Docs: add Phase 3C wrap-up review | Phase 3C Docs |
+| `480509c` | Docs: add Phase 3C.6 final lock report | Phase 3C.6 Docs |
 | `9a32d3c` | Phase 3C.6: implement resolved_by attribution and performance warning recommendation | Phase 3C.6 |
 | `4f5bdf0` | Docs: add Phase 3C.6 implementation plan | Phase 3C.6 Docs |
 | `7f11c07` | Docs: add Phase 3C.6 system intelligence wrap-up design | Phase 3C.6 Docs |
@@ -286,6 +292,7 @@
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-27 | 1009/1009 passed | PASSED | Phase 3D Revenue Analytics — 22 new tests, 987 existing pass. Staging smoke: login ✓, workspace ✓, Analytics sidebar link ✓, /main/settings/analytics loads ✓, all 3 panels render ✓, footer links ✓. Tag: `phase-3d-revenue-analytics-v1`. |
 | 2026-05-26 | 987/987 passed | PASSED | Phase 3C.6 System Intelligence Wrap-Up — 12 new tests, 975 existing pass. Staging smoke: login ✓, workspace ✓, System Intelligence page ✓, Pending Recommendations ✓, Generate Recommendations ✓. Tag: `phase-3c6-system-intelligence-wrap-up-v1`. |
 | 2026-05-26 | 975/975 passed | PASSED | Phase 3C.5 System Intelligence Detail Views — 20 new tests, 955 existing pass. Staging smoke: login ✓, workspace ✓, System Intelligence page ✓, View link visible ✓, detail page loads ✓, lifecycle actions render ✓, Generate Recommendations ✓. Tag: `phase-3c5-system-intelligence-detail-views-v1`. |
 | 2026-05-26 | 955/955 passed | PASSED | Phase 3C.4 Workflow & Outbox Error Emission — 25 new tests, 930 existing pass. Staging smoke: login ✓, workspace ✓, System Intelligence page ✓, Critical & Open Errors ✓, Workflow Health ✓, Generate Recommendations ✓. Tag: `phase-3c4-workflow-outbox-error-emission-v1`. |
@@ -306,7 +313,15 @@
 
 ## Current HEAD
 
-`9a32d3c` — Phase 3C.6: implement resolved_by attribution and performance warning recommendation
+`08c3cdd` — Phase 3D: implement revenue analytics dashboard
+
+### Phase 3D: Revenue Analytics (`08c3cdd`)
+- `modules/analytics/analytics.types.ts` — **new** — `LeadPipelineStats`, `EmailSendMetrics`, `LearningSignalRow`, `LearningSignalSummary`, `RevenueDashboard` interfaces
+- `modules/analytics/analytics.repo.ts` — **new** — `getLeadPipelineStats` (queries `leads`, 2 parallel sub-queries), `getEmailSendMetrics` (queries `email_sends` + `activity_events` ET_ counts, null-guarded rates), `getLatestLearningSignals` (finds latest `run_id` first, then fetches `strategy_angle`/`message_type` rows), `getOpenErrorCount` (thin count query on `automation_failures`); all use service client + `.eq('tenant_id', tenantId)`
+- `modules/analytics/analytics.service.ts` — **new** — `buildRevenueDashboard`: single `Promise.all` across all 4 repo functions; returns `RevenueDashboard` with `generatedAt` timestamp
+- `app/(workspace)/[workspaceSlug]/settings/analytics/page.tsx` — **new** — server component (no `'use client'`); `requirePermission(ctx, 'crm.companies.view')`; 4 summary cards; Lead Pipeline panel with `STAGE_ORDER` sort; Email Performance grid with bounce-rate highlight; Strategy Performance panel with `buildSignalMap` helper and two sub-tables; empty states for all zero-data cases; navigation footer
+- `components/layout/Sidebar.tsx` — **modified** — added `BarChart2` to lucide-react imports; added Analytics nav item between Imports and Settings
+- `tests/phase3d-revenue-analytics.test.ts` — **new** — 22 tests across 5 describe blocks (source-reading pattern)
 
 ## Migrations Sequence
 

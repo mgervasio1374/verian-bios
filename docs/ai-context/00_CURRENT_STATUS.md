@@ -22,7 +22,9 @@
 | Phase 3C.4 — Workflow & Outbox Error Emission | Complete. Committed `f465795`, tagged `phase-3c4-workflow-outbox-error-emission-v1`. Staging smoke-tested 2026-05-26. |
 | Phase 3C.5 — System Intelligence Detail Views | Complete. Committed `bce57a2`, tagged `phase-3c5-system-intelligence-detail-views-v1`. Staging smoke-tested 2026-05-26. |
 | Phase 3C.6 — System Intelligence Wrap-Up | Complete. Committed `9a32d3c`, tagged `phase-3c6-system-intelligence-wrap-up-v1`. Staging smoke-tested 2026-05-26. |
-| Phase 3C.7 | Not started. |
+| Phase 3C.7 | Intentionally skipped for now. May be revisited later. |
+| Phase 3D — Revenue Analytics | Complete. Committed `08c3cdd`, tagged `phase-3d-revenue-analytics-v1`. Staging smoke-tested 2026-05-27. |
+| Phase 3E | Not started. |
 
 ## Staging Foundation v1 — Locked
 
@@ -70,14 +72,14 @@
 
 ## QA Status (Last Verified)
 
-Verified at Phase 3C.6 commit `9a32d3c`.
+Verified at Phase 3D commit `08c3cdd`.
 
 ```
 npx vitest run      → PASSED
 npx next build      → PASSED
 TypeScript          → PASSED
-987/987 tests passed
-  (12 new tests added since Phase 3C.5: Phase 3C.6 System Intelligence Wrap-Up)
+1009/1009 tests passed
+  (22 new tests added since Phase 3C.6: Phase 3D Revenue Analytics)
 ```
 
 ## Active Routes
@@ -94,6 +96,7 @@ TypeScript          → PASSED
 | `/[workspaceSlug]/settings/imports` | Active — import batch list |
 | `/[workspaceSlug]/settings/imports/new` | Active — upload new import file |
 | `/[workspaceSlug]/settings/imports/[batchId]` | Active — batch detail: validation summary, dedupe results, approve/cancel |
+| `/[workspaceSlug]/settings/analytics` | Active — Phase 3D: Revenue Analytics dashboard; Lead Pipeline, Email Performance (30d), Strategy Performance panels; read-only server component |
 
 ## Working Tree
 
@@ -101,7 +104,11 @@ Clean. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`9a32d3c` — Phase 3C.6: implement resolved_by attribution and performance warning recommendation
+`08c3cdd` — Phase 3D: implement revenue analytics dashboard
+
+## Lock Tag
+
+`phase-3d-revenue-analytics-v1` → `08c3cdd`
 
 ## Guardrails for Next Work
 
@@ -112,12 +119,12 @@ Clean. `master` up to date with `origin/master`.
 | Do not reconnect production Vercel Git without explicit user approval | Reconnecting restores auto-deploy on every master push |
 | Staging (`verian-bios-staging`) auto-deploys from master — unchanged | Staging is the continuous integration target; every push to master deploys staging |
 | Staging must remain deployable | All app code must stay compatible with staging at all times |
-| Tests must stay green | 987/987 is the current baseline; no regression allowed |
+| Tests must stay green | 1009/1009 is the current baseline; no regression allowed |
 | Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240032`. |
 | No environment-crossing assumptions | Local seed data, staging users, and remote dev state are not shared; never assume data from one env exists in another |
 | No debug routes left behind | Temporary diagnostic routes must be removed within the same work session; do not merge to master without cleanup |
-| Phase 3C.7 requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
+| Phase 3E requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
 
 ## Last Updated
 
-2026-05-26 — after Phase 3C.6 System Intelligence Wrap-Up complete (commit `9a32d3c`, tag `phase-3c6-system-intelligence-wrap-up-v1`, staging smoke-tested, 987/987 tests).
+2026-05-27 — after Phase 3D Revenue Analytics complete (commit `08c3cdd`, tag `phase-3d-revenue-analytics-v1`, staging smoke-tested, 1009/1009 tests).
