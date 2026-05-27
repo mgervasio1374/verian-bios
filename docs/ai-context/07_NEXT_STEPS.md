@@ -534,7 +534,9 @@ All deliverables committed, tagged, and staging-smoke-tested.
 | Migration `20240033` created and committed | PASSED |
 | Migration `20240033` applied to staging | PASSED — `smbausuyetlgxflyhmfg` 2026-05-27 |
 | Staging smoke | PASSED with known Resend staging limitation |
-| Production deployment | Pending — production still at Phase 3F (`dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa`) |
+| Migration `20240033` applied to production | PASSED — `kxrplupzbsmujjznzhpy` 2026-05-27 |
+| Production Vercel deployment (`dpl_EVRkZE2uMYsxft5zCMYAtoqWxZ9F`) | PASSED — `https://verian-bios.vercel.app` live |
+| Manual production smoke | PASSED — 11/11 checks 2026-05-27 |
 
 ### What was delivered
 
@@ -555,20 +557,11 @@ Staging Resend API key is invalid — `ET_SEND_SUCCEEDED` and real webhook struc
 
 ## Next Recommended Step
 
-### Phase 3H Production Deployment
+### Pause / Phase 3I Design When Approved
 
-Phase 3H is fully complete: locked at `b10d0db`, tag `phase-3h-send-safety-hardening-v1`. Production Supabase remains at migration `20240032`. Production Vercel remains at `dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa` (Phase 3F).
+Phase 3H is fully complete and production-deployed. Production Supabase is current through migration `20240033`. Production Vercel is at `dpl_EVRkZE2uMYsxft5zCMYAtoqWxZ9F` (Phase 3H, 2026-05-27). `EMAIL_SENDING_ENABLED` remains disabled — no live sends without explicit approval.
 
-**Production deployment scope:**
-
-1. Relink Supabase CLI to production: `npx supabase link --project-ref kxrplupzbsmujjznzhpy`
-2. Dry-run: `npx supabase db push --dry-run` — confirm only `20240033` pending
-3. Apply: `npx supabase db push`
-4. Relink back to staging after apply
-5. Deploy production Vercel: `vercel --prod` (from `b10d0db`)
-6. Post-deploy smoke: columns exist on production, pages load, no runtime errors
-
-**Stop condition:** Do not start Phase 3I until production deployment is explicitly approved and completed.
+**When ready to proceed:** Request Phase 3I design. Phase 3I is Agent Decision Log — per the Phase 3G roadmap (3H → 3I → 3J → 3K before any production sending can expand). Design & Test Cases must be produced and approved before any Phase 3I code is written.
 
 ---
 

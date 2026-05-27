@@ -38,6 +38,7 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `ba492a4` | Docs: update AI context for Phase 3H lock | Phase 3H Docs |
 | `b10d0db` | Phase 3H: harden email send safety | Phase 3H |
 | `b704506` | Docs: add Phase 3H send safety hardening design and plan | Phase 3H Docs |
 | `1744a02` | Docs: update AI context for Phase 3G lock | Phase 3G Docs |
@@ -118,7 +119,7 @@
 ## What Each Group Contains
 
 ### Phase 3H: Send Safety Hardening (`b10d0db`)
-- `supabase/migrations/20240033_phase3h_email_send_hardening.sql` — **new** — `ALTER TABLE email_sends ADD COLUMN IF NOT EXISTS failure_reason text, ADD COLUMN IF NOT EXISTS triggered_by text`; applied to staging (`smbausuyetlgxflyhmfg`) 2026-05-27; production pending
+- `supabase/migrations/20240033_phase3h_email_send_hardening.sql` — **new** — `ALTER TABLE email_sends ADD COLUMN IF NOT EXISTS failure_reason text, ADD COLUMN IF NOT EXISTS triggered_by text`; applied to staging (`smbausuyetlgxflyhmfg`) and production (`kxrplupzbsmujjznzhpy`) 2026-05-27
 - `types/database.ts` — **modified** — `failure_reason: string | null` and `triggered_by: string | null` added to `email_sends` Row/Insert/Update
 - `modules/messaging/repositories/email-send.repo.ts` — **modified** — `CreateEmailSendInput` extended with `triggeredBy?: string | null` (written to `triggered_by` in INSERT); `UpdateEmailSendInput` extended with `failureReason?: string | null` (written to `failure_reason` in PATCH)
 - `modules/intelligence/structured-errors/structured-error.types.ts` — **modified** — `WEBHOOK_FAILURE_TYPE` const block (`EMAIL_PERMANENT_BOUNCE`, `EMAIL_COMPLAINT_RECEIVED`, `EMAIL_DELIVERY_DELAYED`) and `WebhookFailureType` type alias added (additive only)
@@ -315,7 +316,8 @@
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
-| 2026-05-27 | 1083/1083 passed | PASSED | Phase 3H Send Safety Hardening — 35 new source-reading tests. Migration `20240033` applied to staging (`smbausuyetlgxflyhmfg`). Staging smoke: Gate 0 blocks send when `EMAIL_SENDING_ENABLED = false` ✓, `failure_reason` column exists ✓, `triggered_by` column exists ✓, failure path creates `email_sends` row ✓, `ET_SEND_INITIATED` ✓, `ET_SEND_FAILED` ✓, `send_path = phase_3a_template` ✓. Known limitation: `ET_SEND_SUCCEEDED` and webhook structured-error smoke not testable on staging (invalid Resend key). Production deployment pending. Tag: `phase-3h-send-safety-hardening-v1`. |
+| 2026-05-27 | 1083/1083 passed | PASSED | Phase 3H production deployed. Migration `20240033` applied to production (`kxrplupzbsmujjznzhpy`). Production Vercel `dpl_EVRkZE2uMYsxft5zCMYAtoqWxZ9F` live at `https://verian-bios.vercel.app`. Production smoke: 11/11 checks passed. `EMAIL_SENDING_ENABLED` remains disabled — no live sends. Docs updated at `ba492a4`. |
+| 2026-05-27 | 1083/1083 passed | PASSED | Phase 3H Send Safety Hardening — 35 new source-reading tests. Migration `20240033` applied to staging (`smbausuyetlgxflyhmfg`). Staging smoke: Gate 0 blocks send when `EMAIL_SENDING_ENABLED = false` ✓, `failure_reason` column exists ✓, `triggered_by` column exists ✓, failure path creates `email_sends` row ✓, `ET_SEND_INITIATED` ✓, `ET_SEND_FAILED` ✓, `send_path = phase_3a_template` ✓. Known limitation: `ET_SEND_SUCCEEDED` and webhook structured-error smoke not testable on staging (invalid Resend key). Tag: `phase-3h-send-safety-hardening-v1`. |
 | 2026-05-27 | 1048/1048 passed | N/A | Phase 3G Agent Operations Readiness & Control Map — documentation/control-map only. No source code changed. No migration created. No deployment. Key finding: `EMAIL_SENDING_ENABLED` not enforced in `sendApprovedDraft()`. Phase 3A sends emit no activity events. Roadmap 3H→3M defined. Baseline 1048/1048 unchanged. Tag: `phase-3g-agent-operations-readiness-v1`. |
 | 2026-05-27 | 1048/1048 passed | PASSED | Phase 3F Workflow Execution Visibility — production deployed. No migration. Vercel deployment `dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa` live at `https://verian-bios.vercel.app`. Production smoke: passed 14/14 checks. Vercel settings unchanged. Production Supabase untouched (current through `20240032`). |
 | 2026-05-27 | 1048/1048 passed | PASSED | Phase 3F Workflow Execution Visibility — 21 new tests, 1027 existing pass. No migration. Staging smoke: login ✓, workspace ✓, lead detail page ✓, Workflow Activity timeline ✓, Email Draft History section ✓, Workflow Errors panel ✓. Tag: `phase-3f-workflow-execution-visibility-v1`. |
@@ -342,7 +344,7 @@
 
 ## Current HEAD
 
-`b10d0db` — Phase 3H: harden email send safety
+`ba492a4` — Docs: update AI context for Phase 3H lock
 
 ### Phase 3G: Agent Operations Readiness & Control Map (`a4f488a`)
 - `docs/roadmap/phase-3g-agent-operations-readiness-design.md` — **new** — full control map: agent inventory (13 active agents, 4 planned), decision lifecycle audit (12 steps), human approval gates, email engine redesign boundary, campaign assignment model design, Resend readiness checklist, observability gaps, safety model, roadmap 3H→3M, recommended pause milestone
@@ -393,6 +395,6 @@
 | `20240030` | Staging Foundation — `service_role` GRANT ALL on all tables/sequences/routines + ALTER DEFAULT PRIVILEGES |
 | `20240031` | Staging Foundation — `anon`+`authenticated` GRANT ALL on all tables/sequences/routines + ALTER DEFAULT PRIVILEGES |
 | `20240032` | Phase 3E — `ALTER TABLE leads ADD COLUMN workflow_enabled boolean NOT NULL DEFAULT false`; applied to staging (`smbausuyetlgxflyhmfg`) and production (`kxrplupzbsmujjznzhpy`) |
-| `20240033` | Phase 3H — `ALTER TABLE email_sends ADD COLUMN IF NOT EXISTS failure_reason text, ADD COLUMN IF NOT EXISTS triggered_by text`; applied to staging (`smbausuyetlgxflyhmfg`) 2026-05-27; production pending |
+| `20240033` | Phase 3H — `ALTER TABLE email_sends ADD COLUMN IF NOT EXISTS failure_reason text, ADD COLUMN IF NOT EXISTS triggered_by text`; applied to staging (`smbausuyetlgxflyhmfg`) and production (`kxrplupzbsmujjznzhpy`) 2026-05-27 |
 
 Note: No new migration was added for the Human Review / Approval Bridge, the Send / Email Draft Bridge, or Event Tracking. All three use existing tables and columns only. Phase 3B provenance travels via `email_drafts.ai_generation_metadata` (jsonb) at draft creation, then is copied into `email_sends.metadata` (jsonb) at send time. Event Tracking activity events are appended to the existing `activity_events` table. The Learning Agent adds migration `20240025` for `learning_snapshots` — its only write target.
