@@ -20,7 +20,8 @@
 | Track A — Deployment Flow Cleanup | Complete. Production Vercel Git disconnected; staging unchanged. Verified 2026-05-26. |
 | Phase 3C.3 — System Intelligence Recommendation Generator | Complete. Committed `3d45928`, tagged `phase-3c3-system-intelligence-recommendations-v1`. Staging smoke-tested 2026-05-26. |
 | Phase 3C.4 — Workflow & Outbox Error Emission | Complete. Committed `f465795`, tagged `phase-3c4-workflow-outbox-error-emission-v1`. Staging smoke-tested 2026-05-26. |
-| Phase 3C.5 | Not started. |
+| Phase 3C.5 — System Intelligence Detail Views | Complete. Committed `bce57a2`, tagged `phase-3c5-system-intelligence-detail-views-v1`. Staging smoke-tested 2026-05-26. |
+| Phase 3C.6 | Not started. |
 
 ## Staging Foundation v1 — Locked
 
@@ -68,14 +69,14 @@
 
 ## QA Status (Last Verified)
 
-Verified at Phase 3C.4 commit `f465795`.
+Verified at Phase 3C.5 commit `bce57a2`.
 
 ```
 npx vitest run      → PASSED
 npx next build      → PASSED
 TypeScript          → PASSED
-955/955 tests passed
-  (25 new tests added since Phase 3C.3: Phase 3C.4 Workflow & Outbox Error Emission)
+975/975 tests passed
+  (20 new tests added since Phase 3C.4: Phase 3C.5 System Intelligence Detail Views)
 ```
 
 ## Active Routes
@@ -86,7 +87,8 @@ TypeScript          → PASSED
 | `/[workspaceSlug]/message-workspace/[leadId]` | Active — includes QRA display, "Quality Review" button, HRB bridge UI, Send Bridge "Create Email Draft" button, and Event Tracking delivery status badges |
 | `/[workspaceSlug]/settings/agent-monitor` | Active — includes Learning Signals section, "Run Learning Analysis" button, and Phase 3B.1 Operational Health card |
 | `/[workspaceSlug]/settings/system-controls` | Active |
-| `/[workspaceSlug]/settings/system-intelligence` | Active — Phase 3C.3: includes Generate Recommendations button (above Pending System Recommendations), Resolve / Investigate / Ignore buttons for open errors, Dismiss button for system recommendations |
+| `/[workspaceSlug]/settings/system-intelligence` | Active — Phase 3C.3: includes Generate Recommendations button (above Pending System Recommendations), Resolve / Investigate / Ignore buttons for open errors, Dismiss button for system recommendations; Phase 3C.5: View link per error row |
+| `/[workspaceSlug]/settings/system-intelligence/errors/[errorId]` | Active — Phase 3C.5: structured error detail page; shows full automation_failures metadata; Resolve / Investigate / Ignore actions with dual revalidation |
 | `/[workspaceSlug]/settings/health` | Active — Workflow Health page |
 | `/[workspaceSlug]/settings/imports` | Active — import batch list |
 | `/[workspaceSlug]/settings/imports/new` | Active — upload new import file |
@@ -98,7 +100,7 @@ Clean. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`f465795` — Phase 3C.4: implement workflow and outbox error emission
+`bce57a2` — Phase 3C.5: implement system intelligence error detail views
 
 ## Guardrails for Next Work
 
@@ -109,12 +111,12 @@ Clean. `master` up to date with `origin/master`.
 | Do not reconnect production Vercel Git without explicit user approval | Reconnecting restores auto-deploy on every master push |
 | Staging (`verian-bios-staging`) auto-deploys from master — unchanged | Staging is the continuous integration target; every push to master deploys staging |
 | Staging must remain deployable | All app code must stay compatible with staging at all times |
-| Tests must stay green | 955/955 is the current baseline; no regression allowed |
+| Tests must stay green | 975/975 is the current baseline; no regression allowed |
 | Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240032`. |
 | No environment-crossing assumptions | Local seed data, staging users, and remote dev state are not shared; never assume data from one env exists in another |
 | No debug routes left behind | Temporary diagnostic routes must be removed within the same work session; do not merge to master without cleanup |
-| Phase 3C.5 requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
+| Phase 3C.6 requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
 
 ## Last Updated
 
-2026-05-26 — after Phase 3C.4 Workflow & Outbox Error Emission complete (commit `f465795`, tag `phase-3c4-workflow-outbox-error-emission-v1`, staging smoke-tested, 955/955 tests).
+2026-05-26 — after Phase 3C.5 System Intelligence Detail Views complete (commit `bce57a2`, tag `phase-3c5-system-intelligence-detail-views-v1`, staging smoke-tested, 975/975 tests).

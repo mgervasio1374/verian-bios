@@ -255,6 +255,38 @@ All deliverables complete and verified.
 - Production deploys are now explicit and manual via `vercel --prod` or Vercel dashboard.
 - No code changed. No migrations created. No Supabase touched.
 
+## Completed — Phase 3C.5 System Intelligence Detail Views v1.0
+
+All deliverables committed, tagged, and staging-smoke-tested.
+
+| Deliverable | Status |
+|-------------|--------|
+| Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3c5-system-intelligence-detail-views-design-test-cases.md`) |
+| Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3c5-implementation-plan.md`) |
+| Code implementation | Complete — `bce57a2`, tag `phase-3c5-system-intelligence-detail-views-v1` |
+| QA: 975/975 tests, build, TypeScript | PASSED |
+| Manual staging smoke | PASSED — login ✓, workspace ✓, System Intelligence page ✓, View link ✓, detail page loads ✓, lifecycle actions render ✓, Generate Recommendations ✓ |
+
+### What was delivered
+
+- `structured-error.repo.ts` — `getStructuredErrorById(id, tenantId)`: returns full `AutomationFailureRow | null`; tenant isolation via `.eq('tenant_id', tenantId)`; no status filter; service client
+- `structured-error.actions.ts` — optional `errorId` form field + conditional second `revalidatePath` in `resolveErrorAction`, `investigateErrorAction`, `ignoreErrorAction`; `dismissRecommendationAction` unchanged; list-page callers unaffected
+- `system-intelligence/page.tsx` — View link column added to Critical & Open Errors table; links to `errors/[err.id]`
+- `errors/[errorId]/page.tsx` — new server component; all `automation_failures` metadata; conditional sections for context, payload_snapshot, stack_trace, resolution; lifecycle action forms with `name="errorId"`; `notFound()` on null (tenant-safe 404)
+- 20 new tests across 8 describe blocks
+
+### Key behavior
+
+- Operators can click **View** on any row in the Critical & Open Errors table to open a full detail page
+- Detail page is accessible via direct URL — resolved and ignored errors can be reviewed after the fact
+- Tenant isolation is enforced at the repo layer: `getStructuredErrorById` filters by `tenant_id`; a mismatched or missing record triggers `notFound()` — no cross-tenant leakage
+- Lifecycle actions (Resolve / Investigate / Ignore) on the detail page revalidate both the list and the detail page, so the operator sees the updated status immediately without navigating back
+- Existing list-page forms are unchanged — they omit `errorId`, so the conditional revalidation never fires from the list context
+- No new migrations — reads from existing `automation_failures` table (Phase 3C.1)
+- No Resend, no external LLMs, no auto-actions
+
+---
+
 ## Completed — Phase 3C.4 Workflow & Outbox Error Emission v1.0
 
 All deliverables committed, tagged, and staging-smoke-tested.
@@ -328,16 +360,17 @@ All deliverables committed, tagged, and staging-smoke-tested.
 
 ## Next Recommended Step
 
-### Phase 3C.5 Design (or Phase 3C Wrap-Up Review)
+### Phase 3C.6 Design (or Phase 3C Wrap-Up Review)
 
-Phase 3C.4 is locked. No Phase 3C.5 scope has been defined.
+Phase 3C.5 is locked. No Phase 3C.6 scope has been defined.
 
 **Possible next directions (user direction required before any work starts):**
 
-- **Phase 3C.5** — potential candidates from Phase 3C.4 open questions:
+- **Phase 3C.6** — potential candidates from open questions across Phase 3C:
   - Workflow failure reconciler: scan `workflow_runs.status = 'failed'` and back-fill missing `automation_failures` rows
   - Auto-resolve structured errors when a failed workflow run is retried and completes
   - Severity escalation for repeated failures within a time window
+  - Pagination or filtering on the Critical & Open Errors list (currently limited to 50 rows)
 - **Phase 3C wrap-up review** — review overall Phase 3C scope completeness before advancing to Phase 3D or a new area
 
 When user direction is given, follow the standard sequence:

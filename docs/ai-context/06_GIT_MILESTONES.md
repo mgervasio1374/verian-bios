@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3c5-system-intelligence-detail-views-v1` | Phase 3C.5 System Intelligence Detail Views complete — `getStructuredErrorById`, dual revalidation in lifecycle actions, View link on list page, full error detail server component, 20 new tests |
 | `phase-3c4-workflow-outbox-error-emission-v1` | Phase 3C.4 Workflow & Outbox Error Emission complete — structured errors from `failWorkflowRun` and `dispatchPendingEvents`, final-attempt-only outbox guard, 25 new tests |
 | `phase-3c3-system-intelligence-recommendations-v1` | Phase 3C.3 System Intelligence Recommendation Generator complete — on-demand generator, 3 rec types, dedup, GenerateRecsButton, 27 new tests |
 | `phase-3c2-structured-error-lifecycle-v1` | Phase 3C.2 Structured Error Lifecycle Actions complete — resolve/investigate/ignore/dismiss, emission in import callsites, activity events, 24 new tests |
@@ -31,6 +32,10 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `bce57a2` | Phase 3C.5: implement system intelligence error detail views | Phase 3C.5 |
+| `18adac8` | Docs: add Phase 3C.5 implementation plan | Phase 3C.5 Docs |
+| `e5428a2` | Docs: add Phase 3C.5 system intelligence detail views design | Phase 3C.5 Docs |
+| `6247847` | Docs: add Phase 3C.4 final lock report | Phase 3C.4 Docs |
 | `f465795` | Phase 3C.4: implement workflow and outbox error emission | Phase 3C.4 |
 | `215e667` | Docs: add Phase 3C.4 implementation plan | Phase 3C.4 Docs |
 | `cfe6531` | Docs: add Phase 3C.4 workflow error emission design | Phase 3C.4 Docs |
@@ -86,6 +91,13 @@
 | `b50665d` | Add statement analysis PDF proposal package | Phase 4 |
 
 ## What Each Group Contains
+
+### Phase 3C.5: System Intelligence Detail Views (`bce57a2`)
+- `modules/intelligence/structured-errors/structured-error.repo.ts` — added `getStructuredErrorById(id, tenantId)`; returns `AutomationFailureRow | null`; tenant isolation via `.eq('tenant_id', tenantId)`; no status filter (resolved/ignored accessible via direct URL)
+- `modules/intelligence/structured-errors/structured-error.actions.ts` — added optional `errorId` read + conditional second `revalidatePath` to `resolveErrorAction`, `investigateErrorAction`, `ignoreErrorAction`; `dismissRecommendationAction` unchanged; existing list-page callers unaffected
+- `app/(workspace)/[workspaceSlug]/settings/system-intelligence/page.tsx` — added View link column header + cell linking to `errors/[err.id]` in Critical & Open Errors table
+- `app/(workspace)/[workspaceSlug]/settings/system-intelligence/errors/[errorId]/page.tsx` — **new file** — full server component; renders all `automation_failures` metadata; conditional context/payload_snapshot/stack_trace/resolution sections; lifecycle action forms with `name="errorId"`; `notFound()` on null
+- `tests/phase3c-system-intelligence.test.ts` — 20 new tests across 8 describe blocks (repo function, server component boundary, field coverage, lifecycle actions, list View link, dual revalidation, migration guardrail, external services guardrail)
 
 ### Phase 3C.4: Workflow & Outbox Error Emission (`f465795`)
 - `modules/intelligence/structured-errors/structured-error.types.ts` — added `WORKFLOW_FAILURE_TYPE` (`WORKFLOW_RUN_FAILED`, `OUTBOX_EVENT_DISPATCH_FAILED`) and `WorkflowFailureType`; additive only
@@ -262,6 +274,7 @@
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-26 | 975/975 passed | PASSED | Phase 3C.5 System Intelligence Detail Views — 20 new tests, 955 existing pass. Staging smoke: login ✓, workspace ✓, System Intelligence page ✓, View link visible ✓, detail page loads ✓, lifecycle actions render ✓, Generate Recommendations ✓. Tag: `phase-3c5-system-intelligence-detail-views-v1`. |
 | 2026-05-26 | 955/955 passed | PASSED | Phase 3C.4 Workflow & Outbox Error Emission — 25 new tests, 930 existing pass. Staging smoke: login ✓, workspace ✓, System Intelligence page ✓, Critical & Open Errors ✓, Workflow Health ✓, Generate Recommendations ✓. Tag: `phase-3c4-workflow-outbox-error-emission-v1`. |
 | 2026-05-26 | 930/930 passed | PASSED | Phase 3C.3 System Intelligence Recommendation Generator — 27 new tests, 903 existing pass. Staging smoke: login ✓, workspace ✓, Generate Recommendations button visible ✓, generates with "Done." ✓. Tag: `phase-3c3-system-intelligence-recommendations-v1`. |
 | 2026-05-26 | 903/903 passed (baseline unchanged) | N/A | Track A Deployment Flow Cleanup verified. Test push `cbfb790` (docs-only): staging (`verian-bios-staging`) deployed ✓; production (`verian-bios`) did not deploy ✓; production URL live ✓. No code or migrations changed. |
@@ -280,7 +293,7 @@
 
 ## Current HEAD
 
-`f465795` — Phase 3C.4: implement workflow and outbox error emission
+`bce57a2` — Phase 3C.5: implement system intelligence error detail views
 
 ## Migrations Sequence
 
