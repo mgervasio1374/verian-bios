@@ -255,6 +255,41 @@ All deliverables complete and verified.
 - Production deploys are now explicit and manual via `vercel --prod` or Vercel dashboard.
 - No code changed. No migrations created. No Supabase touched.
 
+## Completed — Phase 3C.6 System Intelligence Wrap-Up v1.0
+
+All deliverables committed, tagged, and staging-smoke-tested.
+
+| Deliverable | Status |
+|-------------|--------|
+| Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3c6-system-intelligence-wrap-up-design-test-cases.md`) |
+| Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3c6-implementation-plan.md`) |
+| Code implementation | Complete — `9a32d3c`, tag `phase-3c6-system-intelligence-wrap-up-v1` |
+| QA: 987/987 tests, build, TypeScript | PASSED |
+| Manual staging smoke | PASSED — login ✓, workspace ✓, System Intelligence page ✓, Pending Recommendations ✓, Generate Recommendations ✓ |
+
+### What was delivered
+
+**Part A — `resolved_by` Attribution:**
+- `structured-error.repo.ts` — `resolveStructuredError` now accepts optional `resolvedBy?: string | null` and writes `resolved_by: resolvedBy ?? null` in the UPDATE
+- `structured-error.service.ts` — `resolveError` now passes `ctx.userId` as third argument; `ignoreError` and `investigateError` unchanged; `dismissRecommendationAction` unaffected
+- No migration — `resolved_by` column already existed in `automation_failures` (Phase 3C.1, migration `20240028`)
+
+**Part B — `SYSTEM_PERFORMANCE_WARNING` Recommendation:**
+- `system-recommendation.types.ts` — `OUTBOX_QUEUE_DEPTH_MIN: 10` added to `REC_THRESHOLD`
+- `system-recommendation.service.ts` — `checkPerformanceWarning(pendingOutboxCount)` pure function added; wired into checks array via `healthReport.outbox.pendingCount`; generates `SYSTEM_PERFORMANCE_WARNING` rec when pending outbox count ≥ 10; advisory only
+- Existing dedup loop handles the new rec type without changes
+
+12 new tests across 4 describe blocks.
+
+### Key behavior
+
+- Resolved structured errors now record `resolved_by` in `automation_failures` — the Resolution card on the error detail page (Phase 3C.5) will show the resolving user's ID going forward
+- When resolved via `buildSystemContext`, `resolved_by` is written as `'system'` — auditable and correct
+- Pre-Phase-3C.6 resolved errors remain `resolved_by = null` — forward-looking fix only, no back-fill
+- The `SYSTEM_PERFORMANCE_WARNING` rec type can now be generated automatically when the outbox queue is backed up (≥ 10 pending events) — closes the dead-type gap in the recommendation filter
+
+---
+
 ## Completed — Phase 3C.5 System Intelligence Detail Views v1.0
 
 All deliverables committed, tagged, and staging-smoke-tested.
@@ -360,13 +395,13 @@ All deliverables committed, tagged, and staging-smoke-tested.
 
 ## Next Recommended Step
 
-### Phase 3C.6 Design (or Phase 3C Wrap-Up Review)
+### Phase 3C.7 Design (or Phase 3C Wrap-Up Review)
 
-Phase 3C.5 is locked. No Phase 3C.6 scope has been defined.
+Phase 3C.6 is locked. No Phase 3C.7 scope has been defined.
 
 **Possible next directions (user direction required before any work starts):**
 
-- **Phase 3C.6** — potential candidates from open questions across Phase 3C:
+- **Phase 3C.7** — potential candidates from open questions across Phase 3C:
   - Workflow failure reconciler: scan `workflow_runs.status = 'failed'` and back-fill missing `automation_failures` rows
   - Auto-resolve structured errors when a failed workflow run is retried and completes
   - Severity escalation for repeated failures within a time window
