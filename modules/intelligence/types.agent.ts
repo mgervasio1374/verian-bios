@@ -226,5 +226,9 @@ export const ActivityEventType = {
   SE_ERROR_INVESTIGATING: 'SE_ERROR_INVESTIGATING',
   SE_ERROR_IGNORED:       'SE_ERROR_IGNORED',
   SE_REC_DISMISSED:       'SE_REC_DISMISSED',
+
+  // Phase 3C.3 — System Recommendation Generator (additive)
+  SYSTEM_REC_GENERATOR_RUN:    'SYSTEM_REC_GENERATOR_RUN',
+  SYSTEM_REC_GENERATOR_FAILED: 'SYSTEM_REC_GENERATOR_FAILED',
 } as const
 export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType]

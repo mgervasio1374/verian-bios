@@ -621,3 +621,155 @@ describe('Phase 3C.2 — System Intelligence page: action buttons', () => {
     expect(pageSource).not.toContain("'use client'")
   })
 })
+
+// -------------------------------------------------------
+// Phase 3C.3 — System Intelligence Recommendation Generator
+// -------------------------------------------------------
+
+describe('Phase 3C.3 — ActivityEventType: generator constants', () => {
+  it('SYSTEM_REC_GENERATOR_RUN is defined', () => {
+    expect(ActivityEventType.SYSTEM_REC_GENERATOR_RUN).toBe('SYSTEM_REC_GENERATOR_RUN')
+  })
+  it('SYSTEM_REC_GENERATOR_FAILED is defined', () => {
+    expect(ActivityEventType.SYSTEM_REC_GENERATOR_FAILED).toBe('SYSTEM_REC_GENERATOR_FAILED')
+  })
+})
+
+describe('Phase 3C.3 — system-recommendation.types.ts: constants', () => {
+  const typesSource = readProjectFile(
+    'modules/intelligence/system-recommendation/system-recommendation.types.ts'
+  )
+
+  it('exports REC_THRESHOLD', () => {
+    expect(typesSource).toContain('REC_THRESHOLD')
+  })
+  it('REC_THRESHOLD.ERROR_COUNT_MIN is present and set to 3', () => {
+    expect(typesSource).toContain('ERROR_COUNT_MIN')
+    expect(typesSource).toContain('3')
+  })
+  it('exports RecCheckResult interface', () => {
+    expect(typesSource).toContain('RecCheckResult')
+  })
+})
+
+describe('Phase 3C.3 — system-recommendation.service.ts: source assertions', () => {
+  const serviceSource = readProjectFile(
+    'modules/intelligence/system-recommendation/system-recommendation.service.ts'
+  )
+
+  it('exports runSystemRecommendationGenerator', () => {
+    expect(serviceSource).toContain('runSystemRecommendationGenerator')
+  })
+  it('uses service client (not user client)', () => {
+    expect(serviceSource).toContain('createSupabaseServiceClient')
+    expect(serviceSource).not.toContain('createSupabaseServerClient')
+  })
+  it('does not call Resend or email frameworks', () => {
+    expect(serviceSource).not.toContain('resend')
+    expect(serviceSource).not.toContain('nodemailer')
+  })
+  it('does not write to email_drafts or email_sends', () => {
+    expect(serviceSource).not.toContain("from('email_drafts')")
+    expect(serviceSource).not.toContain("from('email_sends')")
+  })
+  it('emits SYSTEM_REC_GENERATOR_RUN activity event', () => {
+    expect(serviceSource).toContain('SYSTEM_REC_GENERATOR_RUN')
+  })
+})
+
+describe('Phase 3C.3 — system-recommendation.actions.ts: source assertions', () => {
+  const actionsSource = readProjectFile(
+    'modules/intelligence/system-recommendation/system-recommendation.actions.ts'
+  )
+
+  it("actions file has 'use server' directive", () => {
+    expect(actionsSource).toContain("'use server'")
+  })
+  it('exports generateSystemRecommendationsAction', () => {
+    expect(actionsSource).toContain('generateSystemRecommendationsAction')
+  })
+  it('calls revalidatePath', () => {
+    expect(actionsSource).toContain('revalidatePath')
+  })
+})
+
+describe('Phase 3C.3 — recommendation.repo.ts: listPendingSystemRecs', () => {
+  const repoSource = readProjectFile(
+    'modules/intelligence/repositories/recommendation.repo.ts'
+  )
+
+  it('exports listPendingSystemRecs', () => {
+    expect(repoSource).toContain('listPendingSystemRecs')
+  })
+  it('listPendingSystemRecs filters by tenant_id', () => {
+    const fnStart   = repoSource.indexOf('listPendingSystemRecs')
+    const fnSection = repoSource.slice(fnStart, fnStart + 400)
+    expect(fnSection).toContain("eq('tenant_id'")
+  })
+})
+
+describe('Phase 3C.3 — GenerateRecsButton client component', () => {
+  const buttonSource = readProjectFile(
+    'app/(workspace)/[workspaceSlug]/settings/system-intelligence/GenerateRecsButton.tsx'
+  )
+
+  it('GenerateRecsButton.tsx exists and is readable', () => {
+    expect(buttonSource.length).toBeGreaterThan(0)
+  })
+  it("GenerateRecsButton.tsx has 'use client' directive", () => {
+    expect(buttonSource).toContain("'use client'")
+  })
+  it('GenerateRecsButton.tsx references generateSystemRecommendationsAction', () => {
+    expect(buttonSource).toContain('generateSystemRecommendationsAction')
+  })
+})
+
+describe('Phase 3C.3 — System Intelligence page: generator integration', () => {
+  const pageSource = readProjectFile(
+    'app/(workspace)/[workspaceSlug]/settings/system-intelligence/page.tsx'
+  )
+
+  it('page imports GenerateRecsButton', () => {
+    expect(pageSource).toContain('GenerateRecsButton')
+  })
+  it('page renders GenerateRecsButton with workspaceSlug', () => {
+    expect(pageSource).toContain('<GenerateRecsButton')
+    expect(pageSource).toContain('workspaceSlug')
+  })
+  it('page remains a server component (no "use client")', () => {
+    expect(pageSource).not.toContain("'use client'")
+  })
+})
+
+describe('Phase 3C.3 — Guardrail: no messaging table writes in new module', () => {
+  const serviceSource = readProjectFile(
+    'modules/intelligence/system-recommendation/system-recommendation.service.ts'
+  )
+
+  it('service does not write to email_drafts', () => {
+    expect(serviceSource).not.toContain("from('email_drafts')")
+  })
+  it('service does not write to email_sends', () => {
+    expect(serviceSource).not.toContain("from('email_sends')")
+  })
+  it('service does not call sendApprovedDraftAction', () => {
+    expect(serviceSource).not.toContain('sendApprovedDraftAction')
+  })
+  it('service does not call external LLMs', () => {
+    expect(serviceSource).not.toContain("'openai'")
+    expect(serviceSource).not.toContain("'@anthropic-ai")
+  })
+})
+
+describe('Phase 3C.3 — Guardrail: deduplication and source_agent', () => {
+  const serviceSource = readProjectFile(
+    'modules/intelligence/system-recommendation/system-recommendation.service.ts'
+  )
+
+  it('service calls listPendingSystemRecs for deduplication', () => {
+    expect(serviceSource).toContain('listPendingSystemRecs')
+  })
+  it("service writes source_agent 'system_recommendation_generator'", () => {
+    expect(serviceSource).toContain("'system_recommendation_generator'")
+  })
+})

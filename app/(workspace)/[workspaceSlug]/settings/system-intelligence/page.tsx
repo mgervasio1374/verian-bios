@@ -14,6 +14,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AlertTriangle, Activity, Database, ArrowRight } from 'lucide-react'
+import { GenerateRecsButton } from './GenerateRecsButton'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -276,6 +277,17 @@ export default async function SystemIntelligencePage({ params }: PageProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Generate Recommendations */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium">System Recommendations</p>
+          <p className="text-xs text-muted-foreground">
+            Analyse current system state and generate advisory recommendations.
+          </p>
+        </div>
+        <GenerateRecsButton workspaceSlug={workspaceSlug} />
+      </div>
 
       {/* Pending System Recommendations */}
       <Card>

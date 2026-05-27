@@ -164,3 +164,23 @@ export async function getLeadRecommendations(
   if (error) throw new Error(`getLeadRecommendations: ${error.message}`)
   return data ?? []
 }
+
+const SYSTEM_REC_TYPES_FOR_DEDUP = [
+  'SYSTEM_ERROR_DIAGNOSIS',
+  'SYSTEM_IMPORT_HEALTH',
+  'SYSTEM_WORKFLOW_RECOMMENDATION',
+]
+
+export async function listPendingSystemRecs(
+  tenantId: string,
+): Promise<Pick<RecommendationRow, 'id' | 'recommendation_type' | 'status'>[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('agent_recommendations')
+    .select('id, recommendation_type, status')
+    .eq('tenant_id', tenantId)
+    .in('recommendation_type', SYSTEM_REC_TYPES_FOR_DEDUP)
+    .in('status', ['pending', 'new'])
+  if (error) throw new Error(`listPendingSystemRecs: ${error.message}`)
+  return data ?? []
+}
