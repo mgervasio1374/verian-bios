@@ -490,24 +490,56 @@ All deliverables committed, tagged, and staging-smoke-tested.
 
 ---
 
+## Completed — Phase 3G Agent Operations Readiness & Control Map v1.0
+
+All deliverables committed, tagged, and locked. Documentation/control-map phase only — no source code changed, no migration created.
+
+| Deliverable | Status |
+|-------------|--------|
+| Design — Agent Operations Readiness & Control Map | Locked (`docs/roadmap/phase-3g-agent-operations-readiness-design.md`) |
+| Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3g-implementation-plan.md`) |
+| Code implementation | N/A — documentation-only phase |
+| QA: 1048/1048 tests (unchanged baseline) | PASSED — no source changes |
+| Tag | `phase-3g-agent-operations-readiness-v1 → a4f488a` |
+
+### What was delivered
+
+- **Agent inventory** — 13 active agents catalogued; 4 planned agents (3I–3M scope)
+- **Decision lifecycle** — 12 steps mapped; steps 10–12 (follow-up scheduling, campaign assignment, live pilot) not yet implemented
+- **Critical gap identified** — two disconnected draft creation paths: Phase 3A template path (direct, no LLM) vs. Phase 3B pipeline (Message Strategy → Copywriting → QRA → HRB → SEB); never unified; must be fixed in Phase 3J before campaigns are possible
+- **Kill switch audit** — `EMAIL_SENDING_ENABLED` system control exists in DB but is **not enforced** in `sendApprovedDraft()` — Gate 0 is missing; Phase 3H must add it
+- **Activity event gap** — `ET_SEND_INITIATED`/`ET_SEND_SUCCEEDED`/`ET_SEND_FAILED` are gated by `phase3bMeta !== null`; Phase 3A auto-path sends emit no events to the Workflow Activity timeline
+- **Roadmap 3H→3M defined** — Phase 3H (Send Safety Hardening), 3I (Agent Decision Log), 3J (Unified Draft Path), 3K (Campaign Assignment), 3L (Follow-up Scheduling), 3M (Live Pilot)
+- **Pause milestone** — "System Verified for Controlled Live Sending" gate defined: requires 3H + 3I + 3J + 3K all satisfied before any production sending can expand
+
+### Key source audit findings (from `email-send.service.ts`)
+
+- `sendApprovedDraft()` has 8 gates (permission, draft ownership, dual status gate, idempotency, recipient validation, suppression, rate limit, sender identity) — **Gate 0 (`EMAIL_SENDING_ENABLED`) is missing**
+- `failure_reason` stored as `metadata.error` JSONB, not a typed column — migration `20240033` will add it
+- `triggered_by` stored as `metadata.send_initiated_by` JSONB, not a typed column — migration `20240033` will add it
+- Non-production fallback sender `onboarding@resend.dev` correctly guarded
+
+---
+
 ## Next Recommended Step
 
-### Phase 3G Planning — or Stop and Monitor Production
+### Phase 3H Design — Send Safety Hardening
 
-Phase 3F is fully complete: locked at `f43f797`, production deployed (`dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa`), and production smoke-tested 2026-05-27. **Do not start any implementation work until the user explicitly approves a direction.**
+Phase 3G is fully complete: locked at `a4f488a`, tag `phase-3g-agent-operations-readiness-v1`. **Do not start Phase 3H implementation until the user explicitly approves a direction.** Phase 3H implementation has not started.
 
-**Possible next directions (user must choose):**
+**Phase 3H scope (from implementation plan):**
 
-1. **Phase 3G planning** — define and design the next phase. Possible candidates based on current gaps:
-   - Bulk workflow enable/disable: select multiple leads from the kanban and toggle workflow in one action (deferred from Phase 3E v1)
-   - Leads list filter by `workflow_enabled`: URL param or client-side filter to isolate active/inactive leads (deferred from Phase 3E v1)
-   - Email scheduling and throttle controls: operator-configurable rate limits and send windows
-   - Analytics improvements: date range picker, export, trend charts (Phase 3D v2 items)
-   - Phase 3C.7 targeted hardening (intentionally skipped; may be revisited)
+1. **Gate 0** — Read `EMAIL_SENDING_ENABLED` from `system_controls` at the top of `sendApprovedDraft()`, before any DB reads; return error immediately if disabled
+2. **Emit ET_ for ALL sends** — move `ET_SEND_INITIATED`/`ET_SEND_SUCCEEDED`/`ET_SEND_FAILED` outside the `if (phase3bMeta !== null)` guard so Phase 3A auto-path sends appear in the Workflow Activity timeline
+3. **Migration `20240033`** — `ALTER TABLE email_sends ADD COLUMN failure_reason text, ADD COLUMN triggered_by text`
+4. **Permanent bounce** → `EMAIL_PERMANENT_BOUNCE` structured error (severity `error`)
+5. **Complaint** → `EMAIL_COMPLAINT_RECEIVED` structured error (severity `critical`)
+6. **Delivery delay** → `EMAIL_DELIVERY_DELAYED` structured error (severity `warning`, idempotent via `correlation_id`)
+7. **New `WEBHOOK_FAILURE_TYPE` constants** in `structured-error.types.ts`
 
-2. **Stop and monitor production** — Phase 3E + 3F are both live. Allow time for real-world usage and observability before committing to next scope.
+**Critical finding driving Phase 3H:** `EMAIL_SENDING_ENABLED` kill switch is not enforced in the send path — production can send emails regardless of the system control setting. Phase 3H must fix this before any expansion of live sending.
 
-When user direction is given, follow the standard sequence:
+When user approves, follow the standard sequence:
 
 1. Design & Test Cases — produce document, get user approval
 2. Implementation Plan — produce document, get user approval

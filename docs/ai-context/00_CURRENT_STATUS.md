@@ -26,6 +26,7 @@
 | Phase 3D — Revenue Analytics | Complete. Committed `08c3cdd`, tagged `phase-3d-revenue-analytics-v1`. Staging smoke-tested 2026-05-27. |
 | Phase 3E — Lead Workflow Control | Complete. Committed `48bfbbb`, tagged `phase-3e-lead-workflow-control-v1`. Staging migration `20240032` applied. Staging smoke-tested 2026-05-27. Production migration `20240032` applied. Production Vercel deployed (`dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH`). Production smoke-tested 2026-05-27. |
 | Phase 3F — Workflow Execution Visibility | Complete. Committed `f43f797`, tagged `phase-3f-workflow-execution-visibility-v1`. No migration. Staging smoke-tested 2026-05-27. Production Vercel deployed (`dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa`). Production smoke-tested 2026-05-27 (14/14 checks). |
+| Phase 3G — Agent Operations Readiness & Control Map | Complete. Documentation/control-map only. Committed `a4f488a`, tagged `phase-3g-agent-operations-readiness-v1`. No source code changed. No migration created. Key finding: `EMAIL_SENDING_ENABLED` not enforced in `sendApprovedDraft()` — must be fixed in Phase 3H. |
 
 ## Staging Foundation v1 — Locked
 
@@ -106,11 +107,11 @@ Clean. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`f43f797` — Phase 3F: add workflow execution visibility
+`a4f488a` — Docs: add Phase 3G agent operations readiness design and plan
 
 ## Lock Tag
 
-`phase-3f-workflow-execution-visibility-v1` → `f43f797`
+`phase-3g-agent-operations-readiness-v1` → `a4f488a`
 
 ## Guardrails for Next Work
 
@@ -126,7 +127,8 @@ Clean. `master` up to date with `origin/master`.
 | No environment-crossing assumptions | Local seed data, staging users, and remote dev state are not shared; never assume data from one env exists in another |
 | No debug routes left behind | Temporary diagnostic routes must be removed within the same work session; do not merge to master without cleanup |
 | Any new phase requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
+| `EMAIL_SENDING_ENABLED` kill switch is not enforced in `sendApprovedDraft()` | Phase 3G source audit confirmed the system control exists in DB but is never read in the send path — Phase 3H must fix this before any expansion of sending |
 
 ## Last Updated
 
-2026-05-27 — after Phase 3F Workflow Execution Visibility production deployment complete (commit `f43f797`, tag `phase-3f-workflow-execution-visibility-v1`, no migration, staging smoke-tested, production Vercel deployed `dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa`, production smoke-tested 14/14 checks, 1048/1048 tests).
+2026-05-27 — after Phase 3G Agent Operations Readiness & Control Map complete (commit `a4f488a`, tag `phase-3g-agent-operations-readiness-v1`, documentation/control-map only, no source code changed, no migration created, 1048/1048 tests unchanged). Key finding: `EMAIL_SENDING_ENABLED` not enforced in send path — Phase 3H must address this first. Production remains at Phase 3F deployment (`dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa`).

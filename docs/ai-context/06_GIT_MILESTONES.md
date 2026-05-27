@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3g-agent-operations-readiness-v1` | Phase 3G Agent Operations Readiness & Control Map complete — documentation/control-map only; agent inventory (13 agents); decision lifecycle gaps (12 steps audited); key finding: `EMAIL_SENDING_ENABLED` not enforced in `sendApprovedDraft()`; Phase 3A sends emit no ET_ activity events; roadmap 3H→3M defined; no source code changed, no migration, 1048/1048 baseline unchanged |
 | `phase-3f-workflow-execution-visibility-v1` | Phase 3F Workflow Execution Visibility complete — getWorkflowErrorsForLead (two-query repo), LeadActivityTimeline server component (18 EVENT_LABELS, OUTCOME_COLORS, formatRelativeTime, empty state), lead detail page: activity timeline + draft history (slice(1)) + workflow errors panel, no migration, 21 new tests, 1048/1048 total |
 | `phase-3e-lead-workflow-control-v1` | Phase 3E Lead Workflow Control complete — migration 20240032 (workflow_enabled column), setWorkflowEnabledAction, WorkflowToggle client component, lead detail toggle, kanban read-only indicator, 18 new tests, 1027/1027 total |
 | `phase-3d-revenue-analytics-v1` | Phase 3D Revenue Analytics complete — read-only analytics dashboard, 3 panels (Lead Pipeline, Email Performance, Strategy Performance), Analytics sidebar nav, 22 new tests, 1009/1009 total |
@@ -36,6 +37,9 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `a4f488a` | Docs: add Phase 3G agent operations readiness design and plan | Phase 3G Docs |
+| `3b319b9` | Docs: record Phase 3F production deployment | Phase 3F Docs |
+| `1220d03` | Docs: update AI context for Phase 3F lock | Phase 3F Docs |
 | `f43f797` | Phase 3F: add workflow execution visibility | Phase 3F |
 | `c54ece5` | Docs: record Phase 3E production deployment | Phase 3E Docs |
 | `48bfbbb` | Phase 3E: implement lead workflow control | Phase 3E |
@@ -298,6 +302,7 @@
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-27 | 1048/1048 passed | N/A | Phase 3G Agent Operations Readiness & Control Map — documentation/control-map only. No source code changed. No migration created. No deployment. Key finding: `EMAIL_SENDING_ENABLED` not enforced in `sendApprovedDraft()`. Phase 3A sends emit no activity events. Roadmap 3H→3M defined. Baseline 1048/1048 unchanged. Tag: `phase-3g-agent-operations-readiness-v1`. |
 | 2026-05-27 | 1048/1048 passed | PASSED | Phase 3F Workflow Execution Visibility — production deployed. No migration. Vercel deployment `dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa` live at `https://verian-bios.vercel.app`. Production smoke: passed 14/14 checks. Vercel settings unchanged. Production Supabase untouched (current through `20240032`). |
 | 2026-05-27 | 1048/1048 passed | PASSED | Phase 3F Workflow Execution Visibility — 21 new tests, 1027 existing pass. No migration. Staging smoke: login ✓, workspace ✓, lead detail page ✓, Workflow Activity timeline ✓, Email Draft History section ✓, Workflow Errors panel ✓. Tag: `phase-3f-workflow-execution-visibility-v1`. |
 | 2026-05-27 | 1027/1027 passed | PASSED | Phase 3E Lead Workflow Control — production deployed. Migration 20240032 applied to production (`kxrplupzbsmujjznzhpy`). Vercel deployment `dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH` live at `https://verian-bios.vercel.app`. Production smoke: passed. Vercel settings unchanged. |
@@ -323,7 +328,13 @@
 
 ## Current HEAD
 
-`f43f797` — Phase 3F: add workflow execution visibility
+`a4f488a` — Docs: add Phase 3G agent operations readiness design and plan
+
+### Phase 3G: Agent Operations Readiness & Control Map (`a4f488a`)
+- `docs/roadmap/phase-3g-agent-operations-readiness-design.md` — **new** — full control map: agent inventory (13 active agents, 4 planned), decision lifecycle audit (12 steps), human approval gates, email engine redesign boundary, campaign assignment model design, Resend readiness checklist, observability gaps, safety model, roadmap 3H→3M, recommended pause milestone
+- `docs/roadmap/phase-3g-implementation-plan.md` — **new** — implementation plan: Phase 3G scope confirmation (docs-only), source code findings from pre-planning audit, Phase 3H detailed scope, phases 3I–3M summary, test estimates, risks, guardrails, exact next prompts for Phase 3H
+- Key findings from source audit: (1) `EMAIL_SENDING_ENABLED` system control is not checked in `sendApprovedDraft()` — kill switch is decorative; (2) Phase 3A sends emit no `ET_SEND_*` activity events — only Phase 3B sends do; (3) `failure_reason` and `triggered_by` are JSONB-only on `email_sends` — no typed columns
+- No source code changed. No migration created. No deployment. Tests baseline 1048/1048 unchanged.
 
 ### Phase 3F: Workflow Execution Visibility (`f43f797`)
 - `modules/intelligence/structured-errors/structured-error.repo.ts` — **modified** — `getWorkflowErrorsForLead(tenantId, leadId)` appended; two-query pattern: `workflow_runs (subject_type='lead', subject_id=leadId, limit 20)` → early return if empty → `automation_failures (workflow_run_id IN runIds, status IN ['open','investigating'], limit 10)`; read-only, tenant-isolated on both queries; no JOIN syntax; no new migration
