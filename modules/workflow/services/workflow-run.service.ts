@@ -1,5 +1,7 @@
 import * as approvalRepo from '@/modules/workflow/repositories/approval.repo'
 import type { RequestContext } from '@/types/context'
+import { createStructuredError } from '@/modules/intelligence/structured-errors/structured-error.repo'
+import { WORKFLOW_FAILURE_TYPE } from '@/modules/intelligence/structured-errors/structured-error.types'
 
 export async function createWorkflowRun(
   ctx: RequestContext,
@@ -26,9 +28,18 @@ export async function completeWorkflowRun(
 }
 
 export async function failWorkflowRun(
-  _ctx: RequestContext,
+  ctx: RequestContext,
   runId: string,
   errorMessage: string
 ): Promise<void> {
   await approvalRepo.updateWorkflowRunStatus(runId, 'failed', { errorMessage })
+  createStructuredError({
+    tenantId:      ctx.tenantId,
+    workspaceId:   ctx.workspaceId ?? null,
+    failureType:   WORKFLOW_FAILURE_TYPE.WORKFLOW_RUN_FAILED,
+    severity:      'error',
+    module:        'workflow_runs',
+    errorMessage,
+    workflowRunId: runId,
+  }).catch(() => {})
 }

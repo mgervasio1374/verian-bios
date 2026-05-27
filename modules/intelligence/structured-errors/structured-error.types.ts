@@ -17,6 +17,12 @@ export const SE_STATUS = {
 } as const
 export type SeStatus = typeof SE_STATUS[keyof typeof SE_STATUS]
 
+export const WORKFLOW_FAILURE_TYPE = {
+  WORKFLOW_RUN_FAILED:          'WORKFLOW_RUN_FAILED',
+  OUTBOX_EVENT_DISPATCH_FAILED: 'OUTBOX_EVENT_DISPATCH_FAILED',
+} as const
+export type WorkflowFailureType = typeof WORKFLOW_FAILURE_TYPE[keyof typeof WORKFLOW_FAILURE_TYPE]
+
 export interface CreateStructuredErrorInput {
   tenantId:       string
   workspaceId?:   string | null

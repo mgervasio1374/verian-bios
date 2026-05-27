@@ -1,6 +1,8 @@
 import { inngest } from '@/lib/inngest/client'
 import * as eventRepo from '@/modules/workflow/repositories/event.repo'
 import type { RequestContext } from '@/types/context'
+import { createStructuredError } from '@/modules/intelligence/structured-errors/structured-error.repo'
+import { WORKFLOW_FAILURE_TYPE } from '@/modules/intelligence/structured-errors/structured-error.types'
 
 export async function enqueueEvent(
   ctx: RequestContext,
@@ -45,6 +47,21 @@ export async function dispatchPendingEvents(): Promise<{ dispatched: number; fai
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       await eventRepo.markEventDispatchFailed(event.id, msg)
+      if (event.attempts + 1 >= 5) {
+        createStructuredError({
+          tenantId:     event.tenant_id,
+          workspaceId:  event.workspace_id ?? null,
+          failureType:  WORKFLOW_FAILURE_TYPE.OUTBOX_EVENT_DISPATCH_FAILED,
+          severity:     'error',
+          module:       'event_dispatch_queue',
+          errorMessage: msg,
+          context: {
+            event_id:   event.id,
+            event_type: event.event_type,
+            attempts:   event.attempts + 1,
+          },
+        }).catch(() => {})
+      }
       failed++
     }
   }
