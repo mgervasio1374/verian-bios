@@ -6,6 +6,8 @@ import * as activityEventService from '@/modules/intelligence/services/activity-
 import * as etAttribution from '@/modules/messaging/event-tracking/event-tracking.attribution'
 import type { EmailSendAttributionFields } from '@/modules/messaging/event-tracking/event-tracking.attribution'
 import * as etAudit from '@/modules/messaging/event-tracking/event-tracking.audit'
+import * as structuredErrorRepo from '@/modules/intelligence/structured-errors/structured-error.repo'
+import { WEBHOOK_FAILURE_TYPE, SE_SEVERITY } from '@/modules/intelligence/structured-errors/structured-error.types'
 
 // ---- Types ----
 
@@ -283,6 +285,82 @@ async function processResendEvent(
           },
           { onConflict: 'tenant_id,email' }
         )
+    }
+  }
+
+  // ---- Phase 3H: Structured errors for delivery failures ----
+  // All creation calls are non-fatal — a failure here must not break the webhook.
+  // The outer try/catch in POST guarantees 200 OK regardless.
+
+  // Permanent bounce: hard bounces indicate an invalid address — surface in System Intelligence.
+  // Soft bounces are transient; they do not generate a structured error.
+  // Idempotency: email.bounced fires once per message; the 23505 guard above ensures
+  // this block only runs for non-duplicate events, so one structured error per send.
+  if (eventType === 'email.bounced' && (payload.data as Record<string, unknown>)?.bounce_type === 'hard') {
+    structuredErrorRepo.createStructuredError({
+      tenantId:      emailSend.tenant_id,
+      workspaceId:   (emailSend.workspace_id as string | null) ?? null,
+      failureType:   WEBHOOK_FAILURE_TYPE.EMAIL_PERMANENT_BOUNCE,
+      severity:      SE_SEVERITY.ERROR,
+      module:        'resend_webhook',
+      correlationId: emailSend.id,
+      context: {
+        emailSendId: emailSend.id,
+        toEmail:     Array.isArray(payload.data?.to) ? (payload.data.to[0] as string) : null,
+        bounceType:  (payload.data as Record<string, unknown>)?.bounce_type as string ?? null,
+      },
+    }).catch((err) => {
+      console.error('[resend-webhook] Failed to create EMAIL_PERMANENT_BOUNCE error:', err)
+    })
+  }
+
+  // Complaint: severity critical — requires immediate operator review.
+  // Placed after auto-unsubscribe to preserve existing Phase 3A ordering.
+  // Idempotency: same as bounce — 23505 guard above handles duplicate events.
+  if (eventType === 'email.complained') {
+    structuredErrorRepo.createStructuredError({
+      tenantId:      emailSend.tenant_id,
+      workspaceId:   (emailSend.workspace_id as string | null) ?? null,
+      failureType:   WEBHOOK_FAILURE_TYPE.EMAIL_COMPLAINT_RECEIVED,
+      severity:      SE_SEVERITY.CRITICAL,
+      module:        'resend_webhook',
+      correlationId: emailSend.id,
+      context: {
+        emailSendId: emailSend.id,
+        toEmail:     Array.isArray(payload.data?.to) ? (payload.data.to[0] as string) : null,
+      },
+    }).catch((err) => {
+      console.error('[resend-webhook] Failed to create EMAIL_COMPLAINT_RECEIVED error:', err)
+    })
+  }
+
+  // Delivery delay: Resend may send multiple delay events for the same send (each with a
+  // distinct provider_event_id, each passing the 23505 guard above). Use check-before-insert
+  // via correlation_id to create at most ONE structured error per email_send.
+  if (eventType === 'email.delivery_delayed') {
+    const { data: existingDelay } = await supabase
+      .from('automation_failures')
+      .select('id')
+      .eq('tenant_id', emailSend.tenant_id)
+      .eq('failure_type', WEBHOOK_FAILURE_TYPE.EMAIL_DELIVERY_DELAYED)
+      .eq('correlation_id', emailSend.id)
+      .maybeSingle()
+
+    if (!existingDelay) {
+      structuredErrorRepo.createStructuredError({
+        tenantId:      emailSend.tenant_id,
+        workspaceId:   (emailSend.workspace_id as string | null) ?? null,
+        failureType:   WEBHOOK_FAILURE_TYPE.EMAIL_DELIVERY_DELAYED,
+        severity:      SE_SEVERITY.WARNING,
+        module:        'resend_webhook',
+        correlationId: emailSend.id,
+        context: {
+          emailSendId: emailSend.id,
+          toEmail:     Array.isArray(payload.data?.to) ? (payload.data.to[0] as string) : null,
+        },
+      }).catch((err) => {
+        console.error('[resend-webhook] Failed to create EMAIL_DELIVERY_DELAYED error:', err)
+      })
     }
   }
 }

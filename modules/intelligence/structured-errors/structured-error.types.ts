@@ -23,6 +23,14 @@ export const WORKFLOW_FAILURE_TYPE = {
 } as const
 export type WorkflowFailureType = typeof WORKFLOW_FAILURE_TYPE[keyof typeof WORKFLOW_FAILURE_TYPE]
 
+// Phase 3H: Resend webhook delivery failure types
+export const WEBHOOK_FAILURE_TYPE = {
+  EMAIL_PERMANENT_BOUNCE:   'EMAIL_PERMANENT_BOUNCE',
+  EMAIL_COMPLAINT_RECEIVED: 'EMAIL_COMPLAINT_RECEIVED',
+  EMAIL_DELIVERY_DELAYED:   'EMAIL_DELIVERY_DELAYED',
+} as const
+export type WebhookFailureType = typeof WEBHOOK_FAILURE_TYPE[keyof typeof WEBHOOK_FAILURE_TYPE]
+
 export interface CreateStructuredErrorInput {
   tenantId:       string
   workspaceId?:   string | null

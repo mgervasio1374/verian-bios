@@ -2326,6 +2326,7 @@ export type Database = {
           created_at: string
           draft_id: string | null
           error_message: string | null
+          failure_reason: string | null
           id: string
           message_version_id: string | null
           metadata: Json
@@ -2337,6 +2338,7 @@ export type Database = {
           subject: string
           tenant_id: string
           to_email: string
+          triggered_by: string | null
           workspace_id: string | null
         }
         Insert: {
@@ -2345,6 +2347,7 @@ export type Database = {
           created_at?: string
           draft_id?: string | null
           error_message?: string | null
+          failure_reason?: string | null
           id?: string
           message_version_id?: string | null
           metadata?: Json
@@ -2356,6 +2359,7 @@ export type Database = {
           subject: string
           tenant_id: string
           to_email: string
+          triggered_by?: string | null
           workspace_id?: string | null
         }
         Update: {
@@ -2364,6 +2368,7 @@ export type Database = {
           created_at?: string
           draft_id?: string | null
           error_message?: string | null
+          failure_reason?: string | null
           id?: string
           message_version_id?: string | null
           metadata?: Json
@@ -2375,6 +2380,7 @@ export type Database = {
           subject?: string
           tenant_id?: string
           to_email?: string
+          triggered_by?: string | null
           workspace_id?: string | null
         }
         Relationships: [

@@ -70,6 +70,8 @@ interface CreateEmailSendInput {
   // Null for Phase 3A sends (phase3bMeta === null at send time).
   messageVersionId?: string | null
   strategyId?: string | null
+  // Phase 3H: typed operator attribution column (alongside metadata.send_initiated_by).
+  triggeredBy?: string | null
 }
 
 export async function createEmailSend(
@@ -91,6 +93,7 @@ export async function createEmailSend(
       metadata:           input.metadata as Json,
       message_version_id: input.messageVersionId ?? null,
       strategy_id:        input.strategyId ?? null,
+      triggered_by:       input.triggeredBy ?? null,
     })
     .select()
     .single()
@@ -138,6 +141,8 @@ interface UpdateEmailSendInput {
   sentAt?: string | null
   errorMessage?: string | null
   metadata?: Record<string, unknown>
+  // Phase 3H: typed failure tracking column (alongside metadata.error).
+  failureReason?: string | null
 }
 
 export async function updateEmailSend(
@@ -151,6 +156,7 @@ export async function updateEmailSend(
   if (update.sentAt         !== undefined) patch.sent_at            = update.sentAt
   if (update.errorMessage   !== undefined) patch.error_message      = update.errorMessage
   if (update.metadata       !== undefined) patch.metadata           = update.metadata as Json
+  if (update.failureReason  !== undefined) patch.failure_reason     = update.failureReason
 
   const { error } = await supabase
     .from('email_sends')
