@@ -3359,6 +3359,7 @@ export type Database = {
           tenant_id: string
           updated_at: string
           updated_by: string | null
+          workflow_enabled: boolean
           workspace_id: string
         }
         Insert: {
@@ -3385,6 +3386,7 @@ export type Database = {
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
+          workflow_enabled?: boolean
           workspace_id: string
         }
         Update: {
@@ -3411,6 +3413,7 @@ export type Database = {
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
+          workflow_enabled?: boolean
           workspace_id?: string
         }
         Relationships: [

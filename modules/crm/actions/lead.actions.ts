@@ -191,3 +191,19 @@ export async function deleteLeadAction(id: string): Promise<ActionResult> {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }
 }
+
+export async function setWorkflowEnabledAction(
+  leadId: string,
+  enabled: boolean
+): Promise<ActionResult> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx = await buildRequestContext(supabase)
+    await leadService.updateLead(ctx, leadId, { workflow_enabled: enabled })
+    revalidatePath('/[workspaceSlug]/leads/[id]', 'page')
+    revalidatePath('/[workspaceSlug]/leads', 'page')
+    return { success: true, data: undefined }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}

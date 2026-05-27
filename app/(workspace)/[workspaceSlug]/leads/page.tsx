@@ -95,10 +95,15 @@ function LeadCard({ lead, workspaceSlug }: { lead: LeadRow; workspaceSlug: strin
             ${lead.estimated_value.toLocaleString()}
           </p>
         )}
-        <div className="mt-2">
+        <div className="mt-2 flex items-center gap-1.5">
           <span className={`text-xs px-1.5 py-0.5 rounded-full capitalize ${priorityColors[lead.priority] ?? priorityColors.medium}`}>
             {lead.priority}
           </span>
+          {lead.workflow_enabled && (
+            <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">
+              WF On
+            </span>
+          )}
         </div>
       </div>
     </Link>

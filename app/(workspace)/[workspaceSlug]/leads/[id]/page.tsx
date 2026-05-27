@@ -17,6 +17,7 @@ import { EmailQualityCard } from './EmailQualityCard'
 import { ScoreLeadButton } from './ScoreLeadButton'
 import { ManualCampaignDraftButton } from './ManualCampaignDraftButton'
 import { RewriteVersionPanel } from './RewriteVersionPanel'
+import { WorkflowToggle } from './WorkflowToggle'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string; id: string }>
@@ -87,6 +88,13 @@ export default async function LeadDetailPage({ params }: PageProps) {
             <PriorityBadge priority={lead.priority} />
             <span className="text-muted-foreground">·</span>
             <Badge variant={lead.status === 'open' ? 'default' : 'secondary'}>{lead.status}</Badge>
+          </div>
+          <div className="mt-2">
+            <WorkflowToggle
+              leadId={id}
+              initialEnabled={lead.workflow_enabled ?? false}
+              workspaceSlug={workspaceSlug}
+            />
           </div>
         </div>
 
