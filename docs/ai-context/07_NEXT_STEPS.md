@@ -468,6 +468,8 @@ All deliverables committed, tagged, and staging-smoke-tested.
 | Code implementation | Complete — `f43f797`, tag `phase-3f-workflow-execution-visibility-v1` |
 | QA: 1048/1048 tests, build, TypeScript | PASSED |
 | Manual staging smoke | PASSED — login ✓, workspace ✓, lead detail ✓, Workflow Activity ✓, Email Draft History ✓, Workflow Errors ✓ |
+| Production Vercel deployment (`dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa`) | PASSED — `https://verian-bios.vercel.app` live |
+| Manual production smoke | PASSED — 14/14 checks 2026-05-27 |
 
 ### What was delivered
 
@@ -484,26 +486,26 @@ All deliverables committed, tagged, and staging-smoke-tested.
 - Open and investigating automation failures linked to the lead's workflow runs surface in a `Workflow Errors` panel with severity badge and a direct link to the error detail page
 - All three panels are advisory and read-only — no server actions, no sends, no external LLMs
 - Activity events and workflow errors are non-fatal: a Supabase failure on either fetch does not break the lead detail page load
-- Production remains at the Phase 3E Vercel deployment (`dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH`) — Phase 3F has not yet been deployed to production
+- Production deployed at `dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa` — `https://verian-bios.vercel.app` live and smoke-tested 2026-05-27. No migration required (Phase 3F added no DB changes). Vercel settings unchanged.
 
 ---
 
 ## Next Recommended Step
 
-### Phase 3F Production Deployment — or Phase 3G Planning
+### Phase 3G Planning — or Stop and Monitor Production
 
-Phase 3F is locked at `f43f797`. **Do not start any implementation work until the user explicitly approves a direction.**
+Phase 3F is fully complete: locked at `f43f797`, production deployed (`dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa`), and production smoke-tested 2026-05-27. **Do not start any implementation work until the user explicitly approves a direction.**
 
-**Two options (user must choose):**
+**Possible next directions (user must choose):**
 
-1. **Phase 3F production deployment** — run `vercel --prod` to deploy Phase 3F to `https://verian-bios.vercel.app`. No migration required (Phase 3F added no DB changes). Smoke-test after deploy. This is safe and straightforward.
-
-2. **Phase 3G planning** — define and design the next phase. Possible candidates based on current gaps:
+1. **Phase 3G planning** — define and design the next phase. Possible candidates based on current gaps:
    - Bulk workflow enable/disable: select multiple leads from the kanban and toggle workflow in one action (deferred from Phase 3E v1)
    - Leads list filter by `workflow_enabled`: URL param or client-side filter to isolate active/inactive leads (deferred from Phase 3E v1)
    - Email scheduling and throttle controls: operator-configurable rate limits and send windows
    - Analytics improvements: date range picker, export, trend charts (Phase 3D v2 items)
    - Phase 3C.7 targeted hardening (intentionally skipped; may be revisited)
+
+2. **Stop and monitor production** — Phase 3E + 3F are both live. Allow time for real-world usage and observability before committing to next scope.
 
 When user direction is given, follow the standard sequence:
 

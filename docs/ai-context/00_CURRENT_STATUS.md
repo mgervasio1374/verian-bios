@@ -25,7 +25,7 @@
 | Phase 3C.7 | Intentionally skipped for now. May be revisited later. |
 | Phase 3D — Revenue Analytics | Complete. Committed `08c3cdd`, tagged `phase-3d-revenue-analytics-v1`. Staging smoke-tested 2026-05-27. |
 | Phase 3E — Lead Workflow Control | Complete. Committed `48bfbbb`, tagged `phase-3e-lead-workflow-control-v1`. Staging migration `20240032` applied. Staging smoke-tested 2026-05-27. Production migration `20240032` applied. Production Vercel deployed (`dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH`). Production smoke-tested 2026-05-27. |
-| Phase 3F — Workflow Execution Visibility | Complete. Committed `f43f797`, tagged `phase-3f-workflow-execution-visibility-v1`. No migration. Staging smoke-tested 2026-05-27. Production remains at Phase 3E deployment (`dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH`). |
+| Phase 3F — Workflow Execution Visibility | Complete. Committed `f43f797`, tagged `phase-3f-workflow-execution-visibility-v1`. No migration. Staging smoke-tested 2026-05-27. Production Vercel deployed (`dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa`). Production smoke-tested 2026-05-27 (14/14 checks). |
 
 ## Staging Foundation v1 — Locked
 
@@ -67,7 +67,7 @@
 |------|-------|
 | `RESEND_API_KEY` on staging | Dummy value — email sending disabled, safe |
 | Production Supabase (`kxrplupzbsmujjznzhpy`) | Migrations 001–032 applied. `20240032` applied 2026-05-27. Production database is up to date. |
-| Production Vercel (`verian-bios.vercel.app`) | **Git disconnected (Track A complete, 2026-05-26).** Production no longer auto-deploys from `origin/master`. Staging (`verian-bios-staging`) continues to auto-deploy from master. Production deploys are explicit and manual via `vercel --prod` or Vercel dashboard only. Latest deployment: `dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH` (Phase 3E, 2026-05-27). |
+| Production Vercel (`verian-bios.vercel.app`) | **Git disconnected (Track A complete, 2026-05-26).** Production no longer auto-deploys from `origin/master`. Staging (`verian-bios-staging`) continues to auto-deploy from master. Production deploys are explicit and manual via `vercel --prod` or Vercel dashboard only. Latest deployment: `dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa` (Phase 3F, 2026-05-27). |
 | Temporary debug route | Removed (`0b6441f`) — `/api/debug/staging-auth` returns 404 (unauthenticated requests receive 307 → /login from middleware before reaching the absent route handler) |
 | Local dev seed | `supabase/seed.sql` committed at `9153a86` — local-only, never run on staging/production |
 
@@ -129,4 +129,4 @@ Clean. `master` up to date with `origin/master`.
 
 ## Last Updated
 
-2026-05-27 — after Phase 3F Workflow Execution Visibility complete (commit `f43f797`, tag `phase-3f-workflow-execution-visibility-v1`, no migration, staging smoke-tested, 1048/1048 tests). Production remains at Phase 3E deployment (`dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH`); Phase 3F not yet deployed to production.
+2026-05-27 — after Phase 3F Workflow Execution Visibility production deployment complete (commit `f43f797`, tag `phase-3f-workflow-execution-visibility-v1`, no migration, staging smoke-tested, production Vercel deployed `dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa`, production smoke-tested 14/14 checks, 1048/1048 tests).
