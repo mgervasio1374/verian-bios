@@ -24,7 +24,7 @@
 | Phase 3C.6 — System Intelligence Wrap-Up | Complete. Committed `9a32d3c`, tagged `phase-3c6-system-intelligence-wrap-up-v1`. Staging smoke-tested 2026-05-26. |
 | Phase 3C.7 | Intentionally skipped for now. May be revisited later. |
 | Phase 3D — Revenue Analytics | Complete. Committed `08c3cdd`, tagged `phase-3d-revenue-analytics-v1`. Staging smoke-tested 2026-05-27. |
-| Phase 3E | Not started. |
+| Phase 3E — Lead Workflow Control | Complete. Committed `48bfbbb`, tagged `phase-3e-lead-workflow-control-v1`. Staging migration `20240032` applied. Staging smoke-tested 2026-05-27. |
 
 ## Staging Foundation v1 — Locked
 
@@ -39,7 +39,7 @@
 |-------------|-------------|-------------------|-------------|
 | Local | Docker / `127.0.0.1:54321` | 001–031 | Local seed user `dev@verian.local` |
 | Remote dev | `kxrplupzbsmujjznzhpy` | 001–031 | Standard dev access |
-| Staging | `smbausuyetlgxflyhmfg` | 001–031 | `staging@verian.internal` / platform_admin |
+| Staging | `smbausuyetlgxflyhmfg` | 001–032 | `staging@verian.internal` / platform_admin |
 
 ### Verified Access Paths
 
@@ -72,14 +72,14 @@
 
 ## QA Status (Last Verified)
 
-Verified at Phase 3D commit `08c3cdd`.
+Verified at Phase 3E commit `48bfbbb`.
 
 ```
 npx vitest run      → PASSED
 npx next build      → PASSED
 TypeScript          → PASSED
-1009/1009 tests passed
-  (22 new tests added since Phase 3C.6: Phase 3D Revenue Analytics)
+1027/1027 tests passed
+  (18 new tests added since Phase 3D: Phase 3E Lead Workflow Control)
 ```
 
 ## Active Routes
@@ -104,11 +104,11 @@ Clean. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`08c3cdd` — Phase 3D: implement revenue analytics dashboard
+`48bfbbb` — Phase 3E: implement lead workflow control
 
 ## Lock Tag
 
-`phase-3d-revenue-analytics-v1` → `08c3cdd`
+`phase-3e-lead-workflow-control-v1` → `48bfbbb`
 
 ## Guardrails for Next Work
 
@@ -119,12 +119,13 @@ Clean. `master` up to date with `origin/master`.
 | Do not reconnect production Vercel Git without explicit user approval | Reconnecting restores auto-deploy on every master push |
 | Staging (`verian-bios-staging`) auto-deploys from master — unchanged | Staging is the continuous integration target; every push to master deploys staging |
 | Staging must remain deployable | All app code must stay compatible with staging at all times |
-| Tests must stay green | 1009/1009 is the current baseline; no regression allowed |
-| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240032`. |
+| Tests must stay green | 1027/1027 is the current baseline; no regression allowed |
+| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240033`. |
 | No environment-crossing assumptions | Local seed data, staging users, and remote dev state are not shared; never assume data from one env exists in another |
 | No debug routes left behind | Temporary diagnostic routes must be removed within the same work session; do not merge to master without cleanup |
-| Phase 3E requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
+| Any new phase requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
+| Production migration `20240032` remains unapplied | Migration was applied to staging only; production Supabase is untouched and production deploy is manual |
 
 ## Last Updated
 
-2026-05-27 — after Phase 3D Revenue Analytics complete (commit `08c3cdd`, tag `phase-3d-revenue-analytics-v1`, staging smoke-tested, 1009/1009 tests).
+2026-05-27 — after Phase 3E Lead Workflow Control complete (commit `48bfbbb`, tag `phase-3e-lead-workflow-control-v1`, staging migration `20240032` applied, staging smoke-tested 23/23, 1027/1027 tests).

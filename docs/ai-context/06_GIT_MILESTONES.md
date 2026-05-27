@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3e-lead-workflow-control-v1` | Phase 3E Lead Workflow Control complete — migration 20240032 (workflow_enabled column), setWorkflowEnabledAction, WorkflowToggle client component, lead detail toggle, kanban read-only indicator, 18 new tests, 1027/1027 total |
 | `phase-3d-revenue-analytics-v1` | Phase 3D Revenue Analytics complete — read-only analytics dashboard, 3 panels (Lead Pipeline, Email Performance, Strategy Performance), Analytics sidebar nav, 22 new tests, 1009/1009 total |
 | `phase-3c6-system-intelligence-wrap-up-v1` | Phase 3C.6 System Intelligence Wrap-Up complete — resolved_by attribution in resolveStructuredError, SYSTEM_PERFORMANCE_WARNING recommendation generator with OUTBOX_QUEUE_DEPTH_MIN=10, 12 new tests |
 | `phase-3c5-system-intelligence-detail-views-v1` | Phase 3C.5 System Intelligence Detail Views complete — `getStructuredErrorById`, dual revalidation in lifecycle actions, View link on list page, full error detail server component, 20 new tests |
@@ -34,6 +35,8 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `48bfbbb` | Phase 3E: implement lead workflow control | Phase 3E |
+| `191c8f1` | Docs: add Phase 3E lead workflow control design | Phase 3E Docs |
 | `08c3cdd` | Phase 3D: implement revenue analytics dashboard | Phase 3D |
 | `bb5a68d` | Docs: add Phase 3D implementation plan | Phase 3D Docs |
 | `201f8b2` | Docs: add Phase 3D revenue analytics design | Phase 3D Docs |
@@ -292,6 +295,7 @@
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-27 | 1027/1027 passed | PASSED | Phase 3E Lead Workflow Control — 18 new tests, 1009 existing pass. Migration 20240032 applied to staging. Staging smoke: login ✓, workspace ✓, Workflow Off badge ✓, Enable Workflow ✓, badge→Workflow On ✓, WF On kanban badge ✓, Disable Workflow ✓, WF On badge removed ✓, Revenue Analytics unchanged ✓. 23/23 checklist items passed. Tag: `phase-3e-lead-workflow-control-v1`. |
 | 2026-05-27 | 1009/1009 passed | PASSED | Phase 3D Revenue Analytics — 22 new tests, 987 existing pass. Staging smoke: login ✓, workspace ✓, Analytics sidebar link ✓, /main/settings/analytics loads ✓, all 3 panels render ✓, footer links ✓. Tag: `phase-3d-revenue-analytics-v1`. |
 | 2026-05-26 | 987/987 passed | PASSED | Phase 3C.6 System Intelligence Wrap-Up — 12 new tests, 975 existing pass. Staging smoke: login ✓, workspace ✓, System Intelligence page ✓, Pending Recommendations ✓, Generate Recommendations ✓. Tag: `phase-3c6-system-intelligence-wrap-up-v1`. |
 | 2026-05-26 | 975/975 passed | PASSED | Phase 3C.5 System Intelligence Detail Views — 20 new tests, 955 existing pass. Staging smoke: login ✓, workspace ✓, System Intelligence page ✓, View link visible ✓, detail page loads ✓, lifecycle actions render ✓, Generate Recommendations ✓. Tag: `phase-3c5-system-intelligence-detail-views-v1`. |
@@ -313,7 +317,16 @@
 
 ## Current HEAD
 
-`08c3cdd` — Phase 3D: implement revenue analytics dashboard
+`48bfbbb` — Phase 3E: implement lead workflow control
+
+### Phase 3E: Lead Workflow Control (`48bfbbb`)
+- `supabase/migrations/20240032_phase3e_lead_workflow_enabled.sql` — **new** — `ALTER TABLE leads ADD COLUMN workflow_enabled boolean NOT NULL DEFAULT false`; applied to staging only; production unapplied
+- `types/database.ts` — **modified** — `workflow_enabled: boolean` added to leads `Row`; `workflow_enabled?: boolean` added to `Insert` and `Update`
+- `modules/crm/actions/lead.actions.ts` — **modified** — `setWorkflowEnabledAction(leadId, enabled)` appended; delegates to `leadService.updateLead`; revalidates lead detail and leads list; no `dispatchPendingEvents`; no Resend; no external LLM
+- `app/(workspace)/[workspaceSlug]/leads/[id]/WorkflowToggle.tsx` — **new** — `'use client'`; optimistic local state; "Workflow: On/Off" badge; "Enable/Disable Workflow" button; loading state; inline error; calls `setWorkflowEnabledAction`
+- `app/(workspace)/[workspaceSlug]/leads/[id]/page.tsx` — **modified** — `WorkflowToggle` imported and rendered below stage/priority/status row; passes `lead.workflow_enabled ?? false` and `lead.id`
+- `app/(workspace)/[workspaceSlug]/leads/page.tsx` — **modified** — `LeadCard` gains read-only "WF On" green badge when `lead.workflow_enabled === true`; no interaction on kanban card
+- `tests/phase3e-lead-workflow-control.test.ts` — **new** — 18 tests across 6 describe blocks (migration/types ×3, action correctness ×5, action guardrails ×3, toggle structure ×3, detail page integration ×2, kanban indicator ×2); source-reading pattern
 
 ### Phase 3D: Revenue Analytics (`08c3cdd`)
 - `modules/analytics/analytics.types.ts` — **new** — `LeadPipelineStats`, `EmailSendMetrics`, `LearningSignalRow`, `LearningSignalSummary`, `RevenueDashboard` interfaces
@@ -340,5 +353,6 @@
 | `20240029` | Phase 3C.1 (see Phase 3C.1 commit `ea4b0b0`) |
 | `20240030` | Staging Foundation — `service_role` GRANT ALL on all tables/sequences/routines + ALTER DEFAULT PRIVILEGES |
 | `20240031` | Staging Foundation — `anon`+`authenticated` GRANT ALL on all tables/sequences/routines + ALTER DEFAULT PRIVILEGES |
+| `20240032` | Phase 3E — `ALTER TABLE leads ADD COLUMN workflow_enabled boolean NOT NULL DEFAULT false`; applied to staging only |
 
 Note: No new migration was added for the Human Review / Approval Bridge, the Send / Email Draft Bridge, or Event Tracking. All three use existing tables and columns only. Phase 3B provenance travels via `email_drafts.ai_generation_metadata` (jsonb) at draft creation, then is copied into `email_sends.metadata` (jsonb) at send time. Event Tracking activity events are appended to the existing `activity_events` table. The Learning Agent adds migration `20240025` for `learning_snapshots` — its only write target.

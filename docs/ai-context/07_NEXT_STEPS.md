@@ -393,6 +393,42 @@ All deliverables committed, tagged, and staging-smoke-tested.
 
 ---
 
+## Completed — Phase 3E Lead Workflow Control v1.0
+
+All deliverables committed, tagged, migration applied to staging, and staging-smoke-tested.
+
+| Deliverable | Status |
+|-------------|--------|
+| Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3e-design-test-cases.md`) |
+| Code implementation | Complete — `48bfbbb`, tag `phase-3e-lead-workflow-control-v1` |
+| QA: 1027/1027 tests, build, TypeScript | PASSED |
+| Migration `20240032` applied to staging | PASSED |
+| Manual staging smoke | PASSED — 23/23 checklist items |
+
+### What was delivered
+
+- `supabase/migrations/20240032_phase3e_lead_workflow_enabled.sql` — adds `workflow_enabled boolean NOT NULL DEFAULT false` to `leads`; corrects the design-document error that assumed the column already existed
+- `types/database.ts` — `workflow_enabled` added to leads Row/Insert/Update
+- `modules/crm/actions/lead.actions.ts` — `setWorkflowEnabledAction(leadId, enabled)` appended; thin action delegating to `leadService.updateLead`; revalidates lead detail and kanban
+- `app/(workspace)/[workspaceSlug]/leads/[id]/WorkflowToggle.tsx` — new `'use client'` component; "Workflow: On/Off" badge + "Enable/Disable Workflow" button; optimistic local state; loading state; inline error
+- `app/(workspace)/[workspaceSlug]/leads/[id]/page.tsx` — `WorkflowToggle` rendered below stage/priority/status row on lead detail page
+- `app/(workspace)/[workspaceSlug]/leads/page.tsx` — read-only "WF On" badge added to `LeadCard` when `workflow_enabled === true`
+- 18 tests across 6 describe blocks (migration/types correctness, action guardrails, component structure, page integration, kanban read-only constraint)
+
+### Key behavior
+
+- Operators enable/disable the AI outbound workflow per lead directly from the lead detail page — closing the gap identified in Phase 3D analytics ("Workflow Off: N")
+- Enabling workflow does NOT immediately trigger `dispatchPendingEvents()` — the existing cron picks up the lead on the next scheduled pass
+- Kanban card shows "WF On" badge for a quick visual scan; toggle interaction is on the detail page only
+- Permission gate: `requirePermission(ctx, 'crm.leads.edit')` inside `leadService.updateLead`; tenant isolation enforced at repo layer
+- Migration `20240032` applied to staging; **production migration has not been applied** — production remains manually deployed only
+
+### Schema correction note
+
+The Phase 3E design document incorrectly stated that `workflow_enabled` already existed as a real `leads` column. It did not — Phase 3B.2 stored it in `metadata` JSONB only. Migration `20240032` adds the proper column. This also fixes a latent Phase 3D analytics bug (the analytics repo queried the column as if it existed; it now resolves correctly).
+
+---
+
 ## Completed — Phase 3D Revenue Analytics v1.0
 
 All deliverables committed, tagged, and staging-smoke-tested.
@@ -420,19 +456,25 @@ All deliverables committed, tagged, and staging-smoke-tested.
 
 ## Next Recommended Step
 
-### Phase 3E Design
+### Phase 3F — Not yet defined
 
-Phase 3D is locked. No Phase 3E scope has been defined.
+Phase 3E is locked. No Phase 3F scope has been defined or approved.
+
+**Do not start any implementation work until the user explicitly approves a direction.**
+
+**Pending production deployment:** Migration `20240032` has been applied to staging only. When the user is ready to deploy Phase 3E to production, the sequence is:
+1. Apply migration `20240032` to production Supabase manually
+2. Deploy to production Vercel via `vercel --prod` or Vercel dashboard
 
 **Possible next directions (user direction required before any work starts):**
 
-- **Phase 3E** — potential candidates based on current platform gaps:
-  - Active workflow control: ability to enable/disable workflow per lead from the CRM surface
+- **Phase 3F** — potential candidates based on current platform gaps:
   - Email scheduling and throttle controls: operator-configurable rate limits and send windows
   - Lead detail enrichment: deeper per-lead view surfacing full strategy history, version history, and outcome trail
+  - Bulk workflow enable/disable: select multiple leads from the kanban and enable/disable workflow in one action (deferred from Phase 3E v1)
+  - Leads list filter by `workflow_enabled`: URL param or client-side filter to isolate active/inactive leads (deferred from Phase 3E v1)
   - Analytics improvements: date range picker, export, trend charts (Phase 3D v2 items)
   - Phase 3C.7 targeted hardening (intentionally skipped; may be revisited)
-- **Phase 3D improvements** — review open Phase 3D v2 items: `ANALYTICS_DASHBOARD_VIEWED` event, date range selector, chart visualizations
 
 When user direction is given, follow the standard sequence:
 
