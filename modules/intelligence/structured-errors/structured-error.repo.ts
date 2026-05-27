@@ -138,3 +138,34 @@ export async function getStructuredErrorById(
   if (error) return null
   return data
 }
+
+export async function getWorkflowErrorsForLead(
+  tenantId: string,
+  leadId:   string,
+): Promise<AutomationFailureRow[]> {
+  const supabase = createSupabaseServiceClient()
+
+  const { data: runs, error: runsError } = await supabase
+    .from('workflow_runs')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('subject_type', 'lead')
+    .eq('subject_id', leadId)
+    .limit(20)
+
+  if (runsError) throw new Error(`getWorkflowErrorsForLead (runs): ${runsError.message}`)
+  const runIds = (runs ?? []).map((r) => r.id)
+  if (runIds.length === 0) return []
+
+  const { data, error } = await supabase
+    .from('automation_failures')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .in('workflow_run_id', runIds)
+    .in('status', ['open', 'investigating'])
+    .order('created_at', { ascending: false })
+    .limit(10)
+
+  if (error) throw new Error(`getWorkflowErrorsForLead (failures): ${error.message}`)
+  return data ?? []
+}

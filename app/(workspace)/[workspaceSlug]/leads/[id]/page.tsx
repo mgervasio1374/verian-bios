@@ -18,6 +18,9 @@ import { ScoreLeadButton } from './ScoreLeadButton'
 import { ManualCampaignDraftButton } from './ManualCampaignDraftButton'
 import { RewriteVersionPanel } from './RewriteVersionPanel'
 import { WorkflowToggle } from './WorkflowToggle'
+import * as activityEventRepo from '@/modules/intelligence/repositories/activity-event.repo'
+import * as structuredErrorRepo from '@/modules/intelligence/structured-errors/structured-error.repo'
+import { LeadActivityTimeline } from './LeadActivityTimeline'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string; id: string }>
@@ -31,12 +34,15 @@ export default async function LeadDetailPage({ params }: PageProps) {
   const lead = await leadService.getLead(ctx, id).catch(() => null)
   if (!lead) notFound()
 
-  const [fitScore, urgencyScore, recommendations, emailDrafts] = await Promise.all([
-    scoreRepo.getCurrentFitScore(ctx.tenantId, 'lead', id),
-    scoreRepo.getCurrentUrgencyScore(ctx.tenantId, 'lead', id),
-    recommendationRepo.getLeadRecommendations(ctx.tenantId, id),
-    emailDraftRepo.getLeadEmailDrafts(ctx.tenantId, id),
-  ])
+  const [fitScore, urgencyScore, recommendations, emailDrafts, activityEvents, workflowErrors] =
+    await Promise.all([
+      scoreRepo.getCurrentFitScore(ctx.tenantId, 'lead', id),
+      scoreRepo.getCurrentUrgencyScore(ctx.tenantId, 'lead', id),
+      recommendationRepo.getLeadRecommendations(ctx.tenantId, id),
+      emailDraftRepo.getLeadEmailDrafts(ctx.tenantId, id),
+      activityEventRepo.listLeadActivityEvents(ctx.tenantId, id, { limit: 20 }).catch(() => [] as Awaited<ReturnType<typeof activityEventRepo.listLeadActivityEvents>>),
+      structuredErrorRepo.getWorkflowErrorsForLead(ctx.tenantId, id).catch(() => [] as Awaited<ReturnType<typeof structuredErrorRepo.getWorkflowErrorsForLead>>),
+    ])
 
   const recommendation  = recommendations[0] ?? null
   const latestDraft     = emailDrafts[0] ?? null
@@ -279,6 +285,66 @@ export default async function LeadDetailPage({ params }: PageProps) {
           </div>
         </div>
       )}
+
+      {/* ---- Workflow visibility (Phase 3F) ---- */}
+      <div className="max-w-3xl space-y-4">
+
+        {/* Email Draft History — visible only when more than one draft exists */}
+        {emailDrafts.length > 1 && (
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Email Draft History</CardTitle></CardHeader>
+            <CardContent>
+              <ol className="space-y-2">
+                {emailDrafts.slice(1).map((draft) => (
+                  <li key={draft.id} className="flex items-center gap-3 text-sm">
+                    <DraftStatusBadge status={draft.status} />
+                    <span className="flex-1 truncate text-muted-foreground">{draft.subject}</span>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(draft.created_at).toLocaleDateString()}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Workflow Errors — visible only when open errors exist for this lead */}
+        {workflowErrors.length > 0 && (
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Workflow Errors</CardTitle></CardHeader>
+            <CardContent>
+              <ol className="space-y-2">
+                {workflowErrors.map((err) => (
+                  <li key={err.id} className="flex items-center gap-3 text-sm">
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full capitalize flex-none ${
+                      err.severity === 'critical' ? 'bg-red-100 text-red-800' :
+                      err.severity === 'error'    ? 'bg-orange-100 text-orange-800' :
+                                                    'bg-yellow-100 text-yellow-800'
+                    }`}>{err.severity}</span>
+                    <span className="flex-1 text-muted-foreground truncate">
+                      {err.failure_type.replace(/_/g, ' ')}
+                    </span>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(err.created_at).toLocaleDateString()}
+                    </span>
+                    <Link
+                      href={`/${workspaceSlug}/settings/system-intelligence/errors/${err.id}`}
+                      className="text-xs text-primary hover:underline whitespace-nowrap"
+                    >
+                      View →
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Workflow Activity Timeline — always rendered */}
+        <LeadActivityTimeline events={activityEvents} />
+
+      </div>
     </div>
   )
 }
