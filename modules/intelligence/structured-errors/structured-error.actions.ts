@@ -30,6 +30,7 @@ function emitLifecycleEvent(
 export async function resolveErrorAction(formData: FormData): Promise<void> {
   const id            = formData.get('id') as string
   const workspaceSlug = formData.get('workspaceSlug') as string
+  const errorId       = formData.get('errorId') as string | null
 
   const supabase = await createSupabaseServerClient()
   const ctx      = await buildRequestContext(supabase)
@@ -38,11 +39,15 @@ export async function resolveErrorAction(formData: FormData): Promise<void> {
   await service.resolveError(ctx, id)
   emitLifecycleEvent(ctx.tenantId, ctx.workspaceId, ActivityEventType.SE_ERROR_RESOLVED, id)
   revalidatePath(`/${workspaceSlug}/settings/system-intelligence`)
+  if (errorId) {
+    revalidatePath(`/${workspaceSlug}/settings/system-intelligence/errors/${errorId}`)
+  }
 }
 
 export async function investigateErrorAction(formData: FormData): Promise<void> {
   const id            = formData.get('id') as string
   const workspaceSlug = formData.get('workspaceSlug') as string
+  const errorId       = formData.get('errorId') as string | null
 
   const supabase = await createSupabaseServerClient()
   const ctx      = await buildRequestContext(supabase)
@@ -51,11 +56,15 @@ export async function investigateErrorAction(formData: FormData): Promise<void> 
   await service.investigateError(ctx, id)
   emitLifecycleEvent(ctx.tenantId, ctx.workspaceId, ActivityEventType.SE_ERROR_INVESTIGATING, id)
   revalidatePath(`/${workspaceSlug}/settings/system-intelligence`)
+  if (errorId) {
+    revalidatePath(`/${workspaceSlug}/settings/system-intelligence/errors/${errorId}`)
+  }
 }
 
 export async function ignoreErrorAction(formData: FormData): Promise<void> {
   const id            = formData.get('id') as string
   const workspaceSlug = formData.get('workspaceSlug') as string
+  const errorId       = formData.get('errorId') as string | null
 
   const supabase = await createSupabaseServerClient()
   const ctx      = await buildRequestContext(supabase)
@@ -64,6 +73,9 @@ export async function ignoreErrorAction(formData: FormData): Promise<void> {
   await service.ignoreError(ctx, id)
   emitLifecycleEvent(ctx.tenantId, ctx.workspaceId, ActivityEventType.SE_ERROR_IGNORED, id)
   revalidatePath(`/${workspaceSlug}/settings/system-intelligence`)
+  if (errorId) {
+    revalidatePath(`/${workspaceSlug}/settings/system-intelligence/errors/${errorId}`)
+  }
 }
 
 export async function dismissRecommendationAction(formData: FormData): Promise<void> {

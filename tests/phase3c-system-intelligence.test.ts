@@ -938,3 +938,134 @@ describe('Phase 3C.4 — Guardrail: no external services in modified files', () 
     expect(eventDispatchSource).not.toContain("'@anthropic-ai")
   })
 })
+
+// -------------------------------------------------------
+// Phase 3C.5 — System Intelligence Detail Views
+// -------------------------------------------------------
+
+// Block 1 — getStructuredErrorById repo function (3 tests)
+describe('Phase 3C.5 — getStructuredErrorById repo function', () => {
+  const repoSource = readProjectFile(
+    'modules/intelligence/structured-errors/structured-error.repo.ts'
+  )
+
+  it('getStructuredErrorById is exported from structured-error.repo.ts', () => {
+    expect(repoSource).toContain('getStructuredErrorById')
+  })
+  it('getStructuredErrorById enforces tenant isolation', () => {
+    expect(repoSource).toContain('tenant_id')
+  })
+  it('getStructuredErrorById uses service client', () => {
+    expect(repoSource).toContain('createSupabaseServiceClient')
+  })
+})
+
+// Block 2 — error detail page: file and server component boundary (3 tests)
+describe('Phase 3C.5 — error detail page: file and server component', () => {
+  const pageSource = readProjectFile(
+    'app/(workspace)/[workspaceSlug]/settings/system-intelligence/errors/[errorId]/page.tsx'
+  )
+
+  it('error detail page file exists', () => {
+    expect(pageSource).toBeTruthy()
+  })
+  it('error detail page is a server component (no use client)', () => {
+    expect(pageSource).not.toContain("'use client'")
+  })
+  it('error detail page imports getStructuredErrorById', () => {
+    expect(pageSource).toContain('getStructuredErrorById')
+  })
+})
+
+// Block 3 — error detail page: field coverage (4 tests)
+describe('Phase 3C.5 — error detail page: field coverage', () => {
+  const pageSource = readProjectFile(
+    'app/(workspace)/[workspaceSlug]/settings/system-intelligence/errors/[errorId]/page.tsx'
+  )
+
+  it('detail page renders stack_trace field', () => {
+    expect(pageSource).toContain('stack_trace')
+  })
+  it('detail page renders workflow_run_id field', () => {
+    expect(pageSource).toContain('workflow_run_id')
+  })
+  it('detail page renders context field', () => {
+    expect(pageSource).toContain('context')
+  })
+  it('detail page renders correlation_id field', () => {
+    expect(pageSource).toContain('correlation_id')
+  })
+})
+
+// Block 4 — error detail page: lifecycle actions (3 tests)
+describe('Phase 3C.5 — error detail page: lifecycle actions', () => {
+  const pageSource = readProjectFile(
+    'app/(workspace)/[workspaceSlug]/settings/system-intelligence/errors/[errorId]/page.tsx'
+  )
+
+  it('detail page includes resolveErrorAction', () => {
+    expect(pageSource).toContain('resolveErrorAction')
+  })
+  it('detail page includes investigateErrorAction', () => {
+    expect(pageSource).toContain('investigateErrorAction')
+  })
+  it('detail page includes ignoreErrorAction', () => {
+    expect(pageSource).toContain('ignoreErrorAction')
+  })
+})
+
+// Block 5 — list page: View link added (2 tests)
+describe('Phase 3C.5 — system-intelligence list page: View link', () => {
+  const pageSource = readProjectFile(
+    'app/(workspace)/[workspaceSlug]/settings/system-intelligence/page.tsx'
+  )
+
+  it('list page links to error detail route', () => {
+    expect(pageSource).toContain('system-intelligence/errors/')
+  })
+  it('list page uses error id in detail link', () => {
+    expect(pageSource).toContain('err.id')
+  })
+})
+
+// Block 6 — actions: dual revalidation (2 tests)
+describe('Phase 3C.5 — structured-error actions: detail page revalidation', () => {
+  const actionsSource = readProjectFile(
+    'modules/intelligence/structured-errors/structured-error.actions.ts'
+  )
+
+  it('actions accept optional errorId for detail page revalidation', () => {
+    expect(actionsSource).toContain('errorId')
+  })
+  it('actions revalidate detail page path when errorId is present', () => {
+    expect(actionsSource).toContain('system-intelligence/errors')
+  })
+})
+
+// Block 7 — guardrail: no new migrations (2 tests)
+describe('Phase 3C.5 — Guardrail: no new migrations', () => {
+  it('no Phase 3C.5 migration file exists', () => {
+    const migrationsDir = path.join(process.cwd(), 'supabase/migrations')
+    const files = fs.readdirSync(migrationsDir)
+    const phase3c5Migrations = files.filter(f => f.includes('phase3c5'))
+    expect(phase3c5Migrations).toHaveLength(0)
+  })
+  it('error detail page does not create new DB tables', () => {
+    const pageSource = readProjectFile(
+      'app/(workspace)/[workspaceSlug]/settings/system-intelligence/errors/[errorId]/page.tsx'
+    )
+    expect(pageSource).not.toContain('CREATE TABLE')
+  })
+})
+
+// Block 8 — guardrail: no external services (1 test)
+describe('Phase 3C.5 — Guardrail: no external services', () => {
+  it('error detail page does not call external LLMs or Resend', () => {
+    const pageSource = readProjectFile(
+      'app/(workspace)/[workspaceSlug]/settings/system-intelligence/errors/[errorId]/page.tsx'
+    )
+    expect(pageSource).not.toContain("'openai'")
+    expect(pageSource).not.toContain("'@anthropic-ai")
+    expect(pageSource).not.toContain('resend')
+  })
+})

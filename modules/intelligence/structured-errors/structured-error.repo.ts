@@ -121,3 +121,18 @@ export async function getErrorStats(
     investigatingCount: rows.filter(r => r.status   === 'investigating').length,
   }
 }
+
+export async function getStructuredErrorById(
+  id:       string,
+  tenantId: string,
+): Promise<AutomationFailureRow | null> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('automation_failures')
+    .select('*')
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+    .single()
+  if (error) return null
+  return data
+}

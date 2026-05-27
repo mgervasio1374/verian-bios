@@ -142,6 +142,7 @@ export default async function SystemIntelligencePage({ params }: PageProps) {
                   <th className="text-left p-3 font-medium">Message</th>
                   <th className="text-left p-3 font-medium">Created</th>
                   <th className="p-3"></th>
+                  <th className="p-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -180,6 +181,14 @@ export default async function SystemIntelligencePage({ params }: PageProps) {
                           </button>
                         </form>
                       </div>
+                    </td>
+                    <td className="p-3 text-right">
+                      <Link
+                        href={`${base}/settings/system-intelligence/errors/${err.id}`}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        View
+                      </Link>
                     </td>
                   </tr>
                 ))}
