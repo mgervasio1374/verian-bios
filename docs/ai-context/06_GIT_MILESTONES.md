@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3c4-workflow-outbox-error-emission-v1` | Phase 3C.4 Workflow & Outbox Error Emission complete — structured errors from `failWorkflowRun` and `dispatchPendingEvents`, final-attempt-only outbox guard, 25 new tests |
 | `phase-3c3-system-intelligence-recommendations-v1` | Phase 3C.3 System Intelligence Recommendation Generator complete — on-demand generator, 3 rec types, dedup, GenerateRecsButton, 27 new tests |
 | `phase-3c2-structured-error-lifecycle-v1` | Phase 3C.2 Structured Error Lifecycle Actions complete — resolve/investigate/ignore/dismiss, emission in import callsites, activity events, 24 new tests |
 | `staging-foundation-v1` | Staging Foundation v1 — Supabase staging, Vercel staging, auth, workspace access, and DB grants (migrations 030+031) verified |
@@ -30,6 +31,10 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `f465795` | Phase 3C.4: implement workflow and outbox error emission | Phase 3C.4 |
+| `215e667` | Docs: add Phase 3C.4 implementation plan | Phase 3C.4 Docs |
+| `cfe6531` | Docs: add Phase 3C.4 workflow error emission design | Phase 3C.4 Docs |
+| `2cda2b9` | Docs: add Phase 3C.3 final lock report | Phase 3C.3 Docs |
 | `3d45928` | Phase 3C.3: implement system intelligence recommendations | Phase 3C.3 |
 | `518b21e` | Docs: add Phase 3C.3 system intelligence recommendations implementation plan | Phase 3C.3 Docs |
 | `237d069` | Docs: add Phase 3C.3 system intelligence recommendations design | Phase 3C.3 Docs |
@@ -81,6 +86,12 @@
 | `b50665d` | Add statement analysis PDF proposal package | Phase 4 |
 
 ## What Each Group Contains
+
+### Phase 3C.4: Workflow & Outbox Error Emission (`f465795`)
+- `modules/intelligence/structured-errors/structured-error.types.ts` — added `WORKFLOW_FAILURE_TYPE` (`WORKFLOW_RUN_FAILED`, `OUTBOX_EVENT_DISPATCH_FAILED`) and `WorkflowFailureType`; additive only
+- `modules/workflow/services/workflow-run.service.ts` — added `createStructuredError` import and non-fatal emission in `failWorkflowRun`; `_ctx` renamed to `ctx`
+- `modules/workflow/services/event-dispatch.service.ts` — added `createStructuredError` import and guarded non-fatal emission in `dispatchPendingEvents` catch block; guard: `event.attempts + 1 >= 5`
+- `tests/phase3c-system-intelligence.test.ts` — 25 new tests across 9 describe blocks (constants, service source, guardrails, tenant isolation, outbox idempotency, cross-phase preservation)
 
 ### Phase 3C.3: System Intelligence Recommendation Generator (`3d45928`)
 - `modules/intelligence/system-recommendation/system-recommendation.types.ts` — `REC_THRESHOLD` (ERROR_COUNT_MIN=3), `RecCheckResult`, `SystemRecGeneratorResult`
@@ -251,6 +262,7 @@
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-26 | 955/955 passed | PASSED | Phase 3C.4 Workflow & Outbox Error Emission — 25 new tests, 930 existing pass. Staging smoke: login ✓, workspace ✓, System Intelligence page ✓, Critical & Open Errors ✓, Workflow Health ✓, Generate Recommendations ✓. Tag: `phase-3c4-workflow-outbox-error-emission-v1`. |
 | 2026-05-26 | 930/930 passed | PASSED | Phase 3C.3 System Intelligence Recommendation Generator — 27 new tests, 903 existing pass. Staging smoke: login ✓, workspace ✓, Generate Recommendations button visible ✓, generates with "Done." ✓. Tag: `phase-3c3-system-intelligence-recommendations-v1`. |
 | 2026-05-26 | 903/903 passed (baseline unchanged) | N/A | Track A Deployment Flow Cleanup verified. Test push `cbfb790` (docs-only): staging (`verian-bios-staging`) deployed ✓; production (`verian-bios`) did not deploy ✓; production URL live ✓. No code or migrations changed. |
 | 2026-05-26 | 903/903 passed | PASSED | Phase 3C.2 Structured Error Lifecycle Actions — 24 new tests, 879 existing pass. Manual staging smoke: login ✓, workspace ✓, pages ✓. Tag: `phase-3c2-structured-error-lifecycle-v1`. |
@@ -268,7 +280,7 @@
 
 ## Current HEAD
 
-`3d45928` — Phase 3C.3: implement system intelligence recommendations
+`f465795` — Phase 3C.4: implement workflow and outbox error emission
 
 ## Migrations Sequence
 

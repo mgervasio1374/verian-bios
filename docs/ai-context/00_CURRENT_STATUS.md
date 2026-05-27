@@ -19,7 +19,8 @@
 | Phase 3C.2 — Structured Error Lifecycle Actions | Complete. Committed, tagged `phase-3c2-structured-error-lifecycle-v1`. |
 | Track A — Deployment Flow Cleanup | Complete. Production Vercel Git disconnected; staging unchanged. Verified 2026-05-26. |
 | Phase 3C.3 — System Intelligence Recommendation Generator | Complete. Committed `3d45928`, tagged `phase-3c3-system-intelligence-recommendations-v1`. Staging smoke-tested 2026-05-26. |
-| Phase 3C.4 | Not started. |
+| Phase 3C.4 — Workflow & Outbox Error Emission | Complete. Committed `f465795`, tagged `phase-3c4-workflow-outbox-error-emission-v1`. Staging smoke-tested 2026-05-26. |
+| Phase 3C.5 | Not started. |
 
 ## Staging Foundation v1 — Locked
 
@@ -67,14 +68,14 @@
 
 ## QA Status (Last Verified)
 
-Verified at Phase 3C.3 commit `3d45928`.
+Verified at Phase 3C.4 commit `f465795`.
 
 ```
 npx vitest run      → PASSED
 npx next build      → PASSED
 TypeScript          → PASSED
-930/930 tests passed
-  (27 new tests added since Phase 3C.2: Phase 3C.3 System Intelligence Recommendation Generator)
+955/955 tests passed
+  (25 new tests added since Phase 3C.3: Phase 3C.4 Workflow & Outbox Error Emission)
 ```
 
 ## Active Routes
@@ -97,7 +98,7 @@ Clean. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`3d45928` — Phase 3C.3: implement system intelligence recommendations
+`f465795` — Phase 3C.4: implement workflow and outbox error emission
 
 ## Guardrails for Next Work
 
@@ -108,12 +109,12 @@ Clean. `master` up to date with `origin/master`.
 | Do not reconnect production Vercel Git without explicit user approval | Reconnecting restores auto-deploy on every master push |
 | Staging (`verian-bios-staging`) auto-deploys from master — unchanged | Staging is the continuous integration target; every push to master deploys staging |
 | Staging must remain deployable | All app code must stay compatible with staging at all times |
-| Tests must stay green | 930/930 is the current baseline; no regression allowed |
-| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes |
+| Tests must stay green | 955/955 is the current baseline; no regression allowed |
+| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240032`. |
 | No environment-crossing assumptions | Local seed data, staging users, and remote dev state are not shared; never assume data from one env exists in another |
 | No debug routes left behind | Temporary diagnostic routes must be removed within the same work session; do not merge to master without cleanup |
-| Phase 3C.4 requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
+| Phase 3C.5 requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
 
 ## Last Updated
 
-2026-05-26 — after Phase 3C.3 System Intelligence Recommendation Generator complete (commit `3d45928`, tag `phase-3c3-system-intelligence-recommendations-v1`, staging smoke-tested, 930/930 tests).
+2026-05-26 — after Phase 3C.4 Workflow & Outbox Error Emission complete (commit `f465795`, tag `phase-3c4-workflow-outbox-error-emission-v1`, staging smoke-tested, 955/955 tests).

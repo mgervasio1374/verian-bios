@@ -255,6 +255,42 @@ All deliverables complete and verified.
 - Production deploys are now explicit and manual via `vercel --prod` or Vercel dashboard.
 - No code changed. No migrations created. No Supabase touched.
 
+## Completed — Phase 3C.4 Workflow & Outbox Error Emission v1.0
+
+All deliverables committed, tagged, and staging-smoke-tested.
+
+| Deliverable | Status |
+|-------------|--------|
+| Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3c4-workflow-error-emission-design-test-cases.md`) |
+| Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3c4-implementation-plan.md`) |
+| Code implementation | Complete — `f465795`, tag `phase-3c4-workflow-outbox-error-emission-v1` |
+| QA: 955/955 tests, build, TypeScript | PASSED |
+| Manual staging smoke | PASSED — login ✓, workspace ✓, System Intelligence page ✓, Critical & Open Errors ✓, Workflow Health ✓, Generate Recommendations ✓ |
+
+### What was delivered
+
+- `structured-error.types.ts` — `WORKFLOW_FAILURE_TYPE` (`WORKFLOW_RUN_FAILED`, `OUTBOX_EVENT_DISPATCH_FAILED`) and `WorkflowFailureType` (additive)
+- `workflow-run.service.ts` — non-fatal `createStructuredError` emission in `failWorkflowRun`; `_ctx` → `ctx`
+- `event-dispatch.service.ts` — guarded non-fatal `createStructuredError` emission in `dispatchPendingEvents`; guard: `event.attempts + 1 >= 5` (final attempt only)
+- `tests/phase3c-system-intelligence.test.ts` — 25 new tests across 9 describe blocks
+
+### Key behavior
+
+- Failed workflow runs now emit structured error rows into `automation_failures` with `failure_type: 'WORKFLOW_RUN_FAILED'`, `severity: 'error'`, `workflow_run_id` populated
+- Permanently failed outbox events (after 5 dispatch attempts) now emit structured error rows with `failure_type: 'OUTBOX_EVENT_DISPATCH_FAILED'`, `context: { event_id, event_type, attempts: 5 }`
+- Both errors appear automatically in the Critical & Open Errors table on the System Intelligence page
+- Existing Resolve / Investigate / Ignore lifecycle actions apply to these errors without any new UI
+- The `SYSTEM_ERROR_DIAGNOSIS` recommendation now fires more accurately when workflow or outbox failures accumulate in `automation_failures`
+- All emissions are non-fatal — existing `failWorkflowRun` and `dispatchPendingEvents` behavior is unchanged
+- No new migrations, no new routes, no new UI
+
+### Accepted limitations (v1)
+
+- `failWorkflowRun` duplicates: if called more than once for the same run, multiple rows are created — accepted for v1 (Option A)
+- Outbox restart gap: if the server restarts between `markEventDispatchFailed` and the non-fatal emission, the structured error may not be written — accepted for v1; reconciler is future work
+
+---
+
 ## Completed — Phase 3C.3 System Intelligence Recommendation Generator v1.0
 
 All deliverables committed, tagged, and staging-smoke-tested.
@@ -292,9 +328,19 @@ All deliverables committed, tagged, and staging-smoke-tested.
 
 ## Next Recommended Step
 
-### Phase 3C.4 Design
+### Phase 3C.5 Design (or Phase 3C Wrap-Up Review)
 
-No Phase 3C.4 scope has been defined. When user direction is given, follow the standard sequence:
+Phase 3C.4 is locked. No Phase 3C.5 scope has been defined.
+
+**Possible next directions (user direction required before any work starts):**
+
+- **Phase 3C.5** — potential candidates from Phase 3C.4 open questions:
+  - Workflow failure reconciler: scan `workflow_runs.status = 'failed'` and back-fill missing `automation_failures` rows
+  - Auto-resolve structured errors when a failed workflow run is retried and completes
+  - Severity escalation for repeated failures within a time window
+- **Phase 3C wrap-up review** — review overall Phase 3C scope completeness before advancing to Phase 3D or a new area
+
+When user direction is given, follow the standard sequence:
 
 1. Design & Test Cases — produce document, get user approval
 2. Implementation Plan — produce document, get user approval
