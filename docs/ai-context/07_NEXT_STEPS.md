@@ -521,32 +521,54 @@ All deliverables committed, tagged, and locked. Documentation/control-map phase 
 
 ---
 
+## Completed — Phase 3H Send Safety Hardening v1.0
+
+All deliverables committed, tagged, and staging-smoke-tested.
+
+| Deliverable | Status |
+|-------------|--------|
+| Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3h-send-safety-hardening-design.md`) |
+| Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3h-implementation-plan.md`) |
+| Code implementation | Complete — `b10d0db`, tag `phase-3h-send-safety-hardening-v1` |
+| QA: 1083/1083 tests, build | PASSED |
+| Migration `20240033` created and committed | PASSED |
+| Migration `20240033` applied to staging | PASSED — `smbausuyetlgxflyhmfg` 2026-05-27 |
+| Staging smoke | PASSED with known Resend staging limitation |
+| Production deployment | Pending — production still at Phase 3F (`dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa`) |
+
+### What was delivered
+
+- **Gate 0** — `getBooleanControl(EMAIL_SENDING_ENABLED, tenantId)` as first async check in `sendApprovedDraft()`, after `requirePermission`, before any draft DB reads. Returns `{ ok: false, reason: 'sending_disabled_by_system_control' }`. Defaults to `false` when no row exists (opt-in). Verified staging: sends blocked with no `email_sends` row created when gate is false.
+- **ET_ events unconditional** — `ET_SEND_INITIATED`, `ET_SEND_SUCCEEDED`, `ET_SEND_FAILED` now emit for all sends. Phase 3A sends use `entityType: 'email_draft'`, `send_path: 'phase_3a_template'`; Phase 3B sends unchanged. Verified staging: `ET_SEND_INITIATED` + `ET_SEND_FAILED` created for Harbor Diner Phase 3A failure.
+- **Migration `20240033`** — `failure_reason text` and `triggered_by text` columns on `email_sends`. Verified staging: both columns exist.
+- **`triggered_by` column** — populated as `ctx.userId` in `createEmailSend`; alongside existing `metadata.send_initiated_by`. Verified staging: column populated.
+- **`failure_reason` column** — populated as `errorMessage` on failure path in `updateEmailSend`; alongside existing `metadata.error`. Verified staging: column populated with Resend API key error message.
+- **`WEBHOOK_FAILURE_TYPE` constants** — `EMAIL_PERMANENT_BOUNCE`, `EMAIL_COMPLAINT_RECEIVED`, `EMAIL_DELIVERY_DELAYED` added to `structured-error.types.ts`.
+- **Webhook structured errors** — three non-fatal blocks in `processResendEvent`: hard bounce (severity `error`), complaint (after auto-unsubscribe, severity `critical`), delivery delay (check-before-insert via `maybeSingle()`, severity `warning`). Webhook 200 OK preserved.
+- **35 source-reading tests** — Blocks 0–9 in `tests/phase3h-send-safety-hardening.test.ts`; no runtime mocking.
+
+### Known staging limitation
+
+Staging Resend API key is invalid — `ET_SEND_SUCCEEDED` and real webhook structured-error smoke (bounce/complaint/delay paths) were not exercised on staging. These paths are covered by source-reading tests (TC-3H-022 through TC-3H-033) and can be verified post-production-migration via Resend webhook event inspection.
+
+---
+
 ## Next Recommended Step
 
-### Phase 3H Design — Send Safety Hardening
+### Phase 3H Production Deployment
 
-Phase 3G is fully complete: locked at `a4f488a`, tag `phase-3g-agent-operations-readiness-v1`. **Do not start Phase 3H implementation until the user explicitly approves a direction.** Phase 3H implementation has not started.
+Phase 3H is fully complete: locked at `b10d0db`, tag `phase-3h-send-safety-hardening-v1`. Production Supabase remains at migration `20240032`. Production Vercel remains at `dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa` (Phase 3F).
 
-**Phase 3H scope (from implementation plan):**
+**Production deployment scope:**
 
-1. **Gate 0** — Read `EMAIL_SENDING_ENABLED` from `system_controls` at the top of `sendApprovedDraft()`, before any DB reads; return error immediately if disabled
-2. **Emit ET_ for ALL sends** — move `ET_SEND_INITIATED`/`ET_SEND_SUCCEEDED`/`ET_SEND_FAILED` outside the `if (phase3bMeta !== null)` guard so Phase 3A auto-path sends appear in the Workflow Activity timeline
-3. **Migration `20240033`** — `ALTER TABLE email_sends ADD COLUMN failure_reason text, ADD COLUMN triggered_by text`
-4. **Permanent bounce** → `EMAIL_PERMANENT_BOUNCE` structured error (severity `error`)
-5. **Complaint** → `EMAIL_COMPLAINT_RECEIVED` structured error (severity `critical`)
-6. **Delivery delay** → `EMAIL_DELIVERY_DELAYED` structured error (severity `warning`, idempotent via `correlation_id`)
-7. **New `WEBHOOK_FAILURE_TYPE` constants** in `structured-error.types.ts`
+1. Relink Supabase CLI to production: `npx supabase link --project-ref kxrplupzbsmujjznzhpy`
+2. Dry-run: `npx supabase db push --dry-run` — confirm only `20240033` pending
+3. Apply: `npx supabase db push`
+4. Relink back to staging after apply
+5. Deploy production Vercel: `vercel --prod` (from `b10d0db`)
+6. Post-deploy smoke: columns exist on production, pages load, no runtime errors
 
-**Critical finding driving Phase 3H:** `EMAIL_SENDING_ENABLED` kill switch is not enforced in the send path — production can send emails regardless of the system control setting. Phase 3H must fix this before any expansion of live sending.
-
-When user approves, follow the standard sequence:
-
-1. Design & Test Cases — produce document, get user approval
-2. Implementation Plan — produce document, get user approval
-3. Code implementation — follow locked plan
-4. QA: `npx vitest run` + `npx next build`
-5. Commit, tag
-6. Update `docs/ai-context/` files
+**Stop condition:** Do not start Phase 3I until production deployment is explicitly approved and completed.
 
 ---
 

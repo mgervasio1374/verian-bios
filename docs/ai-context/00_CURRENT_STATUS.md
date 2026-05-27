@@ -27,6 +27,7 @@
 | Phase 3E — Lead Workflow Control | Complete. Committed `48bfbbb`, tagged `phase-3e-lead-workflow-control-v1`. Staging migration `20240032` applied. Staging smoke-tested 2026-05-27. Production migration `20240032` applied. Production Vercel deployed (`dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH`). Production smoke-tested 2026-05-27. |
 | Phase 3F — Workflow Execution Visibility | Complete. Committed `f43f797`, tagged `phase-3f-workflow-execution-visibility-v1`. No migration. Staging smoke-tested 2026-05-27. Production Vercel deployed (`dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa`). Production smoke-tested 2026-05-27 (14/14 checks). |
 | Phase 3G — Agent Operations Readiness & Control Map | Complete. Documentation/control-map only. Committed `a4f488a`, tagged `phase-3g-agent-operations-readiness-v1`. No source code changed. No migration created. Key finding: `EMAIL_SENDING_ENABLED` not enforced in `sendApprovedDraft()` — must be fixed in Phase 3H. |
+| Phase 3H — Send Safety Hardening | Complete. Committed `b10d0db`, tagged `phase-3h-send-safety-hardening-v1`. Migration `20240033` applied to staging only. Production deployment pending. |
 
 ## Staging Foundation v1 — Locked
 
@@ -41,7 +42,7 @@
 |-------------|-------------|-------------------|-------------|
 | Local | Docker / `127.0.0.1:54321` | 001–031 | Local seed user `dev@verian.local` |
 | Production | `kxrplupzbsmujjznzhpy` | 001–032 | Standard access — `https://verian-bios.vercel.app` |
-| Staging | `smbausuyetlgxflyhmfg` | 001–032 | `staging@verian.internal` / platform_admin |
+| Staging | `smbausuyetlgxflyhmfg` | 001–033 | `staging@verian.internal` / platform_admin |
 
 ### Verified Access Paths
 
@@ -74,14 +75,14 @@
 
 ## QA Status (Last Verified)
 
-Verified at Phase 3F commit `f43f797`.
+Verified at Phase 3H commit `b10d0db`.
 
 ```
 npx vitest run      → PASSED
 npx next build      → PASSED
 TypeScript          → PASSED
-1048/1048 tests passed
-  (21 new tests added since Phase 3E: Phase 3F Workflow Execution Visibility)
+1083/1083 tests passed
+  (35 new tests added since Phase 3G: Phase 3H Send Safety Hardening)
 ```
 
 ## Active Routes
@@ -107,28 +108,28 @@ Clean. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`a4f488a` — Docs: add Phase 3G agent operations readiness design and plan
+`b10d0db` — Phase 3H: harden email send safety
 
 ## Lock Tag
 
-`phase-3g-agent-operations-readiness-v1` → `a4f488a`
+`phase-3h-send-safety-hardening-v1` → `b10d0db`
 
 ## Guardrails for Next Work
 
 | Guardrail | Reason |
 |-----------|--------|
-| Production Supabase (`kxrplupzbsmujjznzhpy`) is current through migration `20240032` | Do not apply further migrations without explicit instruction; next available migration is `20240033` |
+| Production Supabase (`kxrplupzbsmujjznzhpy`) is current through migration `20240032` | Migration `20240033` applied to staging only — production migration pending explicit instruction; next available migration after `20240033` is `20240034` |
 | Production Vercel (`verian-bios`) no longer auto-deploys from `origin/master` | Track A complete — Git disconnected. Production deploys must be explicit via `vercel --prod` or Vercel dashboard |
 | Do not reconnect production Vercel Git without explicit user approval | Reconnecting restores auto-deploy on every master push |
 | Staging (`verian-bios-staging`) auto-deploys from master — unchanged | Staging is the continuous integration target; every push to master deploys staging |
 | Staging must remain deployable | All app code must stay compatible with staging at all times |
-| Tests must stay green | 1048/1048 is the current baseline; no regression allowed |
-| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240033`. |
+| Tests must stay green | 1083/1083 is the current baseline; no regression allowed |
+| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240034`. |
 | No environment-crossing assumptions | Local seed data, staging users, and remote dev state are not shared; never assume data from one env exists in another |
 | No debug routes left behind | Temporary diagnostic routes must be removed within the same work session; do not merge to master without cleanup |
 | Any new phase requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
-| `EMAIL_SENDING_ENABLED` kill switch is not enforced in `sendApprovedDraft()` | Phase 3G source audit confirmed the system control exists in DB but is never read in the send path — Phase 3H must fix this before any expansion of sending |
+| `EMAIL_SENDING_ENABLED` kill switch is now enforced in `sendApprovedDraft()` as Gate 0 | Phase 3H implemented this — verified staging: sends are blocked before `email_sends` row creation when the control is false |
 
 ## Last Updated
 
-2026-05-27 — after Phase 3G Agent Operations Readiness & Control Map complete (commit `a4f488a`, tag `phase-3g-agent-operations-readiness-v1`, documentation/control-map only, no source code changed, no migration created, 1048/1048 tests unchanged). Key finding: `EMAIL_SENDING_ENABLED` not enforced in send path — Phase 3H must address this first. Production remains at Phase 3F deployment (`dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa`).
+2026-05-27 — after Phase 3H Send Safety Hardening complete (commit `b10d0db`, tag `phase-3h-send-safety-hardening-v1`). Gate 0 (`EMAIL_SENDING_ENABLED`) is now enforced in `sendApprovedDraft()` — kill switch is operational. `ET_SEND_*` events emitted for all sends (Phase 3A + Phase 3B). `failure_reason` and `triggered_by` typed columns added to `email_sends` via migration `20240033`. Webhook structured errors for bounce/complaint/delay implemented. Migration `20240033` applied to staging only; production still current through `20240032`. Production Vercel remains at `dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa` (Phase 3F). 1083/1083 tests.
