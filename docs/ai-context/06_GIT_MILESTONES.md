@@ -295,6 +295,7 @@
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-27 | 1027/1027 passed | PASSED | Phase 3E Lead Workflow Control — production deployed. Migration 20240032 applied to production (`kxrplupzbsmujjznzhpy`). Vercel deployment `dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH` live at `https://verian-bios.vercel.app`. Production smoke: passed. Vercel settings unchanged. |
 | 2026-05-27 | 1027/1027 passed | PASSED | Phase 3E Lead Workflow Control — 18 new tests, 1009 existing pass. Migration 20240032 applied to staging. Staging smoke: login ✓, workspace ✓, Workflow Off badge ✓, Enable Workflow ✓, badge→Workflow On ✓, WF On kanban badge ✓, Disable Workflow ✓, WF On badge removed ✓, Revenue Analytics unchanged ✓. 23/23 checklist items passed. Tag: `phase-3e-lead-workflow-control-v1`. |
 | 2026-05-27 | 1009/1009 passed | PASSED | Phase 3D Revenue Analytics — 22 new tests, 987 existing pass. Staging smoke: login ✓, workspace ✓, Analytics sidebar link ✓, /main/settings/analytics loads ✓, all 3 panels render ✓, footer links ✓. Tag: `phase-3d-revenue-analytics-v1`. |
 | 2026-05-26 | 987/987 passed | PASSED | Phase 3C.6 System Intelligence Wrap-Up — 12 new tests, 975 existing pass. Staging smoke: login ✓, workspace ✓, System Intelligence page ✓, Pending Recommendations ✓, Generate Recommendations ✓. Tag: `phase-3c6-system-intelligence-wrap-up-v1`. |
@@ -320,7 +321,7 @@
 `48bfbbb` — Phase 3E: implement lead workflow control
 
 ### Phase 3E: Lead Workflow Control (`48bfbbb`)
-- `supabase/migrations/20240032_phase3e_lead_workflow_enabled.sql` — **new** — `ALTER TABLE leads ADD COLUMN workflow_enabled boolean NOT NULL DEFAULT false`; applied to staging only; production unapplied
+- `supabase/migrations/20240032_phase3e_lead_workflow_enabled.sql` — **new** — `ALTER TABLE leads ADD COLUMN workflow_enabled boolean NOT NULL DEFAULT false`; applied to staging (`smbausuyetlgxflyhmfg`) and production (`kxrplupzbsmujjznzhpy`) 2026-05-27
 - `types/database.ts` — **modified** — `workflow_enabled: boolean` added to leads `Row`; `workflow_enabled?: boolean` added to `Insert` and `Update`
 - `modules/crm/actions/lead.actions.ts` — **modified** — `setWorkflowEnabledAction(leadId, enabled)` appended; delegates to `leadService.updateLead`; revalidates lead detail and leads list; no `dispatchPendingEvents`; no Resend; no external LLM
 - `app/(workspace)/[workspaceSlug]/leads/[id]/WorkflowToggle.tsx` — **new** — `'use client'`; optimistic local state; "Workflow: On/Off" badge; "Enable/Disable Workflow" button; loading state; inline error; calls `setWorkflowEnabledAction`
@@ -353,6 +354,6 @@
 | `20240029` | Phase 3C.1 (see Phase 3C.1 commit `ea4b0b0`) |
 | `20240030` | Staging Foundation — `service_role` GRANT ALL on all tables/sequences/routines + ALTER DEFAULT PRIVILEGES |
 | `20240031` | Staging Foundation — `anon`+`authenticated` GRANT ALL on all tables/sequences/routines + ALTER DEFAULT PRIVILEGES |
-| `20240032` | Phase 3E — `ALTER TABLE leads ADD COLUMN workflow_enabled boolean NOT NULL DEFAULT false`; applied to staging only |
+| `20240032` | Phase 3E — `ALTER TABLE leads ADD COLUMN workflow_enabled boolean NOT NULL DEFAULT false`; applied to staging (`smbausuyetlgxflyhmfg`) and production (`kxrplupzbsmujjznzhpy`) |
 
 Note: No new migration was added for the Human Review / Approval Bridge, the Send / Email Draft Bridge, or Event Tracking. All three use existing tables and columns only. Phase 3B provenance travels via `email_drafts.ai_generation_metadata` (jsonb) at draft creation, then is copied into `email_sends.metadata` (jsonb) at send time. Event Tracking activity events are appended to the existing `activity_events` table. The Learning Agent adds migration `20240025` for `learning_snapshots` — its only write target.

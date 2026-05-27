@@ -404,6 +404,9 @@ All deliverables committed, tagged, migration applied to staging, and staging-sm
 | QA: 1027/1027 tests, build, TypeScript | PASSED |
 | Migration `20240032` applied to staging | PASSED |
 | Manual staging smoke | PASSED — 23/23 checklist items |
+| Migration `20240032` applied to production (`kxrplupzbsmujjznzhpy`) | PASSED — 2026-05-27 |
+| Production Vercel deployment (`dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH`) | PASSED — `https://verian-bios.vercel.app` live |
+| Manual production smoke | PASSED — 2026-05-27 |
 
 ### What was delivered
 
@@ -421,7 +424,7 @@ All deliverables committed, tagged, migration applied to staging, and staging-sm
 - Enabling workflow does NOT immediately trigger `dispatchPendingEvents()` — the existing cron picks up the lead on the next scheduled pass
 - Kanban card shows "WF On" badge for a quick visual scan; toggle interaction is on the detail page only
 - Permission gate: `requirePermission(ctx, 'crm.leads.edit')` inside `leadService.updateLead`; tenant isolation enforced at repo layer
-- Migration `20240032` applied to staging; **production migration has not been applied** — production remains manually deployed only
+- Migration `20240032` applied to staging and production; production Vercel deployed `dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH` at `https://verian-bios.vercel.app`; production smoke-tested 2026-05-27
 
 ### Schema correction note
 
@@ -462,9 +465,7 @@ Phase 3E is locked. No Phase 3F scope has been defined or approved.
 
 **Do not start any implementation work until the user explicitly approves a direction.**
 
-**Pending production deployment:** Migration `20240032` has been applied to staging only. When the user is ready to deploy Phase 3E to production, the sequence is:
-1. Apply migration `20240032` to production Supabase manually
-2. Deploy to production Vercel via `vercel --prod` or Vercel dashboard
+**Production deployment complete:** Migration `20240032` applied to production (`kxrplupzbsmujjznzhpy`) and Vercel deployment `dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH` is live at `https://verian-bios.vercel.app`. Production smoke-tested 2026-05-27. No further deployment steps required for Phase 3E.
 
 **Possible next directions (user direction required before any work starts):**
 

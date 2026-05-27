@@ -24,7 +24,7 @@
 | Phase 3C.6 — System Intelligence Wrap-Up | Complete. Committed `9a32d3c`, tagged `phase-3c6-system-intelligence-wrap-up-v1`. Staging smoke-tested 2026-05-26. |
 | Phase 3C.7 | Intentionally skipped for now. May be revisited later. |
 | Phase 3D — Revenue Analytics | Complete. Committed `08c3cdd`, tagged `phase-3d-revenue-analytics-v1`. Staging smoke-tested 2026-05-27. |
-| Phase 3E — Lead Workflow Control | Complete. Committed `48bfbbb`, tagged `phase-3e-lead-workflow-control-v1`. Staging migration `20240032` applied. Staging smoke-tested 2026-05-27. |
+| Phase 3E — Lead Workflow Control | Complete. Committed `48bfbbb`, tagged `phase-3e-lead-workflow-control-v1`. Staging migration `20240032` applied. Staging smoke-tested 2026-05-27. Production migration `20240032` applied. Production Vercel deployed (`dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH`). Production smoke-tested 2026-05-27. |
 
 ## Staging Foundation v1 — Locked
 
@@ -38,7 +38,7 @@
 | Environment | Supabase ref | Migrations applied | Auth/Access |
 |-------------|-------------|-------------------|-------------|
 | Local | Docker / `127.0.0.1:54321` | 001–031 | Local seed user `dev@verian.local` |
-| Remote dev | `kxrplupzbsmujjznzhpy` | 001–031 | Standard dev access |
+| Production | `kxrplupzbsmujjznzhpy` | 001–032 | Standard access — `https://verian-bios.vercel.app` |
 | Staging | `smbausuyetlgxflyhmfg` | 001–032 | `staging@verian.internal` / platform_admin |
 
 ### Verified Access Paths
@@ -65,8 +65,8 @@
 | Item | State |
 |------|-------|
 | `RESEND_API_KEY` on staging | Dummy value — email sending disabled, safe |
-| Production Supabase | Untouched — no migrations applied |
-| Production Vercel (`verian-bios.vercel.app`) | **Git disconnected (Track A complete, 2026-05-26).** Production no longer auto-deploys from `origin/master`. Staging (`verian-bios-staging`) continues to auto-deploy from master. Production deploys are now explicit and manual via `vercel --prod` or Vercel dashboard only. |
+| Production Supabase (`kxrplupzbsmujjznzhpy`) | Migrations 001–032 applied. `20240032` applied 2026-05-27. Production database is up to date. |
+| Production Vercel (`verian-bios.vercel.app`) | **Git disconnected (Track A complete, 2026-05-26).** Production no longer auto-deploys from `origin/master`. Staging (`verian-bios-staging`) continues to auto-deploy from master. Production deploys are explicit and manual via `vercel --prod` or Vercel dashboard only. Latest deployment: `dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH` (Phase 3E, 2026-05-27). |
 | Temporary debug route | Removed (`0b6441f`) — `/api/debug/staging-auth` returns 404 (unauthenticated requests receive 307 → /login from middleware before reaching the absent route handler) |
 | Local dev seed | `supabase/seed.sql` committed at `9153a86` — local-only, never run on staging/production |
 
@@ -114,7 +114,7 @@ Clean. `master` up to date with `origin/master`.
 
 | Guardrail | Reason |
 |-----------|--------|
-| Production Supabase remains untouched unless explicitly instructed | No production migrations have been applied; this boundary must be maintained |
+| Production Supabase (`kxrplupzbsmujjznzhpy`) is current through migration `20240032` | Do not apply further migrations without explicit instruction; next available migration is `20240033` |
 | Production Vercel (`verian-bios`) no longer auto-deploys from `origin/master` | Track A complete — Git disconnected. Production deploys must be explicit via `vercel --prod` or Vercel dashboard |
 | Do not reconnect production Vercel Git without explicit user approval | Reconnecting restores auto-deploy on every master push |
 | Staging (`verian-bios-staging`) auto-deploys from master — unchanged | Staging is the continuous integration target; every push to master deploys staging |
@@ -124,8 +124,7 @@ Clean. `master` up to date with `origin/master`.
 | No environment-crossing assumptions | Local seed data, staging users, and remote dev state are not shared; never assume data from one env exists in another |
 | No debug routes left behind | Temporary diagnostic routes must be removed within the same work session; do not merge to master without cleanup |
 | Any new phase requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
-| Production migration `20240032` remains unapplied | Migration was applied to staging only; production Supabase is untouched and production deploy is manual |
 
 ## Last Updated
 
-2026-05-27 — after Phase 3E Lead Workflow Control complete (commit `48bfbbb`, tag `phase-3e-lead-workflow-control-v1`, staging migration `20240032` applied, staging smoke-tested 23/23, 1027/1027 tests).
+2026-05-27 — after Phase 3E Lead Workflow Control production deployment complete (commit `48bfbbb`, tag `phase-3e-lead-workflow-control-v1`, staging migration `20240032` applied, staging smoke-tested 23/23, production migration `20240032` applied to `kxrplupzbsmujjznzhpy`, production Vercel deployed `dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH`, production smoke-tested, 1027/1027 tests).
