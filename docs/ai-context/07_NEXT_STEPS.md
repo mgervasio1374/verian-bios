@@ -255,13 +255,46 @@ All deliverables complete and verified.
 - Production deploys are now explicit and manual via `vercel --prod` or Vercel dashboard.
 - No code changed. No migrations created. No Supabase touched.
 
+## Completed — Phase 3C.3 System Intelligence Recommendation Generator v1.0
+
+All deliverables committed, tagged, and staging-smoke-tested.
+
+| Deliverable | Status |
+|-------------|--------|
+| Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3c3-system-intelligence-recommendations-design-test-cases.md`) |
+| Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3c3-system-intelligence-recommendations-implementation-plan.md`) |
+| Code implementation | Complete — `3d45928`, tag `phase-3c3-system-intelligence-recommendations-v1` |
+| QA: 930/930 tests, build, TypeScript | PASSED |
+| Manual staging smoke | PASSED — login ✓, workspace ✓, Generate Recommendations button ✓, generates with "Done." ✓ |
+
+### What was delivered
+
+- `system-recommendation.types.ts` — `REC_THRESHOLD` (ERROR_COUNT_MIN=3), `RecCheckResult`, `SystemRecGeneratorResult`
+- `system-recommendation.service.ts` — pure check functions for 3 rec types; orchestrator `runSystemRecommendationGenerator`
+- `system-recommendation.actions.ts` — `'use server'` action `generateSystemRecommendationsAction`
+- `GenerateRecsButton.tsx` — client component with loading state, server action call, result display
+- `types.agent.ts` extended: `SYSTEM_REC_GENERATOR_RUN`, `SYSTEM_REC_GENERATOR_FAILED` (additive)
+- `recommendation.repo.ts` extended: `listPendingSystemRecs()` for deduplication
+- `system-intelligence/page.tsx` extended: button section above Pending System Recommendations; page remains server component
+- 27 new tests across 9 describe blocks
+
+### Key behavior
+
+- Generator is triggered on-demand via button click on the System Intelligence settings page
+- Reads open structured errors, failed/partially-committed import batches, workflow health, and existing pending recs in parallel
+- Deduplication prevents duplicate pending recs of the same type from being created
+- Writes to existing `agent_recommendations` table (no new migrations)
+- Advisory only — no auto-send, no external LLMs, no Resend
+- Activity events emitted non-fatally on run and on failure
+- Production Vercel did not auto-deploy (Git-disconnected as of Track A); staging auto-deployed and smoke-tested
+
 ---
 
 ## Next Recommended Step
 
-### Phase 3C.3 Design
+### Phase 3C.4 Design
 
-No Phase 3C.3 scope has been defined. When user direction is given, follow the standard sequence:
+No Phase 3C.4 scope has been defined. When user direction is given, follow the standard sequence:
 
 1. Design & Test Cases — produce document, get user approval
 2. Implementation Plan — produce document, get user approval

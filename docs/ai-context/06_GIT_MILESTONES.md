@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3c3-system-intelligence-recommendations-v1` | Phase 3C.3 System Intelligence Recommendation Generator complete — on-demand generator, 3 rec types, dedup, GenerateRecsButton, 27 new tests |
 | `phase-3c2-structured-error-lifecycle-v1` | Phase 3C.2 Structured Error Lifecycle Actions complete — resolve/investigate/ignore/dismiss, emission in import callsites, activity events, 24 new tests |
 | `staging-foundation-v1` | Staging Foundation v1 — Supabase staging, Vercel staging, auth, workspace access, and DB grants (migrations 030+031) verified |
 | `phase-3c1-system-intelligence-v1` | Phase 3C.1 Structured Errors + System Intelligence Foundation complete |
@@ -29,6 +30,10 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `3d45928` | Phase 3C.3: implement system intelligence recommendations | Phase 3C.3 |
+| `518b21e` | Docs: add Phase 3C.3 system intelligence recommendations implementation plan | Phase 3C.3 Docs |
+| `237d069` | Docs: add Phase 3C.3 system intelligence recommendations design | Phase 3C.3 Docs |
+| `b6530c8` | Docs: add deployment flow cleanup final report | Track A |
 | `cbfb790` | Docs: start deployment flow cleanup verification | Track A |
 | `b29093d` | Docs: add deployment flow cleanup Option C implementation plan | Track A |
 | `bdd6b00` | Docs: add deployment flow cleanup design | Track A |
@@ -76,6 +81,16 @@
 | `b50665d` | Add statement analysis PDF proposal package | Phase 4 |
 
 ## What Each Group Contains
+
+### Phase 3C.3: System Intelligence Recommendation Generator (`3d45928`)
+- `modules/intelligence/system-recommendation/system-recommendation.types.ts` — `REC_THRESHOLD` (ERROR_COUNT_MIN=3), `RecCheckResult`, `SystemRecGeneratorResult`
+- `modules/intelligence/system-recommendation/system-recommendation.service.ts` — pure check functions (`checkErrorDiagnosis`, `checkImportHealth`, `checkWorkflowRecommendation`); orchestrator `runSystemRecommendationGenerator`
+- `modules/intelligence/system-recommendation/system-recommendation.actions.ts` — `'use server'` action `generateSystemRecommendationsAction`; calls `requirePermission`, `runSystemRecommendationGenerator`, `revalidatePath`
+- `app/(workspace)/[workspaceSlug]/settings/system-intelligence/GenerateRecsButton.tsx` — client component: loading state, calls `generateSystemRecommendationsAction`, displays "Done." or error
+- `modules/intelligence/types.agent.ts` — added `SYSTEM_REC_GENERATOR_RUN`, `SYSTEM_REC_GENERATOR_FAILED` (additive)
+- `modules/intelligence/repositories/recommendation.repo.ts` — added `listPendingSystemRecs()` for dedup; `Pick<RecommendationRow, 'id' | 'recommendation_type' | 'status'>[]` return type
+- `app/(workspace)/[workspaceSlug]/settings/system-intelligence/page.tsx` — added `GenerateRecsButton` import and button section above Pending System Recommendations card; page remains server component
+- `tests/phase3c-system-intelligence.test.ts` — 27 new tests across 9 describe blocks (generator constants, types, service source, actions source, repo function, button component, page integration, guardrails, dedup)
 
 ### Phase 3A: Intelligence Infrastructure (`3f0367a`)
 - `supabase/migrations/20240016_phase3a_intelligence_tables.sql`
@@ -236,6 +251,7 @@
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-26 | 930/930 passed | PASSED | Phase 3C.3 System Intelligence Recommendation Generator — 27 new tests, 903 existing pass. Staging smoke: login ✓, workspace ✓, Generate Recommendations button visible ✓, generates with "Done." ✓. Tag: `phase-3c3-system-intelligence-recommendations-v1`. |
 | 2026-05-26 | 903/903 passed (baseline unchanged) | N/A | Track A Deployment Flow Cleanup verified. Test push `cbfb790` (docs-only): staging (`verian-bios-staging`) deployed ✓; production (`verian-bios`) did not deploy ✓; production URL live ✓. No code or migrations changed. |
 | 2026-05-26 | 903/903 passed | PASSED | Phase 3C.2 Structured Error Lifecycle Actions — 24 new tests, 879 existing pass. Manual staging smoke: login ✓, workspace ✓, pages ✓. Tag: `phase-3c2-structured-error-lifecycle-v1`. |
 | 2026-05-25 | 879/879 passed | PASSED | Staging Foundation v1 locked — migrations 030+031 applied, debug route removed, staging smoke test passed. Tag: `staging-foundation-v1`. |
@@ -252,7 +268,7 @@
 
 ## Current HEAD
 
-`cbfb790` — Docs: start deployment flow cleanup verification
+`3d45928` — Phase 3C.3: implement system intelligence recommendations
 
 ## Migrations Sequence
 
