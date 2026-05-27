@@ -1,5 +1,6 @@
 export const REC_THRESHOLD = {
-  ERROR_COUNT_MIN: 3,
+  ERROR_COUNT_MIN:        3,
+  OUTBOX_QUEUE_DEPTH_MIN: 10,
 } as const
 
 export interface RecCheckResult {

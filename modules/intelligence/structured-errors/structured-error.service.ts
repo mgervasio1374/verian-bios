@@ -53,7 +53,7 @@ export async function resolveError(
   ctx: RequestContext,
   id:  string,
 ): Promise<void> {
-  return repo.resolveStructuredError(id, ctx.tenantId)
+  return repo.resolveStructuredError(id, ctx.tenantId, ctx.userId)
 }
 
 export async function investigateError(

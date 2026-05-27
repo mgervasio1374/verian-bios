@@ -1069,3 +1069,75 @@ describe('Phase 3C.5 — Guardrail: no external services', () => {
     expect(pageSource).not.toContain('resend')
   })
 })
+
+// -------------------------------------------------------
+// Phase 3C.6 — System Intelligence Wrap-Up
+// -------------------------------------------------------
+
+// Block 1 — resolveStructuredError: resolved_by attribution (3 tests)
+describe('Phase 3C.6 — resolveStructuredError: resolved_by attribution', () => {
+  const repoSource = readProjectFile(
+    'modules/intelligence/structured-errors/structured-error.repo.ts'
+  )
+
+  it('resolveStructuredError accepts a resolvedBy parameter', () => {
+    expect(repoSource).toContain('resolvedBy')
+  })
+  it('resolveStructuredError writes resolved_by in the update', () => {
+    expect(repoSource).toContain('resolved_by')
+  })
+  it('resolveStructuredError still enforces tenant isolation', () => {
+    expect(repoSource).toContain(".eq('tenant_id', tenantId)")
+  })
+})
+
+// Block 2 — resolveError service: userId threading (2 tests)
+describe('Phase 3C.6 — resolveError service: userId threading', () => {
+  const serviceSource = readProjectFile(
+    'modules/intelligence/structured-errors/structured-error.service.ts'
+  )
+
+  it('resolveError service passes ctx.userId to the repo', () => {
+    expect(serviceSource).toContain('ctx.userId')
+  })
+  it('resolveError service still calls resolveStructuredError', () => {
+    expect(serviceSource).toContain('resolveStructuredError')
+  })
+})
+
+// Block 3 — SYSTEM_PERFORMANCE_WARNING: threshold constant (3 tests)
+describe('Phase 3C.6 — SYSTEM_PERFORMANCE_WARNING: threshold constant', () => {
+  const typesSource = readProjectFile(
+    'modules/intelligence/system-recommendation/system-recommendation.types.ts'
+  )
+
+  it('OUTBOX_QUEUE_DEPTH_MIN is exported in REC_THRESHOLD', () => {
+    expect(typesSource).toContain('OUTBOX_QUEUE_DEPTH_MIN')
+  })
+  it('OUTBOX_QUEUE_DEPTH_MIN value is 10', () => {
+    expect(typesSource).toContain('OUTBOX_QUEUE_DEPTH_MIN: 10')
+  })
+  it('ERROR_COUNT_MIN is still present (no regression)', () => {
+    expect(typesSource).toContain('ERROR_COUNT_MIN')
+  })
+})
+
+// Block 4 — SYSTEM_PERFORMANCE_WARNING: recommendation generator (4 tests)
+describe('Phase 3C.6 — SYSTEM_PERFORMANCE_WARNING: recommendation generator', () => {
+  const serviceSource = readProjectFile(
+    'modules/intelligence/system-recommendation/system-recommendation.service.ts'
+  )
+
+  it('service contains checkPerformanceWarning function', () => {
+    expect(serviceSource).toContain('checkPerformanceWarning')
+  })
+  it('checkPerformanceWarning uses OUTBOX_QUEUE_DEPTH_MIN threshold', () => {
+    expect(serviceSource).toContain('OUTBOX_QUEUE_DEPTH_MIN')
+  })
+  it('generator wires in checkPerformanceWarning with outbox pending count', () => {
+    expect(serviceSource).toContain('checkPerformanceWarning(healthReport.outbox.pendingCount)')
+  })
+  it('checkPerformanceWarning produces SYSTEM_PERFORMANCE_WARNING rec type', () => {
+    expect(serviceSource).toContain("'SYSTEM_PERFORMANCE_WARNING'")
+  })
+})

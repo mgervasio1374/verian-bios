@@ -56,8 +56,9 @@ export async function listOpenErrors(
 }
 
 export async function resolveStructuredError(
-  id:       string,
-  tenantId: string,
+  id:          string,
+  tenantId:    string,
+  resolvedBy?: string | null,
 ): Promise<void> {
   const supabase = createSupabaseServiceClient()
   const { error } = await supabase
@@ -66,6 +67,7 @@ export async function resolveStructuredError(
       status:      SE_STATUS.RESOLVED,
       resolved:    true,
       resolved_at: new Date().toISOString(),
+      resolved_by: resolvedBy ?? null,
     })
     .eq('id', id)
     .eq('tenant_id', tenantId)

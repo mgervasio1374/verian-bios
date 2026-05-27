@@ -60,6 +60,18 @@ function checkWorkflowRecommendation(health: WorkflowHealthReport): RecCheckResu
   }
 }
 
+function checkPerformanceWarning(pendingOutboxCount: number): RecCheckResult | null {
+  if (pendingOutboxCount < REC_THRESHOLD.OUTBOX_QUEUE_DEPTH_MIN) return null
+  return {
+    recommendationType: 'SYSTEM_PERFORMANCE_WARNING',
+    title:   `${pendingOutboxCount} outbox events pending dispatch`,
+    body:    `${pendingOutboxCount} outbox events are currently pending. If this count is growing, ` +
+             `check the Workflow Health page for stuck workflows or repeated dispatch failures.`,
+    severity: 'warning',
+    priority: 'medium',
+  }
+}
+
 // ---- Orchestration ----
 
 export async function runSystemRecommendationGenerator(
@@ -87,6 +99,7 @@ export async function runSystemRecommendationGenerator(
       checkErrorDiagnosis(errorsSummary),
       checkImportHealth(failedBatchCount),
       checkWorkflowRecommendation(healthReport),
+      checkPerformanceWarning(healthReport.outbox.pendingCount),
     ]
 
     let created            = 0
