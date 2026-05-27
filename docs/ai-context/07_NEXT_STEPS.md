@@ -457,25 +457,53 @@ All deliverables committed, tagged, and staging-smoke-tested.
 
 ---
 
+## Completed — Phase 3F Workflow Execution Visibility v1.0
+
+All deliverables committed, tagged, and staging-smoke-tested.
+
+| Deliverable | Status |
+|-------------|--------|
+| Design & Test Cases v1.0 | Locked (`docs/roadmap/phase-3f-design-test-cases.md`) |
+| Implementation Plan v1.0 | Locked (`docs/roadmap/phase-3f-implementation-plan.md`) |
+| Code implementation | Complete — `f43f797`, tag `phase-3f-workflow-execution-visibility-v1` |
+| QA: 1048/1048 tests, build, TypeScript | PASSED |
+| Manual staging smoke | PASSED — login ✓, workspace ✓, lead detail ✓, Workflow Activity ✓, Email Draft History ✓, Workflow Errors ✓ |
+
+### What was delivered
+
+- `structured-error.repo.ts` extended — `getWorkflowErrorsForLead(tenantId, leadId)`: two-query pattern via `workflow_runs` (subject_type/subject_id) → `automation_failures` (status in open/investigating); early exit on empty runIds; tenant-isolated; read-only; no migration
+- `LeadActivityTimeline.tsx` — new server component; `EVENT_LABELS` map (18 entries); `OUTCOME_COLORS` map; `formatRelativeTime` helper; empty state; renders `occurred_at`, `event_summary`, `event_type`
+- `leads/[id]/page.tsx` extended — 3 new imports; `Promise.all` extended with `activityEvents` + `workflowErrors` (both non-fatal with `.catch(() => [])`); Email Draft History card (`emailDrafts.slice(1)`); Workflow Errors card (links to `system-intelligence/errors/[id]`); `LeadActivityTimeline` at bottom
+- `tests/phase3f-workflow-visibility.test.ts` — 21 source-reading tests, 6 describe blocks
+- No migration created. Next available migration remains `20240033`.
+
+### Key behavior
+
+- Operators see a live `Workflow Activity` timeline on the lead detail page — all 18 ET_/HRB_/SEB_/LA_ event types labeled and color-coded
+- Prior email drafts (all except the current one) surface in `Email Draft History` with status badge, subject, and date
+- Open and investigating automation failures linked to the lead's workflow runs surface in a `Workflow Errors` panel with severity badge and a direct link to the error detail page
+- All three panels are advisory and read-only — no server actions, no sends, no external LLMs
+- Activity events and workflow errors are non-fatal: a Supabase failure on either fetch does not break the lead detail page load
+- Production remains at the Phase 3E Vercel deployment (`dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH`) — Phase 3F has not yet been deployed to production
+
+---
+
 ## Next Recommended Step
 
-### Phase 3F — Not yet defined
+### Phase 3F Production Deployment — or Phase 3G Planning
 
-Phase 3E is locked. No Phase 3F scope has been defined or approved.
+Phase 3F is locked at `f43f797`. **Do not start any implementation work until the user explicitly approves a direction.**
 
-**Do not start any implementation work until the user explicitly approves a direction.**
+**Two options (user must choose):**
 
-**Production deployment complete:** Migration `20240032` applied to production (`kxrplupzbsmujjznzhpy`) and Vercel deployment `dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH` is live at `https://verian-bios.vercel.app`. Production smoke-tested 2026-05-27. No further deployment steps required for Phase 3E.
+1. **Phase 3F production deployment** — run `vercel --prod` to deploy Phase 3F to `https://verian-bios.vercel.app`. No migration required (Phase 3F added no DB changes). Smoke-test after deploy. This is safe and straightforward.
 
-**Possible next directions (user direction required before any work starts):**
-
-- **Phase 3F** — potential candidates based on current platform gaps:
-  - Email scheduling and throttle controls: operator-configurable rate limits and send windows
-  - Lead detail enrichment: deeper per-lead view surfacing full strategy history, version history, and outcome trail
-  - Bulk workflow enable/disable: select multiple leads from the kanban and enable/disable workflow in one action (deferred from Phase 3E v1)
-  - Leads list filter by `workflow_enabled`: URL param or client-side filter to isolate active/inactive leads (deferred from Phase 3E v1)
-  - Analytics improvements: date range picker, export, trend charts (Phase 3D v2 items)
-  - Phase 3C.7 targeted hardening (intentionally skipped; may be revisited)
+2. **Phase 3G planning** — define and design the next phase. Possible candidates based on current gaps:
+   - Bulk workflow enable/disable: select multiple leads from the kanban and toggle workflow in one action (deferred from Phase 3E v1)
+   - Leads list filter by `workflow_enabled`: URL param or client-side filter to isolate active/inactive leads (deferred from Phase 3E v1)
+   - Email scheduling and throttle controls: operator-configurable rate limits and send windows
+   - Analytics improvements: date range picker, export, trend charts (Phase 3D v2 items)
+   - Phase 3C.7 targeted hardening (intentionally skipped; may be revisited)
 
 When user direction is given, follow the standard sequence:
 

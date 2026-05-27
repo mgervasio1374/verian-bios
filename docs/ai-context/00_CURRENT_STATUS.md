@@ -25,6 +25,7 @@
 | Phase 3C.7 | Intentionally skipped for now. May be revisited later. |
 | Phase 3D — Revenue Analytics | Complete. Committed `08c3cdd`, tagged `phase-3d-revenue-analytics-v1`. Staging smoke-tested 2026-05-27. |
 | Phase 3E — Lead Workflow Control | Complete. Committed `48bfbbb`, tagged `phase-3e-lead-workflow-control-v1`. Staging migration `20240032` applied. Staging smoke-tested 2026-05-27. Production migration `20240032` applied. Production Vercel deployed (`dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH`). Production smoke-tested 2026-05-27. |
+| Phase 3F — Workflow Execution Visibility | Complete. Committed `f43f797`, tagged `phase-3f-workflow-execution-visibility-v1`. No migration. Staging smoke-tested 2026-05-27. Production remains at Phase 3E deployment (`dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH`). |
 
 ## Staging Foundation v1 — Locked
 
@@ -72,14 +73,14 @@
 
 ## QA Status (Last Verified)
 
-Verified at Phase 3E commit `48bfbbb`.
+Verified at Phase 3F commit `f43f797`.
 
 ```
 npx vitest run      → PASSED
 npx next build      → PASSED
 TypeScript          → PASSED
-1027/1027 tests passed
-  (18 new tests added since Phase 3D: Phase 3E Lead Workflow Control)
+1048/1048 tests passed
+  (21 new tests added since Phase 3E: Phase 3F Workflow Execution Visibility)
 ```
 
 ## Active Routes
@@ -96,6 +97,7 @@ TypeScript          → PASSED
 | `/[workspaceSlug]/settings/imports` | Active — import batch list |
 | `/[workspaceSlug]/settings/imports/new` | Active — upload new import file |
 | `/[workspaceSlug]/settings/imports/[batchId]` | Active — batch detail: validation summary, dedupe results, approve/cancel |
+| `/[workspaceSlug]/leads/[id]` | Active — Phase 3E: WorkflowToggle (enable/disable AI workflow per lead); Phase 3F: LeadActivityTimeline (workflow events, 18-type EVENT_LABELS map), Email Draft History (prior drafts via `emailDrafts.slice(1)`), Workflow Errors panel (linked `automation_failures` via `workflow_runs.subject_type/subject_id`) |
 | `/[workspaceSlug]/settings/analytics` | Active — Phase 3D: Revenue Analytics dashboard; Lead Pipeline, Email Performance (30d), Strategy Performance panels; read-only server component |
 
 ## Working Tree
@@ -104,11 +106,11 @@ Clean. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`48bfbbb` — Phase 3E: implement lead workflow control
+`f43f797` — Phase 3F: add workflow execution visibility
 
 ## Lock Tag
 
-`phase-3e-lead-workflow-control-v1` → `48bfbbb`
+`phase-3f-workflow-execution-visibility-v1` → `f43f797`
 
 ## Guardrails for Next Work
 
@@ -119,7 +121,7 @@ Clean. `master` up to date with `origin/master`.
 | Do not reconnect production Vercel Git without explicit user approval | Reconnecting restores auto-deploy on every master push |
 | Staging (`verian-bios-staging`) auto-deploys from master — unchanged | Staging is the continuous integration target; every push to master deploys staging |
 | Staging must remain deployable | All app code must stay compatible with staging at all times |
-| Tests must stay green | 1027/1027 is the current baseline; no regression allowed |
+| Tests must stay green | 1048/1048 is the current baseline; no regression allowed |
 | Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240033`. |
 | No environment-crossing assumptions | Local seed data, staging users, and remote dev state are not shared; never assume data from one env exists in another |
 | No debug routes left behind | Temporary diagnostic routes must be removed within the same work session; do not merge to master without cleanup |
@@ -127,4 +129,4 @@ Clean. `master` up to date with `origin/master`.
 
 ## Last Updated
 
-2026-05-27 — after Phase 3E Lead Workflow Control production deployment complete (commit `48bfbbb`, tag `phase-3e-lead-workflow-control-v1`, staging migration `20240032` applied, staging smoke-tested 23/23, production migration `20240032` applied to `kxrplupzbsmujjznzhpy`, production Vercel deployed `dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH`, production smoke-tested, 1027/1027 tests).
+2026-05-27 — after Phase 3F Workflow Execution Visibility complete (commit `f43f797`, tag `phase-3f-workflow-execution-visibility-v1`, no migration, staging smoke-tested, 1048/1048 tests). Production remains at Phase 3E deployment (`dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH`); Phase 3F not yet deployed to production.

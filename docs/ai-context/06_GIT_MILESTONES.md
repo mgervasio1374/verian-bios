@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3f-workflow-execution-visibility-v1` | Phase 3F Workflow Execution Visibility complete — getWorkflowErrorsForLead (two-query repo), LeadActivityTimeline server component (18 EVENT_LABELS, OUTCOME_COLORS, formatRelativeTime, empty state), lead detail page: activity timeline + draft history (slice(1)) + workflow errors panel, no migration, 21 new tests, 1048/1048 total |
 | `phase-3e-lead-workflow-control-v1` | Phase 3E Lead Workflow Control complete — migration 20240032 (workflow_enabled column), setWorkflowEnabledAction, WorkflowToggle client component, lead detail toggle, kanban read-only indicator, 18 new tests, 1027/1027 total |
 | `phase-3d-revenue-analytics-v1` | Phase 3D Revenue Analytics complete — read-only analytics dashboard, 3 panels (Lead Pipeline, Email Performance, Strategy Performance), Analytics sidebar nav, 22 new tests, 1009/1009 total |
 | `phase-3c6-system-intelligence-wrap-up-v1` | Phase 3C.6 System Intelligence Wrap-Up complete — resolved_by attribution in resolveStructuredError, SYSTEM_PERFORMANCE_WARNING recommendation generator with OUTBOX_QUEUE_DEPTH_MIN=10, 12 new tests |
@@ -35,6 +36,8 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `f43f797` | Phase 3F: add workflow execution visibility | Phase 3F |
+| `c54ece5` | Docs: record Phase 3E production deployment | Phase 3E Docs |
 | `48bfbbb` | Phase 3E: implement lead workflow control | Phase 3E |
 | `191c8f1` | Docs: add Phase 3E lead workflow control design | Phase 3E Docs |
 | `08c3cdd` | Phase 3D: implement revenue analytics dashboard | Phase 3D |
@@ -295,6 +298,7 @@
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-27 | 1048/1048 passed | PASSED | Phase 3F Workflow Execution Visibility — 21 new tests, 1027 existing pass. No migration. Staging smoke: login ✓, workspace ✓, lead detail page ✓, Workflow Activity timeline ✓, Email Draft History section ✓, Workflow Errors panel ✓. Tag: `phase-3f-workflow-execution-visibility-v1`. Production not yet deployed (Phase 3E deployment remains live). |
 | 2026-05-27 | 1027/1027 passed | PASSED | Phase 3E Lead Workflow Control — production deployed. Migration 20240032 applied to production (`kxrplupzbsmujjznzhpy`). Vercel deployment `dpl_GQdBM9Sewy9G4BtSB2aaJQotPQKH` live at `https://verian-bios.vercel.app`. Production smoke: passed. Vercel settings unchanged. |
 | 2026-05-27 | 1027/1027 passed | PASSED | Phase 3E Lead Workflow Control — 18 new tests, 1009 existing pass. Migration 20240032 applied to staging. Staging smoke: login ✓, workspace ✓, Workflow Off badge ✓, Enable Workflow ✓, badge→Workflow On ✓, WF On kanban badge ✓, Disable Workflow ✓, WF On badge removed ✓, Revenue Analytics unchanged ✓. 23/23 checklist items passed. Tag: `phase-3e-lead-workflow-control-v1`. |
 | 2026-05-27 | 1009/1009 passed | PASSED | Phase 3D Revenue Analytics — 22 new tests, 987 existing pass. Staging smoke: login ✓, workspace ✓, Analytics sidebar link ✓, /main/settings/analytics loads ✓, all 3 panels render ✓, footer links ✓. Tag: `phase-3d-revenue-analytics-v1`. |
@@ -318,7 +322,15 @@
 
 ## Current HEAD
 
-`48bfbbb` — Phase 3E: implement lead workflow control
+`f43f797` — Phase 3F: add workflow execution visibility
+
+### Phase 3F: Workflow Execution Visibility (`f43f797`)
+- `modules/intelligence/structured-errors/structured-error.repo.ts` — **modified** — `getWorkflowErrorsForLead(tenantId, leadId)` appended; two-query pattern: `workflow_runs (subject_type='lead', subject_id=leadId, limit 20)` → early return if empty → `automation_failures (workflow_run_id IN runIds, status IN ['open','investigating'], limit 10)`; read-only, tenant-isolated on both queries; no JOIN syntax; no new migration
+- `app/(workspace)/[workspaceSlug]/leads/[id]/LeadActivityTimeline.tsx` — **new** — server component (no `'use client'`); `EVENT_LABELS` map (18 event types); `OUTCOME_COLORS` map (7 entries); `formatRelativeTime` inline arithmetic helper; empty state on `events.length === 0`; `occurred_at` displayed as relative time with ISO title tooltip; `event_summary` displayed when present
+- `app/(workspace)/[workspaceSlug]/leads/[id]/page.tsx` — **modified** — 3 new imports (`activityEventRepo`, `structuredErrorRepo`, `LeadActivityTimeline`); `Promise.all` extended from 4 to 6 items (`activityEvents` + `workflowErrors`, both with `.catch(() => [])` non-fatal fallback); JSX extended with Email Draft History card (`emailDrafts.slice(1)`), Workflow Errors card (links to `system-intelligence/errors/[id]`), `LeadActivityTimeline`
+- `tests/phase3f-workflow-visibility.test.ts` — **new** — 21 source-reading tests across 6 describe blocks (repo function ×3, timeline structure ×4, timeline display ×3, page data loading ×4, page draft history ×2, page error awareness ×2, guardrails ×3)
+- `docs/roadmap/phase-3f-design-test-cases.md` — **new** — Phase 3F design document
+- `docs/roadmap/phase-3f-implementation-plan.md` — **new** — Phase 3F implementation plan
 
 ### Phase 3E: Lead Workflow Control (`48bfbbb`)
 - `supabase/migrations/20240032_phase3e_lead_workflow_enabled.sql` — **new** — `ALTER TABLE leads ADD COLUMN workflow_enabled boolean NOT NULL DEFAULT false`; applied to staging (`smbausuyetlgxflyhmfg`) and production (`kxrplupzbsmujjznzhpy`) 2026-05-27
