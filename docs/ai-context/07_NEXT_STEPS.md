@@ -555,13 +555,60 @@ Staging Resend API key is invalid — `ET_SEND_SUCCEEDED` and real webhook struc
 
 ---
 
+## Completed — Phase 3I Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy v1.0
+
+All deliverables committed and QA-verified. Migration `20240034` applied to local, staging, and production.
+
+| Deliverable | Status |
+|-------------|--------|
+| Design & Test Cases | Locked (`docs/roadmap/phase-3i-design-test-cases.md`) |
+| Implementation Plan | Locked (`docs/roadmap/phase-3i-implementation-plan.md`) |
+| Code implementation | Complete — `917738f` |
+| QA: 1130/1130 tests, build, TypeScript | PASSED |
+| Migration `20240034` applied to local | PASSED — 2026-05-28 |
+| Migration `20240034` applied to staging (`smbausuyetlgxflyhmfg`) | PASSED — 2026-05-28 |
+| Migration `20240034` applied to production (`kxrplupzbsmujjznzhpy`) | PASSED — 2026-05-28 |
+
+### What was delivered
+
+- `supabase/migrations/20240034_phase3i_decision_usage_budget_campaign.sql` — 6 new tables (`agent_decisions`, `ai_usage_events`, `ai_budget_policies`, `ai_budget_events`, `campaign_email_assets`, `campaign_email_sends`); RLS + grants on all 6; circular FK resolved: `agent_decisions.ai_usage_event_id → ai_usage_events` is the real FK; `ai_usage_events.decision_id` is a plain uuid with no constraint
+- `types/database.ts` — Row/Insert/Update types for all 6 new tables
+- 4 new intelligence repos: `agent-decision.repo.ts` (`createDecision`, `getLeadDecisions`, `getDecisionById`), `ai-usage-event.repo.ts` (`recordUsage`, `getUsageSummary`, `getLeadUsageSummary`, plus 5 aggregation queries), `ai-budget-policy.repo.ts` (`createPolicy`, `listActivePoliciesForTenant`), `ai-budget-event.repo.ts` (`recordBudgetEvent`)
+- 2 new messaging repos: `campaign-email-asset.repo.ts` (`createAsset`, `updateAssetStatus` with `approvedBy` guard), `campaign-email-send.repo.ts` (does NOT call `sendApprovedDraft` — safety guardrail)
+- `ai-cost-estimator.service.ts` — `estimateCostUsd` with per-model pricing for `claude-sonnet-4-6` and `claude-haiku-4-5-20251001`
+- `ai-budget-enforcer.service.ts` — `preflightCheck` (fail-open on Supabase error; creates `AI_CALL_BLOCKED_BY_BUDGET` CRITICAL error + `CALL_BLOCKED` budget event when blocked; 75/90/100% thresholds → WARNING/ALERT/BLOCKED); does NOT import Anthropic SDK
+- `campaign-personalization.service.ts` — `renderCampaignAsset` with `{{variable_name}}` double-brace substitution; no Resend or LLM calls
+- `structured-error.types.ts` — `AI_BUDGET_FAILURE_TYPE` const block + `AI_CALL_BLOCKED_BY_BUDGET` constant added (additive)
+- `system-recommendation.types.ts` — `REC_TYPE_3I` const block added (additive)
+- `createDecision` writes added to 5 services: `scoring-pipeline.service.ts`, `recommendation.service.ts`, `email-draft.service.ts`, `quality-review-agent.service.ts`, `learning-agent.service.ts` (all non-fatal `.catch()`)
+- `preflightCheck` + `recordUsage` added to 4 agent services: `message-strategy.service.ts`, `copywriting-agent.service.ts`, `quality-review-agent.service.ts`, `email-rewrite-loop.service.ts` (all non-fatal; 0-token writes for rule-based v1 agents)
+- `AgentDecisionPanel.tsx` — new server component on lead detail page; 10 most recent decisions per lead; BLOCKED status displays budget exhaustion message; Completed/Blocked/Failed/Overridden status badges
+- `leads/[id]/page.tsx` — extended with `agentDecisionRepo.getLeadDecisions` and `aiUsageRepo.getLeadUsageSummary`; `AgentDecisionPanel` rendered above `LeadActivityTimeline`
+- `settings/ai-usage/page.tsx` — new server component at `/settings/ai-usage`; 8 panels (Summary KPIs today/month, By Agent, By Model, By Feature, Top Leads by AI Cost, Campaign placeholder, 30-Day Trend, Recent Failed Calls)
+- `components/layout/Sidebar.tsx` — `Cpu` icon added; AI Usage nav entry between Analytics and Settings
+- 47 source-reading tests (TC-3I-001 through TC-3I-047) — all pass
+
+### Key behavior
+
+- Every LLM-capable agent service calls `preflightCheck()` before the AI call and `recordUsage()` after; rule-based v1 agents use 0-token writes as infrastructure hooks
+- `preflightCheck` is fail-open — a Supabase error never blocks the agent call
+- When blocked by budget, a `CRITICAL` structured error (`AI_CALL_BLOCKED_BY_BUDGET`) is created and a `CALL_BLOCKED` budget event is recorded
+- All `createDecision` and `recordUsage` calls are wrapped in `.catch()` — non-fatal writes never block agent operation
+- `EMAIL_SENDING_ENABLED` remains disabled — campaign email asset tables are created but no sends are enabled
+- No Vercel changes. No lock tag created yet — pending user approval.
+
+---
+
 ## Next Recommended Step
 
-### Pause / Phase 3I Design When Approved
+### Final Phase 3I Production Smoke Test / Lock Report
 
-Phase 3H is fully complete and production-deployed. Production Supabase is current through migration `20240033`. Production Vercel is at `dpl_EVRkZE2uMYsxft5zCMYAtoqWxZ9F` (Phase 3H, 2026-05-27). `EMAIL_SENDING_ENABLED` remains disabled — no live sends without explicit approval.
+Phase 3I is fully implemented. All three databases are migrated through `20240034`. Implementation commit `917738f`. 1130/1130 tests. `EMAIL_SENDING_ENABLED` remains disabled.
 
-**When ready to proceed:** Request Phase 3I design. Phase 3I is Agent Decision Log — per the Phase 3G roadmap (3H → 3I → 3J → 3K before any production sending can expand). Design & Test Cases must be produced and approved before any Phase 3I code is written.
+**Recommended next actions (in order):**
+1. Perform a final production smoke test of Phase 3I features: AgentDecisionPanel on a lead detail page, AI Usage Board at `/settings/ai-usage`.
+2. After smoke test passes, create the Phase 3I lock tag **only after explicit user approval**: `phase-3i-agent-decision-usage-budget-v1 → 917738f`.
+3. **Do not begin Phase 3J yet.** Phase 3J (Unified Draft Path) design must be produced and approved before any Phase 3J code is written.
 
 ---
 

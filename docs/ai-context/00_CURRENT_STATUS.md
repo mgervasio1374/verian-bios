@@ -28,6 +28,7 @@
 | Phase 3F — Workflow Execution Visibility | Complete. Committed `f43f797`, tagged `phase-3f-workflow-execution-visibility-v1`. No migration. Staging smoke-tested 2026-05-27. Production Vercel deployed (`dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa`). Production smoke-tested 2026-05-27 (14/14 checks). |
 | Phase 3G — Agent Operations Readiness & Control Map | Complete. Documentation/control-map only. Committed `a4f488a`, tagged `phase-3g-agent-operations-readiness-v1`. No source code changed. No migration created. Key finding: `EMAIL_SENDING_ENABLED` not enforced in `sendApprovedDraft()` — must be fixed in Phase 3H. |
 | Phase 3H — Send Safety Hardening | Complete. Committed `b10d0db`, tagged `phase-3h-send-safety-hardening-v1`. Migration `20240033` applied to staging and production. Production Vercel deployed (`dpl_EVRkZE2uMYsxft5zCMYAtoqWxZ9F`). Production smoke-tested 2026-05-27 (11/11 checks). |
+| Phase 3I — Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy | Complete. Committed `917738f`. Migration `20240034` applied to local, staging, and production 2026-05-28. |
 
 ## Staging Foundation v1 — Locked
 
@@ -40,9 +41,9 @@
 
 | Environment | Supabase ref | Migrations applied | Auth/Access |
 |-------------|-------------|-------------------|-------------|
-| Local | Docker / `127.0.0.1:54321` | 001–031 | Local seed user `dev@verian.local` |
-| Production | `kxrplupzbsmujjznzhpy` | 001–033 | Standard access — `https://verian-bios.vercel.app` |
-| Staging | `smbausuyetlgxflyhmfg` | 001–033 | `staging@verian.internal` / platform_admin |
+| Local | Docker / `127.0.0.1:54321` | 001–034 | Local seed user `dev@verian.local` |
+| Production | `kxrplupzbsmujjznzhpy` | 001–034 | Standard access — `https://verian-bios.vercel.app` |
+| Staging | `smbausuyetlgxflyhmfg` | 001–034 | `staging@verian.internal` / platform_admin |
 
 ### Verified Access Paths
 
@@ -68,21 +69,21 @@
 | Item | State |
 |------|-------|
 | `RESEND_API_KEY` on staging | Dummy value — email sending disabled, safe |
-| Production Supabase (`kxrplupzbsmujjznzhpy`) | Migrations 001–033 applied. `20240033` applied 2026-05-27. Production database is up to date. |
+| Production Supabase (`kxrplupzbsmujjznzhpy`) | Migrations 001–034 applied. `20240034` applied 2026-05-28. Production database is up to date. |
 | Production Vercel (`verian-bios.vercel.app`) | **Git disconnected (Track A complete, 2026-05-26).** Production no longer auto-deploys from `origin/master`. Staging (`verian-bios-staging`) continues to auto-deploy from master. Production deploys are explicit and manual via `vercel --prod` or Vercel dashboard only. Latest deployment: `dpl_EVRkZE2uMYsxft5zCMYAtoqWxZ9F` (Phase 3H, 2026-05-27). |
 | Temporary debug route | Removed (`0b6441f`) — `/api/debug/staging-auth` returns 404 (unauthenticated requests receive 307 → /login from middleware before reaching the absent route handler) |
 | Local dev seed | `supabase/seed.sql` committed at `9153a86` — local-only, never run on staging/production |
 
 ## QA Status (Last Verified)
 
-Verified at Phase 3H commit `b10d0db`.
+Verified at Phase 3I commit `917738f`.
 
 ```
 npx vitest run      → PASSED
 npx next build      → PASSED
 TypeScript          → PASSED
-1083/1083 tests passed
-  (35 new tests added since Phase 3G: Phase 3H Send Safety Hardening)
+1130/1130 tests passed
+  (47 new tests added since Phase 3H: Phase 3I Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy)
 ```
 
 ## Active Routes
@@ -99,8 +100,9 @@ TypeScript          → PASSED
 | `/[workspaceSlug]/settings/imports` | Active — import batch list |
 | `/[workspaceSlug]/settings/imports/new` | Active — upload new import file |
 | `/[workspaceSlug]/settings/imports/[batchId]` | Active — batch detail: validation summary, dedupe results, approve/cancel |
-| `/[workspaceSlug]/leads/[id]` | Active — Phase 3E: WorkflowToggle (enable/disable AI workflow per lead); Phase 3F: LeadActivityTimeline (workflow events, 18-type EVENT_LABELS map), Email Draft History (prior drafts via `emailDrafts.slice(1)`), Workflow Errors panel (linked `automation_failures` via `workflow_runs.subject_type/subject_id`) |
+| `/[workspaceSlug]/leads/[id]` | Active — Phase 3E: WorkflowToggle (enable/disable AI workflow per lead); Phase 3F: LeadActivityTimeline (workflow events, 18-type EVENT_LABELS map), Email Draft History (prior drafts via `emailDrafts.slice(1)`), Workflow Errors panel (linked `automation_failures` via `workflow_runs.subject_type/subject_id`); Phase 3I: AgentDecisionPanel (10 most recent agent decisions per lead, BLOCKED status with budget exhaustion message) |
 | `/[workspaceSlug]/settings/analytics` | Active — Phase 3D: Revenue Analytics dashboard; Lead Pipeline, Email Performance (30d), Strategy Performance panels; read-only server component |
+| `/[workspaceSlug]/settings/ai-usage` | Active — Phase 3I: AI Usage Board; token/cost KPIs (today/month); Usage by Agent, Model, Feature tables; Top Leads by AI Cost; 30-Day Usage Trend; Recent Failed AI Calls |
 
 ## Working Tree
 
@@ -108,7 +110,7 @@ Clean. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`ba492a4` — Docs: update AI context for Phase 3H lock
+`917738f` — Phase 3I: implement agent decision usage budget campaign asset foundation
 
 ## Lock Tag
 
@@ -118,13 +120,13 @@ Clean. `master` up to date with `origin/master`.
 
 | Guardrail | Reason |
 |-----------|--------|
-| Production Supabase (`kxrplupzbsmujjznzhpy`) is current through migration `20240033` | Next available migration is `20240034` |
+| Production Supabase (`kxrplupzbsmujjznzhpy`) is current through migration `20240034` | Next available migration is `20240035` |
 | Production Vercel (`verian-bios`) no longer auto-deploys from `origin/master` | Track A complete — Git disconnected. Production deploys must be explicit via `vercel --prod` or Vercel dashboard |
 | Do not reconnect production Vercel Git without explicit user approval | Reconnecting restores auto-deploy on every master push |
 | Staging (`verian-bios-staging`) auto-deploys from master — unchanged | Staging is the continuous integration target; every push to master deploys staging |
 | Staging must remain deployable | All app code must stay compatible with staging at all times |
-| Tests must stay green | 1083/1083 is the current baseline; no regression allowed |
-| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240034`. |
+| Tests must stay green | 1130/1130 is the current baseline; no regression allowed |
+| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240035`. |
 | No environment-crossing assumptions | Local seed data, staging users, and remote dev state are not shared; never assume data from one env exists in another |
 | No debug routes left behind | Temporary diagnostic routes must be removed within the same work session; do not merge to master without cleanup |
 | Any new phase requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
@@ -132,4 +134,4 @@ Clean. `master` up to date with `origin/master`.
 
 ## Last Updated
 
-2026-05-27 — after Phase 3H Send Safety Hardening production deployment complete. Gate 0 (`EMAIL_SENDING_ENABLED`) enforced in `sendApprovedDraft()` — kill switch operational. `ET_SEND_*` events unconditional for all sends (Phase 3A + Phase 3B). `failure_reason` and `triggered_by` typed columns on `email_sends` (migration `20240033`). Webhook structured errors for bounce/complaint/delay. Migration `20240033` applied to staging and production. Production Vercel `dpl_EVRkZE2uMYsxft5zCMYAtoqWxZ9F` deployed 2026-05-27; production smoke 11/11 passed. `EMAIL_SENDING_ENABLED` remains disabled on production — no live sending without explicit approval. 1083/1083 tests. HEAD: `ba492a4`.
+2026-05-28 — after Phase 3I Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy complete. 6 new tables: `agent_decisions`, `ai_usage_events`, `ai_budget_policies`, `ai_budget_events`, `campaign_email_assets`, `campaign_email_sends` (migration `20240034`). `preflightCheck` + `recordUsage` infrastructure hooks added to 4 LLM-capable agent services. `createDecision` writes added to 5 core services. AgentDecisionPanel on lead detail page. AI Usage Board at `/settings/ai-usage`. Campaign personalization renderer. 47 new source-reading tests. Migration `20240034` applied to local, staging, and production 2026-05-28. `EMAIL_SENDING_ENABLED` remains disabled — no live sends without explicit approval. 1130/1130 tests. HEAD: `917738f`.

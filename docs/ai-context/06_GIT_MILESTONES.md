@@ -38,6 +38,9 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `917738f` | Phase 3I: implement agent decision usage budget campaign asset foundation | Phase 3I |
+| `b7415d0` | Docs: add Phase 3I implementation plan | Phase 3I Docs |
+| `224a954` | Docs: add Phase 3I agent decision usage budget campaign asset design | Phase 3I Docs |
 | `ba492a4` | Docs: update AI context for Phase 3H lock | Phase 3H Docs |
 | `b10d0db` | Phase 3H: harden email send safety | Phase 3H |
 | `b704506` | Docs: add Phase 3H send safety hardening design and plan | Phase 3H Docs |
@@ -117,6 +120,35 @@
 | `b50665d` | Add statement analysis PDF proposal package | Phase 4 |
 
 ## What Each Group Contains
+
+### Phase 3I: Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy (`917738f`)
+
+- `supabase/migrations/20240034_phase3i_decision_usage_budget_campaign.sql` — **new** — creates 6 tables: `agent_decisions` (per-decision log; `ai_usage_event_id uuid NULL REFERENCES ai_usage_events (id)`), `ai_usage_events` (token/cost/model tracking; `decision_id uuid NULL` — no FK to avoid circular dependency), `ai_budget_policies` (tenant-scoped daily/monthly limits), `ai_budget_events` (CALL_BLOCKED/THRESHOLD_ALERT/THRESHOLD_WARNING records), `campaign_email_assets` (email templates with approval workflow), `campaign_email_sends` (send records); RLS: SELECT USING (tenant_id::text = auth.jwt()->>'tenant_id'), ALL USING (auth.role() = 'service_role'); GRANT SELECT ON all 6 TO authenticated; GRANT ALL TO service_role; applied to local, staging (`smbausuyetlgxflyhmfg`), and production (`kxrplupzbsmujjznzhpy`) 2026-05-28
+- `types/database.ts` — **modified** — Row/Insert/Update types added for all 6 new tables
+- `modules/intelligence/repositories/agent-decision.repo.ts` — **new** — `createDecision`, `getLeadDecisions`, `getDecisionById`
+- `modules/intelligence/repositories/ai-usage-event.repo.ts` — **new** — `recordUsage`, `getUsageSummary`, `getLeadUsageSummary`, `getUsageByAgent`, `getUsageByModel`, `getUsageByFeature`, `getTopLeadsByUsage`, `getUsageTrend`, `getFailedCalls`
+- `modules/intelligence/repositories/ai-budget-policy.repo.ts` — **new** — `createPolicy`, `listActivePoliciesForTenant`
+- `modules/intelligence/repositories/ai-budget-event.repo.ts` — **new** — `recordBudgetEvent`
+- `modules/messaging/repositories/campaign-email-asset.repo.ts` — **new** — `createAsset`, `updateAssetStatus` (guards: `approvedBy is required when approving or activating an asset`)
+- `modules/messaging/repositories/campaign-email-send.repo.ts` — **new** — does NOT call `sendApprovedDraft` (safety guardrail)
+- `modules/intelligence/services/ai-cost-estimator.service.ts` — **new** — `estimateCostUsd` with per-model pricing for `'claude-sonnet-4-6'` and `'claude-haiku-4-5-20251001'`
+- `modules/intelligence/services/ai-budget-enforcer.service.ts` — **new** — `preflightCheck` (fail-open on Supabase error; `AI_CALL_BLOCKED_BY_BUDGET` CRITICAL structured error + `CALL_BLOCKED` budget event when blocked; 75/90/100% thresholds → `AI_BUDGET_THRESHOLD_WARNING` / `AI_BUDGET_THRESHOLD_ALERT` / `AI_CALL_BLOCKED_BY_BUDGET`); does NOT import Anthropic SDK
+- `modules/messaging/services/campaign-personalization.service.ts` — **new** — `renderCampaignAsset` with `{{variable_name}}` double-brace substitution; no Resend or LLM calls
+- `modules/intelligence/structured-errors/structured-error.types.ts` — **modified** — `AI_BUDGET_FAILURE_TYPE` const block + `AI_CALL_BLOCKED_BY_BUDGET` constant added (additive)
+- `modules/intelligence/system-recommendation/system-recommendation.types.ts` — **modified** — `REC_TYPE_3I` const block added (additive)
+- `modules/intelligence/services/scoring-pipeline.service.ts` — **modified** — `createDecision` call added (non-fatal `.catch()`)
+- `modules/intelligence/services/recommendation.service.ts` — **modified** — `createDecision` call added (non-fatal `.catch()`)
+- `modules/messaging/services/email-draft.service.ts` — **modified** — `createDecision` call added (non-fatal `.catch()`)
+- `modules/messaging/quality-review/quality-review-agent.service.ts` — **modified** — `createDecision` + `preflightCheck` + `recordUsage` calls added (all non-fatal)
+- `modules/messaging/learning-agent/learning-agent.service.ts` — **modified** — `createDecision` call added (non-fatal `.catch()`)
+- `modules/messaging/strategy/message-strategy.service.ts` — **modified** — `preflightCheck` + `recordUsage` calls added (non-fatal); bug fix: `n.lead.stage` → `n.lead.state`, `n.lead.source` → `n.lead.lead_source` (wrong field names in `inputSnapshot`)
+- `modules/messaging/copywriting/copywriting-agent.service.ts` — **modified** — `preflightCheck` + `recordUsage` calls added (non-fatal)
+- `modules/messaging/services/email-rewrite-loop.service.ts` — **modified** — `preflightCheck` + `recordUsage` calls added (non-fatal)
+- `app/(workspace)/[workspaceSlug]/leads/[id]/AgentDecisionPanel.tsx` — **new** — server component; 10 most recent agent decisions per lead; BLOCKED status shows budget exhaustion message; Completed/Blocked/Failed/Overridden badges; AI cost line if `totalCostUsd > 0`
+- `app/(workspace)/[workspaceSlug]/leads/[id]/page.tsx` — **modified** — `agentDecisionRepo.getLeadDecisions` + `aiUsageRepo.getLeadUsageSummary` added; `AgentDecisionPanel` rendered above `LeadActivityTimeline`
+- `app/(workspace)/[workspaceSlug]/settings/ai-usage/page.tsx` — **new** — server component; 8 panels: Summary KPIs (today/month), By Agent table, By Model table, By Feature table, Top Leads by AI Cost, Campaign placeholder, 30-Day Trend, Recent Failed Calls
+- `components/layout/Sidebar.tsx` — **modified** — `Cpu` icon added; AI Usage nav entry added between Analytics and Settings
+- `tests/phase3i-decision-usage-budget-campaign-assets.test.ts` — **new** — 47 source-reading tests across 11 describe blocks (TC-3I-001 through TC-3I-047); all pass
 
 ### Phase 3H: Send Safety Hardening (`b10d0db`)
 - `supabase/migrations/20240033_phase3h_email_send_hardening.sql` — **new** — `ALTER TABLE email_sends ADD COLUMN IF NOT EXISTS failure_reason text, ADD COLUMN IF NOT EXISTS triggered_by text`; applied to staging (`smbausuyetlgxflyhmfg`) and production (`kxrplupzbsmujjznzhpy`) 2026-05-27
@@ -316,6 +348,7 @@
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-28 | 1130/1130 passed | PASSED | Phase 3I Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy — 47 new source-reading tests. Migration `20240034` applied to local, staging (`smbausuyetlgxflyhmfg`), and production (`kxrplupzbsmujjznzhpy`) 2026-05-28. 6 new tables verified on all three environments. `EMAIL_SENDING_ENABLED` remains disabled. Implementation commit: `917738f`. |
 | 2026-05-27 | 1083/1083 passed | PASSED | Phase 3H production deployed. Migration `20240033` applied to production (`kxrplupzbsmujjznzhpy`). Production Vercel `dpl_EVRkZE2uMYsxft5zCMYAtoqWxZ9F` live at `https://verian-bios.vercel.app`. Production smoke: 11/11 checks passed. `EMAIL_SENDING_ENABLED` remains disabled — no live sends. Docs updated at `ba492a4`. |
 | 2026-05-27 | 1083/1083 passed | PASSED | Phase 3H Send Safety Hardening — 35 new source-reading tests. Migration `20240033` applied to staging (`smbausuyetlgxflyhmfg`). Staging smoke: Gate 0 blocks send when `EMAIL_SENDING_ENABLED = false` ✓, `failure_reason` column exists ✓, `triggered_by` column exists ✓, failure path creates `email_sends` row ✓, `ET_SEND_INITIATED` ✓, `ET_SEND_FAILED` ✓, `send_path = phase_3a_template` ✓. Known limitation: `ET_SEND_SUCCEEDED` and webhook structured-error smoke not testable on staging (invalid Resend key). Tag: `phase-3h-send-safety-hardening-v1`. |
 | 2026-05-27 | 1048/1048 passed | N/A | Phase 3G Agent Operations Readiness & Control Map — documentation/control-map only. No source code changed. No migration created. No deployment. Key finding: `EMAIL_SENDING_ENABLED` not enforced in `sendApprovedDraft()`. Phase 3A sends emit no activity events. Roadmap 3H→3M defined. Baseline 1048/1048 unchanged. Tag: `phase-3g-agent-operations-readiness-v1`. |
@@ -344,7 +377,7 @@
 
 ## Current HEAD
 
-`ba492a4` — Docs: update AI context for Phase 3H lock
+`917738f` — Phase 3I: implement agent decision usage budget campaign asset foundation
 
 ### Phase 3G: Agent Operations Readiness & Control Map (`a4f488a`)
 - `docs/roadmap/phase-3g-agent-operations-readiness-design.md` — **new** — full control map: agent inventory (13 active agents, 4 planned), decision lifecycle audit (12 steps), human approval gates, email engine redesign boundary, campaign assignment model design, Resend readiness checklist, observability gaps, safety model, roadmap 3H→3M, recommended pause milestone
@@ -396,5 +429,6 @@
 | `20240031` | Staging Foundation — `anon`+`authenticated` GRANT ALL on all tables/sequences/routines + ALTER DEFAULT PRIVILEGES |
 | `20240032` | Phase 3E — `ALTER TABLE leads ADD COLUMN workflow_enabled boolean NOT NULL DEFAULT false`; applied to staging (`smbausuyetlgxflyhmfg`) and production (`kxrplupzbsmujjznzhpy`) |
 | `20240033` | Phase 3H — `ALTER TABLE email_sends ADD COLUMN IF NOT EXISTS failure_reason text, ADD COLUMN IF NOT EXISTS triggered_by text`; applied to staging (`smbausuyetlgxflyhmfg`) and production (`kxrplupzbsmujjznzhpy`) 2026-05-27 |
+| `20240034` | Phase 3I — creates `agent_decisions`, `ai_usage_events`, `ai_budget_policies`, `ai_budget_events`, `campaign_email_assets`, `campaign_email_sends` tables; RLS + grants on all 6 tables; applied to local, staging (`smbausuyetlgxflyhmfg`), and production (`kxrplupzbsmujjznzhpy`) 2026-05-28 |
 
 Note: No new migration was added for the Human Review / Approval Bridge, the Send / Email Draft Bridge, or Event Tracking. All three use existing tables and columns only. Phase 3B provenance travels via `email_drafts.ai_generation_metadata` (jsonb) at draft creation, then is copied into `email_sends.metadata` (jsonb) at send time. Event Tracking activity events are appended to the existing `activity_events` table. The Learning Agent adds migration `20240025` for `learning_snapshots` — its only write target.
