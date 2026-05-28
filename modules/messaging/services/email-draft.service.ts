@@ -7,6 +7,7 @@ import * as leadRepo from '@/modules/crm/repositories/lead.repo'
 import * as recommendationRepo from '@/modules/intelligence/repositories/recommendation.repo'
 import * as approvalRepo from '@/modules/workflow/repositories/approval.repo'
 import { reviewAndPersistEmailDraftQuality } from '@/modules/messaging/services/email-quality-review-runner.service'
+import * as agentDecisionRepo from '@/modules/intelligence/repositories/agent-decision.repo'
 
 type ApprovalRow = Database['public']['Tables']['approval_requests']['Row']
 
@@ -228,6 +229,21 @@ export async function createLeadEmailDraft(
 
   // 14. Link approval back to draft
   await emailDraftRepo.linkApprovalToEmailDraft(draft.id, approval.id)
+
+  agentDecisionRepo.createDecision({
+    tenantId:       ctx.tenantId,
+    workspaceId:    ctx.workspaceId,
+    agentName:      'auto_draft_creator',
+    agentVersion:   'template-v1',
+    decisionType:   'template_selected',
+    decisionStatus: 'completed',
+    leadId,
+    draftId:        draft.id,
+    shortReason:    `Template ${templateSlug} selected for rule ${ruleId}`,
+    inputSnapshot:  { rule_id: ruleId, template_slug: templateSlug, lead_stage: lead.stage, has_contact: !!lead.contact_id },
+    outputSummary:  { draft_id: draft.id, template_slug: templateSlug, superseded_count: supersededIds.length },
+    learningTags:   [templateSlug, ruleId, lead.stage ?? 'unknown_stage'],
+  }).catch((err) => console.error('[auto-draft-creator] Failed to write agent decision:', err))
 
   return {
     ok: true,

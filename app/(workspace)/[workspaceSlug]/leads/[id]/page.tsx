@@ -20,7 +20,10 @@ import { RewriteVersionPanel } from './RewriteVersionPanel'
 import { WorkflowToggle } from './WorkflowToggle'
 import * as activityEventRepo from '@/modules/intelligence/repositories/activity-event.repo'
 import * as structuredErrorRepo from '@/modules/intelligence/structured-errors/structured-error.repo'
+import * as agentDecisionRepo from '@/modules/intelligence/repositories/agent-decision.repo'
+import * as aiUsageRepo from '@/modules/intelligence/repositories/ai-usage-event.repo'
 import { LeadActivityTimeline } from './LeadActivityTimeline'
+import { AgentDecisionPanel } from './AgentDecisionPanel'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string; id: string }>
@@ -34,7 +37,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
   const lead = await leadService.getLead(ctx, id).catch(() => null)
   if (!lead) notFound()
 
-  const [fitScore, urgencyScore, recommendations, emailDrafts, activityEvents, workflowErrors] =
+  const [fitScore, urgencyScore, recommendations, emailDrafts, activityEvents, workflowErrors, agentDecisions] =
     await Promise.all([
       scoreRepo.getCurrentFitScore(ctx.tenantId, 'lead', id),
       scoreRepo.getCurrentUrgencyScore(ctx.tenantId, 'lead', id),
@@ -42,7 +45,10 @@ export default async function LeadDetailPage({ params }: PageProps) {
       emailDraftRepo.getLeadEmailDrafts(ctx.tenantId, id),
       activityEventRepo.listLeadActivityEvents(ctx.tenantId, id, { limit: 20 }).catch(() => [] as Awaited<ReturnType<typeof activityEventRepo.listLeadActivityEvents>>),
       structuredErrorRepo.getWorkflowErrorsForLead(ctx.tenantId, id).catch(() => [] as Awaited<ReturnType<typeof structuredErrorRepo.getWorkflowErrorsForLead>>),
+      agentDecisionRepo.getLeadDecisions(ctx.tenantId, id, 10).catch(() => [] as Awaited<ReturnType<typeof agentDecisionRepo.getLeadDecisions>>),
     ])
+
+  const leadUsage = await aiUsageRepo.getLeadUsageSummary(ctx.tenantId, id).catch(() => ({ totalCostUsd: 0, callCount: 0 }))
 
   const recommendation  = recommendations[0] ?? null
   const latestDraft     = emailDrafts[0] ?? null
@@ -340,6 +346,13 @@ export default async function LeadDetailPage({ params }: PageProps) {
             </CardContent>
           </Card>
         )}
+
+        {/* Agent Decisions — always rendered */}
+        <AgentDecisionPanel
+          decisions={agentDecisions}
+          totalCostUsd={leadUsage.totalCostUsd}
+          callCount={leadUsage.callCount}
+        />
 
         {/* Workflow Activity Timeline — always rendered */}
         <LeadActivityTimeline events={activityEvents} />

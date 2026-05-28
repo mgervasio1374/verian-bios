@@ -5,6 +5,7 @@ import type {
 } from '@/modules/intelligence/types'
 import * as recommendationRepo from '@/modules/intelligence/repositories/recommendation.repo'
 import * as leadRepo from '@/modules/crm/repositories/lead.repo'
+import * as agentDecisionRepo from '@/modules/intelligence/repositories/agent-decision.repo'
 
 // ---- Rule definitions ----
 
@@ -248,7 +249,7 @@ export async function generateRecommendation(
     generated_at: new Date().toISOString(),
   }
 
-  return recommendationRepo.persistRecommendation({
+  const savedRec = await recommendationRepo.persistRecommendation({
     tenantId: ctx.tenantId,
     workspaceId: ctx.workspaceId,
     subjectType: 'lead',
@@ -261,4 +262,22 @@ export async function generateRecommendation(
     promptConfigId: null,
     rawOutput,
   })
+
+  agentDecisionRepo.createDecision({
+    tenantId:         ctx.tenantId,
+    workspaceId:      ctx.workspaceId,
+    agentName:        'recommendation_generator',
+    agentVersion:     'rules-v1',
+    decisionType:     'rule_matched',
+    decisionStatus:   'completed',
+    leadId,
+    recommendationId: savedRec.id,
+    workflowRunId:    workflowRunId ?? null,
+    shortReason:      `Rule ${result.ruleId} fired: fit=${fitScore}, urgency=${urgencyScore}`,
+    inputSnapshot:    { fit_score: fitScore, urgency_score: urgencyScore, lead_stage: lead.stage, rule_id: result.ruleId },
+    outputSummary:    { recommendation_type: savedRec.recommendation_type, priority: savedRec.priority, recommendation_id: savedRec.id },
+    learningTags:     [result.ruleId, `priority_${savedRec.priority}`, lead.stage ?? 'unknown_stage'],
+  }).catch((err) => console.error('[recommendation-generator] Failed to write agent decision:', err))
+
+  return savedRec
 }

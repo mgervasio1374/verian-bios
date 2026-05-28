@@ -11,6 +11,9 @@ import * as stratRepo  from '@/modules/messaging/repositories/message-strategy.r
 import * as agentLog   from '@/modules/intelligence/services/agent-run-logging.service'
 import * as activitySvc from '@/modules/intelligence/services/activity-event.service'
 import * as sysCtrlRepo from '@/modules/intelligence/repositories/system-control.repo'
+import * as agentDecisionRepo from '@/modules/intelligence/repositories/agent-decision.repo'
+import * as aiUsageRepo from '@/modules/intelligence/repositories/ai-usage-event.repo'
+import { preflightCheck } from '@/modules/intelligence/services/ai-budget-enforcer.service'
 import { ActivityEventType }  from '@/modules/intelligence/types.agent'
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 
@@ -421,6 +424,32 @@ export async function generateMessageVersions(
     }
   }
 
+  // ---- Budget preflight (fail-open) ----
+  let _copywritingPreflight = { allowed: true }
+  try {
+    _copywritingPreflight = await preflightCheck({
+      tenantId,
+      agentName:       AGENT_NAME,
+      leadId:          strategy.lead_id ?? null,
+      estimatedTokens: 0,
+      modelName:       'claude-sonnet-4-6',
+    })
+  } catch (err) {
+    console.error('[copywriting-agent] Budget preflight failed — allowing call:', err)
+  }
+  if (!_copywritingPreflight.allowed) {
+    agentDecisionRepo.createDecision({
+      tenantId,
+      agentName:      AGENT_NAME,
+      decisionType:   'budget_blocked',
+      decisionStatus: 'blocked',
+      leadId:         strategy.lead_id ?? null,
+      shortReason:    `Budget exhausted at level: ${(_copywritingPreflight as { budgetLevel?: string }).budgetLevel}`,
+    }).catch(() => {})
+    if (agentRunId) await agentLog.failAgentRun(agentRunId, 'AI budget exhausted').catch(() => null)
+    return failResult([makeError(COPY_ERROR_CODES.COPY_002, 'critical', 'AI budget exhausted — copywriting blocked.', 'Increase the AI budget limit.')], allWarnings, agentRunId)
+  }
+
   // ---- Step 5: Generate candidate versions ----
   const step5 = await logStep(COPY_AGENT_STEPS.GENERATE_CANDIDATE_VERSIONS, 5, {
     angle_count: plan.angles.length,
@@ -632,6 +661,34 @@ export async function generateMessageVersions(
       agent_run_id:            agentRunId,
     },
   }).catch(() => null)
+
+  // ---- Record AI usage (rule-based v1: 0 tokens; update when LLM is wired in) ----
+  aiUsageRepo.recordUsage({
+    tenantId,
+    agentName:    AGENT_NAME,
+    featureName:  'version_copywriting',
+    modelName:    'claude-sonnet-4-6',
+    promptTokens: 0,
+    completionTokens: 0,
+    totalTokens:  0,
+    estimatedCostUsd: 0,
+    leadId:       strategy.lead_id ?? null,
+    success:      true,
+  }).catch((err) => console.error('[copywriting-agent] Failed to record AI usage event:', err))
+
+  const skillsSelected = (strategy.selected_skills ?? []).map((s: SelectedSkill) => s.skill_slug)
+  agentDecisionRepo.createDecision({
+    tenantId,
+    agentName:      AGENT_NAME,
+    agentVersion:   'rules-v1',
+    decisionType:   'versions_generated',
+    decisionStatus: 'completed',
+    leadId:         strategy.lead_id,
+    shortReason:    `${persistedVersions.length} versions generated via ${skillsSelected.join(', ')}`,
+    inputSnapshot:  { strategy_id: strategyId, version_count_requested: plan.requiredVersionCount, skills_selected: skillsSelected },
+    outputSummary:  { version_count_produced: persistedVersions.length, top_label: persistedVersions[0]?.versionLabel ?? null },
+    learningTags:   skillsSelected,
+  }).catch((err) => console.error('[copywriting-agent] Failed to write agent decision:', err))
 
   return {
     success: true,

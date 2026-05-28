@@ -8,6 +8,7 @@
 
 import * as actSvc  from '@/modules/intelligence/services/activity-event.service'
 import * as repo    from '@/modules/messaging/repositories/learning-snapshot.repo'
+import * as agentDecisionRepo from '@/modules/intelligence/repositories/agent-decision.repo'
 import { calculateAllSignals } from './learning-agent.signals'
 import { buildSignalsComputedPayload, buildSignalsFailedPayload } from './learning-agent.audit'
 
@@ -120,6 +121,18 @@ export async function runLearningAnalysis(
     }).catch(() => {})
 
     // STEP 9 — Return result
+    agentDecisionRepo.createDecision({
+      tenantId:       input.tenantId,
+      agentName:      'learning_agent',
+      agentVersion:   'statistical-v1',
+      decisionType:   'signals_computed',
+      decisionStatus: 'completed',
+      shortReason:    `Learning signals computed for ${snapshotCount} snapshots over ${lookbackDays}-day window`,
+      inputSnapshot:  { lookback_days: lookbackDays, signal_count: signals.length },
+      outputSummary:  { snapshot_count: snapshotCount, run_id: runId },
+      learningTags:   ['learning_run', `window_${lookbackDays}d`],
+    }).catch((err) => console.error('[learning-agent] Failed to write agent decision:', err))
+
     return { ok: true, runId, snapshotCount, totalSends }
 
   } catch (err) {

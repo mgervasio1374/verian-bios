@@ -11,6 +11,9 @@ import * as qrRepo      from '@/modules/messaging/repositories/quality-review.re
 import * as agentLog    from '@/modules/intelligence/services/agent-run-logging.service'
 import * as activitySvc from '@/modules/intelligence/services/activity-event.service'
 import * as sysCtrlRepo from '@/modules/intelligence/repositories/system-control.repo'
+import * as agentDecisionRepo from '@/modules/intelligence/repositories/agent-decision.repo'
+import * as aiUsageRepo from '@/modules/intelligence/repositories/ai-usage-event.repo'
+import { preflightCheck } from '@/modules/intelligence/services/ai-budget-enforcer.service'
 import { ActivityEventType }       from '@/modules/intelligence/types.agent'
 
 import { validateQualityReviewInputs } from './quality-review-agent.validation'
@@ -235,6 +238,40 @@ export async function runQualityReview(input: {
 
   // ---- Build strategy scoring input ----
   const strategyScoringInput = strategyToScoringInput(strategy)
+
+  // ---- Budget preflight (fail-open) ----
+  let _qraPreflight = { allowed: true }
+  try {
+    _qraPreflight = await preflightCheck({
+      tenantId,
+      agentName:       AGENT_NAME,
+      estimatedTokens: 0,
+      modelName:       'claude-sonnet-4-6',
+    })
+  } catch (err) {
+    console.error('[quality-review-agent] Budget preflight failed — allowing call:', err)
+  }
+  if (!_qraPreflight.allowed) {
+    if (agentRunId) await agentLog.failAgentRun(agentRunId, 'AI budget exhausted').catch(() => null)
+    return {
+      success: false,
+      error:   makeError(QRA_ERROR_CODES.QRA_001, 'AI budget exhausted — quality review blocked.', 'Increase the AI budget limit.'),
+      agentRunId,
+    }
+  }
+
+  // Record AI usage (rule-based v1: 0 tokens; update when LLM scoring path is wired in)
+  aiUsageRepo.recordUsage({
+    tenantId,
+    agentName:       AGENT_NAME,
+    featureName:     'qra_scoring',
+    modelName:       'claude-sonnet-4-6',
+    promptTokens:    0,
+    completionTokens: 0,
+    totalTokens:     0,
+    estimatedCostUsd: 0,
+    success:         true,
+  }).catch((err) => console.error('[quality-review-agent] Failed to record AI usage event:', err))
 
   // ---- Steps 6–10: Score, flag, compose, rank, reason ----
 
@@ -561,6 +598,30 @@ export async function runQualityReview(input: {
   }).catch(() => null)
 
   // Return result
+  const topVersion = recommended ?? persistedReviews[0] ?? null
+  agentDecisionRepo.createDecision({
+    tenantId,
+    agentName:         'quality_review_agent',
+    agentVersion:      'claude-sonnet-4-6',
+    decisionType:      'version_ranked',
+    decisionStatus:    'completed',
+    leadId:            eligibleVersions[0]?.leadId ?? null,
+    draftId:           null,
+    confidence:        topVersion?.compositeScore ?? null,
+    recommendedAction: topVersion ? `version:${topVersion.versionLabel}` : null,
+    shortReason:       topVersion
+      ? `Version "${topVersion.versionLabel}" ranked top with composite score ${topVersion.compositeScore}`
+      : 'No version recommended',
+    inputSnapshot:  { version_count: persistedReviews.length, scoring_rubric: 'rubric-v1' },
+    outputSummary:  {
+      top_version_id:        topVersion?.id ?? null,
+      top_label:             topVersion?.versionLabel ?? null,
+      top_composite_score:   topVersion?.compositeScore ?? null,
+      recommended_version_id: topVersion?.id ?? null,
+    },
+    learningTags: [`version_count_${persistedReviews.length}`, topVersion?.versionLabel ?? 'unknown'],
+  }).catch((err) => console.error('[quality-review-agent] Failed to write agent decision:', err))
+
   if (excludedVersions.length > 0) {
     return {
       success:     'partial',

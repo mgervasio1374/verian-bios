@@ -5,6 +5,7 @@ import * as scoreRepo from '@/modules/intelligence/repositories/score.repo'
 import * as leadRepo from '@/modules/crm/repositories/lead.repo'
 import { calculateFitScore } from '@/modules/intelligence/services/fit-score.service'
 import { calculateUrgencyScore } from '@/modules/intelligence/services/urgency-score.service'
+import * as agentDecisionRepo from '@/modules/intelligence/repositories/agent-decision.repo'
 
 export async function runLeadScoringPipeline(
   ctx: RequestContext,
@@ -57,6 +58,21 @@ export async function runLeadScoringPipeline(
     urgencyCalc.dimensions,
     workflowRunId
   )
+
+  agentDecisionRepo.createDecision({
+    tenantId:       ctx.tenantId,
+    workspaceId:    ctx.workspaceId,
+    agentName:      'lead_scoring_pipeline',
+    agentVersion:   'rules-v1',
+    decisionType:   'score_computed',
+    decisionStatus: 'completed',
+    leadId,
+    workflowRunId:  workflowRunId ?? null,
+    shortReason:    `Fit=${fitCalc.score}, Urgency=${urgencyCalc.score} computed via rules-v1`,
+    inputSnapshot:  { lead_stage: lead.stage, estimated_value: lead.estimated_value },
+    outputSummary:  { fit_score: fitCalc.score, urgency_score: urgencyCalc.score, model_used: 'rules-v1' },
+    learningTags:   ['scored', lead.stage ?? 'unknown_stage'],
+  }).catch((err) => console.error('[scoring-pipeline] Failed to write agent decision:', err))
 
   return { fitScore: fitScoreRow, urgencyScore: urgencyScoreRow, recommendation }
 }

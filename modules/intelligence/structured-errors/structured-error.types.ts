@@ -31,6 +31,18 @@ export const WEBHOOK_FAILURE_TYPE = {
 } as const
 export type WebhookFailureType = typeof WEBHOOK_FAILURE_TYPE[keyof typeof WEBHOOK_FAILURE_TYPE]
 
+// Phase 3I: AI budget enforcement failure types
+export const AI_BUDGET_FAILURE_TYPE = {
+  AI_CALL_BLOCKED_BY_BUDGET:           'AI_CALL_BLOCKED_BY_BUDGET',
+  AI_BUDGET_THRESHOLD_ALERT:           'AI_BUDGET_THRESHOLD_ALERT',
+  AI_BUDGET_THRESHOLD_WARNING:         'AI_BUDGET_THRESHOLD_WARNING',
+  AI_CALL_FAILED:                      'AI_CALL_FAILED',
+  CAMPAIGN_ASSET_MISSING_FIELDS:       'CAMPAIGN_ASSET_MISSING_FIELDS',
+  CAMPAIGN_ASSET_UNDERPERFORMING:      'CAMPAIGN_ASSET_UNDERPERFORMING',
+  AGENT_DECISION_REPEATED_OVERRIDE:    'AGENT_DECISION_REPEATED_OVERRIDE',
+} as const
+export type AiBudgetFailureType = typeof AI_BUDGET_FAILURE_TYPE[keyof typeof AI_BUDGET_FAILURE_TYPE]
+
 export interface CreateStructuredErrorInput {
   tenantId:       string
   workspaceId?:   string | null

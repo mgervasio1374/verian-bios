@@ -44,6 +44,9 @@ import type {
   PersonalizationLevel,
 } from './message-strategy.types'
 import { ActivityEventType } from '@/modules/intelligence/types.agent'
+import * as agentDecisionRepo from '@/modules/intelligence/repositories/agent-decision.repo'
+import * as aiUsageRepo from '@/modules/intelligence/repositories/ai-usage-event.repo'
+import { preflightCheck } from '@/modules/intelligence/services/ai-budget-enforcer.service'
 
 // ---- Constants ----
 
@@ -238,6 +241,32 @@ export async function generateMessageStrategy(
     outputSummary:   `Errors: ${validationResult.errors.length}, Warnings: ${validationResult.warnings.length}`,
   }).catch(() => null)
 
+  // ---- Budget preflight (fail-open: outage must not silence agents) ----
+  let _strategyPreflight = { allowed: true }
+  try {
+    _strategyPreflight = await preflightCheck({
+      tenantId,
+      agentName:       AGENT_NAME,
+      leadId:          n.lead.lead_id ?? null,
+      estimatedTokens: 0,
+      modelName:       'claude-sonnet-4-6',
+    })
+  } catch (err) {
+    console.error('[message-strategy-agent] Budget preflight failed — allowing call:', err)
+  }
+  if (!_strategyPreflight.allowed) {
+    agentDecisionRepo.createDecision({
+      tenantId,
+      agentName:      AGENT_NAME,
+      decisionType:   'budget_blocked',
+      decisionStatus: 'blocked',
+      leadId:         n.lead.lead_id ?? null,
+      shortReason:    `Budget exhausted at level: ${(_strategyPreflight as { budgetLevel?: string }).budgetLevel}`,
+    }).catch(() => {})
+    const e = makeStrategyError(STRATEGY_ERROR_CODES.STRAT_003, 'critical', 'AI budget exhausted — strategy generation blocked.', 'Increase the AI budget limit or wait for the next period.', false)
+    return failResult([e], allWarnings, agentRunId)
+  }
+
   // ---- Supersede prior active strategies ----
   try {
     await repo.supersedeActiveStrategies(n.lead.lead_id, tenantId)
@@ -267,6 +296,20 @@ export async function generateMessageStrategy(
     const e = makeStrategyError(STRATEGY_ERROR_CODES.STRAT_003, 'critical', `Persistence failed: ${String(ex)}`, 'Check database connectivity.', false)
     return failResult([e], allWarnings, agentRunId)
   }
+
+  // ---- Record AI usage (rule-based v1: 0 tokens; update when LLM is wired in) ----
+  aiUsageRepo.recordUsage({
+    tenantId,
+    agentName:   AGENT_NAME,
+    featureName: 'strategy_generation',
+    modelName:   'claude-sonnet-4-6',
+    promptTokens:      0,
+    completionTokens:  0,
+    totalTokens:       0,
+    estimatedCostUsd:  0,
+    leadId:            n.lead.lead_id ?? null,
+    success:           true,
+  }).catch((err) => console.error('[message-strategy-agent] Failed to record AI usage event:', err))
 
   // ---- Step 9: Complete agent run ----
   const step9 = agentRunId ? await agentLog.logAgentRunStep({
@@ -309,6 +352,20 @@ export async function generateMessageStrategy(
       requires_human_review:persisted.requires_human_review,
     },
   }).catch(() => null)
+
+  agentDecisionRepo.createDecision({
+    tenantId,
+    agentName:      AGENT_NAME,
+    agentVersion:   'rules-v1',
+    decisionType:   'strategy_generated',
+    decisionStatus: 'completed',
+    leadId:         n.lead.lead_id,
+    confidence:     breakdown.final_score,
+    shortReason:    `Strategy: ${persisted.message_type} (confidence: ${breakdown.final_score.toFixed(2)})`,
+    inputSnapshot:  { lead_state: n.lead.state, industry: n.company.industry, trigger: n.lead.lead_source },
+    outputSummary:  { message_type: persisted.message_type, strategy_id: persisted.id, model_used: 'rules-v1' },
+    learningTags:   [persisted.message_type, n.lead.state ?? 'unknown_state'],
+  }).catch((err) => console.error('[message-strategy-agent] Failed to write agent decision:', err))
 
   if (hasBlockingErrors) {
     return failResult(validationResult.errors, allWarnings, agentRunId, persisted)

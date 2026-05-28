@@ -3,6 +3,9 @@ import { reviewEmailDraftQuality } from '@/modules/messaging/services/email-qual
 import * as emailDraftVersionRepo from '@/modules/messaging/repositories/email-draft-version.repo'
 import * as emailQualityRepo from '@/modules/messaging/repositories/email-quality.repo'
 import * as activityEventService from '@/modules/intelligence/services/activity-event.service'
+import * as agentDecisionRepo from '@/modules/intelligence/repositories/agent-decision.repo'
+import * as aiUsageRepo from '@/modules/intelligence/repositories/ai-usage-event.repo'
+import { preflightCheck } from '@/modules/intelligence/services/ai-budget-enforcer.service'
 import { ActivityEventType } from '@/modules/intelligence/types.agent'
 import {
   classifyEmailMessageStrategy,
@@ -550,6 +553,39 @@ export async function runEmailRewriteLoop(input: {
       }
     }
 
+    // ---- Budget preflight (fail-open) ----
+    let _rewritePreflight = { allowed: true }
+    try {
+      _rewritePreflight = await preflightCheck({
+        tenantId:        input.tenantId,
+        agentName:       'email_rewrite_agent',
+        leadId:          draft.lead_id ?? null,
+        draftId:         input.emailDraftId,
+        estimatedTokens: 0,
+        modelName:       'claude-sonnet-4-6',
+      })
+    } catch (err) {
+      console.error('[email-rewrite-agent] Budget preflight failed — allowing call:', err)
+    }
+    if (!_rewritePreflight.allowed) {
+      return { success: false, error: 'AI budget exhausted — rewrite loop blocked.' }
+    }
+
+    // Record AI usage (rule-based v1: 0 tokens; update when LLM is wired in)
+    aiUsageRepo.recordUsage({
+      tenantId:         input.tenantId,
+      agentName:        'email_rewrite_agent',
+      featureName:      'rewrite_loop',
+      modelName:        'claude-sonnet-4-6',
+      promptTokens:     0,
+      completionTokens: 0,
+      totalTokens:      0,
+      estimatedCostUsd: 0,
+      leadId:           draft.lead_id ?? null,
+      draftId:          input.emailDraftId,
+      success:          true,
+    }).catch((err) => console.error('[email-rewrite-agent] Failed to record AI usage event:', err))
+
     // ---- Build context-appropriate candidate pool ----
 
     const first   = contactFirstName || 'there'
@@ -684,6 +720,20 @@ export async function runEmailRewriteLoop(input: {
     })
 
     await recordLoopActivity(input, v1Score, bestScore, iterations, finalStatus, target)
+
+    agentDecisionRepo.createDecision({
+      tenantId:       input.tenantId,
+      agentName:      'email_rewrite_agent',
+      agentVersion:   'rules-v1',
+      decisionType:   'rewrite_applied',
+      decisionStatus: bestVersionId && finalStatus === 'passed_threshold' ? 'completed' : 'completed',
+      leadId:         draft.lead_id ?? null,
+      draftId:        input.emailDraftId,
+      shortReason:    `Rewrite loop: ${iterations} iterations, best score ${bestScore}`,
+      inputSnapshot:  { target_score: target, best_version_score: bestScore },
+      outputSummary:  { iterations, final_version_id: bestVersionId, status: finalStatus },
+      learningTags:   [`rewrite_iterations_${iterations}`, finalStatus === 'passed_threshold' ? 'rewrite_success' : 'rewrite_below_threshold'],
+    }).catch((err) => console.error('[email-rewrite-agent] Failed to write agent decision:', err))
 
     return {
       success:            true,
