@@ -6,11 +6,10 @@ import { Loader2, CheckCircle2, AlertTriangle, Mail } from 'lucide-react'
 import { generateManualCampaignDraftAction } from '@/modules/messaging/actions/manual-campaign-draft.actions'
 
 const CAMPAIGN_OPTIONS = [
-  { value: 'new_lead_outreach',         label: 'New Lead Outreach' },
-  { value: 'statement_review_followup', label: 'Statement Review Follow-Up' },
-  { value: 'processing_cost_review',    label: 'Processing Cost Review' },
-  { value: 'home_services_outreach',    label: 'Home Services Outreach' },
-  { value: 'reengagement',              label: 'Re-Engagement' },
+  { value: 'initial_contact',     label: 'New Lead Outreach' },
+  { value: 'statement_follow_up', label: 'Statement Review Follow-Up' },
+  { value: 'check_in',            label: 'Processing Cost Review' },
+  { value: 'reactivation',        label: 'Re-Engagement' },
 ]
 
 type State =
@@ -27,7 +26,7 @@ export function ManualCampaignDraftButton({
   hasExistingDraft: boolean
 }) {
   const router = useRouter()
-  const [campaignType, setCampaignType] = useState('new_lead_outreach')
+  const [campaignType, setCampaignType] = useState('initial_contact')
   const [state, setState]               = useState<State>({ type: 'idle' })
   const [, startTransition]             = useTransition()
 

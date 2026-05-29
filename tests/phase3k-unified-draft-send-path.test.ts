@@ -390,3 +390,59 @@ describe('TC-3K-059–066: Lead page blocked-state Draft from Campaign Asset', (
     expect(src).not.toContain('executeCampaign')
   })
 })
+
+// ─── Block 9: Legacy campaign type compatibility (TC-3K-067–075) ─────────────
+
+describe('TC-3K-067–075: Legacy campaign type mapping compatibility', () => {
+  const actionFile = 'modules/messaging/actions/manual-campaign-draft.actions.ts'
+  const buttonFile = 'app/(workspace)/[workspaceSlug]/leads/[id]/ManualCampaignDraftButton.tsx'
+
+  it('TC-3K-067: action file contains LEGACY_TO_CANONICAL mapping', () => {
+    const src = read(actionFile)
+    expect(src).toContain('LEGACY_TO_CANONICAL')
+  })
+
+  it('TC-3K-068: action maps new_lead_outreach to initial_contact', () => {
+    const src = read(actionFile)
+    expect(src).toContain('new_lead_outreach')
+    expect(src).toContain('CAMPAIGN_TYPE.INITIAL_CONTACT')
+  })
+
+  it('TC-3K-069: action maps statement_review_followup to statement_follow_up', () => {
+    const src = read(actionFile)
+    expect(src).toContain('statement_review_followup')
+    expect(src).toContain('CAMPAIGN_TYPE.STATEMENT_FOLLOW_UP')
+  })
+
+  it('TC-3K-070: action maps processing_cost_review to check_in', () => {
+    const src = read(actionFile)
+    expect(src).toContain('processing_cost_review')
+    expect(src).toContain('CAMPAIGN_TYPE.CHECK_IN')
+  })
+
+  it('TC-3K-071: action maps home_services_outreach to initial_contact', () => {
+    const src = read(actionFile)
+    expect(src).toContain('home_services_outreach')
+  })
+
+  it('TC-3K-072: action maps reengagement to reactivation', () => {
+    const src = read(actionFile)
+    expect(src).toContain('reengagement')
+    expect(src).toContain('CAMPAIGN_TYPE.REACTIVATION')
+  })
+
+  it('TC-3K-073: ManualCampaignDraftButton no longer contains legacy value new_lead_outreach', () => {
+    const src = read(buttonFile)
+    expect(src).not.toContain('new_lead_outreach')
+  })
+
+  it('TC-3K-074: ManualCampaignDraftButton no longer contains legacy value statement_review_followup', () => {
+    const src = read(buttonFile)
+    expect(src).not.toContain('statement_review_followup')
+  })
+
+  it('TC-3K-075: ManualCampaignDraftButton no longer contains legacy value processing_cost_review', () => {
+    const src = read(buttonFile)
+    expect(src).not.toContain('processing_cost_review')
+  })
+})
