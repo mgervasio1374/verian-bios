@@ -602,20 +602,18 @@ All deliverables committed and QA-verified. Migration `20240034` applied to loca
 
 ## Next Recommended Step
 
-### Create Phase 3K Lock Tag
+### Begin Phase 3L Design When Ready
 
-Phase 3K implementation is complete and staging-verified. The docs commit for Phase 3K context update is the next commit. After that commit is pushed, create the lock tag:
+Phase 3K is fully locked. Lock tag `phase-3k-unified-draft-send-path-v1 → bf98582`. All databases: local and staging current through `20240035`; production current through `20240034`. 1267/1267 tests. `EMAIL_SENDING_ENABLED` remains disabled.
 
-```
-git tag phase-3k-unified-draft-send-path-v1 bf98582
-git push origin phase-3k-unified-draft-send-path-v1
-```
+**Recommended next action:** Request Phase 3L design document only. Design & Test Cases must be produced and approved before any Phase 3L code is written.
 
-**After lock tag is created:**
+**Constraints for Phase 3L design and beyond:**
+- Do not implement Phase 3L yet.
 - Production migration `20240035` and production deploy remain **explicitly out of scope** unless separately authorized.
-- Phase 3L design may begin when authorized. Do not start Phase 3L without explicit approval.
 - Do not enable live sending.
 - Do not implement campaign assignment, campaign execution, follow-up scheduling, or auto-send.
+- Do not deploy production without explicit approval.
 
 ## Completed — Phase 3K Unified Draft / Send Path v1.0
 

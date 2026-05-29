@@ -30,7 +30,7 @@
 | Phase 3H — Send Safety Hardening | Complete. Committed `b10d0db`, tagged `phase-3h-send-safety-hardening-v1`. Migration `20240033` applied to staging and production. Production Vercel deployed (`dpl_EVRkZE2uMYsxft5zCMYAtoqWxZ9F`). Production smoke-tested 2026-05-27 (11/11 checks). |
 | Phase 3I — Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy | Locked. Committed `917738f`, tagged `phase-3i-agent-decision-usage-budget-campaign-assets-v1`. Migration `20240034` applied to local, staging, and production 2026-05-28. |
 | Phase 3J — Campaign Email Asset Library | Locked. Committed `30068a6`, tagged `phase-3j-campaign-email-asset-library-v1`. No migration. Staging auto-deploy `dpl_7rKQPkaMNYpZ8zVfc72nTQP6G8La` 2026-05-28; authenticated smoke test PASSED. |
-| Phase 3K — Unified Draft / Send Path | Complete. Committed through `bf98582`. Migration `20240035` applied to local and staging (`smbausuyetlgxflyhmfg`). Production migration `20240035` not applied. Staging UI smoke PASSED. Staging DB verification PASSED 29/29. Lock tag pending. |
+| Phase 3K — Unified Draft / Send Path | Locked. Committed through `bf98582`, tagged `phase-3k-unified-draft-send-path-v1`. Migration `20240035` applied to local and staging (`smbausuyetlgxflyhmfg`). Production migration `20240035` not applied. Staging UI smoke PASSED. Staging DB verification PASSED 29/29. |
 
 ## Staging Foundation v1 — Locked
 
@@ -119,11 +119,10 @@ Clean. `master` up to date with `origin/master`.
 
 ## Lock Tags
 
+`phase-3k-unified-draft-send-path-v1` → `bf98582`
 `phase-3j-campaign-email-asset-library-v1` → `30068a6`
 `phase-3i-agent-decision-usage-budget-campaign-assets-v1` → `917738f`
 `phase-3h-send-safety-hardening-v1` → `b10d0db`
-
-**Pending:** `phase-3k-unified-draft-send-path-v1` → `bf98582` (lock tag not yet created)
 
 ## Guardrails for Next Work
 
