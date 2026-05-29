@@ -111,6 +111,92 @@ export async function updateAssetStatus(
   if (error) throw new Error('updateAssetStatus: ' + error.message)
 }
 
+export interface UpdateAssetContentInput {
+  subjectTemplate:       string
+  bodyTemplateHtml:      string
+  bodyTemplateText:      string
+  personalizationFields: string[]
+  requiredFields:        string[]
+  fallbackValues:        Record<string, string>
+  assetName?:            string
+  campaignType?:         string
+  llmGenerated?:         boolean
+  aiUsageEventId?:       string | null
+  decisionId?:           string | null
+}
+
+export async function updateAssetContent(
+  tenantId:    string,
+  assetId:     string,
+  content:     UpdateAssetContentInput,
+  resetStatus: boolean = false
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const fields: Record<string, unknown> = {
+    subject_template:        content.subjectTemplate,
+    body_template_html:      content.bodyTemplateHtml,
+    body_template_text:      content.bodyTemplateText,
+    personalization_fields:  content.personalizationFields,
+    required_fields:         content.requiredFields,
+    fallback_values:         content.fallbackValues,
+    updated_at:              new Date().toISOString(),
+  }
+  if (content.assetName    !== undefined) fields.asset_name      = content.assetName
+  if (content.campaignType !== undefined) fields.campaign_type   = content.campaignType
+  if (content.llmGenerated !== undefined) fields.llm_generated   = content.llmGenerated
+  if (content.aiUsageEventId !== undefined) fields.ai_usage_event_id = content.aiUsageEventId
+  if (content.decisionId   !== undefined) fields.decision_id     = content.decisionId
+  if (resetStatus)                        fields.status          = 'draft'
+
+  const { error } = await supabase
+    .from('campaign_email_assets')
+    .update(fields)
+    .eq('tenant_id', tenantId)
+    .eq('id', assetId)
+
+  if (error) throw new Error('updateAssetContent: ' + error.message)
+}
+
+export async function listAssetsByType(
+  tenantId:     string,
+  workspaceId:  string,
+  campaignType: string,
+  status?:      string
+): Promise<CampaignEmailAssetRow[]> {
+  const supabase = createSupabaseServiceClient()
+  let query = supabase
+    .from('campaign_email_assets')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .eq('campaign_type', campaignType)
+    .order('created_at', { ascending: false })
+
+  if (status) query = query.eq('status', status)
+
+  const { data, error } = await query
+  if (error) throw new Error('listAssetsByType: ' + error.message)
+  return data ?? []
+}
+
+export async function listAssetsByStatus(
+  tenantId:    string,
+  workspaceId: string,
+  status:      string
+): Promise<CampaignEmailAssetRow[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('campaign_email_assets')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .eq('status', status)
+    .order('created_at', { ascending: false })
+
+  if (error) throw new Error('listAssetsByStatus: ' + error.message)
+  return data ?? []
+}
+
 export async function updatePerformanceSummary(
   tenantId: string,
   assetId:  string,
