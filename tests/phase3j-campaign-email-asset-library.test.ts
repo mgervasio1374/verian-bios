@@ -345,11 +345,11 @@ describe('Phase 3J — Boundary and safety guardrails', () => {
     expect(hasGuard).toBe(true)
   })
 
-  it('TC-3J-044: migration file 20240035 does not exist', () => {
+  it('TC-3J-044: migration file 20240035 exists (created by Phase 3K)', () => {
     const migDir = path.join(root, 'supabase/migrations')
     const files  = fs.readdirSync(migDir)
     const has35  = files.some((f) => f.startsWith('20240035'))
-    expect(has35).toBe(false)
+    expect(has35).toBe(true)
   })
 
   it('TC-3J-045: campaign-personalization.service.ts content unchanged (renderCampaignAsset still present)', () => {

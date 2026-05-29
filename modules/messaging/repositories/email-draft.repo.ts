@@ -226,6 +226,8 @@ interface CreateEmailDraftInput {
   workflowRunId?: string | null
   generatedByAi: boolean
   aiGenerationMetadata: Record<string, unknown>
+  sourceType?: string | null
+  sourceAssetId?: string | null
 }
 
 export async function createEmailDraft(
@@ -253,6 +255,8 @@ export async function createEmailDraft(
       workflow_run_id: input.workflowRunId ?? null,
       generated_by_ai: input.generatedByAi,
       ai_generation_metadata: input.aiGenerationMetadata as Json,
+      source_type:      input.sourceType      ?? null,
+      source_asset_id:  input.sourceAssetId   ?? null,
     })
     .select()
     .single()
@@ -299,6 +303,25 @@ export async function getLeadEmailDrafts(
 // Finds the most recent draft linked to a specific message_version_id via
 // ai_generation_metadata. Used by the Send Bridge before creating a new draft.
 // Application-level guard only — no DB-enforced uniqueness constraint in v1.
+
+export async function getDraftsBySourceAsset(
+  tenantId: string,
+  assetId:  string,
+  limit:    number = 10
+): Promise<Pick<EmailDraftRow, 'id' | 'status' | 'lead_id' | 'created_at' | 'source_type'>[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('email_drafts')
+    .select('id, status, lead_id, created_at, source_type')
+    .eq('tenant_id', tenantId)
+    .eq('source_asset_id', assetId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw new Error(`getDraftsBySourceAsset: ${error.message}`)
+  return data ?? []
+}
 
 export async function getEmailDraftForVersion(
   versionId: string,

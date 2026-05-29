@@ -20,6 +20,7 @@ import * as qrRepo               from '@/modules/messaging/repositories/quality-
 import * as versionRepo          from '@/modules/messaging/repositories/message-version.repo'
 import * as activityEventService from '@/modules/intelligence/services/activity-event.service'
 
+import { DRAFT_SOURCE_TYPE } from '@/modules/messaging/drafts/draft-source.constants'
 import {
   validateDraftCreationEligibility,
 } from './send-bridge.validation'
@@ -215,6 +216,8 @@ export async function createEmailDraftFromApprovedVersion(
     workflowRunId:        null,
     generatedByAi:        true,
     aiGenerationMetadata,
+    sourceType:           DRAFT_SOURCE_TYPE.AI_STRATEGY_COPYWRITING,
+    sourceAssetId:        null,
   })
 
   // 12. INSERT approval_request (status = pending)

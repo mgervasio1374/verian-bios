@@ -8,6 +8,7 @@ import * as sendBridgeSvc from '@/modules/messaging/send-bridge/send-bridge.serv
 import * as emailSendRepo from '@/modules/messaging/repositories/email-send.repo'
 import { StrategyReviewPanel } from './StrategyReviewPanel'
 import { GeneratedVersionsPanel } from './GeneratedVersionsPanel'
+import { DraftSourceBadge } from '@/components/messaging/DraftSourceBadge'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string; leadId: string }>
@@ -163,6 +164,26 @@ export default async function MessageWorkspacePage({ params }: PageProps) {
             contactName={contactName}
             contactEmail={contact?.email ?? null}
           />
+
+          {/* Draft source badges for approved version drafts */}
+          {approvedVersions.length > 0 && (
+            <div className="rounded-lg border bg-background p-3 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Draft Sources</p>
+              <div className="space-y-1">
+                {approvedVersions.map((v) => {
+                  const ds = draftStatusByVersionId.get(v.id)
+                  if (!ds) return null
+                  return (
+                    <div key={v.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{v.versionLabel ?? v.id.slice(0, 8)}</span>
+                      <DraftSourceBadge sourceType="ai_strategy_copywriting" workspaceSlug={workspaceSlug} />
+                      <span className="capitalize">{ds.status}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* History */}
           {historyStrategies.length > 0 && (

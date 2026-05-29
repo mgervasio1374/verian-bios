@@ -2335,6 +2335,8 @@ export type Database = {
           rejected_at: string | null
           sender_identity_id: string | null
           sent_at: string | null
+          source_asset_id: string | null
+          source_type: string | null
           status: string
           subject: string
           subject_id: string | null
@@ -2371,6 +2373,8 @@ export type Database = {
           rejected_at?: string | null
           sender_identity_id?: string | null
           sent_at?: string | null
+          source_asset_id?: string | null
+          source_type?: string | null
           status?: string
           subject: string
           subject_id?: string | null
@@ -2407,6 +2411,8 @@ export type Database = {
           rejected_at?: string | null
           sender_identity_id?: string | null
           sent_at?: string | null
+          source_asset_id?: string | null
+          source_type?: string | null
           status?: string
           subject?: string
           subject_id?: string | null

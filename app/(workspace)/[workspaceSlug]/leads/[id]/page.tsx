@@ -9,6 +9,7 @@ import * as emailDraftRepo from '@/modules/messaging/repositories/email-draft.re
 import * as approvalRepo from '@/modules/workflow/repositories/approval.repo'
 import * as emailQualityRepo from '@/modules/messaging/repositories/email-quality.repo'
 import * as emailDraftVersionRepo from '@/modules/messaging/repositories/email-draft-version.repo'
+import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asset.repo'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SendEmailButton } from '@/components/messaging/SendEmailButton'
@@ -24,6 +25,8 @@ import * as agentDecisionRepo from '@/modules/intelligence/repositories/agent-de
 import * as aiUsageRepo from '@/modules/intelligence/repositories/ai-usage-event.repo'
 import { LeadActivityTimeline } from './LeadActivityTimeline'
 import { AgentDecisionPanel } from './AgentDecisionPanel'
+import { CreateDraftFromAssetCard } from './CreateDraftFromAssetCard'
+import { DraftSourceBadge } from '@/components/messaging/DraftSourceBadge'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string; id: string }>
@@ -37,7 +40,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
   const lead = await leadService.getLead(ctx, id).catch(() => null)
   if (!lead) notFound()
 
-  const [fitScore, urgencyScore, recommendations, emailDrafts, activityEvents, workflowErrors, agentDecisions] =
+  const [fitScore, urgencyScore, recommendations, emailDrafts, activityEvents, workflowErrors, agentDecisions, allAssets] =
     await Promise.all([
       scoreRepo.getCurrentFitScore(ctx.tenantId, 'lead', id),
       scoreRepo.getCurrentUrgencyScore(ctx.tenantId, 'lead', id),
@@ -46,7 +49,10 @@ export default async function LeadDetailPage({ params }: PageProps) {
       activityEventRepo.listLeadActivityEvents(ctx.tenantId, id, { limit: 20 }).catch(() => [] as Awaited<ReturnType<typeof activityEventRepo.listLeadActivityEvents>>),
       structuredErrorRepo.getWorkflowErrorsForLead(ctx.tenantId, id).catch(() => [] as Awaited<ReturnType<typeof structuredErrorRepo.getWorkflowErrorsForLead>>),
       agentDecisionRepo.getLeadDecisions(ctx.tenantId, id, 10).catch(() => [] as Awaited<ReturnType<typeof agentDecisionRepo.getLeadDecisions>>),
+      assetRepo.listAssetsForWorkspace(ctx.tenantId, ctx.workspaceId).catch(() => []),
     ])
+
+  const activeAssets = allAssets.filter(a => a.status === 'approved' || a.status === 'active')
 
   const leadUsage = await aiUsageRepo.getLeadUsageSummary(ctx.tenantId, id).catch(() => ({ totalCostUsd: 0, callCount: 0 }))
 
@@ -208,6 +214,25 @@ export default async function LeadDetailPage({ params }: PageProps) {
             </CardContent>
           </Card>
         )}
+
+        {/* Draft from Campaign Asset — only when no active draft and assets available */}
+        {!hasActiveDraft && activeAssets.length > 0 && (
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Draft from Campaign Asset</CardTitle></CardHeader>
+            <CardContent>
+              <CreateDraftFromAssetCard
+                workspaceSlug={workspaceSlug}
+                leadId={id}
+                activeAssets={activeAssets.map(a => ({
+                  id:            a.id,
+                  asset_name:    a.asset_name,
+                  campaign_type: a.campaign_type,
+                  status:        a.status,
+                }))}
+              />
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* ---- Email review workspace — two-column on xl ---- */}
@@ -304,6 +329,11 @@ export default async function LeadDetailPage({ params }: PageProps) {
                 {emailDrafts.slice(1).map((draft) => (
                   <li key={draft.id} className="flex items-center gap-3 text-sm">
                     <DraftStatusBadge status={draft.status} />
+                    <DraftSourceBadge
+                      sourceType={draft.source_type ?? null}
+                      sourceAssetId={draft.source_asset_id ?? null}
+                      workspaceSlug={workspaceSlug}
+                    />
                     <span className="flex-1 truncate text-muted-foreground">{draft.subject}</span>
                     <span className="text-xs text-muted-foreground whitespace-nowrap">
                       {new Date(draft.created_at).toLocaleDateString()}

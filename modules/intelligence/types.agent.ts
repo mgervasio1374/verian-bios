@@ -230,5 +230,8 @@ export const ActivityEventType = {
   // Phase 3C.3 — System Recommendation Generator (additive)
   SYSTEM_REC_GENERATOR_RUN:    'SYSTEM_REC_GENERATOR_RUN',
   SYSTEM_REC_GENERATOR_FAILED: 'SYSTEM_REC_GENERATOR_FAILED',
+
+  // Phase 3K — Campaign asset draft creation
+  CAMPAIGN_ASSET_DRAFT_CREATED: 'campaign_asset_draft_created',
 } as const
 export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType]

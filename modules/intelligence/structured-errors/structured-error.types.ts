@@ -53,6 +53,17 @@ export const CAMPAIGN_ASSET_FAILURE_TYPE = {
 } as const
 export type CampaignAssetFailureType = typeof CAMPAIGN_ASSET_FAILURE_TYPE[keyof typeof CAMPAIGN_ASSET_FAILURE_TYPE]
 
+// Phase 3K: Draft source / send readiness failure types
+export const DRAFT_SOURCE_FAILURE_TYPE = {
+  DRAFT_SOURCE_ASSET_RETIRED:            'DRAFT_SOURCE_ASSET_RETIRED',
+  DRAFT_MISSING_PERSONALIZATION_FIELDS:  'DRAFT_MISSING_PERSONALIZATION_FIELDS',
+  DRAFT_CREATION_BLOCKED_PENDING_EXISTS: 'DRAFT_CREATION_BLOCKED_PENDING_EXISTS',
+  DRAFT_REJECTED_REPEATEDLY:             'DRAFT_REJECTED_REPEATEDLY',
+  DRAFT_AI_BUDGET_BLOCKED:               'DRAFT_AI_BUDGET_BLOCKED',
+  EMAIL_SENDING_ATTEMPTED_DISABLED:      'EMAIL_SENDING_ATTEMPTED_DISABLED',
+} as const
+export type DraftSourceFailureType = typeof DRAFT_SOURCE_FAILURE_TYPE[keyof typeof DRAFT_SOURCE_FAILURE_TYPE]
+
 export interface CreateStructuredErrorInput {
   tenantId:       string
   workspaceId?:   string | null

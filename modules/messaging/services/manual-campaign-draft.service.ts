@@ -6,6 +6,8 @@ import * as companyRepo from '@/modules/crm/repositories/company.repo'
 import { reviewAndPersistEmailDraftQuality } from '@/modules/messaging/services/email-quality-review-runner.service'
 import * as activityEventService from '@/modules/intelligence/services/activity-event.service'
 import { ActivityEventType } from '@/modules/intelligence/types.agent'
+import { CAMPAIGN_TYPE } from '@/modules/messaging/campaign-assets/campaign-asset.constants'
+import { DRAFT_SOURCE_TYPE } from '@/modules/messaging/drafts/draft-source.constants'
 
 // ---- Campaign type registry ----
 
@@ -25,7 +27,7 @@ interface CampaignDefinition {
 }
 
 const CAMPAIGNS: Record<string, CampaignDefinition> = {
-  new_lead_outreach: {
+  [CAMPAIGN_TYPE.INITIAL_CONTACT]: {
     label:        'New Lead Outreach',
     templateSlug: 'email_initial_contact',
     subject:  (v) => `Following up on your payment review — ${v.company_name}`,
@@ -43,7 +45,7 @@ const CAMPAIGNS: Record<string, CampaignDefinition> = {
       `<p>Best,<br>${v.sender_name}<br>321 Swipe</p>`,
   },
 
-  statement_review_followup: {
+  [CAMPAIGN_TYPE.STATEMENT_FOLLOW_UP]: {
     label:        'Statement Review Follow-Up',
     templateSlug: null,
     subject:  (v) => `Quick follow-up on your processing statement — ${v.company_name}`,
@@ -61,7 +63,7 @@ const CAMPAIGNS: Record<string, CampaignDefinition> = {
       `<p>Best,<br>${v.sender_name}<br>321 Swipe</p>`,
   },
 
-  processing_cost_review: {
+  [CAMPAIGN_TYPE.CHECK_IN]: {
     label:        'Processing Cost Review',
     templateSlug: null,
     subject:  (v) => `Payment processing review for ${v.company_name}`,
@@ -81,27 +83,7 @@ const CAMPAIGNS: Record<string, CampaignDefinition> = {
       `<p>Best,<br>${v.sender_name}<br>321 Swipe</p>`,
   },
 
-  home_services_outreach: {
-    label:        'Home Services Outreach',
-    templateSlug: null,
-    subject:  (v) => `Payment review for ${v.company_name}`,
-    bodyText: (v) =>
-      `Hi ${v.contact_first_name},\n\n` +
-      `I'm reaching out from 321 Swipe.\n\n` +
-      `We work with home service businesses that want a clearer view of their card processing costs and payment setup.\n\n` +
-      `If it would be helpful, I can take a quick look at your current processing setup and let you know whether anything deserves a closer review.\n\n` +
-      `Would you be open to a short call this week?\n\n` +
-      `Best,\n${v.sender_name}\n321 Swipe`,
-    bodyHtml: (v) =>
-      `<p>Hi ${v.contact_first_name},</p>` +
-      `<p>I'm reaching out from 321 Swipe.</p>` +
-      `<p>We work with home service businesses that want a clearer view of their card processing costs and payment setup.</p>` +
-      `<p>If it would be helpful, I can take a quick look at your current processing setup and let you know whether anything deserves a closer review.</p>` +
-      `<p>Would you be open to a short call this week?</p>` +
-      `<p>Best,<br>${v.sender_name}<br>321 Swipe</p>`,
-  },
-
-  reengagement: {
+  [CAMPAIGN_TYPE.REACTIVATION]: {
     label:        'Re-Engagement',
     templateSlug: 'email_standard_follow_up',
     subject:  (v) => `Checking in — ${v.company_name}`,
@@ -240,6 +222,8 @@ export async function generateManualCampaignDraft(input: {
     companyId:        lead.company_id,
     workflowRunId:    null,
     generatedByAi:    false,
+    sourceType:       DRAFT_SOURCE_TYPE.MANUAL_CAMPAIGN_TEMPLATE,
+    sourceAssetId:    null,
     aiGenerationMetadata: {
       campaign_type:  input.campaignType,
       template_slug:  templateSlug,

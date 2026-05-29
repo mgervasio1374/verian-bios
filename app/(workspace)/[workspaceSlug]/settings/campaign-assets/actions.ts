@@ -3,10 +3,12 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
+import { requirePermission } from '@/lib/auth/permissions'
 import type { AssetTemplateContent } from '@/modules/messaging/campaign-assets/campaign-asset.types'
 import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asset.repo'
 import * as assetService from '@/modules/messaging/services/campaign-asset.service'
 import * as aiService from '@/modules/messaging/services/campaign-asset-ai.service'
+import { createDraftFromAsset } from '@/modules/messaging/services/campaign-asset-draft.service'
 
 async function getCtx() {
   const supabase = await createSupabaseServerClient()
@@ -111,6 +113,36 @@ export async function generateAiDraftAction(
 
   revalidatePath(`/${workspaceSlug}/settings/campaign-assets`)
   return { blocked: false, assetId: result.asset?.id ?? null, preflightWarning: result.preflightWarning }
+}
+
+export async function createDraftFromAssetAction(
+  assetId: string,
+  leadId:  string
+): Promise<{ ok: boolean; draftId?: string; approvalRequestId?: string; missingFields?: string[]; error?: string }> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx      = await buildRequestContext(supabase)
+    requirePermission(ctx, 'crm.leads.view')
+
+    if (!assetId) return { ok: false, error: 'Asset ID is required.' }
+    if (!leadId)  return { ok: false, error: 'Lead ID is required.' }
+
+    const result = await createDraftFromAsset({
+      tenantId:    ctx.tenantId,
+      workspaceId: ctx.workspaceId,
+      assetId,
+      leadId,
+      requestedBy: ctx.userId === 'system' ? 'system' : ctx.userId,
+    })
+
+    if (!result.ok) return { ok: false, error: result.reason }
+
+    revalidatePath('/[workspaceSlug]/leads/[id]', 'page')
+    revalidatePath('/[workspaceSlug]/settings/campaign-assets/[assetId]', 'page')
+    return { ok: true, draftId: result.draftId, approvalRequestId: result.approvalRequestId, missingFields: result.missingFields }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
 }
 
 export async function reviseWithAiAction(

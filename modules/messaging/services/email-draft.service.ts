@@ -1,6 +1,7 @@
 import type { RequestContext } from '@/types/context'
 import type { Database } from '@/types/database'
 import * as emailDraftRepo from '@/modules/messaging/repositories/email-draft.repo'
+import { DRAFT_SOURCE_TYPE } from '@/modules/messaging/drafts/draft-source.constants'
 import * as suppressionRepo from '@/modules/messaging/repositories/suppression.repo'
 import * as contactRepo from '@/modules/crm/repositories/contact.repo'
 import * as leadRepo from '@/modules/crm/repositories/lead.repo'
@@ -202,6 +203,8 @@ export async function createLeadEmailDraft(
     workflowRunId,
     generatedByAi:        false,
     aiGenerationMetadata: metadata,
+    sourceType:           DRAFT_SOURCE_TYPE.RULE_TEMPLATE,
+    sourceAssetId:        null,
   })
 
   // 12. Auto quality review before approval (non-fatal)

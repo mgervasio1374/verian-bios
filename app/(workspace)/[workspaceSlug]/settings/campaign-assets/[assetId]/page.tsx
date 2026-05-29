@@ -1,7 +1,9 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asset.repo'
+import * as emailDraftRepo from '@/modules/messaging/repositories/email-draft.repo'
 import { CampaignAssetDetail } from '../CampaignAssetDetail'
 import { CampaignAssetEditor } from '../CampaignAssetEditor'
 import { CampaignAssetReviewPanel } from '../CampaignAssetReviewPanel'
@@ -30,6 +32,8 @@ export default async function CampaignAssetDetailPage({ params, searchParams }: 
   const asset    = await assetRepo.getAssetById(ctx.tenantId, assetId).catch(() => null)
 
   if (!asset) notFound()
+
+  const sourceDrafts = await emailDraftRepo.getDraftsBySourceAsset(ctx.tenantId, assetId, 10).catch(() => [])
 
   if (edit === '1' && asset.status === 'draft') {
     const initial = {
@@ -66,6 +70,38 @@ export default async function CampaignAssetDetailPage({ params, searchParams }: 
       )}
 
       <CampaignAssetDetail asset={asset} workspaceSlug={workspaceSlug} />
+
+      {/* Drafts Created from This Asset */}
+      <div className="rounded-lg border bg-background p-4 space-y-3">
+        <p className="text-sm font-semibold">Drafts Created from This Asset ({sourceDrafts.length})</p>
+        {sourceDrafts.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No drafts created from this asset yet.</p>
+        ) : (
+          <ol className="space-y-2">
+            {sourceDrafts.map((draft) => (
+              <li key={draft.id} className="flex items-center gap-3 text-sm">
+                <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${
+                  draft.status === 'approved' ? 'bg-green-100 text-green-800' :
+                  draft.status === 'sent'     ? 'bg-blue-100 text-blue-800'  :
+                  draft.status === 'rejected' ? 'bg-red-100 text-red-700'    :
+                                                'bg-gray-100 text-gray-600'
+                }`}>{draft.status.replace(/_/g, ' ')}</span>
+                {draft.lead_id && (
+                  <Link
+                    href={`/${workspaceSlug}/leads/${draft.lead_id}`}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    View Lead →
+                  </Link>
+                )}
+                <span className="text-xs text-muted-foreground ml-auto whitespace-nowrap">
+                  {new Date(draft.created_at).toLocaleDateString()}
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
     </div>
   )
 }

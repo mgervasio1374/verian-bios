@@ -6,13 +6,13 @@ import { buildRequestContext } from '@/lib/auth/context'
 import { requirePermission } from '@/lib/auth/permissions'
 import { generateManualCampaignDraft } from '@/modules/messaging/services/manual-campaign-draft.service'
 import type { ActionResult } from '@/modules/crm/actions/company.actions'
+import { CAMPAIGN_TYPE } from '@/modules/messaging/campaign-assets/campaign-asset.constants'
 
 const VALID_CAMPAIGN_TYPES = new Set([
-  'new_lead_outreach',
-  'statement_review_followup',
-  'processing_cost_review',
-  'home_services_outreach',
-  'reengagement',
+  CAMPAIGN_TYPE.INITIAL_CONTACT,
+  CAMPAIGN_TYPE.STATEMENT_FOLLOW_UP,
+  CAMPAIGN_TYPE.CHECK_IN,
+  CAMPAIGN_TYPE.REACTIVATION,
 ])
 
 export async function generateManualCampaignDraftAction(
@@ -25,7 +25,7 @@ export async function generateManualCampaignDraftAction(
     requirePermission(ctx, 'crm.leads.view')
 
     if (!leadId)                            return { success: false, error: 'Lead ID is required.' }
-    if (!VALID_CAMPAIGN_TYPES.has(campaignType)) {
+    if (!(VALID_CAMPAIGN_TYPES as Set<string>).has(campaignType)) {
       return { success: false, error: `Invalid campaign type: ${campaignType}` }
     }
 
