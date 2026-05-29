@@ -30,6 +30,7 @@
 | Phase 3H — Send Safety Hardening | Complete. Committed `b10d0db`, tagged `phase-3h-send-safety-hardening-v1`. Migration `20240033` applied to staging and production. Production Vercel deployed (`dpl_EVRkZE2uMYsxft5zCMYAtoqWxZ9F`). Production smoke-tested 2026-05-27 (11/11 checks). |
 | Phase 3I — Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy | Locked. Committed `917738f`, tagged `phase-3i-agent-decision-usage-budget-campaign-assets-v1`. Migration `20240034` applied to local, staging, and production 2026-05-28. |
 | Phase 3J — Campaign Email Asset Library | Locked. Committed `30068a6`, tagged `phase-3j-campaign-email-asset-library-v1`. No migration. Staging auto-deploy `dpl_7rKQPkaMNYpZ8zVfc72nTQP6G8La` 2026-05-28; authenticated smoke test PASSED. |
+| Phase 3K — Unified Draft / Send Path | Complete. Committed through `bf98582`. Migration `20240035` applied to local and staging (`smbausuyetlgxflyhmfg`). Production migration `20240035` not applied. Staging UI smoke PASSED. Staging DB verification PASSED 29/29. Lock tag pending. |
 
 ## Staging Foundation v1 — Locked
 
@@ -42,9 +43,9 @@
 
 | Environment | Supabase ref | Migrations applied | Auth/Access |
 |-------------|-------------|-------------------|-------------|
-| Local | Docker / `127.0.0.1:54321` | 001–034 | Local seed user `dev@verian.local` |
+| Local | Docker / `127.0.0.1:54321` | 001–035 | Local seed user `dev@verian.local` |
 | Production | `kxrplupzbsmujjznzhpy` | 001–034 | Standard access — `https://verian-bios.vercel.app` |
-| Staging | `smbausuyetlgxflyhmfg` | 001–034 | `staging@verian.internal` / platform_admin |
+| Staging | `smbausuyetlgxflyhmfg` | 001–035 | `staging@verian.internal` / platform_admin |
 
 ### Verified Access Paths
 
@@ -77,14 +78,14 @@
 
 ## QA Status (Last Verified)
 
-Verified at Phase 3J commit `30068a6`.
+Verified before Phase 3K final patch commit `bf98582`.
 
 ```
 npx vitest run      → PASSED
 npx next build      → PASSED
 TypeScript          → PASSED
-1176/1176 tests passed
-  (46 new tests added since Phase 3I: Phase 3J Campaign Email Asset Library)
+1267/1267 tests passed
+  (91 new tests added since Phase 3J: Phase 3K Unified Draft / Send Path)
 ```
 
 ## Active Routes
@@ -105,7 +106,8 @@ TypeScript          → PASSED
 | `/[workspaceSlug]/settings/analytics` | Active — Phase 3D: Revenue Analytics dashboard; Lead Pipeline, Email Performance (30d), Strategy Performance panels; read-only server component |
 | `/[workspaceSlug]/settings/ai-usage` | Active — Phase 3I: AI Usage Board; token/cost KPIs (today/month); Usage by Agent, Model, Feature tables; Top Leads by AI Cost; 30-Day Usage Trend; Recent Failed AI Calls |
 | `/[workspaceSlug]/settings/campaign-assets` | Active — Phase 3J: campaign email asset list with status badges; AI Draft button (campaign type + prompt brief → AI-generated draft, budget-gated); manual "New Asset" link |
-| `/[workspaceSlug]/settings/campaign-assets/[assetId]` | Active — Phase 3J: asset detail view; edit mode (draft-only); review panel (under_review/approved/active); personalization preview (in-memory, no DB writes); clone button |
+| `/[workspaceSlug]/settings/campaign-assets/[assetId]` | Active — Phase 3J: asset detail view; edit mode (draft-only); Phase 3K: `SubmitForReviewButton` client component for draft-status assets; `CampaignAssetReviewPanel` converted to `'use client'` (direct server action calls for approve/activate/retire); clone button |
+| `/[workspaceSlug]/leads/[id]` (Draft from Campaign Asset) | Active — Phase 3K: `CreateDraftFromAssetCard` renders when active assets exist and no pending draft blocks; blocked explanation card when `hasActiveDraft` is true; `GenerateManualCampaignDraftButton` updated to canonical campaign type values; `source_type = campaign_asset_render` written on draft creation |
 
 ## Working Tree
 
@@ -113,7 +115,7 @@ Clean. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`99cb314` — Docs: update AI context for Phase 3J completion
+`bf98582` — Phase 3K: preserve legacy campaign type mapping
 
 ## Lock Tags
 
@@ -121,17 +123,19 @@ Clean. `master` up to date with `origin/master`.
 `phase-3i-agent-decision-usage-budget-campaign-assets-v1` → `917738f`
 `phase-3h-send-safety-hardening-v1` → `b10d0db`
 
+**Pending:** `phase-3k-unified-draft-send-path-v1` → `bf98582` (lock tag not yet created)
+
 ## Guardrails for Next Work
 
 | Guardrail | Reason |
 |-----------|--------|
-| Production Supabase (`kxrplupzbsmujjznzhpy`) is current through migration `20240034` | Next available migration is `20240035` |
+| Production Supabase (`kxrplupzbsmujjznzhpy`) is current through migration `20240034` | Migration `20240035` applied to local and staging only — not applied to production. Next available production migration is `20240035`. |
 | Production Vercel (`verian-bios`) no longer auto-deploys from `origin/master` | Track A complete — Git disconnected. Production deploys must be explicit via `vercel --prod` or Vercel dashboard |
 | Do not reconnect production Vercel Git without explicit user approval | Reconnecting restores auto-deploy on every master push |
 | Staging (`verian-bios-staging`) auto-deploys from master — unchanged | Staging is the continuous integration target; every push to master deploys staging |
 | Staging must remain deployable | All app code must stay compatible with staging at all times |
-| Tests must stay green | 1176/1176 is the current baseline; no regression allowed |
-| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240035`. |
+| Tests must stay green | 1267/1267 is the current baseline; no regression allowed |
+| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240036`. (`20240035` is committed — applied to local and staging; not applied to production.) |
 | No environment-crossing assumptions | Local seed data, staging users, and remote dev state are not shared; never assume data from one env exists in another |
 | No debug routes left behind | Temporary diagnostic routes must be removed within the same work session; do not merge to master without cleanup |
 | Any new phase requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
@@ -139,4 +143,4 @@ Clean. `master` up to date with `origin/master`.
 
 ## Last Updated
 
-2026-05-28 — Phase 3J fully locked. Lock tag `phase-3j-campaign-email-asset-library-v1 → 30068a6`. Campaign Email Asset Library: full asset lifecycle (draft → under_review → approved → active → retired); deterministic personalization preview (in-memory, pure function); AI-assisted draft creation with `preflightCheck` + `recordUsage` + `createDecision` hooks; 9 server actions; 10 UI components; `BookOpen` sidebar nav entry; `CAMPAIGN_ASSET_FAILURE_TYPE` constants; 46 new source-reading tests. No migration created — databases remain through `20240034`. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. 1176/1176 tests. HEAD: `b77c964`.
+2026-05-29 — Phase 3K complete. HEAD `bf98582`. Implementation committed through 5 commits (`38d0d86` → `bf98582`). Migration `20240035` (`email_drafts.source_type` + `email_drafts.source_asset_id` columns + FK + indexes) applied to local and staging; not applied to production. Staging UI smoke PASSED. Staging DB verification PASSED 29/29: `campaign_asset_render` draft `8d720bfd` created with `source_asset_id = 4b301ad8`, `generated_by_ai = false`, `status = pending_approval`, `approval_request_id = 10ff50b4`, `sent_at = null`; `campaign_email_sends` empty; no AI usage event for deterministic render. Lock tag `phase-3k-unified-draft-send-path-v1` pending. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. 1267/1267 tests.

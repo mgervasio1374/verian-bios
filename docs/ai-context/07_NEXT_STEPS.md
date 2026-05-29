@@ -602,17 +602,76 @@ All deliverables committed and QA-verified. Migration `20240034` applied to loca
 
 ## Next Recommended Step
 
-### Begin Phase 3K Design When Ready
+### Create Phase 3K Lock Tag
 
-Phase 3J is fully locked. Lock tag `phase-3j-campaign-email-asset-library-v1 → 30068a6`. All databases current through `20240034`. 1176/1176 tests. `EMAIL_SENDING_ENABLED` remains disabled.
+Phase 3K implementation is complete and staging-verified. The docs commit for Phase 3K context update is the next commit. After that commit is pushed, create the lock tag:
 
-**Recommended next action:** Request Phase 3K design document only. Design & Test Cases must be produced and approved before any Phase 3K code is written.
+```
+git tag phase-3k-unified-draft-send-path-v1 bf98582
+git push origin phase-3k-unified-draft-send-path-v1
+```
 
-**Constraints for Phase 3K design and beyond:**
-- Do not implement Phase 3K yet.
-- Do not create migration `20240035` until Phase 3K implementation plan is approved (only if Phase 3K requires a migration).
+**After lock tag is created:**
+- Production migration `20240035` and production deploy remain **explicitly out of scope** unless separately authorized.
+- Phase 3L design may begin when authorized. Do not start Phase 3L without explicit approval.
 - Do not enable live sending.
-- Do not deploy production without explicit approval.
+- Do not implement campaign assignment, campaign execution, follow-up scheduling, or auto-send.
+
+## Completed — Phase 3K Unified Draft / Send Path v1.0
+
+All deliverables committed, staging-verified, and QA-confirmed.
+
+| Deliverable | Status |
+|-------------|--------|
+| Design & Test Cases | Locked (`docs/roadmap/phase-3k-unified-draft-send-path-design.md`) — `e505782` |
+| Implementation Plan | Locked (`docs/roadmap/phase-3k-implementation-plan.md`) — `9003f81` |
+| Code implementation | Complete — `38d0d86` through `bf98582` |
+| QA: 1267/1267 tests, build, TypeScript | PASSED |
+| Migration `20240035` applied to local | PASSED |
+| Migration `20240035` applied to staging (`smbausuyetlgxflyhmfg`) | PASSED — 2026-05-29 |
+| Migration `20240035` applied to production | **NOT APPLIED** — out of scope |
+| Staging UI smoke | PASSED — draft creation, blocked state, campaign asset lifecycle confirmed |
+| Staging DB verification | PASSED — 29/29 checks |
+| Lock tag | PENDING — `phase-3k-unified-draft-send-path-v1 → bf98582` |
+
+### What was delivered
+
+- `supabase/migrations/20240035_phase3k_draft_source_provenance.sql` — `source_type text` + `source_asset_id uuid` columns on `email_drafts`; FK to `campaign_email_assets(id)` ON DELETE SET NULL; two partial indexes
+- `manual-campaign-draft.service.ts` — `generateManualCampaignDraft`: duplicate guard via `getPendingDraftForLead`, renders template, creates `email_drafts` with `source_type: 'manual_campaign_template'` + approval request; no LLM, no Resend
+- `campaign-asset-draft.service.ts` — `createDraftFromCampaignAsset`: duplicate guard, renders active asset via `renderCampaignAsset`, creates `email_drafts` with `source_type: 'campaign_asset_render'` + `source_asset_id` + approval request; `generated_by_ai: false`; no LLM, no Resend, no AI usage event
+- `email-draft.repo.ts` — `getPendingDraftForLead` added (statuses `draft`, `pending_approval`, `approved`)
+- `manual-campaign-draft.actions.ts` — `LEGACY_TO_CANONICAL` belt-and-suspenders map; `normalizedType` resolution before `VALID_CAMPAIGN_TYPES` guard
+- `ManualCampaignDraftButton.tsx` — updated to canonical Phase 3J campaign type values; legacy keys removed
+- `CreateDraftFromAssetCard.tsx` — new `'use client'` component; asset dropdown; calls `createDraftFromCampaignAssetAction`
+- `leads/[id]/page.tsx` — `hasActiveDraft` guard now shows blocked explanation instead of hiding the section; `CreateDraftFromAssetCard` shown when unblocked
+- `SubmitForReviewButton.tsx` — new `'use client'` component for draft-status assets
+- `CampaignAssetReviewPanel.tsx` — converted to `'use client'`; direct server action calls replacing `formAction` URL strings
+- 91 new source-reading tests (TC-3K-001 through TC-3K-075; TC-3J-047 through TC-3J-062)
+
+### Key behavior
+
+- Draft from Campaign Asset path: active asset → `renderCampaignAsset` (pure sync, no DB writes) → `email_drafts` row with `source_type = 'campaign_asset_render'`, `source_asset_id` populated, `generated_by_ai = false`, `status = 'pending_approval'`, approval request linked → no email sent, no AI cost
+- Provenance fields (`source_type`, `source_asset_id`) are nullable — all existing drafts are unaffected
+- Duplicate guard: any `draft`, `pending_approval`, or `approved` draft on the lead blocks new draft creation with `reason: 'pending_draft_exists'`
+- Campaign asset draft creation does not write to `campaign_email_sends` — send records remain 0
+- Human approval is required before any draft can be sent — unchanged from all prior phases
+- `EMAIL_SENDING_ENABLED` kill switch remains enforced as Gate 0 in `sendApprovedDraft()`
+
+### Staging DB verification record (2026-05-29)
+
+| Field | Value |
+|---|---|
+| Draft ID | `8d720bfd-e648-4c35-85ea-c70db7f898e7` |
+| `source_type` | `campaign_asset_render` |
+| `source_asset_id` | `4b301ad8-3c14-44ad-9368-563e41018b13` ("Test May Campaign") |
+| `generated_by_ai` | `false` |
+| `status` | `pending_approval` |
+| `approval_request_id` | `10ff50b4-c3f9-4b16-8219-4135e415be30` (status `pending`) |
+| `sent_at` | `null` |
+| `campaign_email_sends` rows | 0 |
+| AI usage events for render | 0 |
+
+---
 
 ## Completed — Phase 3J Campaign Email Asset Library v1.0
 

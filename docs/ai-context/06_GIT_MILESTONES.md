@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3k-unified-draft-send-path-v1` | Phase 3K Unified Draft / Send Path — PENDING (lock tag not yet created) |
 | `phase-3j-campaign-email-asset-library-v1` | Phase 3J Campaign Email Asset Library — full asset lifecycle (draft→under_review→approved→active→retired); `validateAssetTransition` + `validateActivationReadiness` guards; AI-assisted draft/revision with `preflightCheck` + `recordUsage` + `createDecision`; deterministic preview (pure sync, no DB writes); 9 server actions; 10 UI components; `CAMPAIGN_TYPE` + `APPROVED_MERGE_FIELDS` + `CAMPAIGN_ASSET_FAILURE_TYPE` constants; Campaign Assets sidebar nav; 46 new source-reading tests; 1176/1176 total; no migration; no production deploy |
 | `phase-3i-agent-decision-usage-budget-campaign-assets-v1` | Phase 3I Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Foundation — 6 new tables (`agent_decisions`, `ai_usage_events`, `ai_budget_policies`, `ai_budget_events`, `campaign_email_assets`, `campaign_email_sends`); budget `preflightCheck` + `recordUsage` hooks in 4 agent services; `createDecision` writes in 5 services; AgentDecisionPanel on lead detail; AI Usage Board at `/settings/ai-usage`; `AI_BUDGET_FAILURE_TYPE` + `REC_TYPE_3I` constants; 47 new source-reading tests; 1130/1130 total; no production Vercel deploy (infrastructure-only phase) |
 | `phase-3h-send-safety-hardening-v1` | Phase 3H Send Safety Hardening — Gate 0 kill switch (`EMAIL_SENDING_ENABLED`) enforced in `sendApprovedDraft()`; `ET_SEND_INITIATED`/`ET_SEND_SUCCEEDED`/`ET_SEND_FAILED` emitted unconditionally for all sends (Phase 3A + Phase 3B); `failure_reason` and `triggered_by` typed columns on `email_sends` (migration `20240033`); `WEBHOOK_FAILURE_TYPE` constants; webhook structured errors for permanent bounce (error), complaint (critical), delivery delay (warning); 35 new source-reading tests; 1083/1083 total; staging smoke: Gate 0 + failure path confirmed |
@@ -40,6 +41,14 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `bf98582` | Phase 3K: preserve legacy campaign type mapping | Phase 3K |
+| `140bbaa` | Phase 3K: show blocked campaign asset draft state | Phase 3K |
+| `db28f9f` | Phase 3K: wire campaign asset review actions | Phase 3K |
+| `e116edb` | Phase 3K: expose campaign asset submit for review | Phase 3K |
+| `38d0d86` | Phase 3K: implement unified draft send path | Phase 3K |
+| `9003f81` | Docs: add Phase 3K implementation plan | Phase 3K Docs |
+| `e505782` | Docs: add Phase 3K unified draft send path design | Phase 3K Docs |
+| `ccb43ec` | Docs: record Phase 3J lock tag | Phase 3J Docs |
 | `99cb314` | Docs: update AI context for Phase 3J completion | Phase 3J Docs |
 | `30068a6` | Phase 3J: implement campaign email asset library | Phase 3J |
 | `08444a4` | Docs: add Phase 3J implementation plan | Phase 3J Docs |
@@ -127,6 +136,39 @@
 | `b50665d` | Add statement analysis PDF proposal package | Phase 4 |
 
 ## What Each Group Contains
+
+### Phase 3K: Unified Draft / Send Path (`38d0d86` → `bf98582`)
+
+**Migration:** `supabase/migrations/20240035_phase3k_draft_source_provenance.sql` — `ALTER TABLE email_drafts ADD COLUMN IF NOT EXISTS source_type text`, `ADD COLUMN IF NOT EXISTS source_asset_id uuid REFERENCES campaign_email_assets(id) ON DELETE SET NULL`; two partial indexes: `idx_email_drafts_source_type (tenant_id, source_type)`, `idx_email_drafts_source_asset_id (source_asset_id)`. Applied to local and staging (`smbausuyetlgxflyhmfg`) 2026-05-29. **Not applied to production.**
+
+- `modules/messaging/services/manual-campaign-draft.service.ts` — **new** — `generateManualCampaignDraft`: validates lead/tenant, duplicate guard (`getPendingDraftForLead` → returns `{ ok: false, reason: 'pending_draft_exists' }` if pending), renders template via `renderCampaignAsset`, creates `email_drafts` row with `source_type: 'manual_campaign_template'`, creates `approval_requests` row; returns `{ ok: true, draftId, approvalRequestId }`; no LLM, no Resend, no AI usage event
+- `modules/messaging/services/campaign-asset-draft.service.ts` — **new** — `createDraftFromCampaignAsset`: validates active asset, duplicate guard, renders asset via `renderCampaignAsset`, creates `email_drafts` row with `source_type: 'campaign_asset_render'` and `source_asset_id` populated, creates `approval_requests` row; `generated_by_ai: false`; no LLM, no Resend, no AI usage event
+- `modules/messaging/repositories/email-draft.repo.ts` — **modified** — `getPendingDraftForLead(leadId, tenantId)`: returns first draft with status in `('draft', 'pending_approval', 'approved')`; used by both new services as duplicate guard
+- `modules/messaging/actions/manual-campaign-draft.actions.ts` — **modified** — `LEGACY_TO_CANONICAL` map added (`new_lead_outreach → initial_contact`, `statement_review_followup → statement_follow_up`, `processing_cost_review → check_in`, `home_services_outreach → initial_contact`, `reengagement → reactivation`); `normalizedType` resolution before `VALID_CAMPAIGN_TYPES` guard and service call
+- `app/(workspace)/[workspaceSlug]/leads/[id]/ManualCampaignDraftButton.tsx` — **modified** — `CAMPAIGN_OPTIONS` updated to canonical Phase 3J values (`initial_contact`, `statement_follow_up`, `check_in`, `reactivation`); `useState` default `'initial_contact'`; legacy values removed
+- `app/(workspace)/[workspaceSlug]/leads/[id]/CreateDraftFromAssetCard.tsx` — **new** — `'use client'` component; asset dropdown (active assets); calls `createDraftFromCampaignAssetAction`; loading/error/success states
+- `app/(workspace)/[workspaceSlug]/leads/[id]/page.tsx` — **modified** — imports `CreateDraftFromAssetCard`; `hasActiveDraft` guard now shows blocked explanation card when `latestDraft` is pending/approved (instead of hiding the entire section); `CreateDraftFromAssetCard` shown when `!hasActiveDraft && activeAssets.length > 0`; blocked message: _"This lead already has a {status} draft in progress. Resolve or supersede the existing draft before creating a campaign asset draft."_
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/SubmitForReviewButton.tsx` — **new** — `'use client'`; calls `submitForReviewAction(workspaceSlug, assetId)` via `useTransition`; `router.refresh()`; renders for `status === 'draft'` assets in `[assetId]/page.tsx`
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/CampaignAssetReviewPanel.tsx` — **modified** — converted from server component to `'use client'`; replaced `formAction` URL strings with direct `approveAssetAction`, `activateAssetAction`, `retireAssetAction` calls via `useTransition` + `router.refresh()`; no `?action=approve/activate/retire` URL pattern
+- `tests/phase3j-campaign-email-asset-library.test.ts` — **modified** — TC-3J-047 through TC-3J-062: `SubmitForReviewButton` existence and wiring (TC-3J-047–052); `CampaignAssetReviewPanel` client conversion and action wiring (TC-3J-053–062)
+- `tests/phase3k-unified-draft-send-path.test.ts` — **new** — 91 source-reading tests (TC-3K-001 through TC-3K-075) across 15 describe blocks: migration schema, service exports, duplicate guard, approval request creation, source provenance fields, no-LLM guardrails, no-Resend guardrails, no-campaign-execution guardrails, UI components, blocked-state UI, legacy campaign type mapping; no Supabase mocking, no LLM calls, no test doubles
+
+**Staging verification (2026-05-29):**
+- UI smoke PASSED — draft creation, blocked state card, campaign asset lifecycle all confirmed
+- DB verification PASSED 29/29:
+  - `campaign_asset_render` draft: `8d720bfd-e648-4c35-85ea-c70db7f898e7`
+  - `source_asset_id`: `4b301ad8-3c14-44ad-9368-563e41018b13` (active "Test May Campaign")
+  - `generated_by_ai = false`, `status = pending_approval`, `sent_at = null`
+  - `approval_request_id`: `10ff50b4-c3f9-4b16-8219-4135e415be30` (status `pending`, `decided_at = null`)
+  - `campaign_email_sends` empty — no send record created
+  - No `ai_usage_events` row for `campaign_asset_render` — deterministic render incurred zero AI cost
+
+**Safety guarantees verified:**
+- No `sendApprovedDraft` / `resend.emails.send` / `dispatchCampaign` / `executeCampaign` calls introduced
+- `EMAIL_SENDING_ENABLED` kill switch preserved — no sends possible
+- `campaign_email_sends` table not written by any Phase 3K code path
+- No auto-send, no campaign assignment, no campaign execution
+- Human approval remains required before any draft can be sent
 
 ### Phase 3J: Campaign Email Asset Library (`30068a6`)
 
@@ -381,6 +423,7 @@ No migration created. Databases remain through `20240034`. `EMAIL_SENDING_ENABLE
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-29 | 1267/1267 passed | PASSED | Phase 3K Unified Draft / Send Path — 91 new source-reading tests (TC-3K-001 through TC-3K-075; TC-3J-047 through TC-3J-062). Migration `20240035` applied to local and staging (`smbausuyetlgxflyhmfg`); not applied to production. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. Staging UI smoke PASSED; staging DB verification PASSED 29/29. Implementation commits: `38d0d86` through `bf98582`. |
 | 2026-05-28 | 1176/1176 passed | PASSED | Phase 3J Campaign Email Asset Library — 46 new source-reading tests (TC-3J-001 through TC-3J-046). No migration created; databases remain through `20240034`. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. Staging auto-deploy `dpl_7rKQPkaMNYpZ8zVfc72nTQP6G8La` 2026-05-28; authenticated staging smoke test PASSED. Implementation commit: `30068a6`. |
 | 2026-05-28 | 1130/1130 passed | PASSED | Phase 3I Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy — 47 new source-reading tests. Migration `20240034` applied to local, staging (`smbausuyetlgxflyhmfg`), and production (`kxrplupzbsmujjznzhpy`) 2026-05-28. 6 new tables verified on all three environments. `EMAIL_SENDING_ENABLED` remains disabled. Implementation commit: `917738f`. |
 | 2026-05-27 | 1083/1083 passed | PASSED | Phase 3H production deployed. Migration `20240033` applied to production (`kxrplupzbsmujjznzhpy`). Production Vercel `dpl_EVRkZE2uMYsxft5zCMYAtoqWxZ9F` live at `https://verian-bios.vercel.app`. Production smoke: 11/11 checks passed. `EMAIL_SENDING_ENABLED` remains disabled — no live sends. Docs updated at `ba492a4`. |
@@ -411,7 +454,7 @@ No migration created. Databases remain through `20240034`. `EMAIL_SENDING_ENABLE
 
 ## Current HEAD
 
-`99cb314` — Docs: update AI context for Phase 3J completion
+`bf98582` — Phase 3K: preserve legacy campaign type mapping
 
 ### Phase 3G: Agent Operations Readiness & Control Map (`a4f488a`)
 - `docs/roadmap/phase-3g-agent-operations-readiness-design.md` — **new** — full control map: agent inventory (13 active agents, 4 planned), decision lifecycle audit (12 steps), human approval gates, email engine redesign boundary, campaign assignment model design, Resend readiness checklist, observability gaps, safety model, roadmap 3H→3M, recommended pause milestone
@@ -464,5 +507,6 @@ No migration created. Databases remain through `20240034`. `EMAIL_SENDING_ENABLE
 | `20240032` | Phase 3E — `ALTER TABLE leads ADD COLUMN workflow_enabled boolean NOT NULL DEFAULT false`; applied to staging (`smbausuyetlgxflyhmfg`) and production (`kxrplupzbsmujjznzhpy`) |
 | `20240033` | Phase 3H — `ALTER TABLE email_sends ADD COLUMN IF NOT EXISTS failure_reason text, ADD COLUMN IF NOT EXISTS triggered_by text`; applied to staging (`smbausuyetlgxflyhmfg`) and production (`kxrplupzbsmujjznzhpy`) 2026-05-27 |
 | `20240034` | Phase 3I — creates `agent_decisions`, `ai_usage_events`, `ai_budget_policies`, `ai_budget_events`, `campaign_email_assets`, `campaign_email_sends` tables; RLS + grants on all 6 tables; applied to local, staging (`smbausuyetlgxflyhmfg`), and production (`kxrplupzbsmujjznzhpy`) 2026-05-28 |
+| `20240035` | Phase 3K — `ALTER TABLE email_drafts ADD COLUMN IF NOT EXISTS source_type text`, `ADD COLUMN IF NOT EXISTS source_asset_id uuid REFERENCES campaign_email_assets(id) ON DELETE SET NULL`; two partial indexes (`idx_email_drafts_source_type`, `idx_email_drafts_source_asset_id`); applied to local and staging (`smbausuyetlgxflyhmfg`) 2026-05-29; **not applied to production** |
 
 Note: No new migration was added for the Human Review / Approval Bridge, the Send / Email Draft Bridge, or Event Tracking. All three use existing tables and columns only. Phase 3B provenance travels via `email_drafts.ai_generation_metadata` (jsonb) at draft creation, then is copied into `email_sends.metadata` (jsonb) at send time. Event Tracking activity events are appended to the existing `activity_events` table. The Learning Agent adds migration `20240025` for `learning_snapshots` — its only write target.
