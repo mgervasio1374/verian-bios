@@ -1,7 +1,12 @@
+'use client'
+
+import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import type { Database } from '@/types/database'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CampaignAssetStatusBadge } from './CampaignAssetStatusBadge'
 import { validateActivationReadiness } from '@/modules/messaging/services/campaign-asset-validation.service'
+import { approveAssetAction, activateAssetAction, retireAssetAction } from './actions'
 
 type CampaignEmailAssetRow = Database['public']['Tables']['campaign_email_assets']['Row']
 
@@ -11,9 +16,49 @@ interface Props {
 }
 
 export function CampaignAssetReviewPanel({ asset, workspaceSlug }: Props) {
+  const router = useRouter()
+  const [pending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+
   const requiredFields = (asset.required_fields as string[]) ?? []
   const fallbackValues = (asset.fallback_values as Record<string, string>) ?? {}
   const readiness      = validateActivationReadiness({ requiredFields, fallbackValues })
+
+  function handleApprove() {
+    setError(null)
+    startTransition(async () => {
+      try {
+        await approveAssetAction(workspaceSlug, asset.id)
+        router.refresh()
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Approve failed')
+      }
+    })
+  }
+
+  function handleActivate() {
+    setError(null)
+    startTransition(async () => {
+      try {
+        await activateAssetAction(workspaceSlug, asset.id)
+        router.refresh()
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Activate failed')
+      }
+    })
+  }
+
+  function handleRetire() {
+    setError(null)
+    startTransition(async () => {
+      try {
+        await retireAssetAction(workspaceSlug, asset.id)
+        router.refresh()
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Retire failed')
+      }
+    })
+  }
 
   return (
     <Card>
@@ -46,37 +91,35 @@ export function CampaignAssetReviewPanel({ asset, workspaceSlug }: Props) {
           </p>
         )}
 
+        {error && <p className="text-xs text-red-600">{error}</p>}
+
         <div className="flex gap-2 flex-wrap">
           {asset.status === 'under_review' && (
-            <form action={`/${workspaceSlug}/settings/campaign-assets/${asset.id}`}>
-              <button
-                formAction={`/${workspaceSlug}/settings/campaign-assets/${asset.id}?action=approve`}
-                className="rounded bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-700"
-              >
-                Approve
-              </button>
-            </form>
+            <button
+              onClick={handleApprove}
+              disabled={pending}
+              className="rounded bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {pending ? 'Approving…' : 'Approve'}
+            </button>
           )}
           {asset.status === 'approved' && (
-            <form action={`/${workspaceSlug}/settings/campaign-assets/${asset.id}`}>
-              <button
-                formAction={`/${workspaceSlug}/settings/campaign-assets/${asset.id}?action=activate`}
-                disabled={!readiness.ready}
-                className="rounded bg-green-600 px-3 py-1.5 text-xs text-white hover:bg-green-700 disabled:opacity-50"
-              >
-                Activate
-              </button>
-            </form>
+            <button
+              onClick={handleActivate}
+              disabled={pending || !readiness.ready}
+              className="rounded bg-green-600 px-3 py-1.5 text-xs text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              {pending ? 'Activating…' : 'Activate'}
+            </button>
           )}
           {asset.status === 'active' && (
-            <form action={`/${workspaceSlug}/settings/campaign-assets/${asset.id}`}>
-              <button
-                formAction={`/${workspaceSlug}/settings/campaign-assets/${asset.id}?action=retire`}
-                className="rounded bg-destructive px-3 py-1.5 text-xs text-white hover:opacity-90"
-              >
-                Retire
-              </button>
-            </form>
+            <button
+              onClick={handleRetire}
+              disabled={pending}
+              className="rounded bg-destructive px-3 py-1.5 text-xs text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {pending ? 'Retiring…' : 'Retire'}
+            </button>
           )}
         </div>
       </CardContent>

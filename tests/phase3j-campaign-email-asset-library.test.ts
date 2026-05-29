@@ -396,3 +396,52 @@ describe('Phase 3J/3K — SubmitForReviewButton patch', () => {
     expect(src).not.toContain('activateAssetAction')
   })
 })
+
+// ============================================================
+// Block 15 — CampaignAssetReviewPanel action wiring patch
+// ============================================================
+
+describe('Phase 3J/3K — CampaignAssetReviewPanel action wiring', () => {
+  const src = read('app/(workspace)/[workspaceSlug]/settings/campaign-assets/CampaignAssetReviewPanel.tsx')
+
+  it('TC-3J-053: CampaignAssetReviewPanel is a client component', () => {
+    expect(src.startsWith("'use client'")).toBe(true)
+  })
+
+  it('TC-3J-054: CampaignAssetReviewPanel imports approveAssetAction', () => {
+    expect(src).toContain('approveAssetAction')
+  })
+
+  it('TC-3J-055: CampaignAssetReviewPanel imports activateAssetAction', () => {
+    expect(src).toContain('activateAssetAction')
+  })
+
+  it('TC-3J-056: CampaignAssetReviewPanel imports retireAssetAction', () => {
+    expect(src).toContain('retireAssetAction')
+  })
+
+  it('TC-3J-057: CampaignAssetReviewPanel does NOT use URL string formAction with ?action=approve', () => {
+    expect(src).not.toContain('?action=approve')
+  })
+
+  it('TC-3J-058: CampaignAssetReviewPanel does NOT use URL string formAction with ?action=activate', () => {
+    expect(src).not.toContain('?action=activate')
+  })
+
+  it('TC-3J-059: CampaignAssetReviewPanel does NOT use URL string formAction with ?action=retire', () => {
+    expect(src).not.toContain('?action=retire')
+  })
+
+  it('TC-3J-060: CampaignAssetReviewPanel does NOT contain sendApprovedDraft', () => {
+    expect(src).not.toContain('sendApprovedDraft')
+  })
+
+  it('TC-3J-061: CampaignAssetReviewPanel does NOT contain resend.emails.send', () => {
+    expect(src).not.toContain('resend.emails.send')
+  })
+
+  it('TC-3J-062: CampaignAssetReviewPanel does NOT contain dispatchCampaign or executeCampaign', () => {
+    expect(src).not.toContain('dispatchCampaign')
+    expect(src).not.toContain('executeCampaign')
+  })
+})
