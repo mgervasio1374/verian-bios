@@ -28,7 +28,7 @@
 | Phase 3F — Workflow Execution Visibility | Complete. Committed `f43f797`, tagged `phase-3f-workflow-execution-visibility-v1`. No migration. Staging smoke-tested 2026-05-27. Production Vercel deployed (`dpl_2aiTEQ1eRz7Eus8QNfmmpipAkmaa`). Production smoke-tested 2026-05-27 (14/14 checks). |
 | Phase 3G — Agent Operations Readiness & Control Map | Complete. Documentation/control-map only. Committed `a4f488a`, tagged `phase-3g-agent-operations-readiness-v1`. No source code changed. No migration created. Key finding: `EMAIL_SENDING_ENABLED` not enforced in `sendApprovedDraft()` — must be fixed in Phase 3H. |
 | Phase 3H — Send Safety Hardening | Complete. Committed `b10d0db`, tagged `phase-3h-send-safety-hardening-v1`. Migration `20240033` applied to staging and production. Production Vercel deployed (`dpl_EVRkZE2uMYsxft5zCMYAtoqWxZ9F`). Production smoke-tested 2026-05-27 (11/11 checks). |
-| Phase 3I — Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy | Complete. Committed `917738f`. Migration `20240034` applied to local, staging, and production 2026-05-28. |
+| Phase 3I — Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy | Locked. Committed `917738f`, tagged `phase-3i-agent-decision-usage-budget-campaign-assets-v1`. Migration `20240034` applied to local, staging, and production 2026-05-28. |
 
 ## Staging Foundation v1 — Locked
 
@@ -110,10 +110,11 @@ Clean. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`917738f` — Phase 3I: implement agent decision usage budget campaign asset foundation
+`5e56448` — Docs: update AI context for Phase 3I completion
 
-## Lock Tag
+## Lock Tags
 
+`phase-3i-agent-decision-usage-budget-campaign-assets-v1` → `917738f`
 `phase-3h-send-safety-hardening-v1` → `b10d0db`
 
 ## Guardrails for Next Work
@@ -134,4 +135,4 @@ Clean. `master` up to date with `origin/master`.
 
 ## Last Updated
 
-2026-05-28 — after Phase 3I Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy complete. 6 new tables: `agent_decisions`, `ai_usage_events`, `ai_budget_policies`, `ai_budget_events`, `campaign_email_assets`, `campaign_email_sends` (migration `20240034`). `preflightCheck` + `recordUsage` infrastructure hooks added to 4 LLM-capable agent services. `createDecision` writes added to 5 core services. AgentDecisionPanel on lead detail page. AI Usage Board at `/settings/ai-usage`. Campaign personalization renderer. 47 new source-reading tests. Migration `20240034` applied to local, staging, and production 2026-05-28. `EMAIL_SENDING_ENABLED` remains disabled — no live sends without explicit approval. 1130/1130 tests. HEAD: `917738f`.
+2026-05-28 — Phase 3I fully locked. Lock tag `phase-3i-agent-decision-usage-budget-campaign-assets-v1 → 917738f`. 6 new tables (`agent_decisions`, `ai_usage_events`, `ai_budget_policies`, `ai_budget_events`, `campaign_email_assets`, `campaign_email_sends`) — migration `20240034` applied to local, staging, and production. `preflightCheck` + `recordUsage` hooks in 4 agent services. `createDecision` writes in 5 services. AgentDecisionPanel + AI Usage Board live. 47 new source-reading tests. 1130/1130 tests. `EMAIL_SENDING_ENABLED` remains disabled. HEAD: `5e56448`.

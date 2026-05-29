@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3i-agent-decision-usage-budget-campaign-assets-v1` | Phase 3I Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Foundation — 6 new tables (`agent_decisions`, `ai_usage_events`, `ai_budget_policies`, `ai_budget_events`, `campaign_email_assets`, `campaign_email_sends`); budget `preflightCheck` + `recordUsage` hooks in 4 agent services; `createDecision` writes in 5 services; AgentDecisionPanel on lead detail; AI Usage Board at `/settings/ai-usage`; `AI_BUDGET_FAILURE_TYPE` + `REC_TYPE_3I` constants; 47 new source-reading tests; 1130/1130 total; no production Vercel deploy (infrastructure-only phase) |
 | `phase-3h-send-safety-hardening-v1` | Phase 3H Send Safety Hardening — Gate 0 kill switch (`EMAIL_SENDING_ENABLED`) enforced in `sendApprovedDraft()`; `ET_SEND_INITIATED`/`ET_SEND_SUCCEEDED`/`ET_SEND_FAILED` emitted unconditionally for all sends (Phase 3A + Phase 3B); `failure_reason` and `triggered_by` typed columns on `email_sends` (migration `20240033`); `WEBHOOK_FAILURE_TYPE` constants; webhook structured errors for permanent bounce (error), complaint (critical), delivery delay (warning); 35 new source-reading tests; 1083/1083 total; staging smoke: Gate 0 + failure path confirmed |
 | `phase-3g-agent-operations-readiness-v1` | Phase 3G Agent Operations Readiness & Control Map complete — documentation/control-map only; agent inventory (13 agents); decision lifecycle gaps (12 steps audited); key finding: `EMAIL_SENDING_ENABLED` not enforced in `sendApprovedDraft()`; Phase 3A sends emit no ET_ activity events; roadmap 3H→3M defined; no source code changed, no migration, 1048/1048 baseline unchanged |
 | `phase-3f-workflow-execution-visibility-v1` | Phase 3F Workflow Execution Visibility complete — getWorkflowErrorsForLead (two-query repo), LeadActivityTimeline server component (18 EVENT_LABELS, OUTCOME_COLORS, formatRelativeTime, empty state), lead detail page: activity timeline + draft history (slice(1)) + workflow errors panel, no migration, 21 new tests, 1048/1048 total |
@@ -38,6 +39,7 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `5e56448` | Docs: update AI context for Phase 3I completion | Phase 3I Docs |
 | `917738f` | Phase 3I: implement agent decision usage budget campaign asset foundation | Phase 3I |
 | `b7415d0` | Docs: add Phase 3I implementation plan | Phase 3I Docs |
 | `224a954` | Docs: add Phase 3I agent decision usage budget campaign asset design | Phase 3I Docs |
@@ -377,7 +379,7 @@
 
 ## Current HEAD
 
-`917738f` — Phase 3I: implement agent decision usage budget campaign asset foundation
+`5e56448` — Docs: update AI context for Phase 3I completion
 
 ### Phase 3G: Agent Operations Readiness & Control Map (`a4f488a`)
 - `docs/roadmap/phase-3g-agent-operations-readiness-design.md` — **new** — full control map: agent inventory (13 active agents, 4 planned), decision lifecycle audit (12 steps), human approval gates, email engine redesign boundary, campaign assignment model design, Resend readiness checklist, observability gaps, safety model, roadmap 3H→3M, recommended pause milestone

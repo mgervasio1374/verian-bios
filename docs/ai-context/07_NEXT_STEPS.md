@@ -568,6 +568,7 @@ All deliverables committed and QA-verified. Migration `20240034` applied to loca
 | Migration `20240034` applied to local | PASSED — 2026-05-28 |
 | Migration `20240034` applied to staging (`smbausuyetlgxflyhmfg`) | PASSED — 2026-05-28 |
 | Migration `20240034` applied to production (`kxrplupzbsmujjznzhpy`) | PASSED — 2026-05-28 |
+| Lock tag | `phase-3i-agent-decision-usage-budget-campaign-assets-v1` → `917738f` |
 
 ### What was delivered
 
@@ -595,20 +596,23 @@ All deliverables committed and QA-verified. Migration `20240034` applied to loca
 - When blocked by budget, a `CRITICAL` structured error (`AI_CALL_BLOCKED_BY_BUDGET`) is created and a `CALL_BLOCKED` budget event is recorded
 - All `createDecision` and `recordUsage` calls are wrapped in `.catch()` — non-fatal writes never block agent operation
 - `EMAIL_SENDING_ENABLED` remains disabled — campaign email asset tables are created but no sends are enabled
-- No Vercel changes. No lock tag created yet — pending user approval.
+- No Vercel changes. Lock tag created: `phase-3i-agent-decision-usage-budget-campaign-assets-v1 → 917738f` (2026-05-28).
 
 ---
 
 ## Next Recommended Step
 
-### Final Phase 3I Production Smoke Test / Lock Report
+### Begin Phase 3J Design When Ready
 
-Phase 3I is fully implemented. All three databases are migrated through `20240034`. Implementation commit `917738f`. 1130/1130 tests. `EMAIL_SENDING_ENABLED` remains disabled.
+Phase 3I is fully locked. Lock tag `phase-3i-agent-decision-usage-budget-campaign-assets-v1 → 917738f`. All three databases current through `20240034`. 1130/1130 tests. `EMAIL_SENDING_ENABLED` remains disabled.
 
-**Recommended next actions (in order):**
-1. Perform a final production smoke test of Phase 3I features: AgentDecisionPanel on a lead detail page, AI Usage Board at `/settings/ai-usage`.
-2. After smoke test passes, create the Phase 3I lock tag **only after explicit user approval**: `phase-3i-agent-decision-usage-budget-v1 → 917738f`.
-3. **Do not begin Phase 3J yet.** Phase 3J (Unified Draft Path) design must be produced and approved before any Phase 3J code is written.
+**Recommended next action:** Request Phase 3J design document only. Phase 3J is Unified Draft Path — unifies the Phase 3A template path and Phase 3B pipeline path before campaigns are possible (critical gap identified in Phase 3G audit). Design & Test Cases must be produced and approved before any Phase 3J code is written.
+
+**Constraints for Phase 3J design and beyond:**
+- Do not implement Phase 3J yet.
+- Do not create migration `20240035` until Phase 3J implementation plan is approved.
+- Do not enable live sending.
+- Do not deploy production without explicit approval.
 
 ---
 
