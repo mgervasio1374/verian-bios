@@ -29,6 +29,7 @@
 | Phase 3G — Agent Operations Readiness & Control Map | Complete. Documentation/control-map only. Committed `a4f488a`, tagged `phase-3g-agent-operations-readiness-v1`. No source code changed. No migration created. Key finding: `EMAIL_SENDING_ENABLED` not enforced in `sendApprovedDraft()` — must be fixed in Phase 3H. |
 | Phase 3H — Send Safety Hardening | Complete. Committed `b10d0db`, tagged `phase-3h-send-safety-hardening-v1`. Migration `20240033` applied to staging and production. Production Vercel deployed (`dpl_EVRkZE2uMYsxft5zCMYAtoqWxZ9F`). Production smoke-tested 2026-05-27 (11/11 checks). |
 | Phase 3I — Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy | Locked. Committed `917738f`, tagged `phase-3i-agent-decision-usage-budget-campaign-assets-v1`. Migration `20240034` applied to local, staging, and production 2026-05-28. |
+| Phase 3J — Campaign Email Asset Library | Complete. Committed `30068a6`. No migration. Staging auto-deploy `dpl_7rKQPkaMNYpZ8zVfc72nTQP6G8La` 2026-05-28; authenticated smoke test PASSED. No lock tag yet — pending final lock report and user approval. |
 
 ## Staging Foundation v1 — Locked
 
@@ -76,14 +77,14 @@
 
 ## QA Status (Last Verified)
 
-Verified at Phase 3I commit `917738f`.
+Verified at Phase 3J commit `30068a6`.
 
 ```
 npx vitest run      → PASSED
 npx next build      → PASSED
 TypeScript          → PASSED
-1130/1130 tests passed
-  (47 new tests added since Phase 3H: Phase 3I Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy)
+1176/1176 tests passed
+  (46 new tests added since Phase 3I: Phase 3J Campaign Email Asset Library)
 ```
 
 ## Active Routes
@@ -103,6 +104,8 @@ TypeScript          → PASSED
 | `/[workspaceSlug]/leads/[id]` | Active — Phase 3E: WorkflowToggle (enable/disable AI workflow per lead); Phase 3F: LeadActivityTimeline (workflow events, 18-type EVENT_LABELS map), Email Draft History (prior drafts via `emailDrafts.slice(1)`), Workflow Errors panel (linked `automation_failures` via `workflow_runs.subject_type/subject_id`); Phase 3I: AgentDecisionPanel (10 most recent agent decisions per lead, BLOCKED status with budget exhaustion message) |
 | `/[workspaceSlug]/settings/analytics` | Active — Phase 3D: Revenue Analytics dashboard; Lead Pipeline, Email Performance (30d), Strategy Performance panels; read-only server component |
 | `/[workspaceSlug]/settings/ai-usage` | Active — Phase 3I: AI Usage Board; token/cost KPIs (today/month); Usage by Agent, Model, Feature tables; Top Leads by AI Cost; 30-Day Usage Trend; Recent Failed AI Calls |
+| `/[workspaceSlug]/settings/campaign-assets` | Active — Phase 3J: campaign email asset list with status badges; AI Draft button (campaign type + prompt brief → AI-generated draft, budget-gated); manual "New Asset" link |
+| `/[workspaceSlug]/settings/campaign-assets/[assetId]` | Active — Phase 3J: asset detail view; edit mode (draft-only); review panel (under_review/approved/active); personalization preview (in-memory, no DB writes); clone button |
 
 ## Working Tree
 
@@ -110,7 +113,7 @@ Clean. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`5e56448` — Docs: update AI context for Phase 3I completion
+`30068a6` — Phase 3J: implement campaign email asset library
 
 ## Lock Tags
 
@@ -126,7 +129,7 @@ Clean. `master` up to date with `origin/master`.
 | Do not reconnect production Vercel Git without explicit user approval | Reconnecting restores auto-deploy on every master push |
 | Staging (`verian-bios-staging`) auto-deploys from master — unchanged | Staging is the continuous integration target; every push to master deploys staging |
 | Staging must remain deployable | All app code must stay compatible with staging at all times |
-| Tests must stay green | 1130/1130 is the current baseline; no regression allowed |
+| Tests must stay green | 1176/1176 is the current baseline; no regression allowed |
 | Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240035`. |
 | No environment-crossing assumptions | Local seed data, staging users, and remote dev state are not shared; never assume data from one env exists in another |
 | No debug routes left behind | Temporary diagnostic routes must be removed within the same work session; do not merge to master without cleanup |
@@ -135,4 +138,4 @@ Clean. `master` up to date with `origin/master`.
 
 ## Last Updated
 
-2026-05-28 — Phase 3I fully locked. Lock tag `phase-3i-agent-decision-usage-budget-campaign-assets-v1 → 917738f`. 6 new tables (`agent_decisions`, `ai_usage_events`, `ai_budget_policies`, `ai_budget_events`, `campaign_email_assets`, `campaign_email_sends`) — migration `20240034` applied to local, staging, and production. `preflightCheck` + `recordUsage` hooks in 4 agent services. `createDecision` writes in 5 services. AgentDecisionPanel + AI Usage Board live. 47 new source-reading tests. 1130/1130 tests. `EMAIL_SENDING_ENABLED` remains disabled. HEAD: `5e56448`.
+2026-05-28 — Phase 3J complete. Campaign Email Asset Library implemented: full asset lifecycle (draft → under_review → approved → active → retired); deterministic personalization preview (in-memory, pure function); AI-assisted draft creation with `preflightCheck` + `recordUsage` + `createDecision` hooks; 9 server actions; 10 UI components; `BookOpen` sidebar nav entry; `CAMPAIGN_ASSET_FAILURE_TYPE` constants in structured-error types; 46 new source-reading tests (TC-3J-001 through TC-3J-046). No migration created — databases remain through `20240034`. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. Staging auto-deployed `dpl_7rKQPkaMNYpZ8zVfc72nTQP6G8La`; authenticated smoke test PASSED. 1176/1176 tests. HEAD: `30068a6`.

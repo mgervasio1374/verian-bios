@@ -39,6 +39,9 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `30068a6` | Phase 3J: implement campaign email asset library | Phase 3J |
+| `08444a4` | Docs: add Phase 3J implementation plan | Phase 3J Docs |
+| `aa3772b` | Docs: add Phase 3J campaign email asset library design | Phase 3J Docs |
 | `5e56448` | Docs: update AI context for Phase 3I completion | Phase 3I Docs |
 | `917738f` | Phase 3I: implement agent decision usage budget campaign asset foundation | Phase 3I |
 | `b7415d0` | Docs: add Phase 3I implementation plan | Phase 3I Docs |
@@ -122,6 +125,32 @@
 | `b50665d` | Add statement analysis PDF proposal package | Phase 4 |
 
 ## What Each Group Contains
+
+### Phase 3J: Campaign Email Asset Library (`30068a6`)
+
+- `modules/messaging/campaign-assets/campaign-asset.types.ts` — **new** — `AssetStatus`, `AssetTransition`, `AssetTemplateContent`, `CampaignAssetValidationResult`, `AssetPreviewResult` types
+- `modules/messaging/campaign-assets/campaign-asset.constants.ts` — **new** — `CAMPAIGN_TYPE` (8 values: `initial_contact`, `statement_follow_up`, `proposal_follow_up`, `savings_opportunity`, `check_in`, `reactivation`, `close_push`, `post_analysis_follow_up`); `APPROVED_MERGE_FIELDS` (12 approved `{{variable}}` names with fallback values); `ASSET_CREATION_ESTIMATED_TOKENS: 3000`
+- `modules/intelligence/structured-errors/structured-error.types.ts` — **modified** — `CAMPAIGN_ASSET_FAILURE_TYPE` const block (`CAMPAIGN_ASSET_MISSING_REQUIRED_FIELDS`, `CAMPAIGN_ASSET_UNDER_REVIEW_TOO_LONG`, `CAMPAIGN_ASSET_ACTIVATION_BLOCKED`, `CAMPAIGN_ASSET_AI_GENERATION_BUDGET_BLOCKED`, `CAMPAIGN_ASSET_REPEATED_REJECTION`) + `CampaignAssetFailureType` alias (additive only)
+- `modules/messaging/repositories/campaign-email-asset.repo.ts` — **modified** — added `updateAssetContent(tenantId, assetId, content, resetStatus?)`, `listAssetsByType(tenantId, workspaceId, campaignType, status?)`, `listAssetsByStatus(tenantId, workspaceId, status)`; also added `listAssetsForWorkspace` and `getAssetById`; `UpdateAssetContentInput` interface
+- `modules/messaging/services/campaign-asset-validation.service.ts` — **new** — `extractMergeFields(template)` (regex `/\{\{([^}]+)\}\}/g`); `validateMergeFieldSyntax(fieldName)` (`/^[a-z][a-z0-9_]*$/`); `validateAssetTemplate(content)` (10 rules: non-empty checks, completeness, required subset, syntax, unknown-field detection, unsubscribe pattern); `validateActivationReadiness(asset)` (requiredFields have non-empty fallbackValues); `validateAssetTransition(currentStatus, targetStatus)` (blocks retired→any, draft→approved/active, under_review→active)
+- `modules/messaging/services/campaign-asset.service.ts` — **new** — header comment: `// EMAIL_SENDING_ENABLED is controlled via system controls; campaign assets do not send emails.`; `createHumanAsset` (validates template, creates with `llmGenerated: false`); `submitAssetForReview`; `approveAsset` (requires non-empty `approvedBy`); `activateAsset` (requires `approvedBy` + activation readiness); `retireAsset`; `cloneAsset` (creates draft copy, `llmGenerated: false`); `previewCampaignAsset` (pure synchronous function — calls `renderCampaignAsset`, no DB writes)
+- `modules/messaging/services/campaign-asset-ai.service.ts` — **new** — `generateAiAssetDraft`: `preflightCheck` → deterministic draft generation → `createAsset` (null FKs) → `recordUsage` (with `campaignAssetId`) → `createDecision` (with `aiUsageEventId`) → `updateAssetContent` (back-fills FK fields); `reviseAssetWithAi`: same flow with `decisionType='campaign_asset_revised'`, `featureName='asset_revision'`, `resetStatus=true`; all with `promptTokens: 0, completionTokens: 0` (no real LLM SDK); contains `EMAIL_SENDING_ENABLED` guard comment; does NOT import `@anthropic-ai/sdk`
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/actions.ts` — **new** — `'use server'`; 9 actions: `saveAssetAction`, `submitForReviewAction`, `approveAssetAction` (derives `approvedBy` from `ctx.userId`), `activateAssetAction`, `retireAssetAction`, `cloneAssetAction`, `generateAiDraftAction` (budget-blocked returns `{ blocked: true, error: 'AI generation unavailable — budget exhausted…' }`), `reviseWithAiAction`, `updateAssetContentAction`
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/page.tsx` — **new** — server component (no `'use client'`); loads `listAssetsForWorkspace`; renders `CampaignAssetList` + `AiAssetDraftButton`; "New Asset" link to `/new`
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/[assetId]/page.tsx` — **new** — server component; handles `assetId === 'new'` (renders `CampaignAssetEditor`); handles `edit=1` + status `draft` (renders `CampaignAssetEditor` with initial values); otherwise renders `CampaignAssetDetail` + `CampaignAssetReviewPanel` (for under_review/approved/active) + `CloneAssetButton`
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/CampaignAssetList.tsx` — **new** — server component; status badges; links to asset detail pages
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/CampaignAssetStatusBadge.tsx` — **new** — `'use client'`; color-coded badge for all 5 asset statuses
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/CampaignAssetDetail.tsx` — **new** — server component; field display, template content, personalization fields, merge field fallbacks; edit link (draft only); submit/retire/activate action forms; preview panel embedded
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/CampaignAssetEditor.tsx` — **new** — `'use client'`; full form for `assetName`, `campaignType`, `subjectTemplate`, `bodyTemplateHtml`, `bodyTemplateText`; `useState<string>` (explicit generic to avoid narrow literal type inference); calls `saveAssetAction`; validates on submit
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/CampaignAssetPreviewPanel.tsx` — **new** — `'use client'`; comment: `// Preview is in-memory only — no DB writes, no LLM, no Resend, no campaign_email_sends writes.`; calls `renderCampaignAsset` (pure synchronous); editable merge-field inputs; shows unknown-field warning; does NOT contain `createCampaignSend`, `sendApprovedDraft`, `resend.emails.send`, or `@anthropic-ai/sdk`
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/CampaignAssetReviewPanel.tsx` — **new** — server component; approve/activate/retire action forms (under_review/approved/active states)
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/CampaignAssetPerformancePlaceholder.tsx` — **new** — server component; static placeholder "Performance data will appear after campaign sends (Phase 3N)."
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/AiAssetDraftButton.tsx` — **new** — `'use client'`; `useState<string>(CAMPAIGN_TYPE.INITIAL_CONTACT)` (explicit generic); campaign type `<select>` + prompt brief `<textarea>`; calls `generateAiDraftAction`; handles `result.blocked` (shows error) + `result.preflightWarning` (shows budget warning); redirects to asset detail on success
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/CloneAssetButton.tsx` — **new** — `'use client'`; calls `cloneAssetAction`; redirects to new asset detail
+- `components/layout/Sidebar.tsx` — **modified** — `BookOpen` added to lucide-react imports; Campaign Assets nav entry added between AI Usage and Settings entries
+- `tests/phase3j-campaign-email-asset-library.test.ts` — **new** — 46 source-reading tests across 13 describe blocks (TC-3J-001 through TC-3J-046); route existence, sidebar nav, repo additions, service exports, safety guardrails, action exports, AI hooks, preview guardrails, lifecycle guards, clone behavior, AI revision, constants, system intelligence constants, boundary/safety guardrails); no Supabase mocking, no LLM calls, no test doubles
+
+No migration created. Databases remain through `20240034`. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. No lock tag — pending final lock report and user approval.
 
 ### Phase 3I: Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy (`917738f`)
 
@@ -350,6 +379,7 @@
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-28 | 1176/1176 passed | PASSED | Phase 3J Campaign Email Asset Library — 46 new source-reading tests (TC-3J-001 through TC-3J-046). No migration created; databases remain through `20240034`. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. Staging auto-deploy `dpl_7rKQPkaMNYpZ8zVfc72nTQP6G8La` 2026-05-28; authenticated staging smoke test PASSED. Implementation commit: `30068a6`. |
 | 2026-05-28 | 1130/1130 passed | PASSED | Phase 3I Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy — 47 new source-reading tests. Migration `20240034` applied to local, staging (`smbausuyetlgxflyhmfg`), and production (`kxrplupzbsmujjznzhpy`) 2026-05-28. 6 new tables verified on all three environments. `EMAIL_SENDING_ENABLED` remains disabled. Implementation commit: `917738f`. |
 | 2026-05-27 | 1083/1083 passed | PASSED | Phase 3H production deployed. Migration `20240033` applied to production (`kxrplupzbsmujjznzhpy`). Production Vercel `dpl_EVRkZE2uMYsxft5zCMYAtoqWxZ9F` live at `https://verian-bios.vercel.app`. Production smoke: 11/11 checks passed. `EMAIL_SENDING_ENABLED` remains disabled — no live sends. Docs updated at `ba492a4`. |
 | 2026-05-27 | 1083/1083 passed | PASSED | Phase 3H Send Safety Hardening — 35 new source-reading tests. Migration `20240033` applied to staging (`smbausuyetlgxflyhmfg`). Staging smoke: Gate 0 blocks send when `EMAIL_SENDING_ENABLED = false` ✓, `failure_reason` column exists ✓, `triggered_by` column exists ✓, failure path creates `email_sends` row ✓, `ET_SEND_INITIATED` ✓, `ET_SEND_FAILED` ✓, `send_path = phase_3a_template` ✓. Known limitation: `ET_SEND_SUCCEEDED` and webhook structured-error smoke not testable on staging (invalid Resend key). Tag: `phase-3h-send-safety-hardening-v1`. |
@@ -379,7 +409,7 @@
 
 ## Current HEAD
 
-`5e56448` — Docs: update AI context for Phase 3I completion
+`30068a6` — Phase 3J: implement campaign email asset library
 
 ### Phase 3G: Agent Operations Readiness & Control Map (`a4f488a`)
 - `docs/roadmap/phase-3g-agent-operations-readiness-design.md` — **new** — full control map: agent inventory (13 active agents, 4 planned), decision lifecycle audit (12 steps), human approval gates, email engine redesign boundary, campaign assignment model design, Resend readiness checklist, observability gaps, safety model, roadmap 3H→3M, recommended pause milestone

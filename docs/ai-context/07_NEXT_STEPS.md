@@ -602,17 +602,52 @@ All deliverables committed and QA-verified. Migration `20240034` applied to loca
 
 ## Next Recommended Step
 
-### Begin Phase 3J Design When Ready
+### Final Phase 3J Lock Report → Lock Tag (After User Approval)
 
-Phase 3I is fully locked. Lock tag `phase-3i-agent-decision-usage-budget-campaign-assets-v1 → 917738f`. All three databases current through `20240034`. 1130/1130 tests. `EMAIL_SENDING_ENABLED` remains disabled.
+Phase 3J is implemented, committed (`30068a6`), and staging-smoke-tested. No lock tag has been created yet. 1176/1176 tests. `EMAIL_SENDING_ENABLED` remains disabled. All databases remain through `20240034`.
 
-**Recommended next action:** Request Phase 3J design document only. Phase 3J is Unified Draft Path — unifies the Phase 3A template path and Phase 3B pipeline path before campaigns are possible (critical gap identified in Phase 3G audit). Design & Test Cases must be produced and approved before any Phase 3J code is written.
+**Recommended next action:** Produce the final Phase 3J lock report. After user approval, create the lock tag `phase-3j-campaign-email-asset-library-v1 → 30068a6`. Do not begin Phase 3K until the lock tag is created and user-approved.
 
-**Constraints for Phase 3J design and beyond:**
-- Do not implement Phase 3J yet.
-- Do not create migration `20240035` until Phase 3J implementation plan is approved.
+**Constraints:**
+- Do not begin Phase 3K yet.
+- Do not create migration `20240035` until Phase 3K (or the next applicable phase) implementation plan is approved.
 - Do not enable live sending.
 - Do not deploy production without explicit approval.
+
+## Completed — Phase 3J Campaign Email Asset Library v1.0
+
+Implemented, committed, and staging-smoke-tested. No lock tag yet.
+
+| Deliverable | Status |
+|-------------|--------|
+| Design & Test Cases | Locked (`docs/roadmap/phase-3j-campaign-email-asset-library-design.md`) — `aa3772b` |
+| Implementation Plan | Locked (`docs/roadmap/phase-3j-implementation-plan.md`) — `08444a4` |
+| Code implementation | Complete — `30068a6` |
+| QA: 1176/1176 tests, build, TypeScript | PASSED |
+| Staging auto-deploy `dpl_7rKQPkaMNYpZ8zVfc72nTQP6G8La` | PASSED — 2026-05-28 |
+| Authenticated staging smoke test | PASSED — user confirmed |
+| Lock tag | Pending — not created yet |
+
+### What was delivered
+
+- Full asset lifecycle: draft → under_review → approved → active → retired with `validateAssetTransition` guardrails
+- `campaign-asset-validation.service.ts` — `extractMergeFields`, `validateAssetTemplate` (10 rules), `validateActivationReadiness`, `validateAssetTransition`
+- `campaign-asset.service.ts` — `createHumanAsset`, `submitAssetForReview`, `approveAsset` (requires `approvedBy`), `activateAsset` (requires `approvedBy` + readiness), `retireAsset`, `cloneAsset` (draft copy, `llmGenerated: false`), `previewCampaignAsset` (pure sync, no DB writes)
+- `campaign-asset-ai.service.ts` — `generateAiAssetDraft` and `reviseAssetWithAi`; FK ordering: createAsset → recordUsage → createDecision → updateAssetContent (back-fills FKs); deterministic generation (`promptTokens: 0`); `EMAIL_SENDING_ENABLED` guard comment; no `@anthropic-ai/sdk`
+- `CAMPAIGN_TYPE` (8 values) + `APPROVED_MERGE_FIELDS` (12 approved `{{variable}}` names) + `CAMPAIGN_ASSET_FAILURE_TYPE` (5 failure types) constants
+- 9 server actions; `approvedBy` always derived server-side from `ctx.userId`
+- 10 UI components: asset list, status badge, detail view, editor, preview panel (in-memory, pure sync), review panel, performance placeholder, AI draft button, clone button
+- `BookOpen` sidebar nav entry for Campaign Assets
+- 46 source-reading tests (TC-3J-001 through TC-3J-046) across 13 describe blocks — all pass
+
+### Key behavior
+
+- Preview is a pure synchronous function (`renderCampaignAsset`) — no DB writes, no LLM, no Resend, no `campaign_email_sends` rows
+- AI draft creation uses budget `preflightCheck` before generation; budget-blocked returns `{ blocked: true }` and the asset is never created
+- Status reset on AI revision: `updateAssetContent` called with `resetStatus: true` → sets status to `'draft'` regardless of current status
+- Clone always creates a new `draft` with `llmGenerated: false`
+- No migration `20240035` created — databases remain through `20240034`
+- `EMAIL_SENDING_ENABLED` remains disabled — campaign assets cannot trigger email sends
 
 ---
 
