@@ -8,6 +8,7 @@ import { CampaignAssetDetail } from '../CampaignAssetDetail'
 import { CampaignAssetEditor } from '../CampaignAssetEditor'
 import { CampaignAssetReviewPanel } from '../CampaignAssetReviewPanel'
 import { CloneAssetButton } from '../CloneAssetButton'
+import { SubmitForReviewButton } from '../SubmitForReviewButton'
 
 interface PageProps {
   params:      Promise<{ workspaceSlug: string; assetId: string }>
@@ -57,7 +58,11 @@ export default async function CampaignAssetDetailPage({ params, searchParams }: 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div />
+        {asset.status === 'draft' ? (
+          <SubmitForReviewButton workspaceSlug={workspaceSlug} assetId={assetId} />
+        ) : (
+          <div />
+        )}
         <CloneAssetButton
           workspaceSlug={workspaceSlug}
           sourceId={assetId}

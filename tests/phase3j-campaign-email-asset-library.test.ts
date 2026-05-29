@@ -358,3 +358,41 @@ describe('Phase 3J — Boundary and safety guardrails', () => {
     expect(src).toContain('PersonalizationFields')
   })
 })
+
+// ============================================================
+// Block 14 — Submit for Review UI patch (Phase 3K smoke fix)
+// ============================================================
+
+describe('Phase 3J/3K — SubmitForReviewButton patch', () => {
+  it('TC-3J-047: SubmitForReviewButton.tsx file exists', () => {
+    const filePath = path.join(root, 'app/(workspace)/[workspaceSlug]/settings/campaign-assets/SubmitForReviewButton.tsx')
+    expect(fs.existsSync(filePath)).toBe(true)
+  })
+
+  it('TC-3J-048: SubmitForReviewButton calls submitForReviewAction', () => {
+    const src = read('app/(workspace)/[workspaceSlug]/settings/campaign-assets/SubmitForReviewButton.tsx')
+    expect(src).toContain('submitForReviewAction')
+  })
+
+  it('TC-3J-049: asset detail page renders SubmitForReviewButton for draft assets', () => {
+    const src = read('app/(workspace)/[workspaceSlug]/settings/campaign-assets/[assetId]/page.tsx')
+    expect(src).toContain('SubmitForReviewButton')
+    expect(src).toContain("status === 'draft'")
+  })
+
+  it('TC-3J-050: SubmitForReviewButton does NOT call sendApprovedDraft', () => {
+    const src = read('app/(workspace)/[workspaceSlug]/settings/campaign-assets/SubmitForReviewButton.tsx')
+    expect(src).not.toContain('sendApprovedDraft')
+  })
+
+  it('TC-3J-051: SubmitForReviewButton does NOT call resend.emails.send', () => {
+    const src = read('app/(workspace)/[workspaceSlug]/settings/campaign-assets/SubmitForReviewButton.tsx')
+    expect(src).not.toContain('resend.emails.send')
+  })
+
+  it('TC-3J-052: SubmitForReviewButton does NOT call approveAssetAction or activateAssetAction', () => {
+    const src = read('app/(workspace)/[workspaceSlug]/settings/campaign-assets/SubmitForReviewButton.tsx')
+    expect(src).not.toContain('approveAssetAction')
+    expect(src).not.toContain('activateAssetAction')
+  })
+})
