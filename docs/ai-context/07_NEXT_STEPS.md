@@ -602,21 +602,21 @@ All deliverables committed and QA-verified. Migration `20240034` applied to loca
 
 ## Next Recommended Step
 
-### Final Phase 3J Lock Report → Lock Tag (After User Approval)
+### Begin Phase 3K Design When Ready
 
-Phase 3J is implemented, committed (`30068a6`), and staging-smoke-tested. No lock tag has been created yet. 1176/1176 tests. `EMAIL_SENDING_ENABLED` remains disabled. All databases remain through `20240034`.
+Phase 3J is fully locked. Lock tag `phase-3j-campaign-email-asset-library-v1 → 30068a6`. All databases current through `20240034`. 1176/1176 tests. `EMAIL_SENDING_ENABLED` remains disabled.
 
-**Recommended next action:** Produce the final Phase 3J lock report. After user approval, create the lock tag `phase-3j-campaign-email-asset-library-v1 → 30068a6`. Do not begin Phase 3K until the lock tag is created and user-approved.
+**Recommended next action:** Request Phase 3K design document only. Design & Test Cases must be produced and approved before any Phase 3K code is written.
 
-**Constraints:**
-- Do not begin Phase 3K yet.
-- Do not create migration `20240035` until Phase 3K (or the next applicable phase) implementation plan is approved.
+**Constraints for Phase 3K design and beyond:**
+- Do not implement Phase 3K yet.
+- Do not create migration `20240035` until Phase 3K implementation plan is approved (only if Phase 3K requires a migration).
 - Do not enable live sending.
 - Do not deploy production without explicit approval.
 
 ## Completed — Phase 3J Campaign Email Asset Library v1.0
 
-Implemented, committed, and staging-smoke-tested. No lock tag yet.
+All deliverables committed, tagged, and QA-verified.
 
 | Deliverable | Status |
 |-------------|--------|
@@ -626,7 +626,7 @@ Implemented, committed, and staging-smoke-tested. No lock tag yet.
 | QA: 1176/1176 tests, build, TypeScript | PASSED |
 | Staging auto-deploy `dpl_7rKQPkaMNYpZ8zVfc72nTQP6G8La` | PASSED — 2026-05-28 |
 | Authenticated staging smoke test | PASSED — user confirmed |
-| Lock tag | Pending — not created yet |
+| Lock tag | `phase-3j-campaign-email-asset-library-v1 → 30068a6` |
 
 ### What was delivered
 

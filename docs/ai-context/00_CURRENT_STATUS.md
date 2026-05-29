@@ -29,7 +29,7 @@
 | Phase 3G — Agent Operations Readiness & Control Map | Complete. Documentation/control-map only. Committed `a4f488a`, tagged `phase-3g-agent-operations-readiness-v1`. No source code changed. No migration created. Key finding: `EMAIL_SENDING_ENABLED` not enforced in `sendApprovedDraft()` — must be fixed in Phase 3H. |
 | Phase 3H — Send Safety Hardening | Complete. Committed `b10d0db`, tagged `phase-3h-send-safety-hardening-v1`. Migration `20240033` applied to staging and production. Production Vercel deployed (`dpl_EVRkZE2uMYsxft5zCMYAtoqWxZ9F`). Production smoke-tested 2026-05-27 (11/11 checks). |
 | Phase 3I — Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy | Locked. Committed `917738f`, tagged `phase-3i-agent-decision-usage-budget-campaign-assets-v1`. Migration `20240034` applied to local, staging, and production 2026-05-28. |
-| Phase 3J — Campaign Email Asset Library | Complete. Committed `30068a6`. No migration. Staging auto-deploy `dpl_7rKQPkaMNYpZ8zVfc72nTQP6G8La` 2026-05-28; authenticated smoke test PASSED. No lock tag yet — pending final lock report and user approval. |
+| Phase 3J — Campaign Email Asset Library | Locked. Committed `30068a6`, tagged `phase-3j-campaign-email-asset-library-v1`. No migration. Staging auto-deploy `dpl_7rKQPkaMNYpZ8zVfc72nTQP6G8La` 2026-05-28; authenticated smoke test PASSED. |
 
 ## Staging Foundation v1 — Locked
 
@@ -117,6 +117,7 @@ Clean. `master` up to date with `origin/master`.
 
 ## Lock Tags
 
+`phase-3j-campaign-email-asset-library-v1` → `30068a6`
 `phase-3i-agent-decision-usage-budget-campaign-assets-v1` → `917738f`
 `phase-3h-send-safety-hardening-v1` → `b10d0db`
 
@@ -138,4 +139,4 @@ Clean. `master` up to date with `origin/master`.
 
 ## Last Updated
 
-2026-05-28 — Phase 3J complete. Campaign Email Asset Library implemented: full asset lifecycle (draft → under_review → approved → active → retired); deterministic personalization preview (in-memory, pure function); AI-assisted draft creation with `preflightCheck` + `recordUsage` + `createDecision` hooks; 9 server actions; 10 UI components; `BookOpen` sidebar nav entry; `CAMPAIGN_ASSET_FAILURE_TYPE` constants in structured-error types; 46 new source-reading tests (TC-3J-001 through TC-3J-046). No migration created — databases remain through `20240034`. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. Staging auto-deployed `dpl_7rKQPkaMNYpZ8zVfc72nTQP6G8La`; authenticated smoke test PASSED. 1176/1176 tests. Implementation: `30068a6`. HEAD: `99cb314`.
+2026-05-28 — Phase 3J fully locked. Lock tag `phase-3j-campaign-email-asset-library-v1 → 30068a6`. Campaign Email Asset Library: full asset lifecycle (draft → under_review → approved → active → retired); deterministic personalization preview (in-memory, pure function); AI-assisted draft creation with `preflightCheck` + `recordUsage` + `createDecision` hooks; 9 server actions; 10 UI components; `BookOpen` sidebar nav entry; `CAMPAIGN_ASSET_FAILURE_TYPE` constants; 46 new source-reading tests. No migration created — databases remain through `20240034`. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. 1176/1176 tests. HEAD: `b77c964`.
