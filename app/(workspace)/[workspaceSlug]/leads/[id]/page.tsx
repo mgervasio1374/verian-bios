@@ -215,21 +215,28 @@ export default async function LeadDetailPage({ params }: PageProps) {
           </Card>
         )}
 
-        {/* Draft from Campaign Asset — only when no active draft and assets available */}
-        {!hasActiveDraft && activeAssets.length > 0 && (
+        {/* Draft from Campaign Asset — visible when assets exist; blocked when a draft is already in progress */}
+        {activeAssets.length > 0 && (
           <Card>
             <CardHeader><CardTitle className="text-sm">Draft from Campaign Asset</CardTitle></CardHeader>
             <CardContent>
-              <CreateDraftFromAssetCard
-                workspaceSlug={workspaceSlug}
-                leadId={id}
-                activeAssets={activeAssets.map(a => ({
-                  id:            a.id,
-                  asset_name:    a.asset_name,
-                  campaign_type: a.campaign_type,
-                  status:        a.status,
-                }))}
-              />
+              {hasActiveDraft ? (
+                <p className="text-sm text-muted-foreground">
+                  This lead already has a {latestDraft?.status?.replace(/_/g, ' ')} draft in progress.
+                  Resolve or supersede the existing draft before creating a campaign asset draft.
+                </p>
+              ) : (
+                <CreateDraftFromAssetCard
+                  workspaceSlug={workspaceSlug}
+                  leadId={id}
+                  activeAssets={activeAssets.map(a => ({
+                    id:            a.id,
+                    asset_name:    a.asset_name,
+                    campaign_type: a.campaign_type,
+                    status:        a.status,
+                  }))}
+                />
+              )}
             </CardContent>
           </Card>
         )}

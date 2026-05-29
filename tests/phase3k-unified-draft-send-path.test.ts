@@ -342,3 +342,51 @@ describe('TC-3K-050–058: Safety guardrails', () => {
     expect(read(draftSvcFile)).not.toContain('enrollLead')
   })
 })
+
+// ─── Block 8: Lead page blocked-state UI patch (TC-3K-059–066) ──────────────
+
+describe('TC-3K-059–066: Lead page blocked-state Draft from Campaign Asset', () => {
+  const leadPage = 'app/(workspace)/[workspaceSlug]/leads/[id]/page.tsx'
+
+  it('TC-3K-059: lead page renders Draft from Campaign Asset card when activeAssets.length > 0 (not gated by !hasActiveDraft)', () => {
+    const src = read(leadPage)
+    expect(src).toContain('activeAssets.length > 0')
+  })
+
+  it('TC-3K-060: lead page shows blocked explanation when hasActiveDraft is true', () => {
+    const src = read(leadPage)
+    expect(src).toContain('already has a')
+    expect(src).toContain('Resolve or supersede')
+  })
+
+  it('TC-3K-061: lead page still renders CreateDraftFromAssetCard (import present)', () => {
+    const src = read(leadPage)
+    expect(src).toContain('CreateDraftFromAssetCard')
+  })
+
+  it('TC-3K-062: campaign-asset-draft.service.ts duplicate guard is preserved', () => {
+    const src = read('modules/messaging/services/campaign-asset-draft.service.ts')
+    expect(src).toContain('pending_draft_exists')
+  })
+
+  it('TC-3K-063: lead page does NOT contain sendApprovedDraft', () => {
+    const src = read(leadPage)
+    expect(src).not.toContain('sendApprovedDraft')
+  })
+
+  it('TC-3K-064: lead page does NOT contain resend.emails.send', () => {
+    const src = read(leadPage)
+    expect(src).not.toContain('resend.emails.send')
+  })
+
+  it('TC-3K-065: lead page does NOT contain campaign_email_sends', () => {
+    const src = read(leadPage)
+    expect(src).not.toContain('campaign_email_sends')
+  })
+
+  it('TC-3K-066: lead page does NOT contain dispatchCampaign or executeCampaign', () => {
+    const src = read(leadPage)
+    expect(src).not.toContain('dispatchCampaign')
+    expect(src).not.toContain('executeCampaign')
+  })
+})
