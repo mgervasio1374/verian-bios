@@ -39,6 +39,7 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `99cb314` | Docs: update AI context for Phase 3J completion | Phase 3J Docs |
 | `30068a6` | Phase 3J: implement campaign email asset library | Phase 3J |
 | `08444a4` | Docs: add Phase 3J implementation plan | Phase 3J Docs |
 | `aa3772b` | Docs: add Phase 3J campaign email asset library design | Phase 3J Docs |
@@ -409,7 +410,7 @@ No migration created. Databases remain through `20240034`. `EMAIL_SENDING_ENABLE
 
 ## Current HEAD
 
-`30068a6` — Phase 3J: implement campaign email asset library
+`99cb314` — Docs: update AI context for Phase 3J completion
 
 ### Phase 3G: Agent Operations Readiness & Control Map (`a4f488a`)
 - `docs/roadmap/phase-3g-agent-operations-readiness-design.md` — **new** — full control map: agent inventory (13 active agents, 4 planned), decision lifecycle audit (12 steps), human approval gates, email engine redesign boundary, campaign assignment model design, Resend readiness checklist, observability gaps, safety model, roadmap 3H→3M, recommended pause milestone
