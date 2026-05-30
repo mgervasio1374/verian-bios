@@ -27,6 +27,8 @@ import { LeadActivityTimeline } from './LeadActivityTimeline'
 import { AgentDecisionPanel } from './AgentDecisionPanel'
 import { CreateDraftFromAssetCard } from './CreateDraftFromAssetCard'
 import { DraftSourceBadge } from '@/components/messaging/DraftSourceBadge'
+import { CampaignAssignmentCard } from './CampaignAssignmentCard'
+import * as assignmentRepo from '@/modules/messaging/repositories/campaign-assignment.repo'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string; id: string }>
@@ -53,6 +55,8 @@ export default async function LeadDetailPage({ params }: PageProps) {
     ])
 
   const activeAssets = allAssets.filter(a => a.status === 'approved' || a.status === 'active')
+
+  const campaignAssignments = await assignmentRepo.getCampaignAssignmentsForLead(ctx.workspaceId, id).catch(() => [])
 
   const leadUsage = await aiUsageRepo.getLeadUsageSummary(ctx.tenantId, id).catch(() => ({ totalCostUsd: 0, callCount: 0 }))
 
@@ -240,6 +244,18 @@ export default async function LeadDetailPage({ params }: PageProps) {
             </CardContent>
           </Card>
         )}
+        {/* Campaign Assignment */}
+        <CampaignAssignmentCard
+          leadId={id}
+          workspaceSlug={workspaceSlug}
+          assignments={campaignAssignments}
+          activeAssets={activeAssets.map(a => ({
+            id:            a.id,
+            name:          a.asset_name,
+            campaign_type: a.campaign_type,
+          }))}
+        />
+
       </div>
 
       {/* ---- Email review workspace — two-column on xl ---- */}

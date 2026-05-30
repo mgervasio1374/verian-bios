@@ -321,8 +321,9 @@ describe('TC-3K-050–058: Safety guardrails', () => {
     expect(read(readinessSvc)).not.toContain("EMAIL_SENDING_ENABLED = true")
   })
 
-  it('TC-3K-055: no Phase 3L campaign-assignment service file exists', () => {
-    expect(exists('modules/messaging/services/campaign-assignment.service.ts')).toBe(false)
+  it('TC-3K-055: Phase 3K files do NOT contain scheduleCampaign or executeCampaign (Phase 3L guard)', () => {
+    expect(read(draftSvcFile)).not.toContain('scheduleCampaign')
+    expect(read(draftSvcFile)).not.toContain('executeCampaign')
   })
 
   it('TC-3K-056: Phase 3K files do NOT contain autoSend or auto_send', () => {

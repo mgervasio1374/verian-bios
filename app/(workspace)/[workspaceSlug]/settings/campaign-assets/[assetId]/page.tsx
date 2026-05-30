@@ -4,6 +4,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asset.repo'
 import * as emailDraftRepo from '@/modules/messaging/repositories/email-draft.repo'
+import * as assignmentRepo from '@/modules/messaging/repositories/campaign-assignment.repo'
+import { AssignedLeadsPanel } from './AssignedLeadsPanel'
 import { CampaignAssetDetail } from '../CampaignAssetDetail'
 import { CampaignAssetEditor } from '../CampaignAssetEditor'
 import { CampaignAssetReviewPanel } from '../CampaignAssetReviewPanel'
@@ -34,7 +36,8 @@ export default async function CampaignAssetDetailPage({ params, searchParams }: 
 
   if (!asset) notFound()
 
-  const sourceDrafts = await emailDraftRepo.getDraftsBySourceAsset(ctx.tenantId, assetId, 10).catch(() => [])
+  const sourceDrafts      = await emailDraftRepo.getDraftsBySourceAsset(ctx.tenantId, assetId, 10).catch(() => [])
+  const assignedLeads     = await assignmentRepo.getCampaignAssignmentsForAsset(ctx.workspaceId, assetId).catch(() => [])
 
   if (edit === '1' && asset.status === 'draft') {
     const initial = {
@@ -75,6 +78,12 @@ export default async function CampaignAssetDetailPage({ params, searchParams }: 
       )}
 
       <CampaignAssetDetail asset={asset} workspaceSlug={workspaceSlug} />
+
+      <AssignedLeadsPanel
+        assetId={assetId}
+        workspaceSlug={workspaceSlug}
+        assignments={assignedLeads}
+      />
 
       {/* Drafts Created from This Asset */}
       <div className="rounded-lg border bg-background p-4 space-y-3">

@@ -233,5 +233,14 @@ export const ActivityEventType = {
 
   // Phase 3K — Campaign asset draft creation
   CAMPAIGN_ASSET_DRAFT_CREATED: 'campaign_asset_draft_created',
+
+  // Phase 3L — Campaign Assignment Model (additive)
+  CAMPAIGN_ASSIGNED:               'campaign_assigned',
+  CAMPAIGN_ASSIGNMENT_PROPOSED:    'campaign_assignment_proposed',
+  CAMPAIGN_ASSIGNMENT_APPROVED:    'campaign_assignment_approved',
+  CAMPAIGN_ASSIGNMENT_REJECTED:    'campaign_assignment_rejected',
+  CAMPAIGN_ASSIGNMENT_PAUSED:      'campaign_assignment_paused',
+  CAMPAIGN_ASSIGNMENT_RETIRED:     'campaign_assignment_retired',
+  CAMPAIGN_ASSIGNMENT_COMPLETED:   'campaign_assignment_completed',
 } as const
 export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType]
