@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3m-campaign-work-queue-v1` | Phase 3M Campaign Work Queue & Assignment-to-Draft Linkage — `email_drafts.campaign_assignment_id` FK column (migration `20240037`, local only); `getCampaignWorkQueue` database-only read service; `createDraftFromAssignmentAction` with full boundary validation (tenant, workspace, status, blocking-draft, pinned-asset tenant/workspace/status/type); `getBlockingDraftForLead` repo function (blocks draft/pending_approval/approved); `CreateDraftFromAssignmentCard` on lead detail; `CampaignAssignmentCard` extended with linked-draft indicator; Campaign Queue page at `/settings/campaign-queue` with visible error state; sidebar nav `ListTodo` icon; non-fatal `completeCampaignAssignment` wiring in `email-send.service.ts`; 1 new `ActivityEventType` (`CAMPAIGN_DRAFT_CREATED_FROM_ASSIGNMENT`); 90 source-reading tests (TC-3M-001–090) including token/cost guardrail, workspace-boundary, and Codex-review-fix coverage; no LLM path; no Resend path; `generatedByAi` remains false; migration `20240037` not applied to staging or production; no production deploy |
 | `phase-3l-campaign-assignment-model-v1` | Phase 3L Campaign Assignment Model — new `campaign_assignments` table (17 columns, 2 unique partial indexes, 2 check constraints, RLS, service-role policies); migration `20240036`; full assignment lifecycle (proposed/assigned/paused/completed/retired/rejected); 5 service functions + 4 server actions; `CampaignAssignmentCard` on lead detail; `AssignedLeadsPanel` on campaign asset detail; 7 new `ActivityEventType` constants; 65 new source-reading tests; 1332/1332 total; staging UI smoke PASSED; staging DB verification PASSED; no production deploy; migration `20240036` not applied to production |
 | `phase-3k-unified-draft-send-path-v1` | Phase 3K Unified Draft / Send Path — campaign asset render-to-draft path; `source_type` + `source_asset_id` provenance on `email_drafts` (migration `20240035`); `CreateDraftFromAssetCard`; `SubmitForReviewButton`; `CampaignAssetReviewPanel` converted to client component; legacy campaign type mapping; 91 new source-reading tests; 1267/1267 total; staging UI smoke PASSED; DB verification 29/29; no production deploy; migration `20240035` not applied to production |
 | `phase-3j-campaign-email-asset-library-v1` | Phase 3J Campaign Email Asset Library — full asset lifecycle (draft→under_review→approved→active→retired); `validateAssetTransition` + `validateActivationReadiness` guards; AI-assisted draft/revision with `preflightCheck` + `recordUsage` + `createDecision`; deterministic preview (pure sync, no DB writes); 9 server actions; 10 UI components; `CAMPAIGN_TYPE` + `APPROVED_MERGE_FIELDS` + `CAMPAIGN_ASSET_FAILURE_TYPE` constants; Campaign Assets sidebar nav; 46 new source-reading tests; 1176/1176 total; no migration; no production deploy |
@@ -42,6 +43,11 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `e33b130` | Phase 3M: implement campaign work queue | Phase 3M |
+| `46de0a4` | Docs: add Phase 3M implementation plan | Phase 3M Docs |
+| `f21f101` | Docs: add Phase 3M campaign work queue design | Phase 3M Docs |
+| `519a051` | Docs: record Phase 3L lock tag | Phase 3L Docs |
+| `f266874` | Docs: update AI context for Phase 3L completion | Phase 3L Docs |
 | `7adbd25` | Phase 3L: implement campaign assignment model | Phase 3L |
 | `7b72138` | Docs: add Phase 3L implementation plan | Phase 3L Docs |
 | `9517a31` | Docs: add Phase 3L campaign assignment model design | Phase 3L Docs |
@@ -142,6 +148,34 @@
 | `b50665d` | Add statement analysis PDF proposal package | Phase 4 |
 
 ## What Each Group Contains
+
+### Phase 3M: Campaign Work Queue & Assignment-to-Draft Linkage (`e33b130`)
+
+**Migration:** `supabase/migrations/20240037_phase3m_draft_assignment_linkage.sql` — `ALTER TABLE email_drafts ADD COLUMN IF NOT EXISTS campaign_assignment_id uuid REFERENCES campaign_assignments(id) ON DELETE SET NULL`; partial index `idx_email_drafts_campaign_assignment_id ON email_drafts (campaign_assignment_id) WHERE campaign_assignment_id IS NOT NULL`. Applied to local only. **Not applied to staging or production.**
+
+- `types/database.ts` — **modified** — `campaign_assignment_id: string | null` added to `email_drafts` Row; `campaign_assignment_id?: string | null` to Insert and Update; FK relationship `email_drafts_campaign_assignment_id_fkey → campaign_assignments` added
+- `modules/messaging/repositories/email-draft.repo.ts` — **modified** — `campaignAssignmentId?: string | null` added to `CreateEmailDraftInput`; `campaign_assignment_id` included in `createEmailDraft` INSERT; new `getDraftsLinkedToAssignment(assignmentId, tenantId)` function (returns id, status, lead_id, created_at, source_type; filters by assignment FK; limit 5); new `getBlockingDraftForLead(tenantId, leadId)` function (checks `['draft', 'pending_approval', 'approved']` — broader than `getPendingDraftForLead` which only blocks `draft`/`pending_approval`)
+- `modules/messaging/services/campaign-asset-draft.service.ts` — **modified** — `campaignAssignmentId?: string | null` added to `CreateDraftFromAssetInput`; threaded to `createEmailDraft` call; all other logic (rendering, approval creation, AI-generation guard) unchanged; `generatedByAi: false` unchanged
+- `modules/messaging/services/campaign-queue.service.ts` — **new** — `DraftReadiness` type (`no_draft | has_pending_draft | has_approved_draft | has_draft_from_assignment`); `CampaignQueueEntry` interface; `getCampaignWorkQueue(tenantId, workspaceId)`: fetches `assigned` campaign_assignments, lead names/status/stage, pinned asset names (scoped by tenant), active drafts; computes `draftReadiness` per entry; sorts `no_draft` first; no writes, no LLM, no Resend
+- `modules/messaging/actions/campaign-assignment-draft.actions.ts` — **new** — `'use server'`; `createDraftFromAssignmentAction(assignmentId, workspaceSlug)`: resolves assignment → validates tenant + workspace boundary → validates `assigned` status → validates lead present → blocks if `getBlockingDraftForLead` returns row → if pinned `campaign_asset_id`: validates asset exists, validates `asset.workspace_id === ctx.workspaceId`, validates status (active/approved), validates `campaign_type` match → else: `listAssetsForWorkspace` fallback → calls Phase 3K `createDraftFromAsset` with `campaignAssignmentId` → revalidates paths → emits `CAMPAIGN_DRAFT_CREATED_FROM_ASSIGNMENT` (non-fatal)
+- `modules/messaging/services/email-send.service.ts` — **modified** — after Resend success: if `draft.campaign_assignment_id` is set, calls `campaignAssignmentService.completeCampaignAssignment(draft.campaign_assignment_id)` non-fatally (`.catch(() => null)`)
+- `modules/intelligence/types.agent.ts` — **modified** — `CAMPAIGN_DRAFT_CREATED_FROM_ASSIGNMENT: 'campaign_draft_created_from_assignment'` added (additive)
+- `app/(workspace)/[workspaceSlug]/leads/[id]/CreateDraftFromAssignmentCard.tsx` — **new** — `'use client'`; renders above `CreateDraftFromAssetCard` when lead has `assigned` campaign assignment; returns `null` when `hasActiveDraft` is true; disabled card when no active asset for assignment type; calls `createDraftFromAssignmentAction` via `useTransition`; `router.refresh()` on success
+- `app/(workspace)/[workspaceSlug]/leads/[id]/CampaignAssignmentCard.tsx` — **modified** — `LinkedDraft` interface added; `linkedDraftsByAssignmentId?: Record<string, LinkedDraft[]>` prop added; renders "Draft in progress" read-only badge (status: pending_approval → "Pending Approval", approved → "Approved") per active assignment when linked draft exists
+- `app/(workspace)/[workspaceSlug]/leads/[id]/page.tsx` — **modified** — `getDraftsLinkedToAssignment` called in `Promise.all` per active assignment; `linkedDraftsByAssignmentId` map built; `activeAssignment` resolved for `CreateDraftFromAssignmentCard`; `activeAssignmentAsset` found by campaign type match; `CreateDraftFromAssignmentCard` rendered above `CreateDraftFromAssetCard`; `linkedDraftsByAssignmentId` passed to `CampaignAssignmentCard`
+- `app/(workspace)/[workspaceSlug]/settings/campaign-queue/page.tsx` — **new** — server component; `getCampaignWorkQueue` with try/catch (visible error banner, not silent `.catch(() => [])`); `DraftReadinessBadge` component (No Draft / Draft Pending / Draft Approved / Draft Linked); table with Lead, Campaign, Asset, Source, Assigned, Status, Action (View Lead →) columns; empty state; no server actions (read-only)
+- `components/layout/Sidebar.tsx` — **modified** — `ListTodo` added to lucide-react imports; `Campaign Queue` nav entry added between `Campaign Assets` and `Settings`
+- `tests/phase3m-campaign-work-queue.test.ts` — **new** — 90 source-reading tests (TC-3M-001 through TC-3M-090) across 17 describe blocks: migration DDL (×5), queue service (×8), email-draft repo extensions (×5), action exports (×8), assignment-linked draft creation (×6), CreateDraftFromAssignmentCard (×7), queue page (×6), sidebar (×3), lead detail integration (×5), CampaignAssignmentCard linked draft (×4), auto-complete wiring (×4), Phase 3K compatibility (×4), Phase 3L compatibility (×4), no Phase 3N scope-creep (×4), Codex review fixes (×6), token/cost guardrail (×9), pinned asset workspace boundary (×2); no Supabase mocking, no LLM calls, no test doubles
+
+**Safety guarantees:**
+- No `sendApprovedDraft` / `resend.emails.send` / `scheduleCampaign` / `executeCampaign` calls introduced in Phase 3M files
+- `EMAIL_SENDING_ENABLED` kill switch preserved — campaign queue cannot trigger sends
+- `CAMPAIGN_SENDING_ENABLED` remains disabled
+- `campaign_email_sends` table not written by any Phase 3M code path
+- No auto-send, no auto-draft-bulk-creation, no campaign execution, no Phase 3N scope
+- `generatedByAi` remains `false` — `renderCampaignAsset` is local merge-field substitution, no LLM
+- Pinned asset validated on tenant + workspace + status + campaign_type before any draft creation
+- Approved drafts now block draft creation (Phase 3M extended the guard beyond `draft`/`pending_approval`)
 
 ### Phase 3L: Campaign Assignment Model (`7adbd25`)
 

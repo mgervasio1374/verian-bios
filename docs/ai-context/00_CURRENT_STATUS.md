@@ -32,6 +32,7 @@
 | Phase 3J — Campaign Email Asset Library | Locked. Committed `30068a6`, tagged `phase-3j-campaign-email-asset-library-v1`. No migration. Staging auto-deploy `dpl_7rKQPkaMNYpZ8zVfc72nTQP6G8La` 2026-05-28; authenticated smoke test PASSED. |
 | Phase 3K — Unified Draft / Send Path | Locked. Committed through `bf98582`, tagged `phase-3k-unified-draft-send-path-v1`. Migration `20240035` applied to local and staging (`smbausuyetlgxflyhmfg`). Production migration `20240035` not applied. Staging UI smoke PASSED. Staging DB verification PASSED 29/29. |
 | Phase 3L — Campaign Assignment Model | Locked. Committed `7adbd25`, tagged `phase-3l-campaign-assignment-model-v1`. Migration `20240036` applied to local and staging (`smbausuyetlgxflyhmfg`). Production migration `20240036` not applied. Staging UI smoke PASSED. Staging DB verification PASSED. |
+| Phase 3M — Campaign Work Queue & Assignment-to-Draft Linkage | Locked. Committed `e33b130`, tagged `phase-3m-campaign-work-queue-v1`. Migration `20240037` applied to local only. Staging migration `20240037` not applied. Production migration `20240037` not applied. 90/90 tests. No LLM path. No send path. |
 
 ## Staging Foundation v1 — Locked
 
@@ -44,7 +45,7 @@
 
 | Environment | Supabase ref | Migrations applied | Auth/Access |
 |-------------|-------------|-------------------|-------------|
-| Local | Docker / `127.0.0.1:54321` | 001–036 | Local seed user `dev@verian.local` |
+| Local | Docker / `127.0.0.1:54321` | 001–037 | Local seed user `dev@verian.local` |
 | Production | `kxrplupzbsmujjznzhpy` | 001–034 | Standard access — `https://verian-bios.vercel.app` |
 | Staging | `smbausuyetlgxflyhmfg` | 001–036 | `staging@verian.internal` / platform_admin |
 
@@ -79,14 +80,15 @@
 
 ## QA Status (Last Verified)
 
-Verified before Phase 3L commit `7adbd25`.
+Verified before Phase 3M commit `e33b130`.
 
 ```
-npx vitest run      → PASSED  1332/1332 tests passed
-npx next build      → PASSED
-TypeScript          → 7 pre-existing test-file errors only (phase3h-send-safety-hardening.test.ts,
-                       quality-review-agent.test.ts); no Phase 3L errors introduced
-  65 new tests added since Phase 3K: Phase 3L Campaign Assignment Model (TC-3L-001 through TC-3L-065)
+npx vitest run (phase3m only) → PASSED  90/90 Phase 3M tests passed
+TypeScript                    → 7 pre-existing test-file errors only (phase3h-send-safety-hardening.test.ts,
+                                 quality-review-agent.test.ts); no Phase 3M errors introduced
+  90 new Phase 3M tests: TC-3M-001 through TC-3M-090 across 17 describe blocks
+    Includes: token/cost guardrail (TC-3M-080–088), workspace boundary (TC-3M-089–090),
+    Codex review fixes (TC-3M-074–079)
 ```
 
 ## Active Routes
@@ -107,8 +109,10 @@ TypeScript          → 7 pre-existing test-file errors only (phase3h-send-safet
 | `/[workspaceSlug]/settings/analytics` | Active — Phase 3D: Revenue Analytics dashboard; Lead Pipeline, Email Performance (30d), Strategy Performance panels; read-only server component |
 | `/[workspaceSlug]/settings/ai-usage` | Active — Phase 3I: AI Usage Board; token/cost KPIs (today/month); Usage by Agent, Model, Feature tables; Top Leads by AI Cost; 30-Day Usage Trend; Recent Failed AI Calls |
 | `/[workspaceSlug]/settings/campaign-assets` | Active — Phase 3J: campaign email asset list with status badges; AI Draft button (campaign type + prompt brief → AI-generated draft, budget-gated); manual "New Asset" link |
+| `/[workspaceSlug]/settings/campaign-queue` | Active — Phase 3M: Campaign Work Queue page; read-only server component; lists all `assigned` campaign assignments with draft readiness badge (No Draft / Draft Pending / Draft Approved / Draft Linked); visible error state on load failure; "View Lead →" links; sidebar nav via `ListTodo` icon |
 | `/[workspaceSlug]/settings/campaign-assets/[assetId]` | Active — Phase 3J: asset detail view; edit mode (draft-only); Phase 3K: `SubmitForReviewButton` client component for draft-status assets; `CampaignAssetReviewPanel` converted to `'use client'` (direct server action calls for approve/activate/retire); clone button; Phase 3L: `AssignedLeadsPanel` (list of active/proposed assignments linked to this asset, up to 20, links to lead detail) |
 | `/[workspaceSlug]/leads/[id]` (Draft from Campaign Asset) | Active — Phase 3K: `CreateDraftFromAssetCard` renders when active assets exist and no pending draft blocks; blocked explanation card when `hasActiveDraft` is true; `GenerateManualCampaignDraftButton` updated to canonical campaign type values; `source_type = campaign_asset_render` written on draft creation |
+| `/[workspaceSlug]/leads/[id]` (Draft from Assignment) | Active — Phase 3M: `CreateDraftFromAssignmentCard` renders above `CreateDraftFromAssetCard` when lead has an `assigned` campaign assignment; calls `createDraftFromAssignmentAction`; blocked when `hasActiveDraft` is true; `CampaignAssignmentCard` extended with linked draft indicator ("Draft in progress") per active assignment; `linkedDraftsByAssignmentId` prop added |
 
 ## Working Tree
 
@@ -116,10 +120,11 @@ Clean. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`7adbd25` — Phase 3L: implement campaign assignment model
+`e33b130` — Phase 3M: implement campaign work queue
 
 ## Lock Tags
 
+`phase-3m-campaign-work-queue-v1` → `e33b130`
 `phase-3l-campaign-assignment-model-v1` → `7adbd25`
 `phase-3k-unified-draft-send-path-v1` → `bf98582`
 `phase-3j-campaign-email-asset-library-v1` → `30068a6`
@@ -136,7 +141,7 @@ Clean. `master` up to date with `origin/master`.
 | Staging (`verian-bios-staging`) auto-deploys from master — unchanged | Staging is the continuous integration target; every push to master deploys staging |
 | Staging must remain deployable | All app code must stay compatible with staging at all times |
 | Tests must stay green | 1332/1332 is the current baseline; no regression allowed |
-| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240037`. (`20240035` and `20240036` committed — applied to local and staging; not applied to production.) |
+| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240038`. (`20240035` and `20240036` committed — applied to local and staging; not applied to production. `20240037` committed — applied to local only; not applied to staging or production.) |
 | No environment-crossing assumptions | Local seed data, staging users, and remote dev state are not shared; never assume data from one env exists in another |
 | No debug routes left behind | Temporary diagnostic routes must be removed within the same work session; do not merge to master without cleanup |
 | Any new phase requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
@@ -144,4 +149,4 @@ Clean. `master` up to date with `origin/master`.
 
 ## Last Updated
 
-2026-05-30 — Phase 3L locked. HEAD `f266874` (docs). Implementation commit `7adbd25`. Lock tag `phase-3l-campaign-assignment-model-v1 → 7adbd25` created and pushed. Migration `20240036` (`campaign_assignments` table — 17 columns, 2 unique partial indexes, 2 check constraints, RLS, service-role policies) applied to local and staging (`smbausuyetlgxflyhmfg`); not applied to production. Staging UI smoke PASSED. Staging DB verification PASSED: assignment `9aad7bcc` (`campaign_type = proposal_follow_up`, `assignment_source = manual`, `assignment_status = assigned`); activity event `70521e41` (campaign_assigned); `campaign_email_sends` = 0 rows; no auto-drafts; no live sends. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. 1332/1332 tests.
+2026-05-30 — Phase 3M locked. Implementation commit `e33b130`. Lock tag `phase-3m-campaign-work-queue-v1 → e33b130` created and pushed to origin. Migration `20240037` (`email_drafts.campaign_assignment_id` FK column + partial index) applied to local only; not applied to staging or production. 90/90 Phase 3M source-reading tests passed. No LLM path introduced. No send path introduced. `EMAIL_SENDING_ENABLED` remains disabled. `CAMPAIGN_SENDING_ENABLED` remains disabled. `generatedByAi` remains false on all campaign-asset-render drafts. Campaign queue is database-only/read-only. Staging migration state: 001–036. Production migration state: 001–034. No production deploy.

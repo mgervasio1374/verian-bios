@@ -602,19 +602,71 @@ All deliverables committed and QA-verified. Migration `20240034` applied to loca
 
 ## Next Recommended Step
 
-### Commit and Push Phase 3L Lock Tag Documentation, Then Await Phase 3M Authorization
+### Await Phase 3N Authorization
 
-Phase 3L is fully locked. Lock tag `phase-3l-campaign-assignment-model-v1 → 7adbd25` created and pushed. The immediate next step is committing and pushing this lock tag documentation update.
+Phase 3M is fully locked. Lock tag `phase-3m-campaign-work-queue-v1 → e33b130` created and pushed. AI context documentation updated.
 
-After the docs commit, Phase 3M design may begin when separately authorized. Phase 3M design & test cases must be produced and approved before any Phase 3M code is written.
+The next step is awaiting explicit authorization before beginning Phase 3N design. Phase 3N design & test cases must be produced and approved before any Phase 3N code is written.
 
-**Constraints for Phase 3M and beyond:**
-- Do not implement Phase 3M yet — await explicit authorization.
-- Production migrations `20240035` and `20240036` remain **explicitly out of scope** unless separately authorized.
-- Production migration order: `20240035` must be applied before `20240036`.
+**Constraints for Phase 3N and beyond:**
+- Do not implement Phase 3N yet — await explicit authorization.
+- Production migrations `20240035`, `20240036`, and `20240037` remain **explicitly out of scope** unless separately authorized.
+- Production migration order must be respected: `20240035` → `20240036` → `20240037`.
+- Staging migration `20240037` has not been applied — apply before any Phase 3N staging smoke test.
 - Do not enable live sending (`EMAIL_SENDING_ENABLED` remains disabled).
 - Do not implement campaign execution, follow-up scheduling, or auto-send.
 - Do not deploy production without explicit approval.
+
+## Completed — Phase 3M Campaign Work Queue & Assignment-to-Draft Linkage v1.0
+
+All deliverables committed, tagged, and locked.
+
+| Deliverable | Status |
+|-------------|--------|
+| Design & Test Cases | Locked (`docs/roadmap/phase-3m-campaign-work-queue-design.md`) — `f21f101` |
+| Implementation Plan | Locked (`docs/roadmap/phase-3m-implementation-plan.md`) — `46de0a4` |
+| Code implementation | Complete — `e33b130` |
+| Phase 3M tests: 90/90 | PASSED |
+| TypeScript | 7 pre-existing test-file errors only (unrelated to Phase 3M) |
+| Migration `20240037` applied to local | PASSED |
+| Migration `20240037` applied to staging | **NOT APPLIED** — out of scope |
+| Migration `20240037` applied to production | **NOT APPLIED** — out of scope |
+| Lock tag | `phase-3m-campaign-work-queue-v1 → e33b130` — created and pushed |
+
+### What was delivered
+
+- `supabase/migrations/20240037_phase3m_draft_assignment_linkage.sql` — `campaign_assignment_id` FK column on `email_drafts` (ON DELETE SET NULL) + partial index; local only
+- `types/database.ts` — `campaign_assignment_id` added to `email_drafts` Row/Insert/Update + FK relationship
+- `email-draft.repo.ts` — `campaignAssignmentId` in `CreateEmailDraftInput` + `createEmailDraft` INSERT; `getDraftsLinkedToAssignment`; `getBlockingDraftForLead` (blocks draft/pending_approval/approved — wider than the Phase 3K guard)
+- `campaign-asset-draft.service.ts` — `campaignAssignmentId` optional parameter threaded through; `generatedByAi: false` unchanged
+- `campaign-queue.service.ts` — **new** — `getCampaignWorkQueue`: pure database read, no LLM, no Resend; `DraftReadiness` type; `CampaignQueueEntry` interface; pinned asset lookup scoped by tenant; sort: no_draft first
+- `campaign-assignment-draft.actions.ts` — **new** — `createDraftFromAssignmentAction` with full boundary validation: tenant, workspace, assignment status, lead presence, blocking draft (incl. approved), pinned asset (tenant + workspace + status + campaign_type), workspace-scoped fallback asset selection
+- `email-send.service.ts` — non-fatal `completeCampaignAssignment` call after Resend success when `draft.campaign_assignment_id` is set
+- `types.agent.ts` — `CAMPAIGN_DRAFT_CREATED_FROM_ASSIGNMENT` ActivityEventType added
+- `CreateDraftFromAssignmentCard.tsx` — **new** — `'use client'`; renders above general `CreateDraftFromAssetCard`; returns null when `hasActiveDraft`; uses `useTransition`
+- `CampaignAssignmentCard.tsx` — linked-draft indicator ("Draft in progress") per active assignment
+- `leads/[id]/page.tsx` — `getDraftsLinkedToAssignment` in `Promise.all`; `CreateDraftFromAssignmentCard` in JSX; `linkedDraftsByAssignmentId` to `CampaignAssignmentCard`
+- `settings/campaign-queue/page.tsx` — **new** — server component; try/catch with visible error banner; `DraftReadinessBadge`; read-only table; "View Lead →" links
+- `Sidebar.tsx` — `ListTodo` icon; Campaign Queue nav entry between Campaign Assets and Settings
+- `tests/phase3m-campaign-work-queue.test.ts` — **new** — 90 source-reading tests (TC-3M-001–090): token/cost guardrail (TC-3M-080–088), pinned asset workspace boundary (TC-3M-089–090), Codex review fixes (TC-3M-074–079), and full Phase 3M coverage
+
+### Key behavior
+
+- Operator opens Campaign Queue page → sees all `assigned` campaign assignments with draft readiness status
+- On lead detail page: if lead has `assigned` assignment, `CreateDraftFromAssignmentCard` appears above general asset card
+- Clicking "Create Draft" calls `createDraftFromAssignmentAction` which validates all boundaries and delegates to Phase 3K `createDraftFromAsset` — local render, no LLM, `generatedByAi: false`
+- Draft is created with `campaign_assignment_id` FK populated, and appears as "Draft in progress" on the `CampaignAssignmentCard`
+- When the draft is eventually sent (manually, email sending still disabled), `completeCampaignAssignment` is called non-fatally to close the assignment lifecycle loop
+- Assignment lifecycle from Phase 3L is fully preserved and unchanged
+- `EMAIL_SENDING_ENABLED` remains disabled — no actual sends possible
+
+### Known limitations (v1)
+
+- Migration `20240037` not applied to staging — staging Campaign Queue page will show a DB error until migration is applied
+- Staging smoke test not performed — requires `20240037` applied to staging first
+- Production migration `20240037` not applied — production not affected
+
+---
 
 ## Completed — Phase 3L Campaign Assignment Model v1.0
 
