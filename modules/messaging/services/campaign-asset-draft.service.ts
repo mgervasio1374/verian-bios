@@ -11,11 +11,12 @@ import { DRAFT_SOURCE_TYPE }   from '@/modules/messaging/drafts/draft-source.con
 import { ActivityEventType }   from '@/modules/intelligence/types.agent'
 
 export interface CreateDraftFromAssetInput {
-  tenantId:    string
-  workspaceId: string
-  assetId:     string
-  leadId:      string
-  requestedBy: string
+  tenantId:              string
+  workspaceId:           string
+  assetId:               string
+  leadId:                string
+  requestedBy:           string
+  campaignAssignmentId?: string | null
 }
 
 export type CreateDraftFromAssetResult =
@@ -101,8 +102,9 @@ export async function createDraftFromAsset(
     companyId:        lead.company_id ?? null,
     workflowRunId:    null,
     generatedByAi:    false,
-    sourceType:       DRAFT_SOURCE_TYPE.CAMPAIGN_ASSET_RENDER,
-    sourceAssetId:    input.assetId,
+    sourceType:            DRAFT_SOURCE_TYPE.CAMPAIGN_ASSET_RENDER,
+    sourceAssetId:         input.assetId,
+    campaignAssignmentId:  input.campaignAssignmentId ?? null,
     aiGenerationMetadata: {
       source_type:              'campaign_asset_render',
       source_asset_id:          input.assetId,

@@ -234,6 +234,9 @@ export const ActivityEventType = {
   // Phase 3K — Campaign asset draft creation
   CAMPAIGN_ASSET_DRAFT_CREATED: 'campaign_asset_draft_created',
 
+  // Phase 3M — Campaign Work Queue & Assignment-to-Draft Linkage (additive)
+  CAMPAIGN_DRAFT_CREATED_FROM_ASSIGNMENT: 'campaign_draft_created_from_assignment',
+
   // Phase 3L — Campaign Assignment Model (additive)
   CAMPAIGN_ASSIGNED:               'campaign_assigned',
   CAMPAIGN_ASSIGNMENT_PROPOSED:    'campaign_assignment_proposed',

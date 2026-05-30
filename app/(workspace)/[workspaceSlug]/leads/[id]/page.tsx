@@ -26,6 +26,7 @@ import * as aiUsageRepo from '@/modules/intelligence/repositories/ai-usage-event
 import { LeadActivityTimeline } from './LeadActivityTimeline'
 import { AgentDecisionPanel } from './AgentDecisionPanel'
 import { CreateDraftFromAssetCard } from './CreateDraftFromAssetCard'
+import { CreateDraftFromAssignmentCard } from './CreateDraftFromAssignmentCard'
 import { DraftSourceBadge } from '@/components/messaging/DraftSourceBadge'
 import { CampaignAssignmentCard } from './CampaignAssignmentCard'
 import * as assignmentRepo from '@/modules/messaging/repositories/campaign-assignment.repo'
@@ -57,6 +58,27 @@ export default async function LeadDetailPage({ params }: PageProps) {
   const activeAssets = allAssets.filter(a => a.status === 'approved' || a.status === 'active')
 
   const campaignAssignments = await assignmentRepo.getCampaignAssignmentsForLead(ctx.workspaceId, id).catch(() => [])
+
+  // Phase 3M: load linked drafts for active assignments
+  const activeAssignments = campaignAssignments.filter(a => a.assignment_status === 'assigned')
+  const linkedDraftArrays = await Promise.all(
+    activeAssignments.map(a =>
+      emailDraftRepo.getDraftsLinkedToAssignment(a.id, ctx.tenantId).catch(() => [])
+    )
+  )
+  const linkedDraftsByAssignmentId: Record<string, { id: string; status: string }[]> = {}
+  activeAssignments.forEach((a, i) => {
+    linkedDraftsByAssignmentId[a.id] = linkedDraftArrays[i].map(d => ({ id: d.id, status: d.status }))
+  })
+
+  // Phase 3M: resolve active assignment and asset for CreateDraftFromAssignmentCard
+  const activeAssignment = activeAssignments[0] ?? null
+  const activeAssignmentAsset = activeAssignment
+    ? activeAssets.find(a =>
+        a.campaign_type === activeAssignment.campaign_type &&
+        (activeAssignment.campaign_asset_id === null || a.id === activeAssignment.campaign_asset_id)
+      ) ?? null
+    : null
 
   const leadUsage = await aiUsageRepo.getLeadUsageSummary(ctx.tenantId, id).catch(() => ({ totalCostUsd: 0, callCount: 0 }))
 
@@ -219,6 +241,22 @@ export default async function LeadDetailPage({ params }: PageProps) {
           </Card>
         )}
 
+        {/* Draft from Assignment — Phase 3M: pre-populated path when active assignment exists */}
+        {activeAssignment && (
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Draft from Campaign Assignment</CardTitle></CardHeader>
+            <CardContent>
+              <CreateDraftFromAssignmentCard
+                assignment={activeAssignment}
+                workspaceSlug={workspaceSlug}
+                hasActiveDraft={hasActiveDraft}
+                hasActiveAsset={activeAssignmentAsset !== null}
+                assetName={activeAssignmentAsset?.asset_name ?? null}
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Draft from Campaign Asset — visible when assets exist; blocked when a draft is already in progress */}
         {activeAssets.length > 0 && (
           <Card>
@@ -254,6 +292,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
             name:          a.asset_name,
             campaign_type: a.campaign_type,
           }))}
+          linkedDraftsByAssignmentId={linkedDraftsByAssignmentId}
         />
 
       </div>

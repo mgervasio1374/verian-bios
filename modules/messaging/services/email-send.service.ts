@@ -11,6 +11,7 @@ import * as activityEventService from '@/modules/intelligence/services/activity-
 import * as etAttribution from '@/modules/messaging/event-tracking/event-tracking.attribution'
 import * as etAudit from '@/modules/messaging/event-tracking/event-tracking.audit'
 import * as systemControlRepo from '@/modules/intelligence/repositories/system-control.repo'
+import * as campaignAssignmentService from '@/modules/messaging/services/campaign-assignment.service'
 import { SystemControlKey } from '@/modules/intelligence/types.agent'
 
 // ---- Result type ----
@@ -291,6 +292,15 @@ export async function sendApprovedDraft(
         ...(phase3bMeta === null ? { send_path: 'phase_3a_template' } : {}),
       },
     }).catch(() => {})
+
+    // Phase 3M: non-fatally complete the linked assignment after a successful send.
+    // Only fires when the draft carries a campaign_assignment_id.
+    // Does not call Resend, does not call sendApprovedDraft, does not write campaign_email_sends.
+    if (draft.campaign_assignment_id) {
+      campaignAssignmentService
+        .completeCampaignAssignment(draft.campaign_assignment_id)
+        .catch(() => null)
+    }
 
     return { ok: true, sendId: emailSend.id, resendMessageId }
   } catch (err) {

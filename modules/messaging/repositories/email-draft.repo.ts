@@ -152,6 +152,25 @@ export async function getPendingDraftForLead(
   return data ?? null
 }
 
+// Broader guard used by assignment-to-draft action — also blocks approved drafts.
+export async function getBlockingDraftForLead(
+  tenantId: string,
+  leadId: string
+): Promise<Pick<EmailDraftRow, 'id' | 'status'> | null> {
+  const supabase = createSupabaseServiceClient()
+  const { data } = await supabase
+    .from('email_drafts')
+    .select('id, status')
+    .eq('tenant_id', tenantId)
+    .eq('lead_id', leadId)
+    .in('status', ['draft', 'pending_approval', 'approved'])
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+  return data ?? null
+}
+
 // ---- Metrics: status counts ----
 
 export interface DraftStatusCounts {
@@ -228,6 +247,7 @@ interface CreateEmailDraftInput {
   aiGenerationMetadata: Record<string, unknown>
   sourceType?: string | null
   sourceAssetId?: string | null
+  campaignAssignmentId?: string | null
 }
 
 export async function createEmailDraft(
@@ -255,8 +275,9 @@ export async function createEmailDraft(
       workflow_run_id: input.workflowRunId ?? null,
       generated_by_ai: input.generatedByAi,
       ai_generation_metadata: input.aiGenerationMetadata as Json,
-      source_type:      input.sourceType      ?? null,
-      source_asset_id:  input.sourceAssetId   ?? null,
+      source_type:             input.sourceType             ?? null,
+      source_asset_id:         input.sourceAssetId          ?? null,
+      campaign_assignment_id:  input.campaignAssignmentId   ?? null,
     })
     .select()
     .single()
@@ -320,6 +341,24 @@ export async function getDraftsBySourceAsset(
     .limit(limit)
 
   if (error) throw new Error(`getDraftsBySourceAsset: ${error.message}`)
+  return data ?? []
+}
+
+export async function getDraftsLinkedToAssignment(
+  assignmentId: string,
+  tenantId: string
+): Promise<Pick<EmailDraftRow, 'id' | 'status' | 'lead_id' | 'created_at' | 'source_type'>[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('email_drafts')
+    .select('id, status, lead_id, created_at, source_type')
+    .eq('tenant_id', tenantId)
+    .eq('campaign_assignment_id', assignmentId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  if (error) throw new Error(`getDraftsLinkedToAssignment: ${error.message}`)
   return data ?? []
 }
 

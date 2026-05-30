@@ -2320,6 +2320,7 @@ export type Database = {
           bcc_emails: string[] | null
           body_html: string | null
           body_text: string | null
+          campaign_assignment_id: string | null
           cc_emails: string[] | null
           company_id: string | null
           contact_id: string | null
@@ -2358,6 +2359,7 @@ export type Database = {
           bcc_emails?: string[] | null
           body_html?: string | null
           body_text?: string | null
+          campaign_assignment_id?: string | null
           cc_emails?: string[] | null
           company_id?: string | null
           contact_id?: string | null
@@ -2396,6 +2398,7 @@ export type Database = {
           bcc_emails?: string[] | null
           body_html?: string | null
           body_text?: string | null
+          campaign_assignment_id?: string | null
           cc_emails?: string[] | null
           company_id?: string | null
           contact_id?: string | null
@@ -2432,6 +2435,13 @@ export type Database = {
             columns: ["approval_request_id"]
             isOneToOne: false
             referencedRelation: "approval_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_drafts_campaign_assignment_id_fkey"
+            columns: ["campaign_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_assignments"
             referencedColumns: ["id"]
           },
           {

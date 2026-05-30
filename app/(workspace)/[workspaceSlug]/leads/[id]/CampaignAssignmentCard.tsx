@@ -19,11 +19,17 @@ interface ActiveAsset {
   campaign_type: string
 }
 
+interface LinkedDraft {
+  id:     string
+  status: string
+}
+
 interface CampaignAssignmentCardProps {
-  leadId:        string
-  workspaceSlug: string
-  assignments:   CampaignAssignment[]
-  activeAssets:  ActiveAsset[]
+  leadId:                     string
+  workspaceSlug:              string
+  assignments:                CampaignAssignment[]
+  activeAssets:               ActiveAsset[]
+  linkedDraftsByAssignmentId?: Record<string, LinkedDraft[]>
 }
 
 const CAMPAIGN_OPTIONS = Object.values(CAMPAIGN_TYPE).map(value => ({
@@ -53,6 +59,7 @@ export function CampaignAssignmentCard({
   workspaceSlug,
   assignments,
   activeAssets,
+  linkedDraftsByAssignmentId = {},
 }: CampaignAssignmentCardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -221,7 +228,10 @@ export function CampaignAssignmentCard({
           <p className="text-sm text-muted-foreground">No active campaign assignment.</p>
         )}
 
-        {activeAssignments.map(a => (
+        {activeAssignments.map(a => {
+          const linkedDrafts = linkedDraftsByAssignmentId[a.id] ?? []
+          const latestLinkedDraft = linkedDrafts[0] ?? null
+          return (
           <div key={a.id} className="border rounded p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium capitalize">
@@ -234,6 +244,14 @@ export function CampaignAssignmentCard({
               {a.assignment_reason && <p>Reason: {a.assignment_reason}</p>}
               <p>Assigned: {new Date(a.created_at).toLocaleDateString()}</p>
             </div>
+            {latestLinkedDraft && (
+              <div className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1">
+                Draft in progress —{' '}
+                {latestLinkedDraft.status === 'pending_approval' ? 'Pending Approval' :
+                 latestLinkedDraft.status === 'approved'         ? 'Approved'         :
+                 latestLinkedDraft.status}
+              </div>
+            )}
             <div className="flex gap-2 flex-wrap">
               {a.assignment_status === 'proposed' && (
                 <>
@@ -264,7 +282,7 @@ export function CampaignAssignmentCard({
               )}
             </div>
           </div>
-        ))}
+        )})}
 
         {/* Historical accordion */}
         {historicalAssignments.length > 0 && (

@@ -22,6 +22,7 @@ import {
   BarChart2,
   Cpu,
   BookOpen,
+  ListTodo,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -57,7 +58,8 @@ export function Sidebar({ workspaceSlug, tenantName }: SidebarProps) {
     { label: 'Imports',             href: `${base}/settings/imports`,             icon: <Upload className="h-4 w-4" /> },
     { label: 'Analytics',           href: `${base}/settings/analytics`,           icon: <BarChart2 className="h-4 w-4" /> },
     { label: 'AI Usage',            href: `${base}/settings/ai-usage`,            icon: <Cpu className="h-4 w-4" /> },
-    { label: 'Campaign Assets',     href: `${base}/settings/campaign-assets`,     icon: <BookOpen className="h-4 w-4" /> },
+    { label: 'Campaign Assets',     href: `${base}/settings/campaign-assets`,     icon: <BookOpen  className="h-4 w-4" /> },
+    { label: 'Campaign Queue',      href: `${base}/settings/campaign-queue`,      icon: <ListTodo  className="h-4 w-4" /> },
     { label: 'Settings',        href: `${base}/settings`,                  icon: <Settings className="h-4 w-4" /> },
   ]
 
