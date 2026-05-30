@@ -31,7 +31,7 @@
 | Phase 3I — Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy | Locked. Committed `917738f`, tagged `phase-3i-agent-decision-usage-budget-campaign-assets-v1`. Migration `20240034` applied to local, staging, and production 2026-05-28. |
 | Phase 3J — Campaign Email Asset Library | Locked. Committed `30068a6`, tagged `phase-3j-campaign-email-asset-library-v1`. No migration. Staging auto-deploy `dpl_7rKQPkaMNYpZ8zVfc72nTQP6G8La` 2026-05-28; authenticated smoke test PASSED. |
 | Phase 3K — Unified Draft / Send Path | Locked. Committed through `bf98582`, tagged `phase-3k-unified-draft-send-path-v1`. Migration `20240035` applied to local and staging (`smbausuyetlgxflyhmfg`). Production migration `20240035` not applied. Staging UI smoke PASSED. Staging DB verification PASSED 29/29. |
-| Phase 3L — Campaign Assignment Model | Complete. Committed `7adbd25`. Migration `20240036` applied to local and staging (`smbausuyetlgxflyhmfg`). Production migration `20240036` not applied. Staging UI smoke PASSED. Staging DB verification PASSED. Lock tag pending. |
+| Phase 3L — Campaign Assignment Model | Locked. Committed `7adbd25`, tagged `phase-3l-campaign-assignment-model-v1`. Migration `20240036` applied to local and staging (`smbausuyetlgxflyhmfg`). Production migration `20240036` not applied. Staging UI smoke PASSED. Staging DB verification PASSED. |
 
 ## Staging Foundation v1 — Locked
 
@@ -112,7 +112,7 @@ TypeScript          → 7 pre-existing test-file errors only (phase3h-send-safet
 
 ## Working Tree
 
-Docs update in progress; commit pending. `master` up to date with `origin/master`.
+Clean. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
@@ -120,7 +120,7 @@ Docs update in progress; commit pending. `master` up to date with `origin/master
 
 ## Lock Tags
 
-`phase-3l-campaign-assignment-model-v1` → `7adbd25` *(pending — to be created after docs commit)*
+`phase-3l-campaign-assignment-model-v1` → `7adbd25`
 `phase-3k-unified-draft-send-path-v1` → `bf98582`
 `phase-3j-campaign-email-asset-library-v1` → `30068a6`
 `phase-3i-agent-decision-usage-budget-campaign-assets-v1` → `917738f`
@@ -144,4 +144,4 @@ Docs update in progress; commit pending. `master` up to date with `origin/master
 
 ## Last Updated
 
-2026-05-30 — Phase 3L complete. HEAD `7adbd25`. Implementation committed as single commit `7adbd25`. Migration `20240036` (`campaign_assignments` table — 17 columns, 2 unique partial indexes, 2 check constraints, RLS, service-role policies) applied to local and staging (`smbausuyetlgxflyhmfg`); not applied to production. Staging UI smoke PASSED. Staging DB verification PASSED: assignment `9aad7bcc` created (`campaign_type = proposal_follow_up`, `assignment_source = manual`, `assignment_status = assigned`, lead `de000000...0003`); activity event `70521e41` (campaign_assigned) emitted; `campaign_email_sends` = 0 rows; no auto-drafts; no live sends. Lock tag `phase-3l-campaign-assignment-model-v1` pending. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. 1332/1332 tests.
+2026-05-30 — Phase 3L locked. HEAD `f266874` (docs). Implementation commit `7adbd25`. Lock tag `phase-3l-campaign-assignment-model-v1 → 7adbd25` created and pushed. Migration `20240036` (`campaign_assignments` table — 17 columns, 2 unique partial indexes, 2 check constraints, RLS, service-role policies) applied to local and staging (`smbausuyetlgxflyhmfg`); not applied to production. Staging UI smoke PASSED. Staging DB verification PASSED: assignment `9aad7bcc` (`campaign_type = proposal_follow_up`, `assignment_source = manual`, `assignment_status = assigned`); activity event `70521e41` (campaign_assigned); `campaign_email_sends` = 0 rows; no auto-drafts; no live sends. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. 1332/1332 tests.

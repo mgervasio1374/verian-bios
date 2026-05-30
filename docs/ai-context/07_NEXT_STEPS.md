@@ -602,15 +602,16 @@ All deliverables committed and QA-verified. Migration `20240034` applied to loca
 
 ## Next Recommended Step
 
-### Create Phase 3L Lock Tag, Then Await Phase 3M Authorization
+### Commit and Push Phase 3L Lock Tag Documentation, Then Await Phase 3M Authorization
 
-Phase 3L is fully implemented and staging-verified. The immediate next step is creating the lock tag `phase-3l-campaign-assignment-model-v1 → 7adbd25` after the docs commit lands on master.
+Phase 3L is fully locked. Lock tag `phase-3l-campaign-assignment-model-v1 → 7adbd25` created and pushed. The immediate next step is committing and pushing this lock tag documentation update.
 
-After tagging, Phase 3M design may begin when separately authorized. Phase 3M design & test cases must be produced and approved before any Phase 3M code is written.
+After the docs commit, Phase 3M design may begin when separately authorized. Phase 3M design & test cases must be produced and approved before any Phase 3M code is written.
 
 **Constraints for Phase 3M and beyond:**
 - Do not implement Phase 3M yet — await explicit authorization.
 - Production migrations `20240035` and `20240036` remain **explicitly out of scope** unless separately authorized.
+- Production migration order: `20240035` must be applied before `20240036`.
 - Do not enable live sending (`EMAIL_SENDING_ENABLED` remains disabled).
 - Do not implement campaign execution, follow-up scheduling, or auto-send.
 - Do not deploy production without explicit approval.
@@ -630,7 +631,7 @@ All deliverables committed, staging migration applied, staging UI smoke PASSED, 
 | Migration `20240036` applied to production | **NOT APPLIED** — out of scope |
 | Staging UI smoke | PASSED — CampaignAssignmentCard, manual assignment, retire, Phase 3K separation confirmed |
 | Staging DB verification | PASSED — assignment row, activity event, no sends, no auto-drafts |
-| Lock tag | PENDING — `phase-3l-campaign-assignment-model-v1 → 7adbd25` |
+| Lock tag | `phase-3l-campaign-assignment-model-v1 → 7adbd25` — created and pushed |
 
 ### What was delivered
 
