@@ -31,6 +31,7 @@
 | Phase 3I — Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy | Locked. Committed `917738f`, tagged `phase-3i-agent-decision-usage-budget-campaign-assets-v1`. Migration `20240034` applied to local, staging, and production 2026-05-28. |
 | Phase 3J — Campaign Email Asset Library | Locked. Committed `30068a6`, tagged `phase-3j-campaign-email-asset-library-v1`. No migration. Staging auto-deploy `dpl_7rKQPkaMNYpZ8zVfc72nTQP6G8La` 2026-05-28; authenticated smoke test PASSED. |
 | Phase 3K — Unified Draft / Send Path | Locked. Committed through `bf98582`, tagged `phase-3k-unified-draft-send-path-v1`. Migration `20240035` applied to local and staging (`smbausuyetlgxflyhmfg`). Production migration `20240035` not applied. Staging UI smoke PASSED. Staging DB verification PASSED 29/29. |
+| Phase 3L — Campaign Assignment Model | Complete. Committed `7adbd25`. Migration `20240036` applied to local and staging (`smbausuyetlgxflyhmfg`). Production migration `20240036` not applied. Staging UI smoke PASSED. Staging DB verification PASSED. Lock tag pending. |
 
 ## Staging Foundation v1 — Locked
 
@@ -43,9 +44,9 @@
 
 | Environment | Supabase ref | Migrations applied | Auth/Access |
 |-------------|-------------|-------------------|-------------|
-| Local | Docker / `127.0.0.1:54321` | 001–035 | Local seed user `dev@verian.local` |
+| Local | Docker / `127.0.0.1:54321` | 001–036 | Local seed user `dev@verian.local` |
 | Production | `kxrplupzbsmujjznzhpy` | 001–034 | Standard access — `https://verian-bios.vercel.app` |
-| Staging | `smbausuyetlgxflyhmfg` | 001–035 | `staging@verian.internal` / platform_admin |
+| Staging | `smbausuyetlgxflyhmfg` | 001–036 | `staging@verian.internal` / platform_admin |
 
 ### Verified Access Paths
 
@@ -78,14 +79,14 @@
 
 ## QA Status (Last Verified)
 
-Verified before Phase 3K final patch commit `bf98582`.
+Verified before Phase 3L commit `7adbd25`.
 
 ```
-npx vitest run      → PASSED
+npx vitest run      → PASSED  1332/1332 tests passed
 npx next build      → PASSED
-TypeScript          → PASSED
-1267/1267 tests passed
-  (91 new tests added since Phase 3J: Phase 3K Unified Draft / Send Path)
+TypeScript          → 7 pre-existing test-file errors only (phase3h-send-safety-hardening.test.ts,
+                       quality-review-agent.test.ts); no Phase 3L errors introduced
+  65 new tests added since Phase 3K: Phase 3L Campaign Assignment Model (TC-3L-001 through TC-3L-065)
 ```
 
 ## Active Routes
@@ -102,23 +103,24 @@ TypeScript          → PASSED
 | `/[workspaceSlug]/settings/imports` | Active — import batch list |
 | `/[workspaceSlug]/settings/imports/new` | Active — upload new import file |
 | `/[workspaceSlug]/settings/imports/[batchId]` | Active — batch detail: validation summary, dedupe results, approve/cancel |
-| `/[workspaceSlug]/leads/[id]` | Active — Phase 3E: WorkflowToggle (enable/disable AI workflow per lead); Phase 3F: LeadActivityTimeline (workflow events, 18-type EVENT_LABELS map), Email Draft History (prior drafts via `emailDrafts.slice(1)`), Workflow Errors panel (linked `automation_failures` via `workflow_runs.subject_type/subject_id`); Phase 3I: AgentDecisionPanel (10 most recent agent decisions per lead, BLOCKED status with budget exhaustion message) |
+| `/[workspaceSlug]/leads/[id]` | Active — Phase 3E: WorkflowToggle (enable/disable AI workflow per lead); Phase 3F: LeadActivityTimeline (workflow events, 18-type EVENT_LABELS map), Email Draft History (prior drafts via `emailDrafts.slice(1)`), Workflow Errors panel (linked `automation_failures` via `workflow_runs.subject_type/subject_id`); Phase 3I: AgentDecisionPanel (10 most recent agent decisions per lead, BLOCKED status with budget exhaustion message); Phase 3L: `CampaignAssignmentCard` (campaign type selector, asset picker, active/historical assignments, approve/reject proposed, retire assigned) |
 | `/[workspaceSlug]/settings/analytics` | Active — Phase 3D: Revenue Analytics dashboard; Lead Pipeline, Email Performance (30d), Strategy Performance panels; read-only server component |
 | `/[workspaceSlug]/settings/ai-usage` | Active — Phase 3I: AI Usage Board; token/cost KPIs (today/month); Usage by Agent, Model, Feature tables; Top Leads by AI Cost; 30-Day Usage Trend; Recent Failed AI Calls |
 | `/[workspaceSlug]/settings/campaign-assets` | Active — Phase 3J: campaign email asset list with status badges; AI Draft button (campaign type + prompt brief → AI-generated draft, budget-gated); manual "New Asset" link |
-| `/[workspaceSlug]/settings/campaign-assets/[assetId]` | Active — Phase 3J: asset detail view; edit mode (draft-only); Phase 3K: `SubmitForReviewButton` client component for draft-status assets; `CampaignAssetReviewPanel` converted to `'use client'` (direct server action calls for approve/activate/retire); clone button |
+| `/[workspaceSlug]/settings/campaign-assets/[assetId]` | Active — Phase 3J: asset detail view; edit mode (draft-only); Phase 3K: `SubmitForReviewButton` client component for draft-status assets; `CampaignAssetReviewPanel` converted to `'use client'` (direct server action calls for approve/activate/retire); clone button; Phase 3L: `AssignedLeadsPanel` (list of active/proposed assignments linked to this asset, up to 20, links to lead detail) |
 | `/[workspaceSlug]/leads/[id]` (Draft from Campaign Asset) | Active — Phase 3K: `CreateDraftFromAssetCard` renders when active assets exist and no pending draft blocks; blocked explanation card when `hasActiveDraft` is true; `GenerateManualCampaignDraftButton` updated to canonical campaign type values; `source_type = campaign_asset_render` written on draft creation |
 
 ## Working Tree
 
-Clean. `master` up to date with `origin/master`.
+Docs update in progress; commit pending. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`bf98582` — Phase 3K: preserve legacy campaign type mapping
+`7adbd25` — Phase 3L: implement campaign assignment model
 
 ## Lock Tags
 
+`phase-3l-campaign-assignment-model-v1` → `7adbd25` *(pending — to be created after docs commit)*
 `phase-3k-unified-draft-send-path-v1` → `bf98582`
 `phase-3j-campaign-email-asset-library-v1` → `30068a6`
 `phase-3i-agent-decision-usage-budget-campaign-assets-v1` → `917738f`
@@ -128,13 +130,13 @@ Clean. `master` up to date with `origin/master`.
 
 | Guardrail | Reason |
 |-----------|--------|
-| Production Supabase (`kxrplupzbsmujjznzhpy`) is current through migration `20240034` | Migration `20240035` applied to local and staging only — not applied to production. Next available production migration is `20240035`. |
+| Production Supabase (`kxrplupzbsmujjznzhpy`) is current through migration `20240034` | Migrations `20240035` and `20240036` applied to local and staging only — not applied to production. Next available production migration is `20240035`. |
 | Production Vercel (`verian-bios`) no longer auto-deploys from `origin/master` | Track A complete — Git disconnected. Production deploys must be explicit via `vercel --prod` or Vercel dashboard |
 | Do not reconnect production Vercel Git without explicit user approval | Reconnecting restores auto-deploy on every master push |
 | Staging (`verian-bios-staging`) auto-deploys from master — unchanged | Staging is the continuous integration target; every push to master deploys staging |
 | Staging must remain deployable | All app code must stay compatible with staging at all times |
-| Tests must stay green | 1267/1267 is the current baseline; no regression allowed |
-| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240036`. (`20240035` is committed — applied to local and staging; not applied to production.) |
+| Tests must stay green | 1332/1332 is the current baseline; no regression allowed |
+| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240037`. (`20240035` and `20240036` committed — applied to local and staging; not applied to production.) |
 | No environment-crossing assumptions | Local seed data, staging users, and remote dev state are not shared; never assume data from one env exists in another |
 | No debug routes left behind | Temporary diagnostic routes must be removed within the same work session; do not merge to master without cleanup |
 | Any new phase requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
@@ -142,4 +144,4 @@ Clean. `master` up to date with `origin/master`.
 
 ## Last Updated
 
-2026-05-29 — Phase 3K complete. HEAD `bf98582`. Implementation committed through 5 commits (`38d0d86` → `bf98582`). Migration `20240035` (`email_drafts.source_type` + `email_drafts.source_asset_id` columns + FK + indexes) applied to local and staging; not applied to production. Staging UI smoke PASSED. Staging DB verification PASSED 29/29: `campaign_asset_render` draft `8d720bfd` created with `source_asset_id = 4b301ad8`, `generated_by_ai = false`, `status = pending_approval`, `approval_request_id = 10ff50b4`, `sent_at = null`; `campaign_email_sends` empty; no AI usage event for deterministic render. Lock tag `phase-3k-unified-draft-send-path-v1` pending. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. 1267/1267 tests.
+2026-05-30 — Phase 3L complete. HEAD `7adbd25`. Implementation committed as single commit `7adbd25`. Migration `20240036` (`campaign_assignments` table — 17 columns, 2 unique partial indexes, 2 check constraints, RLS, service-role policies) applied to local and staging (`smbausuyetlgxflyhmfg`); not applied to production. Staging UI smoke PASSED. Staging DB verification PASSED: assignment `9aad7bcc` created (`campaign_type = proposal_follow_up`, `assignment_source = manual`, `assignment_status = assigned`, lead `de000000...0003`); activity event `70521e41` (campaign_assigned) emitted; `campaign_email_sends` = 0 rows; no auto-drafts; no live sends. Lock tag `phase-3l-campaign-assignment-model-v1` pending. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. 1332/1332 tests.

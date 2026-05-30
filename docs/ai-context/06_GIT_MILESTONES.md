@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `phase-3l-campaign-assignment-model-v1` *(pending)* | Phase 3L Campaign Assignment Model — new `campaign_assignments` table (17 columns, 2 unique partial indexes, 2 check constraints, RLS, service-role policies); migration `20240036`; full assignment lifecycle (proposed/assigned/paused/completed/retired/rejected); 5 service functions + 4 server actions; `CampaignAssignmentCard` on lead detail; `AssignedLeadsPanel` on campaign asset detail; 7 new `ActivityEventType` constants; 65 new source-reading tests; 1332/1332 total; staging UI smoke PASSED; staging DB verification PASSED; no production deploy; migration `20240036` not applied to production |
 | `phase-3k-unified-draft-send-path-v1` | Phase 3K Unified Draft / Send Path — campaign asset render-to-draft path; `source_type` + `source_asset_id` provenance on `email_drafts` (migration `20240035`); `CreateDraftFromAssetCard`; `SubmitForReviewButton`; `CampaignAssetReviewPanel` converted to client component; legacy campaign type mapping; 91 new source-reading tests; 1267/1267 total; staging UI smoke PASSED; DB verification 29/29; no production deploy; migration `20240035` not applied to production |
 | `phase-3j-campaign-email-asset-library-v1` | Phase 3J Campaign Email Asset Library — full asset lifecycle (draft→under_review→approved→active→retired); `validateAssetTransition` + `validateActivationReadiness` guards; AI-assisted draft/revision with `preflightCheck` + `recordUsage` + `createDecision`; deterministic preview (pure sync, no DB writes); 9 server actions; 10 UI components; `CAMPAIGN_TYPE` + `APPROVED_MERGE_FIELDS` + `CAMPAIGN_ASSET_FAILURE_TYPE` constants; Campaign Assets sidebar nav; 46 new source-reading tests; 1176/1176 total; no migration; no production deploy |
 | `phase-3i-agent-decision-usage-budget-campaign-assets-v1` | Phase 3I Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Foundation — 6 new tables (`agent_decisions`, `ai_usage_events`, `ai_budget_policies`, `ai_budget_events`, `campaign_email_assets`, `campaign_email_sends`); budget `preflightCheck` + `recordUsage` hooks in 4 agent services; `createDecision` writes in 5 services; AgentDecisionPanel on lead detail; AI Usage Board at `/settings/ai-usage`; `AI_BUDGET_FAILURE_TYPE` + `REC_TYPE_3I` constants; 47 new source-reading tests; 1130/1130 total; no production Vercel deploy (infrastructure-only phase) |
@@ -41,6 +42,11 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `7adbd25` | Phase 3L: implement campaign assignment model | Phase 3L |
+| `7b72138` | Docs: add Phase 3L implementation plan | Phase 3L Docs |
+| `9517a31` | Docs: add Phase 3L campaign assignment model design | Phase 3L Docs |
+| `8a3b482` | Docs: record Phase 3K lock tag | Phase 3K Docs |
+| `0286093` | Docs: update AI context for Phase 3K completion | Phase 3K Docs |
 | `bf98582` | Phase 3K: preserve legacy campaign type mapping | Phase 3K |
 | `140bbaa` | Phase 3K: show blocked campaign asset draft state | Phase 3K |
 | `db28f9f` | Phase 3K: wire campaign asset review actions | Phase 3K |
@@ -136,6 +142,38 @@
 | `b50665d` | Add statement analysis PDF proposal package | Phase 4 |
 
 ## What Each Group Contains
+
+### Phase 3L: Campaign Assignment Model (`7adbd25`)
+
+**Migration:** `supabase/migrations/20240036_phase3l_campaign_assignments.sql` — creates `campaign_assignments` table (17 columns: `id`, `tenant_id`, `workspace_id`, `lead_id`, `contact_id`, `campaign_asset_id`, `campaign_type`, `assignment_status`, `assignment_source`, `assigned_by_user_id`, `assigned_by_agent_name`, `assignment_reason`, `confidence`, `eligibility_snapshot` jsonb, `retired_at`, `created_at`, `updated_at`); `chk_target_non_null` ensures at least one of `lead_id`/`contact_id` is non-null; `chk_confidence_range` ensures `confidence` is 0.0–1.0; `uq_active_assignment_lead_type` partial unique index on `(lead_id, campaign_type) WHERE assignment_status IN ('proposed', 'assigned', 'paused')`; `uq_active_assignment_contact_type` partial unique index on `(contact_id, campaign_type) WHERE lead_id IS NULL AND assignment_status IN ('proposed', 'assigned', 'paused')`; RLS: `SELECT USING (tenant_id::text = auth.jwt()->>'tenant_id')`, `ALL USING (auth.role() = 'service_role')`; `GRANT SELECT TO authenticated`; `GRANT ALL TO service_role`; `update_updated_at()` trigger. Applied to local and staging (`smbausuyetlgxflyhmfg`) 2026-05-30. **Not applied to production.**
+
+- `modules/messaging/types/campaign-assignment.types.ts` — **new** — `ASSIGNMENT_STATUS` const (proposed/assigned/paused/completed/retired/rejected), `ASSIGNMENT_SOURCE` const (manual/import/agent_suggested/agent_assisted/system_rule), `VALID_CAMPAIGN_TYPES_FOR_ASSIGNMENT` Set, `AssignmentStatus` type, `AssignmentSource` type, `CampaignAssignment` interface, `CreateAssignmentInput` interface, `CreateAssignmentResult` type
+- `modules/messaging/repositories/campaign-assignment.repo.ts` — **new** — `getCampaignAssignmentsForLead`, `getCampaignAssignmentsForContact`, `getCampaignAssignmentsForAsset`, `getProposedAssignments`, `getActiveDuplicateAssignment`, `getAssignmentById`, `insertCampaignAssignment`, `updateAssignmentStatus`
+- `modules/messaging/services/campaign-assignment.service.ts` — **new** — `createCampaignAssignment`: validates campaign type, validates leadId/contactId presence, verifies asset if provided (active or approved), duplicate check via `getActiveDuplicateAssignment`, builds `eligibility_snapshot` (lead_status, lead_stage, source, priority, has_prior_send, evaluated_at), determines initial status (`proposed` for `agent_suggested`, `assigned` for all others), inserts row, emits `CAMPAIGN_ASSIGNMENT_PROPOSED` or `CAMPAIGN_ASSIGNED` activity event (non-fatal); `approveProposedAssignment`: validates `proposed` status, updates to `assigned`, emits `CAMPAIGN_ASSIGNMENT_APPROVED`; `rejectProposedAssignment`: validates `proposed` status, updates to `rejected`, emits `CAMPAIGN_ASSIGNMENT_REJECTED`; `retireCampaignAssignment`: validates `assigned`/`paused` status, updates to `retired` with `retired_at`, emits `CAMPAIGN_ASSIGNMENT_RETIRED`; `pauseCampaignAssignment`: validates `assigned` status, updates to `paused`, emits `CAMPAIGN_ASSIGNMENT_PAUSED`; `completeCampaignAssignment`: validates `assigned` status, updates to `completed`, emits `CAMPAIGN_ASSIGNMENT_COMPLETED`; no `sendApprovedDraft`, no Resend, no campaign_email_sends writes, no auto-draft creation
+- `modules/messaging/actions/campaign-assignment.actions.ts` — **new** — `'use server'`; `createManualAssignmentAction(leadId, campaignType, assetId?, reason?)`: resolves workspace/tenant from leadId, calls `createCampaignAssignment` with `ASSIGNMENT_SOURCE.MANUAL`, revalidates; `approveProposedAssignmentAction(assignmentId)`: resolves userId, calls `approveProposedAssignment`, revalidates; `rejectProposedAssignmentAction(assignmentId)`: calls `rejectProposedAssignment`, revalidates; `retireCampaignAssignmentAction(assignmentId, workspaceSlug)`: calls `retireCampaignAssignment`, revalidates
+- `modules/intelligence/types.agent.ts` — **modified** — 7 new `ActivityEventType` constants added (additive): `CAMPAIGN_ASSIGNED`, `CAMPAIGN_ASSIGNMENT_PROPOSED`, `CAMPAIGN_ASSIGNMENT_APPROVED`, `CAMPAIGN_ASSIGNMENT_REJECTED`, `CAMPAIGN_ASSIGNMENT_RETIRED`, `CAMPAIGN_ASSIGNMENT_PAUSED`, `CAMPAIGN_ASSIGNMENT_COMPLETED`
+- `app/(workspace)/[workspaceSlug]/leads/[id]/CampaignAssignmentCard.tsx` — **new** — `'use client'`; `useTransition` for all action calls; campaign type dropdown (`CAMPAIGN_OPTIONS` from `CAMPAIGN_TYPE` values), asset picker for selected type, reason textarea; duplicate warning (blocks submit); active assignments with status badges + approve/reject (proposed) or retire (assigned/paused) buttons; historical assignments accordion; `StatusBadge` component; `useState<string>` explicit generic to avoid literal type inference
+- `app/(workspace)/[workspaceSlug]/leads/[id]/page.tsx` — **modified** — imports `getCampaignAssignmentsForLead`, `listAssetsForWorkspace`, `CampaignAssignmentCard`; `Promise.all` extended; `CampaignAssignmentCard` rendered in lead detail sidebar
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/[assetId]/AssignedLeadsPanel.tsx` — **new** — server component; displays active/proposed assignments linked to this asset; up to 20 rows (PAGE_SIZE); status badges; links to lead detail (`/[workspaceSlug]/leads/[leadId]`); `AssignedLeadsPanel` export
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/[assetId]/page.tsx` — **modified** — imports `getCampaignAssignmentsForAsset`, `AssignedLeadsPanel`; `AssignedLeadsPanel` rendered below `CampaignAssetReviewPanel`
+- `tests/phase3l-campaign-assignment-model.test.ts` — **new** — 65 source-reading tests across 14 describe blocks (TC-3L-001 through TC-3L-065): migration DDL (×5), type definitions (×6), constants (×4), repository functions (×5), service createCampaignAssignment (×8), service transitions (×6), server actions (×6), UI CampaignAssignmentCard (×6), UI approve/reject buttons (×4), safety guardrails no sendApprovedDraft (×3), safety no resend (×3), safety no campaign_email_sends (×2), safety no auto-draft (×2), Phase 3K compatibility (×3), no Phase 3M scope-creep (×2); no Supabase mocking, no LLM calls, no test doubles
+- `tests/phase3k-unified-draft-send-path.test.ts` — **modified** — TC-3K-055 updated: was "Phase 3L campaign-assignment service file must not exist" (obsolete pre-Phase-3L guardrail); replaced with "Phase 3K files do NOT contain scheduleCampaign or executeCampaign (Phase 3L guard)" — equivalent scope protection, still passes
+
+**Staging verification (2026-05-30):**
+- UI smoke PASSED — CampaignAssignmentCard appeared on lead detail; manual assignment created (campaign_type = proposal_follow_up); status showed Assigned; source showed manual; Retire button appeared; Phase 3K CreateDraftFromAssetCard remained separate and unaffected; System Controls: EMAIL_SENDING_ENABLED = Off, Campaign Sending = Off
+- DB verification PASSED:
+  - Assignment `9aad7bcc-87cb-4747-bcf3-39066469dae2`: `campaign_type = proposal_follow_up`, `assignment_source = manual`, `assignment_status = assigned`, `lead_id = de000000-0000-0000-0000-000000000003`
+  - Activity event `70521e41-26d1-49b9-a19d-1d95dbe6f8c4`: `event_type = campaign_assigned`, `entity_type = campaign_assignment`
+  - `campaign_email_sends` = 0 rows — no send record created
+  - No auto-drafts created
+  - No live sends initiated
+
+**Safety guarantees verified:**
+- No `sendApprovedDraft` / `resend.emails.send` / `scheduleCampaign` / `executeCampaign` calls introduced
+- `EMAIL_SENDING_ENABLED` kill switch preserved — no sends possible
+- `campaign_email_sends` table not written by any Phase 3L code path
+- No auto-draft creation, no campaign execution, no follow-up scheduling
+- Human approval required for `agent_suggested` assignments; manual assignments go directly to `assigned`
 
 ### Phase 3K: Unified Draft / Send Path (`38d0d86` → `bf98582`)
 
@@ -423,6 +461,7 @@ No migration created. Databases remain through `20240034`. `EMAIL_SENDING_ENABLE
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-05-30 | 1332/1332 passed | PASSED | Phase 3L Campaign Assignment Model — 65 new source-reading tests (TC-3L-001 through TC-3L-065). Migration `20240036` applied to local and staging (`smbausuyetlgxflyhmfg`); not applied to production. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. Staging UI smoke PASSED; staging DB verification PASSED: assignment `9aad7bcc` (campaign_type=proposal_follow_up, source=manual, status=assigned), activity event `70521e41` (campaign_assigned), `campaign_email_sends` = 0. Implementation commit: `7adbd25`. Lock tag `phase-3l-campaign-assignment-model-v1` pending. |
 | 2026-05-29 | 1267/1267 passed | PASSED | Phase 3K Unified Draft / Send Path — 91 new source-reading tests (TC-3K-001 through TC-3K-075; TC-3J-047 through TC-3J-062). Migration `20240035` applied to local and staging (`smbausuyetlgxflyhmfg`); not applied to production. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. Staging UI smoke PASSED; staging DB verification PASSED 29/29. Implementation commits: `38d0d86` through `bf98582`. |
 | 2026-05-28 | 1176/1176 passed | PASSED | Phase 3J Campaign Email Asset Library — 46 new source-reading tests (TC-3J-001 through TC-3J-046). No migration created; databases remain through `20240034`. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. Staging auto-deploy `dpl_7rKQPkaMNYpZ8zVfc72nTQP6G8La` 2026-05-28; authenticated staging smoke test PASSED. Implementation commit: `30068a6`. |
 | 2026-05-28 | 1130/1130 passed | PASSED | Phase 3I Agent Decision Log, AI Usage Tracking, Budget Enforcement & Campaign Email Asset Strategy — 47 new source-reading tests. Migration `20240034` applied to local, staging (`smbausuyetlgxflyhmfg`), and production (`kxrplupzbsmujjznzhpy`) 2026-05-28. 6 new tables verified on all three environments. `EMAIL_SENDING_ENABLED` remains disabled. Implementation commit: `917738f`. |
@@ -454,7 +493,7 @@ No migration created. Databases remain through `20240034`. `EMAIL_SENDING_ENABLE
 
 ## Current HEAD
 
-`bf98582` — Phase 3K: preserve legacy campaign type mapping
+`7adbd25` — Phase 3L: implement campaign assignment model
 
 ### Phase 3G: Agent Operations Readiness & Control Map (`a4f488a`)
 - `docs/roadmap/phase-3g-agent-operations-readiness-design.md` — **new** — full control map: agent inventory (13 active agents, 4 planned), decision lifecycle audit (12 steps), human approval gates, email engine redesign boundary, campaign assignment model design, Resend readiness checklist, observability gaps, safety model, roadmap 3H→3M, recommended pause milestone
@@ -508,5 +547,6 @@ No migration created. Databases remain through `20240034`. `EMAIL_SENDING_ENABLE
 | `20240033` | Phase 3H — `ALTER TABLE email_sends ADD COLUMN IF NOT EXISTS failure_reason text, ADD COLUMN IF NOT EXISTS triggered_by text`; applied to staging (`smbausuyetlgxflyhmfg`) and production (`kxrplupzbsmujjznzhpy`) 2026-05-27 |
 | `20240034` | Phase 3I — creates `agent_decisions`, `ai_usage_events`, `ai_budget_policies`, `ai_budget_events`, `campaign_email_assets`, `campaign_email_sends` tables; RLS + grants on all 6 tables; applied to local, staging (`smbausuyetlgxflyhmfg`), and production (`kxrplupzbsmujjznzhpy`) 2026-05-28 |
 | `20240035` | Phase 3K — `ALTER TABLE email_drafts ADD COLUMN IF NOT EXISTS source_type text`, `ADD COLUMN IF NOT EXISTS source_asset_id uuid REFERENCES campaign_email_assets(id) ON DELETE SET NULL`; two partial indexes (`idx_email_drafts_source_type`, `idx_email_drafts_source_asset_id`); applied to local and staging (`smbausuyetlgxflyhmfg`) 2026-05-29; **not applied to production** |
+| `20240036` | Phase 3L — creates `campaign_assignments` table (17 columns, 2 unique partial indexes `uq_active_assignment_lead_type` + `uq_active_assignment_contact_type`, 2 check constraints `chk_target_non_null` + `chk_confidence_range`); RLS + grants; `update_updated_at()` trigger; applied to local and staging (`smbausuyetlgxflyhmfg`) 2026-05-30; **not applied to production** |
 
 Note: No new migration was added for the Human Review / Approval Bridge, the Send / Email Draft Bridge, or Event Tracking. All three use existing tables and columns only. Phase 3B provenance travels via `email_drafts.ai_generation_metadata` (jsonb) at draft creation, then is copied into `email_sends.metadata` (jsonb) at send time. Event Tracking activity events are appended to the existing `activity_events` table. The Learning Agent adds migration `20240025` for `learning_snapshots` — its only write target.

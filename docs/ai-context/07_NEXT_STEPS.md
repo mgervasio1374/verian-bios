@@ -602,18 +602,77 @@ All deliverables committed and QA-verified. Migration `20240034` applied to loca
 
 ## Next Recommended Step
 
-### Begin Phase 3L Design When Ready
+### Create Phase 3L Lock Tag, Then Await Phase 3M Authorization
 
-Phase 3K is fully locked. Lock tag `phase-3k-unified-draft-send-path-v1 → bf98582`. All databases: local and staging current through `20240035`; production current through `20240034`. 1267/1267 tests. `EMAIL_SENDING_ENABLED` remains disabled.
+Phase 3L is fully implemented and staging-verified. The immediate next step is creating the lock tag `phase-3l-campaign-assignment-model-v1 → 7adbd25` after the docs commit lands on master.
 
-**Recommended next action:** Request Phase 3L design document only. Design & Test Cases must be produced and approved before any Phase 3L code is written.
+After tagging, Phase 3M design may begin when separately authorized. Phase 3M design & test cases must be produced and approved before any Phase 3M code is written.
 
-**Constraints for Phase 3L design and beyond:**
-- Do not implement Phase 3L yet.
-- Production migration `20240035` and production deploy remain **explicitly out of scope** unless separately authorized.
-- Do not enable live sending.
-- Do not implement campaign assignment, campaign execution, follow-up scheduling, or auto-send.
+**Constraints for Phase 3M and beyond:**
+- Do not implement Phase 3M yet — await explicit authorization.
+- Production migrations `20240035` and `20240036` remain **explicitly out of scope** unless separately authorized.
+- Do not enable live sending (`EMAIL_SENDING_ENABLED` remains disabled).
+- Do not implement campaign execution, follow-up scheduling, or auto-send.
 - Do not deploy production without explicit approval.
+
+## Completed — Phase 3L Campaign Assignment Model v1.0
+
+All deliverables committed, staging migration applied, staging UI smoke PASSED, staging DB verification PASSED.
+
+| Deliverable | Status |
+|-------------|--------|
+| Design & Test Cases | Locked (`docs/roadmap/phase-3l-campaign-assignment-model-design.md`) — `9517a31` |
+| Implementation Plan | Locked (`docs/roadmap/phase-3l-implementation-plan.md`) — `7b72138` |
+| Code implementation | Complete — `7adbd25` |
+| QA: 1332/1332 tests, build, TypeScript | PASSED |
+| Migration `20240036` applied to local | PASSED |
+| Migration `20240036` applied to staging (`smbausuyetlgxflyhmfg`) | PASSED — 2026-05-30 |
+| Migration `20240036` applied to production | **NOT APPLIED** — out of scope |
+| Staging UI smoke | PASSED — CampaignAssignmentCard, manual assignment, retire, Phase 3K separation confirmed |
+| Staging DB verification | PASSED — assignment row, activity event, no sends, no auto-drafts |
+| Lock tag | PENDING — `phase-3l-campaign-assignment-model-v1 → 7adbd25` |
+
+### What was delivered
+
+- `supabase/migrations/20240036_phase3l_campaign_assignments.sql` — creates `campaign_assignments` table (17 columns); `chk_target_non_null` (at least one of lead_id/contact_id); `chk_confidence_range` (0.0–1.0); `uq_active_assignment_lead_type` partial unique index (lead-scoped, active statuses); `uq_active_assignment_contact_type` partial unique index (contact-only, no lead_id, active statuses); RLS + service-role grants; `update_updated_at()` trigger
+- `modules/messaging/types/campaign-assignment.types.ts` — `ASSIGNMENT_STATUS` (6 values), `ASSIGNMENT_SOURCE` (5 values), `VALID_CAMPAIGN_TYPES_FOR_ASSIGNMENT` Set, type aliases, `CampaignAssignment` interface, `CreateAssignmentInput` interface, `CreateAssignmentResult` type
+- `modules/messaging/repositories/campaign-assignment.repo.ts` — 8 functions: `getCampaignAssignmentsForLead`, `getCampaignAssignmentsForContact`, `getCampaignAssignmentsForAsset`, `getProposedAssignments`, `getActiveDuplicateAssignment`, `getAssignmentById`, `insertCampaignAssignment`, `updateAssignmentStatus`
+- `modules/messaging/services/campaign-assignment.service.ts` — 6 service functions: `createCampaignAssignment` (validates, deduplicates, builds `eligibility_snapshot`, determines status, inserts, emits event); `approveProposedAssignment`; `rejectProposedAssignment`; `retireCampaignAssignment` (sets `retired_at`); `pauseCampaignAssignment`; `completeCampaignAssignment`; no sendApprovedDraft, no Resend, no campaign_email_sends writes
+- `modules/messaging/actions/campaign-assignment.actions.ts` — `'use server'`; 4 server actions: `createManualAssignmentAction`, `approveProposedAssignmentAction`, `rejectProposedAssignmentAction`, `retireCampaignAssignmentAction`; all call `revalidatePath`
+- `modules/intelligence/types.agent.ts` — 7 new `ActivityEventType` constants added (additive): `CAMPAIGN_ASSIGNED`, `CAMPAIGN_ASSIGNMENT_PROPOSED`, `CAMPAIGN_ASSIGNMENT_APPROVED`, `CAMPAIGN_ASSIGNMENT_REJECTED`, `CAMPAIGN_ASSIGNMENT_RETIRED`, `CAMPAIGN_ASSIGNMENT_PAUSED`, `CAMPAIGN_ASSIGNMENT_COMPLETED`
+- `app/(workspace)/[workspaceSlug]/leads/[id]/CampaignAssignmentCard.tsx` — `'use client'`; `useTransition` for all actions; type dropdown (CAMPAIGN_OPTIONS), asset picker, reason textarea; duplicate warning + submit guard; active assignments with approve/reject (proposed) or retire (assigned/paused) buttons; historical accordion; `useState<string>` explicit generic
+- `app/(workspace)/[workspaceSlug]/leads/[id]/page.tsx` — extended with `getCampaignAssignmentsForLead`, `listAssetsForWorkspace`; `CampaignAssignmentCard` rendered in lead detail sidebar
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/[assetId]/AssignedLeadsPanel.tsx` — server component; active/proposed assignments for asset; up to 20 rows; links to lead detail
+- `app/(workspace)/[workspaceSlug]/settings/campaign-assets/[assetId]/page.tsx` — extended with `getCampaignAssignmentsForAsset`; `AssignedLeadsPanel` rendered below `CampaignAssetReviewPanel`
+- `tests/phase3l-campaign-assignment-model.test.ts` — 65 source-reading tests (TC-3L-001 through TC-3L-065) across 14 describe blocks; no mocking, no LLM calls
+- `tests/phase3k-unified-draft-send-path.test.ts` — TC-3K-055 updated: obsolete pre-Phase-3L guardrail (service file must not exist) replaced with equivalent Phase 3K-scope guard (no scheduleCampaign/executeCampaign in Phase 3K files)
+
+### Key behavior
+
+- Assignment model captures intent/readiness (which campaign a lead should receive), not execution
+- `manual` assignments go directly to `assigned` status; `agent_suggested` proposals go to `proposed` requiring human approval
+- Eligibility snapshot is built at assignment time and stored in JSONB: `lead_status`, `lead_stage`, `source`, `priority`, `has_prior_send`, `evaluated_at`
+- Duplicate prevention: a lead cannot have two active assignments for the same campaign type (unique partial index enforced at DB level)
+- Retiring an assignment sets `retired_at` timestamp; retiring is available for `assigned` and `paused` assignments
+- Phase 3K `CreateDraftFromAssetCard` and draft creation paths are completely separate — assigning a campaign does not create a draft or send an email
+- `EMAIL_SENDING_ENABLED` remains disabled — assignment cannot trigger any send
+
+### Staging DB verification record (2026-05-30)
+
+| Field | Value |
+|---|---|
+| Assignment ID | `9aad7bcc-87cb-4747-bcf3-39066469dae2` |
+| `campaign_type` | `proposal_follow_up` |
+| `assignment_source` | `manual` |
+| `assignment_status` | `assigned` |
+| `lead_id` | `de000000-0000-0000-0000-000000000003` |
+| Activity event ID | `70521e41-26d1-49b9-a19d-1d95dbe6f8c4` |
+| Activity event type | `campaign_assigned` |
+| `campaign_email_sends` rows | 0 |
+| Auto-drafts created | 0 |
+| Live sends | 0 |
+
+---
 
 ## Completed — Phase 3K Unified Draft / Send Path v1.0
 
