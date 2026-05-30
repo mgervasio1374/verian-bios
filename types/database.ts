@@ -4589,6 +4589,341 @@ export type Database = {
           },
         ]
       }
+      proposal_captures: {
+        Row: {
+          attachment_names: string[] | null
+          attachments_count: number
+          capture_confidence: number | null
+          capture_source: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          match_status: string
+          matched_at: string | null
+          matched_by_user_id: string | null
+          matched_company_id: string | null
+          matched_contact_id: string | null
+          matched_lead_id: string | null
+          raw_body_excerpt: string | null
+          raw_message_id: string | null
+          raw_received_at: string | null
+          raw_recipient_email: string | null
+          raw_sender_email: string | null
+          raw_subject: string | null
+          resolved_event_id: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by_user_id: string | null
+          tenant_id: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          attachment_names?: string[] | null
+          attachments_count?: number
+          capture_confidence?: number | null
+          capture_source: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          match_status?: string
+          matched_at?: string | null
+          matched_by_user_id?: string | null
+          matched_company_id?: string | null
+          matched_contact_id?: string | null
+          matched_lead_id?: string | null
+          raw_body_excerpt?: string | null
+          raw_message_id?: string | null
+          raw_received_at?: string | null
+          raw_recipient_email?: string | null
+          raw_sender_email?: string | null
+          raw_subject?: string | null
+          resolved_event_id?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by_user_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          attachment_names?: string[] | null
+          attachments_count?: number
+          capture_confidence?: number | null
+          capture_source?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          match_status?: string
+          matched_at?: string | null
+          matched_by_user_id?: string | null
+          matched_company_id?: string | null
+          matched_contact_id?: string | null
+          matched_lead_id?: string | null
+          raw_body_excerpt?: string | null
+          raw_message_id?: string | null
+          raw_received_at?: string | null
+          raw_recipient_email?: string | null
+          raw_sender_email?: string | null
+          raw_subject?: string | null
+          resolved_event_id?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by_user_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_captures_matched_by_user_id_fkey"
+            columns: ["matched_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_captures_matched_company_id_fkey"
+            columns: ["matched_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_captures_matched_contact_id_fkey"
+            columns: ["matched_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_captures_matched_lead_id_fkey"
+            columns: ["matched_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_captures_resolved_event_id_fkey"
+            columns: ["resolved_event_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_captures_reviewed_by_user_id_fkey"
+            columns: ["reviewed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_events: {
+        Row: {
+          account_id: string | null
+          capture_id: string | null
+          capture_source: string
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          deleted_at: string | null
+          estimated_savings: number | null
+          id: string
+          lead_id: string | null
+          opportunity_id: string | null
+          proposal_amount: number | null
+          proposal_currency: string
+          proposal_reference: string | null
+          proposal_sent_at: string
+          proposal_status: string
+          sender_user_id: string | null
+          tenant_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          capture_id?: string | null
+          capture_source: string
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          estimated_savings?: number | null
+          id?: string
+          lead_id?: string | null
+          opportunity_id?: string | null
+          proposal_amount?: number | null
+          proposal_currency?: string
+          proposal_reference?: string | null
+          proposal_sent_at: string
+          proposal_status?: string
+          sender_user_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string | null
+          capture_id?: string | null
+          capture_source?: string
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          estimated_savings?: number | null
+          id?: string
+          lead_id?: string | null
+          opportunity_id?: string | null
+          proposal_amount?: number | null
+          proposal_currency?: string
+          proposal_reference?: string | null
+          proposal_sent_at?: string
+          proposal_status?: string
+          sender_user_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_events_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_captures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_events_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_events_sender_user_id_fkey"
+            columns: ["sender_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_follow_up_commitments: {
+        Row: {
+          assigned_to_user_id: string | null
+          commitment_status: string
+          completed_at: string | null
+          completed_by_user_id: string | null
+          completion_notes: string | null
+          created_at: string
+          draft_id: string | null
+          follow_up_due_at: string
+          follow_up_sequence: number
+          id: string
+          lead_id: string | null
+          proposal_event_id: string
+          schedule_rule_key: string
+          tenant_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_to_user_id?: string | null
+          commitment_status?: string
+          completed_at?: string | null
+          completed_by_user_id?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          draft_id?: string | null
+          follow_up_due_at: string
+          follow_up_sequence?: number
+          id?: string
+          lead_id?: string | null
+          proposal_event_id: string
+          schedule_rule_key: string
+          tenant_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_to_user_id?: string | null
+          commitment_status?: string
+          completed_at?: string | null
+          completed_by_user_id?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          draft_id?: string | null
+          follow_up_due_at?: string
+          follow_up_sequence?: number
+          id?: string
+          lead_id?: string | null
+          proposal_event_id?: string
+          schedule_rule_key?: string
+          tenant_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_follow_up_commitments_assigned_to_user_id_fkey"
+            columns: ["assigned_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_follow_up_commitments_completed_by_user_id_fkey"
+            columns: ["completed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_follow_up_commitments_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "email_drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_follow_up_commitments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_follow_up_commitments_proposal_event_id_fkey"
+            columns: ["proposal_event_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recommendation_feedback: {
         Row: {
           comment: string | null
