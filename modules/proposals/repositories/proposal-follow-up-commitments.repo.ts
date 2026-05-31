@@ -80,3 +80,21 @@ export async function closeOpenCommitmentsForProposal(
   if (error) throw new Error(`closeOpenCommitmentsForProposal: ${error.message}`)
   return (data ?? []).map(r => r.id)
 }
+
+export async function listCommitmentsForProposalEvent(
+  tenantId: string,
+  workspaceId: string,
+  proposalEventId: string
+): Promise<CommitmentRow[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('proposal_follow_up_commitments')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .eq('proposal_event_id', proposalEventId)
+    .order('follow_up_sequence', { ascending: true })
+
+  if (error) throw new Error(`listCommitmentsForProposalEvent: ${error.message}`)
+  return data ?? []
+}

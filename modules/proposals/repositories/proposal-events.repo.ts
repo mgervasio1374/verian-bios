@@ -122,3 +122,120 @@ export async function updateProposalStatus(
   if (error) throw new Error(`updateProposalStatus: ${error.message}`)
   return data ?? null
 }
+
+// ---------------------------------------------------------------------------
+// Phase 3P — Proposal Event Inbox read model
+// ---------------------------------------------------------------------------
+
+export interface ProposalEventInboxItem {
+  id: string
+  tenant_id: string
+  workspace_id: string
+  lead_id: string | null
+  contact_id: string | null
+  company_id: string | null
+  capture_id: string | null
+  proposal_status: string
+  proposal_sent_at: string
+  proposal_reference: string | null
+  proposal_amount: number | null
+  proposal_currency: string
+  estimated_savings: number | null
+  capture_source: string
+  created_at: string
+  next_open_follow_up_due_at: string | null
+  open_commitment_count: number
+  total_commitment_count: number
+}
+
+export interface ListProposalEventInboxItemsOptions {
+  status?: 'open' | 'closed' | string | string[]
+  captureSource?: string
+  limit?: number
+  offset?: number
+}
+
+export async function listProposalEventInboxItemsForWorkspace(
+  tenantId: string,
+  workspaceId: string,
+  opts?: ListProposalEventInboxItemsOptions
+): Promise<ProposalEventInboxItem[]> {
+  const supabase = createSupabaseServiceClient()
+  const limit  = opts?.limit  ?? 100
+  const offset = opts?.offset ?? 0
+
+  let q = supabase
+    .from('proposal_events')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .is('deleted_at', null)
+
+  if (opts?.status !== undefined) {
+    const s = opts.status
+    if (s === 'open') {
+      q = q.in('proposal_status', ['sent', 'viewed'])
+    } else if (s === 'closed') {
+      q = q.in('proposal_status', ['accepted', 'rejected', 'expired', 'withdrawn'])
+    } else if (Array.isArray(s)) {
+      q = q.in('proposal_status', s)
+    } else {
+      q = q.eq('proposal_status', s)
+    }
+  }
+
+  if (opts?.captureSource !== undefined) {
+    q = q.eq('capture_source', opts.captureSource)
+  }
+
+  const { data: events, error } = await q
+    .order('proposal_sent_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+
+  if (error) throw new Error(`listProposalEventInboxItemsForWorkspace: ${error.message}`)
+  if (!events || events.length === 0) return []
+
+  const eventIds = events.map(e => e.id)
+
+  const { data: rawCommitments, error: commitError } = await supabase
+    .from('proposal_follow_up_commitments')
+    .select('proposal_event_id, commitment_status, follow_up_due_at')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .in('proposal_event_id', eventIds)
+
+  if (commitError) throw new Error(`listProposalEventInboxItemsForWorkspace enrichment: ${commitError.message}`)
+  const commitments = rawCommitments ?? []
+
+  return events.map(event => {
+    const eventCommitments = commitments.filter(c => c.proposal_event_id === event.id)
+    const openCommitments = eventCommitments.filter(c => c.commitment_status === 'open')
+    const next_open_follow_up_due_at = openCommitments.length > 0
+      ? openCommitments.reduce(
+          (min, c) => c.follow_up_due_at < min ? c.follow_up_due_at : min,
+          openCommitments[0].follow_up_due_at
+        )
+      : null
+
+    return {
+      id:                         event.id,
+      tenant_id:                  event.tenant_id,
+      workspace_id:               event.workspace_id,
+      lead_id:                    event.lead_id,
+      contact_id:                 event.contact_id,
+      company_id:                 event.company_id,
+      capture_id:                 event.capture_id,
+      proposal_status:            event.proposal_status,
+      proposal_sent_at:           event.proposal_sent_at,
+      proposal_reference:         event.proposal_reference,
+      proposal_amount:            event.proposal_amount,
+      proposal_currency:          event.proposal_currency,
+      estimated_savings:          event.estimated_savings,
+      capture_source:             event.capture_source,
+      created_at:                 event.created_at,
+      next_open_follow_up_due_at,
+      open_commitment_count:      openCommitments.length,
+      total_commitment_count:     eventCommitments.length,
+    }
+  })
+}
