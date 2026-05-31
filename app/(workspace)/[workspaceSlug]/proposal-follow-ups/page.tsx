@@ -50,7 +50,13 @@ export default async function ProposalFollowUpsPage({ params, searchParams }: Pa
     { label: 'Upcoming',  value: 'upcoming' },
   ]
 
-  const activeDue = due ?? null
+  // Treat due=all and no param both as "All Open" for active tab state.
+  // The base route and the due=all param both return all open commitments with no date restriction.
+  const activeDue: 'overdue' | 'today' | 'upcoming' | null =
+    (due === undefined || due === 'all') ? null : due
+
+  // due=all is not a restrictive filter — treat same as no filter for empty-state wording.
+  const isFiltered = due !== undefined && due !== 'all'
 
   // Error / failure state
   if (!result.success) {
@@ -108,14 +114,14 @@ export default async function ProposalFollowUpsPage({ params, searchParams }: Pa
         {appliedFilters.limit !== undefined && (
           <span className="text-muted-foreground/60">limit {appliedFilters.limit}</span>
         )}
-        <span className="ml-auto">Generated {fmtDate(generatedAt)}</span>
+        <span className="ml-auto">As of {fmtDate(generatedAt)}</span>
       </div>
 
       {/* Empty states */}
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
           <ListChecks className="h-10 w-10 text-muted-foreground mb-3" />
-          {due ? (
+          {isFiltered ? (
             <>
               <p className="text-sm font-medium">No commitments matching this filter.</p>
               <p className="text-xs text-muted-foreground mt-1">
@@ -150,7 +156,7 @@ export default async function ProposalFollowUpsPage({ params, searchParams }: Pa
                   <th className="text-left p-3 font-medium">Seq</th>
                   <th className="text-left p-3 font-medium">Proposal Status</th>
                   <th className="text-left p-3 font-medium">Proposal Sent</th>
-                  <th className="text-left p-3 font-medium">Schedule Rule</th>
+                  <th className="text-left p-3 font-medium">Cadence</th>
                   <th className="text-left p-3 font-medium">Lead</th>
                   <th className="text-left p-3 font-medium">Company</th>
                   <th className="text-left p-3 font-medium">Contact</th>

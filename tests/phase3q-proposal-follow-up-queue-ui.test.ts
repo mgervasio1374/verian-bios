@@ -177,3 +177,51 @@ describe('Slice 6: follow-up queue sidebar navigation', () => {
   })
 
 })
+
+// ---------------------------------------------------------------------------
+// Slice 7 — UI polish / filter state fix
+// TC-3Q-125 through TC-3Q-130
+// ---------------------------------------------------------------------------
+
+describe('Slice 7: follow-up queue UI — filter state normalization and polish', () => {
+
+  it('TC-3Q-125: page normalizes due=all to All Open active tab state', () => {
+    const src = readSrc(QUEUE_PAGE)
+    // activeDue must treat 'all' and undefined both as null (All Open)
+    expect(src).toContain("due === 'all'")
+    expect(src).toContain('activeDue')
+  })
+
+  it('TC-3Q-126: All Open tab href uses base URL — does not append ?due=all', () => {
+    const src = readSrc(QUEUE_PAGE)
+    // The All Open tab must link to the base route, not ?due=all
+    expect(src).not.toContain('?due=all')
+  })
+
+  it('TC-3Q-127: filtered empty state uses isFiltered — due=all does not trigger filter-scoped wording', () => {
+    const src = readSrc(QUEUE_PAGE)
+    // isFiltered must exclude 'all' so ?due=all shows global empty state, not "No commitments matching"
+    expect(src).toContain('isFiltered')
+    expect(src).toContain("due !== 'all'")
+  })
+
+  it('TC-3Q-128: column header is Cadence (not Schedule Rule) to avoid confusion with scheduling actions', () => {
+    const src = readSrc(QUEUE_PAGE)
+    expect(src).toContain('Cadence')
+    expect(src).not.toContain('Schedule Rule')
+  })
+
+  it('TC-3Q-129: summary strip uses As of label for generatedAt', () => {
+    expect(readSrc(QUEUE_PAGE)).toContain('As of')
+  })
+
+  it('TC-3Q-130: page remains read-only after polish — no insert, update, delete, upsert, or forms', () => {
+    const src = readSrc(QUEUE_PAGE)
+    expect(src).not.toMatch(/\.insert\(/)
+    expect(src).not.toMatch(/\.update\(/)
+    expect(src).not.toMatch(/\.delete\(/)
+    expect(src).not.toMatch(/\.upsert\(/)
+    expect(src).not.toContain('<form')
+  })
+
+})
