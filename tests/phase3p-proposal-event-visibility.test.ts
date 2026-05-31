@@ -352,3 +352,159 @@ describe('Slice 2: commitments repo — listCommitmentsForProposalEvent', () => 
   })
 
 })
+
+// ---------------------------------------------------------------------------
+// Slice 3 — Proposal Event Inbox UI
+// TC-3P-041 through TC-3P-070
+// ---------------------------------------------------------------------------
+
+const EVENTS_PAGE   = 'app/(workspace)/[workspaceSlug]/proposal-events/page.tsx'
+const SIDEBAR       = 'components/layout/Sidebar.tsx'
+
+describe('Slice 3: proposal events inbox page', () => {
+
+  it('TC-3P-041: proposal-events page file exists', () => {
+    expect(() => readSrc(EVENTS_PAGE)).not.toThrow()
+  })
+
+  it('TC-3P-042: page imports listProposalEventInboxItemsForWorkspace', () => {
+    expect(readSrc(EVENTS_PAGE)).toContain('listProposalEventInboxItemsForWorkspace')
+  })
+
+  it('TC-3P-043: page imports createSupabaseServerClient', () => {
+    expect(readSrc(EVENTS_PAGE)).toContain('createSupabaseServerClient')
+  })
+
+  it('TC-3P-044: page imports buildRequestContext', () => {
+    expect(readSrc(EVENTS_PAGE)).toContain('buildRequestContext')
+  })
+
+  it('TC-3P-045: page calls requirePermission or equivalent permission check', () => {
+    expect(readSrc(EVENTS_PAGE)).toContain('requirePermission')
+  })
+
+  it('TC-3P-046: page passes ctx.tenantId to listProposalEventInboxItemsForWorkspace', () => {
+    expect(readSrc(EVENTS_PAGE)).toContain('ctx.tenantId')
+  })
+
+  it('TC-3P-047: page passes ctx.workspaceId to listProposalEventInboxItemsForWorkspace', () => {
+    expect(readSrc(EVENTS_PAGE)).toContain('ctx.workspaceId')
+  })
+
+  it('TC-3P-048: page does not accept tenantId, workspaceId, or userId from client query params', () => {
+    const src = readSrc(EVENTS_PAGE)
+    expect(src).not.toContain('searchParams.tenantId')
+    expect(src).not.toContain('searchParams.workspaceId')
+    expect(src).not.toContain('searchParams.userId')
+  })
+
+  it('TC-3P-049: page renders proposal_status', () => {
+    expect(readSrc(EVENTS_PAGE)).toContain('proposal_status')
+  })
+
+  it('TC-3P-050: page renders proposal_sent_at', () => {
+    expect(readSrc(EVENTS_PAGE)).toContain('proposal_sent_at')
+  })
+
+  it('TC-3P-051: page renders capture_source', () => {
+    expect(readSrc(EVENTS_PAGE)).toContain('capture_source')
+  })
+
+  it('TC-3P-052: page renders proposal_reference', () => {
+    expect(readSrc(EVENTS_PAGE)).toContain('proposal_reference')
+  })
+
+  it('TC-3P-053: page renders proposal_amount and proposal_currency', () => {
+    const src = readSrc(EVENTS_PAGE)
+    expect(src).toContain('proposal_amount')
+    expect(src).toContain('proposal_currency')
+  })
+
+  it('TC-3P-054: page renders estimated_savings', () => {
+    expect(readSrc(EVENTS_PAGE)).toContain('estimated_savings')
+  })
+
+  it('TC-3P-055: page renders next_open_follow_up_due_at', () => {
+    expect(readSrc(EVENTS_PAGE)).toContain('next_open_follow_up_due_at')
+  })
+
+  it('TC-3P-056: page renders open_commitment_count and total_commitment_count', () => {
+    const src = readSrc(EVENTS_PAGE)
+    expect(src).toContain('open_commitment_count')
+    expect(src).toContain('total_commitment_count')
+  })
+
+  it('TC-3P-057: page has empty state text', () => {
+    expect(readSrc(EVENTS_PAGE)).toContain('No proposal events yet.')
+  })
+
+  it('TC-3P-058: page links to dynamic proposal-events detail route', () => {
+    expect(readSrc(EVENTS_PAGE)).toContain('proposal-events/${e.id}')
+  })
+
+  it('TC-3P-059: page does not contain Create Proposal Event button', () => {
+    expect(readSrc(EVENTS_PAGE)).not.toContain('Create Proposal Event')
+  })
+
+  it('TC-3P-060: page does not contain Send Email text', () => {
+    expect(readSrc(EVENTS_PAGE)).not.toContain('Send Email')
+  })
+
+  it('TC-3P-061: page does not contain Launch Campaign text', () => {
+    expect(readSrc(EVENTS_PAGE)).not.toContain('Launch Campaign')
+  })
+
+  it('TC-3P-062: page does not contain Start Follow-Up text', () => {
+    expect(readSrc(EVENTS_PAGE)).not.toContain('Start Follow-Up')
+  })
+
+  it('TC-3P-063: page does not import Resend, Inngest, or LLM providers', () => {
+    const src = readSrc(EVENTS_PAGE)
+    expect(src).not.toContain('Resend')
+    expect(src).not.toContain('Inngest')
+    expect(src).not.toContain('OpenAI')
+    expect(src).not.toContain('Anthropic')
+  })
+
+  it('TC-3P-064: page does not reference EMAIL_SENDING_ENABLED', () => {
+    expect(readSrc(EVENTS_PAGE)).not.toContain('EMAIL_SENDING_ENABLED')
+  })
+
+  it('TC-3P-065: page does not reference CAMPAIGN_SENDING_ENABLED', () => {
+    expect(readSrc(EVENTS_PAGE)).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+
+  it('TC-3P-066: page does not call sendEmail', () => {
+    expect(readSrc(EVENTS_PAGE)).not.toContain('sendEmail')
+  })
+
+  it('TC-3P-067: no server action file created in Slice 3 for proposal-events', () => {
+    expect(() => readSrc('modules/proposals/actions/proposal-events.actions.ts')).toThrow()
+  })
+
+  it('TC-3P-068: no proposal event detail page created in Slice 3', () => {
+    expect(() => readSrc('app/(workspace)/[workspaceSlug]/proposal-events/[eventId]/page.tsx')).toThrow()
+  })
+
+})
+
+describe('Slice 3: sidebar navigation', () => {
+
+  it('TC-3P-069: sidebar includes Proposal Events nav item', () => {
+    expect(readSrc(SIDEBAR)).toContain('Proposal Events')
+  })
+
+  it('TC-3P-070: sidebar Proposal Events link points to /proposal-events', () => {
+    expect(readSrc(SIDEBAR)).toContain('proposal-events')
+  })
+
+  it('TC-3P-071: sidebar does not add sending or campaign language for Proposal Events', () => {
+    const src = readSrc(SIDEBAR)
+    const peStart = src.indexOf('Proposal Events')
+    const peContext = src.slice(peStart, peStart + 200)
+    expect(peContext).not.toContain('Send')
+    expect(peContext).not.toContain('Campaign')
+    expect(peContext).not.toContain('Email')
+  })
+
+})

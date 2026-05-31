@@ -24,6 +24,7 @@ import {
   Cpu,
   BookOpen,
   ListTodo,
+  ClipboardList,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -51,7 +52,8 @@ export function Sidebar({ workspaceSlug, tenantName }: SidebarProps) {
     { label: 'Activities',  href: `${base}/activities`,  icon: <Activity className="h-4 w-4" /> },
     { label: 'Submissions',  href: `${base}/submissions`,  icon: <ArrowDownToLine className="h-4 w-4" /> },
     { label: 'Inbox',           href: `${base}/inbox`,           icon: <CheckCircle2 className="h-4 w-4" /> },
-    { label: 'Proposal Inbox', href: `${base}/proposal-inbox`, icon: <FileText    className="h-4 w-4" /> },
+    { label: 'Proposal Inbox',   href: `${base}/proposal-inbox`,   icon: <FileText       className="h-4 w-4" /> },
+    { label: 'Proposal Events',  href: `${base}/proposal-events`,  icon: <ClipboardList  className="h-4 w-4" /> },
     { label: 'Msg Workspace', href: `${base}/message-workspace`, icon: <MessageSquare className="h-4 w-4" /> },
     { label: 'Artifacts',     href: `${base}/artifacts`,               icon: <FolderOpen className="h-4 w-4" /> },
     { label: 'Agent Monitor',        href: `${base}/settings/agent-monitor`,        icon: <Bot className="h-4 w-4" /> },
