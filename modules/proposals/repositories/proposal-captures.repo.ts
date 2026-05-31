@@ -170,3 +170,25 @@ export async function softDeleteCapture(
 
   if (error) throw new Error(`softDeleteCapture: ${error.message}`)
 }
+
+export async function clearCaptureResolvedEventId(
+  tenantId: string,
+  workspaceId: string,
+  captureId: string,
+  expectedEventId: string
+): Promise<boolean> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('proposal_captures')
+    .update({ resolved_event_id: null, updated_at: new Date().toISOString() })
+    .eq('id', captureId)
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .eq('resolved_event_id', expectedEventId)
+    .is('deleted_at', null)
+    .select('id')
+    .maybeSingle()
+
+  if (error) throw new Error(`clearCaptureResolvedEventId: ${error.message}`)
+  return data !== null
+}
