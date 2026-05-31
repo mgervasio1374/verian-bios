@@ -284,8 +284,8 @@ describe('Slice 2: follow-up queue repo — listProposalFollowUpQueueItemsForWor
     expect(fnBody).not.toContain('calendar_event_id')
   })
 
-  it('TC-3Q-033: no server action file for follow-up queue created in Slice 2 (guard)', () => {
-    expect(() => readSrc('modules/proposals/actions/proposal-follow-up-queue.actions.ts')).toThrow()
+  it('TC-3Q-033: server action file for follow-up queue exists (created in Slice 4)', () => {
+    expect(() => readSrc('modules/proposals/actions/proposal-follow-up-queue.actions.ts')).not.toThrow()
   })
 
   it('TC-3Q-034: no UI page for follow-up queue created in Slice 2 (guard)', () => {

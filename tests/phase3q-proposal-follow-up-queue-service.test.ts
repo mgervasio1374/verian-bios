@@ -211,8 +211,8 @@ describe('Slice 3: follow-up queue service — getProposalFollowUpQueueForWorksp
     expect(ifaceBody).not.toContain('globalOverdueCount')
   })
 
-  it('TC-3Q-060: no new server action file for follow-up queue service created in this slice (guard)', () => {
-    expect(() => readSrc('modules/proposals/actions/proposal-follow-up-queue.actions.ts')).toThrow()
+  it('TC-3Q-060: server action file for follow-up queue exists (created in Slice 4)', () => {
+    expect(() => readSrc('modules/proposals/actions/proposal-follow-up-queue.actions.ts')).not.toThrow()
   })
 
 })
