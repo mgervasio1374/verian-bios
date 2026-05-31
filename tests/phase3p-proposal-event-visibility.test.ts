@@ -482,8 +482,8 @@ describe('Slice 3: proposal events inbox page', () => {
     expect(() => readSrc('modules/proposals/actions/proposal-events.actions.ts')).toThrow()
   })
 
-  it('TC-3P-068: no proposal event detail page created in Slice 3', () => {
-    expect(() => readSrc('app/(workspace)/[workspaceSlug]/proposal-events/[eventId]/page.tsx')).toThrow()
+  it('TC-3P-068: proposal event detail page exists (created in Slice 4)', () => {
+    expect(() => readSrc('app/(workspace)/[workspaceSlug]/proposal-events/[eventId]/page.tsx')).not.toThrow()
   })
 
 })
@@ -505,6 +505,192 @@ describe('Slice 3: sidebar navigation', () => {
     expect(peContext).not.toContain('Send')
     expect(peContext).not.toContain('Campaign')
     expect(peContext).not.toContain('Email')
+  })
+
+})
+
+// ---------------------------------------------------------------------------
+// Slice 4 — Proposal Event Detail UI
+// TC-3P-072 through TC-3P-111
+// ---------------------------------------------------------------------------
+
+const EVENT_DETAIL_PAGE = 'app/(workspace)/[workspaceSlug]/proposal-events/[eventId]/page.tsx'
+
+describe('Slice 4: proposal event detail page', () => {
+
+  it('TC-3P-072: detail page file exists', () => {
+    expect(() => readSrc(EVENT_DETAIL_PAGE)).not.toThrow()
+  })
+
+  it('TC-3P-073: page imports getProposalEventById', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('getProposalEventById')
+  })
+
+  it('TC-3P-074: page imports listCommitmentsForProposalEvent', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('listCommitmentsForProposalEvent')
+  })
+
+  it('TC-3P-075: page imports createSupabaseServerClient', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('createSupabaseServerClient')
+  })
+
+  it('TC-3P-076: page imports buildRequestContext', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('buildRequestContext')
+  })
+
+  it('TC-3P-077: page calls requirePermission', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('requirePermission')
+  })
+
+  it('TC-3P-078: page passes ctx.tenantId and ctx.workspaceId to getProposalEventById', () => {
+    const src = readSrc(EVENT_DETAIL_PAGE)
+    expect(src).toContain('ctx.tenantId')
+    expect(src).toContain('ctx.workspaceId')
+    expect(src).toContain('getProposalEventById')
+  })
+
+  it('TC-3P-079: page passes ctx.tenantId and ctx.workspaceId to listCommitmentsForProposalEvent', () => {
+    const src = readSrc(EVENT_DETAIL_PAGE)
+    // Use the call-site occurrence (last indexOf, past the import line)
+    const fnCall = src.lastIndexOf('listCommitmentsForProposalEvent')
+    const callSite = src.slice(fnCall, fnCall + 200)
+    expect(callSite).toContain('ctx.tenantId')
+    expect(callSite).toContain('ctx.workspaceId')
+  })
+
+  it('TC-3P-080: page calls notFound() when proposal event is missing', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('notFound()')
+  })
+
+  it('TC-3P-081: page renders proposal_status', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('proposal_status')
+  })
+
+  it('TC-3P-082: page renders proposal_sent_at', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('proposal_sent_at')
+  })
+
+  it('TC-3P-083: page renders proposal_reference', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('proposal_reference')
+  })
+
+  it('TC-3P-084: page renders proposal_amount and proposal_currency', () => {
+    const src = readSrc(EVENT_DETAIL_PAGE)
+    expect(src).toContain('proposal_amount')
+    expect(src).toContain('proposal_currency')
+  })
+
+  it('TC-3P-085: page renders estimated_savings', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('estimated_savings')
+  })
+
+  it('TC-3P-086: page renders capture_source', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('capture_source')
+  })
+
+  it('TC-3P-087: page renders lead_id', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('lead_id')
+  })
+
+  it('TC-3P-088: page renders company_id', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('company_id')
+  })
+
+  it('TC-3P-089: page renders contact_id', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('contact_id')
+  })
+
+  it('TC-3P-090: page renders capture_id', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('capture_id')
+  })
+
+  it('TC-3P-091: page links capture_id to /proposal-inbox/[captureId]', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('proposal-inbox/${event.capture_id}')
+  })
+
+  it('TC-3P-092: page renders follow_up_sequence', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('follow_up_sequence')
+  })
+
+  it('TC-3P-093: page renders follow_up_due_at', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('follow_up_due_at')
+  })
+
+  it('TC-3P-094: page renders commitment_status', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('commitment_status')
+  })
+
+  it('TC-3P-095: page renders schedule_rule_key', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('schedule_rule_key')
+  })
+
+  it('TC-3P-096: page renders assigned_to_user_id', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('assigned_to_user_id')
+  })
+
+  it('TC-3P-097: page renders completed_at', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('completed_at')
+  })
+
+  it('TC-3P-098: page renders completed_by_user_id', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('completed_by_user_id')
+  })
+
+  it('TC-3P-099: page renders completion_notes', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('completion_notes')
+  })
+
+  it('TC-3P-100: page does not reference closed_reason', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).not.toContain('closed_reason')
+  })
+
+  it('TC-3P-101: page does not contain Send Email text', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).not.toContain('Send Email')
+  })
+
+  it('TC-3P-102: page does not contain Launch Campaign text', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).not.toContain('Launch Campaign')
+  })
+
+  it('TC-3P-103: page does not contain Start Follow-Up text', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).not.toContain('Start Follow-Up')
+  })
+
+  it('TC-3P-104: page does not contain Complete Follow-Up text', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).not.toContain('Complete Follow-Up')
+  })
+
+  it('TC-3P-105: page does not contain Skip Follow-Up text', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).not.toContain('Skip Follow-Up')
+  })
+
+  it('TC-3P-106: page does not import Resend, Inngest, or LLM providers', () => {
+    const src = readSrc(EVENT_DETAIL_PAGE)
+    expect(src).not.toContain('Resend')
+    expect(src).not.toContain('Inngest')
+    expect(src).not.toContain('OpenAI')
+    expect(src).not.toContain('Anthropic')
+  })
+
+  it('TC-3P-107: page does not reference EMAIL_SENDING_ENABLED', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).not.toContain('EMAIL_SENDING_ENABLED')
+  })
+
+  it('TC-3P-108: page does not reference CAMPAIGN_SENDING_ENABLED', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+
+  it('TC-3P-109: page does not call sendEmail', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).not.toContain('sendEmail')
+  })
+
+  it('TC-3P-110: no proposal-events server action file created in this slice', () => {
+    expect(() => readSrc('modules/proposals/actions/proposal-events.actions.ts')).toThrow()
+  })
+
+  it('TC-3P-111: no ProposalStatusControl component created in this slice', () => {
+    const detailDir = 'app/(workspace)/[workspaceSlug]/proposal-events/[eventId]/ProposalStatusControl.tsx'
+    expect(() => readSrc(detailDir)).toThrow()
   })
 
 })
