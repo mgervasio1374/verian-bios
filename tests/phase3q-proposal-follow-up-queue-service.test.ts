@@ -101,25 +101,32 @@ describe('Slice 3: follow-up queue service — getProposalFollowUpQueueForWorksp
     expect(ifaceBody).toContain('totalReturned')
   })
 
-  it('TC-3Q-047: ProposalFollowUpQueueSummary includes overdueCount (from returned rows)', () => {
+  it('TC-3Q-047: overdueCount uses now (not dayStart) to match queue filter semantics', () => {
     const src = readSrc(QUEUE_SERVICE)
-    const ifaceStart = src.indexOf('export interface ProposalFollowUpQueueSummary')
-    const ifaceBody = src.slice(ifaceStart, ifaceStart + 400)
-    expect(ifaceBody).toContain('overdueCount')
+    const fnStart = src.indexOf('export async function getProposalFollowUpQueueForWorkspace')
+    const fnBody = src.slice(fnStart)
+    // overdueCount must compare against `now`, not `dayStart`
+    expect(fnBody).toContain('overdueCount')
+    // The filter expression for overdue must use `< now` not `< dayStart`
+    expect(fnBody).toMatch(/overdueCount\s*=\s*items\.filter\(i => new Date\(i\.follow_up_due_at\) < now\)/)
   })
 
-  it('TC-3Q-048: ProposalFollowUpQueueSummary includes todayCount', () => {
+  it('TC-3Q-048: todayCount uses UTC calendar-day boundaries (dayStart / dayEnd)', () => {
     const src = readSrc(QUEUE_SERVICE)
-    const ifaceStart = src.indexOf('export interface ProposalFollowUpQueueSummary')
-    const ifaceBody = src.slice(ifaceStart, ifaceStart + 400)
-    expect(ifaceBody).toContain('todayCount')
+    const fnStart = src.indexOf('export async function getProposalFollowUpQueueForWorkspace')
+    const fnBody = src.slice(fnStart)
+    expect(fnBody).toContain('todayCount')
+    expect(fnBody).toContain('dayStart')
+    expect(fnBody).toContain('dayEnd')
   })
 
-  it('TC-3Q-049: ProposalFollowUpQueueSummary includes upcomingCount', () => {
+  it('TC-3Q-049: upcomingCount uses now (not dayEnd) to match queue filter semantics', () => {
     const src = readSrc(QUEUE_SERVICE)
-    const ifaceStart = src.indexOf('export interface ProposalFollowUpQueueSummary')
-    const ifaceBody = src.slice(ifaceStart, ifaceStart + 400)
-    expect(ifaceBody).toContain('upcomingCount')
+    const fnStart = src.indexOf('export async function getProposalFollowUpQueueForWorkspace')
+    const fnBody = src.slice(fnStart)
+    // upcomingCount must compare against `now`, not `dayEnd`
+    expect(fnBody).toContain('upcomingCount')
+    expect(fnBody).toMatch(/upcomingCount\s*=\s*items\.filter\(i => new Date\(i\.follow_up_due_at\) >= now\)/)
   })
 
   it('TC-3Q-050: ProposalFollowUpQueueResponse includes appliedFilters field', () => {

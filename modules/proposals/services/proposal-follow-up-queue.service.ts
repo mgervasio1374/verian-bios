@@ -8,11 +8,13 @@ export type { ProposalFollowUpQueueItem }
 
 // Counts derived from the returned page of items only — not from global DB totals.
 // All fields reflect rows included in this response, not the entire workspace dataset.
+// overdueCount and upcomingCount follow queue filter semantics (relative to now).
+// todayCount is a UTC calendar-day helper count and may overlap with overdue or upcoming.
 export interface ProposalFollowUpQueueSummary {
   totalReturned: number   // total items in this page/response
-  overdueCount: number    // items with follow_up_due_at before today's UTC day start
-  todayCount: number      // items with follow_up_due_at within today's UTC day
-  upcomingCount: number   // items with follow_up_due_at after today's UTC day end
+  overdueCount: number    // items with follow_up_due_at < now (matches 'overdue' filter semantics)
+  todayCount: number      // items with follow_up_due_at within the current UTC calendar day
+  upcomingCount: number   // items with follow_up_due_at >= now (matches 'upcoming' filter semantics)
 }
 
 export interface ProposalFollowUpQueueFilters {
@@ -49,17 +51,19 @@ export async function getProposalFollowUpQueueForWorkspace(
   const limit  = opts?.limit  ?? 100
   const offset = opts?.offset ?? 0
 
-  // Derive day boundaries in UTC for summary bucketing.
+  // Derive now and UTC day boundaries for summary bucketing.
+  // overdueCount/upcomingCount use `now` to match queue filter semantics.
+  // todayCount uses calendar-day boundaries as a helper count (may overlap with overdue/upcoming).
   const now      = new Date()
   const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
   const dayEnd   = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
 
-  const overdueCount  = items.filter(i => new Date(i.follow_up_due_at) < dayStart).length
+  const overdueCount  = items.filter(i => new Date(i.follow_up_due_at) < now).length
   const todayCount    = items.filter(i => {
     const d = new Date(i.follow_up_due_at)
     return d >= dayStart && d < dayEnd
   }).length
-  const upcomingCount = items.filter(i => new Date(i.follow_up_due_at) >= dayEnd).length
+  const upcomingCount = items.filter(i => new Date(i.follow_up_due_at) >= now).length
 
   const summary: ProposalFollowUpQueueSummary = {
     totalReturned: items.length,
