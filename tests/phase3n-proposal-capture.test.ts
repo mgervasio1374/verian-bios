@@ -732,3 +732,140 @@ describe('Slice 3: lib files — no forbidden imports', () => {
     expect(src).not.toContain('calendar_sync_links')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Slice 4 — Activity Event Constants (source-reading)
+// TC-3N-120–137
+// ---------------------------------------------------------------------------
+
+const CONSTANTS_FILE   = 'modules/proposals/constants/proposal-activity-events.ts'
+const TYPES_AGENT_FILE = 'modules/intelligence/types.agent.ts'
+
+describe('Slice 4: proposal activity constants file', () => {
+  it('TC-3N-120: proposal-activity-events.ts exists', () => {
+    expect(() => readSrc(CONSTANTS_FILE)).not.toThrow()
+  })
+
+  it('TC-3N-121: PROPOSAL_ACTIVITY_EVENTS is exported', () => {
+    expect(readSrc(CONSTANTS_FILE)).toContain('export const PROPOSAL_ACTIVITY_EVENTS')
+  })
+
+  it('TC-3N-122: ProposalActivityEventType is exported', () => {
+    expect(readSrc(CONSTANTS_FILE)).toContain('export type ProposalActivityEventType')
+  })
+
+  it('TC-3N-123: all required event names are present in constants file', () => {
+    const src = readSrc(CONSTANTS_FILE)
+    const required = [
+      'proposal_sent_recorded',
+      'proposal_capture_ingested',
+      'proposal_capture_matched',
+      'proposal_capture_reviewed',
+      'proposal_status_updated',
+      'proposal_follow_up_created',
+      'proposal_follow_up_completed',
+      'proposal_follow_up_skipped',
+    ]
+    for (const name of required) {
+      expect(src).toContain(name)
+    }
+  })
+
+  it('TC-3N-124: event names are lowercase snake_case strings', () => {
+    const src = readSrc(CONSTANTS_FILE)
+    // All event value strings must match lowercase_snake_case
+    const valueMatches = [...src.matchAll(/'([a-z][a-z_0-9]+)'/g)]
+    for (const [, value] of valueMatches) {
+      expect(value).toMatch(/^[a-z][a-z_0-9]+$/)
+    }
+  })
+
+  it('TC-3N-125: no collision with legacy proposal_sent constant (distinct value)', () => {
+    const src = readSrc(CONSTANTS_FILE)
+    // The legacy constant is 'proposal_sent'; Phase 3N uses 'proposal_sent_recorded'
+    // The constants file must NOT contain the bare 'proposal_sent' value without _recorded
+    expect(src).not.toMatch(/'proposal_sent'/)
+    expect(src).not.toMatch(/'proposal_approved'/)
+    expect(src).not.toMatch(/'proposal_rejected'/)
+  })
+})
+
+describe('Slice 4: types.agent.ts includes Phase 3N constants', () => {
+  it('TC-3N-126: types.agent.ts contains PROPOSAL_SENT_RECORDED', () => {
+    expect(readSrc(TYPES_AGENT_FILE)).toContain('proposal_sent_recorded')
+  })
+
+  it('TC-3N-127: types.agent.ts contains all 8 Phase 3N event constants', () => {
+    const src = readSrc(TYPES_AGENT_FILE)
+    const required = [
+      'proposal_sent_recorded',
+      'proposal_capture_ingested',
+      'proposal_capture_matched',
+      'proposal_capture_reviewed',
+      'proposal_status_updated',
+      'proposal_follow_up_created',
+      'proposal_follow_up_completed',
+      'proposal_follow_up_skipped',
+    ]
+    for (const name of required) {
+      expect(src).toContain(name)
+    }
+  })
+
+  it('TC-3N-128: legacy Phase 3A PROPOSAL_SENT constant is still present (no regression)', () => {
+    const src = readSrc(TYPES_AGENT_FILE)
+    expect(src).toContain("PROPOSAL_SENT:")
+    expect(src).toContain("'proposal_sent'")
+  })
+})
+
+describe('Slice 4: constants file — no forbidden imports or patterns', () => {
+  it('TC-3N-129: no Supabase client in constants file', () => {
+    const src = readSrc(CONSTANTS_FILE)
+    expect(src).not.toContain('createSupabaseServiceClient')
+    expect(src).not.toContain('createSupabaseBrowserClient')
+  })
+
+  it('TC-3N-130: no repository imports in constants file', () => {
+    const src = readSrc(CONSTANTS_FILE)
+    expect(src).not.toContain('repositories')
+    expect(src).not.toContain('.repo')
+  })
+
+  it('TC-3N-131: no server action imports in constants file', () => {
+    const src = readSrc(CONSTANTS_FILE)
+    expect(src).not.toContain('actions')
+    expect(src).not.toContain('use server')
+  })
+
+  it('TC-3N-132: no Resend/send imports in constants file', () => {
+    const src = readSrc(CONSTANTS_FILE)
+    expect(src).not.toMatch(/from ['"]resend['"]/)
+    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+
+  it('TC-3N-133: no LLM/AI imports in constants file', () => {
+    const src = readSrc(CONSTANTS_FILE)
+    expect(src).not.toMatch(/from ['"]openai['"]/)
+    expect(src).not.toMatch(/from ['"]@anthropic/)
+  })
+
+  it('TC-3N-134: no calendar_event_id, scheduled_activities, or calendar_sync_links', () => {
+    const src = readSrc(CONSTANTS_FILE)
+    expect(src).not.toContain('calendar_event_id')
+    expect(src).not.toContain('scheduled_activities')
+    expect(src).not.toContain('calendar_sync_links')
+  })
+
+  it('TC-3N-135: no DB write calls in constants file', () => {
+    const src = readSrc(CONSTANTS_FILE)
+    expect(src).not.toMatch(/\.insert\s*\(/)
+    expect(src).not.toMatch(/\.update\s*\(/)
+    expect(src).not.toMatch(/\.delete\s*\(/)
+  })
+
+  it('TC-3N-136: isProposalActivityEventType helper is exported', () => {
+    expect(readSrc(CONSTANTS_FILE)).toContain('export function isProposalActivityEventType')
+  })
+})

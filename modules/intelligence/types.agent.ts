@@ -245,5 +245,17 @@ export const ActivityEventType = {
   CAMPAIGN_ASSIGNMENT_PAUSED:      'campaign_assignment_paused',
   CAMPAIGN_ASSIGNMENT_RETIRED:     'campaign_assignment_retired',
   CAMPAIGN_ASSIGNMENT_COMPLETED:   'campaign_assignment_completed',
+
+  // Phase 3N — Proposal Capture & Follow-Up (additive)
+  // Note: PROPOSAL_SENT/PROPOSAL_APPROVED/PROPOSAL_REJECTED exist above (Phase 3A, AI-generated
+  // proposals). These constants use distinct identifiers for the Phase 3N capture pipeline.
+  PROPOSAL_SENT_RECORDED:       'proposal_sent_recorded',
+  PROPOSAL_CAPTURE_INGESTED:    'proposal_capture_ingested',
+  PROPOSAL_CAPTURE_MATCHED:     'proposal_capture_matched',
+  PROPOSAL_CAPTURE_REVIEWED:    'proposal_capture_reviewed',
+  PROPOSAL_STATUS_UPDATED:      'proposal_status_updated',
+  PROPOSAL_FOLLOW_UP_CREATED:   'proposal_follow_up_created',
+  PROPOSAL_FOLLOW_UP_COMPLETED: 'proposal_follow_up_completed',
+  PROPOSAL_FOLLOW_UP_SKIPPED:   'proposal_follow_up_skipped',
 } as const
 export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType]
