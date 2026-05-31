@@ -688,9 +688,226 @@ describe('Slice 4: proposal event detail page', () => {
     expect(() => readSrc('modules/proposals/actions/proposal-events.actions.ts')).toThrow()
   })
 
-  it('TC-3P-111: no ProposalStatusControl component created in this slice', () => {
+  it('TC-3P-111: ProposalStatusControl component exists (created in Slice 5)', () => {
     const detailDir = 'app/(workspace)/[workspaceSlug]/proposal-events/[eventId]/ProposalStatusControl.tsx'
-    expect(() => readSrc(detailDir)).toThrow()
+    expect(() => readSrc(detailDir)).not.toThrow()
+  })
+
+})
+
+// ---------------------------------------------------------------------------
+// Slice 5 — Proposal Status Transition UI
+// TC-3P-112 through TC-3P-148
+// ---------------------------------------------------------------------------
+
+const STATUS_CONTROL = 'app/(workspace)/[workspaceSlug]/proposal-events/[eventId]/ProposalStatusControl.tsx'
+
+describe('Slice 5: ProposalStatusControl component', () => {
+
+  it('TC-3P-112: ProposalStatusControl.tsx exists', () => {
+    expect(() => readSrc(STATUS_CONTROL)).not.toThrow()
+  })
+
+  it('TC-3P-113: component is a client component', () => {
+    expect(readSrc(STATUS_CONTROL)).toContain("'use client'")
+  })
+
+  it('TC-3P-114: component imports updateProposalStatusAction', () => {
+    expect(readSrc(STATUS_CONTROL)).toContain('updateProposalStatusAction')
+  })
+
+  it('TC-3P-115: component imports useRouter', () => {
+    expect(readSrc(STATUS_CONTROL)).toContain('useRouter')
+  })
+
+  it('TC-3P-116: component accepts proposalEventId prop', () => {
+    const src = readSrc(STATUS_CONTROL)
+    const ifaceStart = src.indexOf('interface ProposalStatusControlProps')
+    const ifaceBody = src.slice(ifaceStart, ifaceStart + 200)
+    expect(ifaceBody).toContain('proposalEventId')
+  })
+
+  it('TC-3P-117: component accepts currentStatus prop', () => {
+    const src = readSrc(STATUS_CONTROL)
+    const ifaceStart = src.indexOf('interface ProposalStatusControlProps')
+    const ifaceBody = src.slice(ifaceStart, ifaceStart + 200)
+    expect(ifaceBody).toContain('currentStatus')
+  })
+
+  it('TC-3P-118: component props do not include tenantId, workspaceId, userId, leadId, companyId, or contactId', () => {
+    const src = readSrc(STATUS_CONTROL)
+    const ifaceStart = src.indexOf('interface ProposalStatusControlProps')
+    const ifaceBody = src.slice(ifaceStart, ifaceStart + 300)
+    expect(ifaceBody).not.toContain('tenantId')
+    expect(ifaceBody).not.toContain('workspaceId')
+    expect(ifaceBody).not.toContain('userId')
+    expect(ifaceBody).not.toContain('leadId')
+    expect(ifaceBody).not.toContain('companyId')
+    expect(ifaceBody).not.toContain('contactId')
+  })
+
+  it('TC-3P-119: component sends only proposalEventId and status to updateProposalStatusAction', () => {
+    const src = readSrc(STATUS_CONTROL)
+    const callStart = src.indexOf('updateProposalStatusAction(')
+    const callSite = src.slice(callStart, callStart + 200)
+    expect(callSite).toContain('proposalEventId')
+    expect(callSite).toContain('status')
+    expect(callSite).not.toContain('tenantId')
+    expect(callSite).not.toContain('workspaceId')
+    expect(callSite).not.toContain('userId')
+  })
+
+  it('TC-3P-120: component includes allowed transitions from sent (viewed, accepted, rejected, expired, withdrawn)', () => {
+    const src = readSrc(STATUS_CONTROL)
+    const sentStart = src.indexOf("sent:")
+    const sentBlock = src.slice(sentStart, sentStart + 400)
+    expect(sentBlock).toContain("'viewed'")
+    expect(sentBlock).toContain("'accepted'")
+    expect(sentBlock).toContain("'rejected'")
+    expect(sentBlock).toContain("'expired'")
+    expect(sentBlock).toContain("'withdrawn'")
+  })
+
+  it('TC-3P-121: component includes allowed transitions from viewed (accepted, rejected, expired, withdrawn)', () => {
+    const src = readSrc(STATUS_CONTROL)
+    const viewedStart = src.indexOf("viewed:")
+    const viewedBlock = src.slice(viewedStart, viewedStart + 300)
+    expect(viewedBlock).toContain("'accepted'")
+    expect(viewedBlock).toContain("'rejected'")
+    expect(viewedBlock).toContain("'expired'")
+    expect(viewedBlock).toContain("'withdrawn'")
+  })
+
+  it('TC-3P-122: component uses schema values accepted and rejected — not won or lost as payload values', () => {
+    const src = readSrc(STATUS_CONTROL)
+    // Schema values must appear as option values
+    expect(src).toContain("value: 'accepted'")
+    expect(src).toContain("value: 'rejected'")
+    // Payload must not be won/lost
+    expect(src).not.toContain("value: 'won'")
+    expect(src).not.toContain("value: 'lost'")
+  })
+
+  it('TC-3P-123: component displays closedCommitmentIds.length on success', () => {
+    expect(readSrc(STATUS_CONTROL)).toContain('closedCommitmentIds.length')
+  })
+
+  it('TC-3P-124: component calls router.refresh() on success', () => {
+    expect(readSrc(STATUS_CONTROL)).toContain('router.refresh()')
+  })
+
+  it('TC-3P-125: component shows inline error state', () => {
+    const src = readSrc(STATUS_CONTROL)
+    expect(src).toContain('setError(')
+    expect(src).toContain('error &&')
+  })
+
+  it('TC-3P-126: component disables submit button while loading', () => {
+    const src = readSrc(STATUS_CONTROL)
+    expect(src).toContain('disabled={loading')
+  })
+
+  it('TC-3P-127: component includes text that status change does not send email or start automation', () => {
+    const src = readSrc(STATUS_CONTROL)
+    expect(src).toContain('does not send email')
+    expect(src).toContain('automation')
+  })
+
+  it('TC-3P-128: component does not contain Send Email text', () => {
+    expect(readSrc(STATUS_CONTROL)).not.toContain('Send Email')
+  })
+
+  it('TC-3P-129: component does not contain Launch Campaign text', () => {
+    expect(readSrc(STATUS_CONTROL)).not.toContain('Launch Campaign')
+  })
+
+  it('TC-3P-130: component does not contain Start Follow-Up text', () => {
+    expect(readSrc(STATUS_CONTROL)).not.toContain('Start Follow-Up')
+  })
+
+  it('TC-3P-131: component does not contain Complete Follow-Up text', () => {
+    expect(readSrc(STATUS_CONTROL)).not.toContain('Complete Follow-Up')
+  })
+
+  it('TC-3P-132: component does not contain Skip Follow-Up text', () => {
+    expect(readSrc(STATUS_CONTROL)).not.toContain('Skip Follow-Up')
+  })
+
+  it('TC-3P-133: component does not import Resend, Inngest, or LLM providers', () => {
+    const src = readSrc(STATUS_CONTROL)
+    expect(src).not.toContain('Resend')
+    expect(src).not.toContain('Inngest')
+    expect(src).not.toContain('OpenAI')
+    expect(src).not.toContain('Anthropic')
+  })
+
+  it('TC-3P-134: component does not reference EMAIL_SENDING_ENABLED', () => {
+    expect(readSrc(STATUS_CONTROL)).not.toContain('EMAIL_SENDING_ENABLED')
+  })
+
+  it('TC-3P-135: component does not reference CAMPAIGN_SENDING_ENABLED', () => {
+    expect(readSrc(STATUS_CONTROL)).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+
+  it('TC-3P-136: component does not call sendEmail', () => {
+    expect(readSrc(STATUS_CONTROL)).not.toContain('sendEmail')
+  })
+
+})
+
+describe('Slice 5: detail page integration with ProposalStatusControl', () => {
+
+  it('TC-3P-137: detail page imports ProposalStatusControl', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('ProposalStatusControl')
+  })
+
+  it('TC-3P-138: detail page renders ProposalStatusControl only for sent or viewed status', () => {
+    const src = readSrc(EVENT_DETAIL_PAGE)
+    expect(src).toContain("proposal_status === 'sent'")
+    expect(src).toContain("proposal_status === 'viewed'")
+  })
+
+  it('TC-3P-139: detail page does not render ProposalStatusControl unconditionally for terminal statuses', () => {
+    const src = readSrc(EVENT_DETAIL_PAGE)
+    // Control must be gated — should not render for accepted/rejected/expired/withdrawn without condition
+    expect(src).not.toContain("proposal_status === 'accepted' && <ProposalStatusControl")
+    expect(src).not.toContain("proposal_status === 'rejected' && <ProposalStatusControl")
+  })
+
+  it('TC-3P-140: detail page passes event.id as proposalEventId to ProposalStatusControl', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('proposalEventId={event.id}')
+  })
+
+  it('TC-3P-141: detail page passes event.proposal_status as currentStatus to ProposalStatusControl', () => {
+    expect(readSrc(EVENT_DETAIL_PAGE)).toContain('currentStatus={event.proposal_status}')
+  })
+
+  it('TC-3P-142: detail page does not pass tenantId, workspaceId, or userId to ProposalStatusControl', () => {
+    const src = readSrc(EVENT_DETAIL_PAGE)
+    const controlStart = src.indexOf('<ProposalStatusControl')
+    const controlJsx = src.slice(controlStart, controlStart + 300)
+    expect(controlJsx).not.toContain('tenantId')
+    expect(controlJsx).not.toContain('workspaceId')
+    expect(controlJsx).not.toContain('userId')
+  })
+
+  it('TC-3P-143: no new server action file created in Slice 5', () => {
+    expect(() => readSrc('modules/proposals/actions/proposal-events.actions.ts')).toThrow()
+  })
+
+  it('TC-3P-144: proposal-status.actions.ts exists and is unchanged in structure', () => {
+    const src = readSrc('modules/proposals/actions/proposal-status.actions.ts')
+    expect(src).toContain("'use server'")
+    expect(src).toContain('updateProposalStatusAction')
+    expect(src).toContain('closedCommitmentIds')
+  })
+
+  it('TC-3P-145: proposal-status.service.ts is not modified with new sending/automation patterns', () => {
+    const src = readSrc('modules/proposals/services/proposal-status.service.ts')
+    expect(src).not.toContain('sendEmail')
+    expect(src).not.toContain('Inngest')
+    expect(src).not.toContain('Resend')
+    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
   })
 
 })

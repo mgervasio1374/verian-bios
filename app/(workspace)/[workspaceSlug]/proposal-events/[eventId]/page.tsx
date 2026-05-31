@@ -7,6 +7,7 @@ import { getProposalEventById } from '@/modules/proposals/repositories/proposal-
 import { listCommitmentsForProposalEvent } from '@/modules/proposals/repositories/proposal-follow-up-commitments.repo'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ProposalStatusControl } from './ProposalStatusControl'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string; eventId: string }>
@@ -123,6 +124,14 @@ export default async function ProposalEventDetailPage({ params }: PageProps) {
           />
         </CardContent>
       </Card>
+
+      {/* Status Transition (open proposals only) */}
+      {(event.proposal_status === 'sent' || event.proposal_status === 'viewed') && (
+        <ProposalStatusControl
+          proposalEventId={event.id}
+          currentStatus={event.proposal_status}
+        />
+      )}
 
       {/* Follow-Up Commitments */}
       <Card>
