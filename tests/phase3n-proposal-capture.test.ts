@@ -1300,3 +1300,244 @@ describe('Slice 6: no forbidden files created', () => {
     expect(src).not.toContain('.tsx')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Slice 7 — Proposal Capture Inbox / Review Actions (source-reading)
+// TC-3N-208–250
+// ---------------------------------------------------------------------------
+
+const REVIEW_ACTION_FILE  = 'modules/proposals/actions/proposal-capture-review.actions.ts'
+const REVIEW_SERVICE_FILE = 'modules/proposals/services/proposal-capture-review.service.ts'
+const CAPTURES_REPO_FILE  = 'modules/proposals/repositories/proposal-captures.repo.ts'
+
+describe('Slice 7: review action and service files exist', () => {
+  it('TC-3N-208: proposal-capture-review.actions.ts exists', () => {
+    expect(() => readSrc(REVIEW_ACTION_FILE)).not.toThrow()
+  })
+
+  it('TC-3N-209: proposal-capture-review.service.ts exists', () => {
+    expect(() => readSrc(REVIEW_SERVICE_FILE)).not.toThrow()
+  })
+
+  it('TC-3N-210: listProposalCapturesForReviewAction is exported', () => {
+    expect(readSrc(REVIEW_ACTION_FILE)).toContain('export async function listProposalCapturesForReviewAction')
+  })
+
+  it('TC-3N-211: reviewProposalCaptureAction is exported', () => {
+    expect(readSrc(REVIEW_ACTION_FILE)).toContain('export async function reviewProposalCaptureAction')
+  })
+
+  it('TC-3N-212: action file uses use server directive', () => {
+    expect(readSrc(REVIEW_ACTION_FILE)).toContain("'use server'")
+  })
+})
+
+describe('Slice 7: request context and tenant/workspace safety', () => {
+  it('TC-3N-213: action uses buildRequestContext', () => {
+    expect(readSrc(REVIEW_ACTION_FILE)).toContain('buildRequestContext')
+  })
+
+  it('TC-3N-214: action uses ctx.tenantId and ctx.workspaceId', () => {
+    const src = readSrc(REVIEW_ACTION_FILE)
+    expect(src).toContain('ctx.tenantId')
+    expect(src).toContain('ctx.workspaceId')
+  })
+
+  it('TC-3N-215: service takes tenantId and workspaceId as explicit params', () => {
+    const src = readSrc(REVIEW_SERVICE_FILE)
+    expect(/reviewProposalCapture[\s\S]{0,200}tenantId/.test(src)).toBe(true)
+    expect(/reviewProposalCapture[\s\S]{0,200}workspaceId/.test(src)).toBe(true)
+  })
+})
+
+describe('Slice 7: action input type does not accept forbidden fields', () => {
+  const inputBlock = (): string =>
+    readSrc(REVIEW_ACTION_FILE).match(/interface ReviewProposalCaptureActionInput[\s\S]{0,300}}/)?.[0] ?? ''
+
+  it('TC-3N-216: input type does not accept tenantId', () => {
+    expect(inputBlock()).not.toContain('tenantId')
+  })
+
+  it('TC-3N-217: input type does not accept workspaceId', () => {
+    expect(inputBlock()).not.toContain('workspaceId')
+  })
+
+  it('TC-3N-218: input type does not accept companyId', () => {
+    expect(inputBlock()).not.toContain('companyId')
+  })
+
+  it('TC-3N-219: input type does not accept accountId', () => {
+    expect(inputBlock()).not.toContain('accountId')
+  })
+})
+
+describe('Slice 7: list pending captures', () => {
+  it('TC-3N-220: service calls getPendingCapturesForWorkspace', () => {
+    expect(readSrc(REVIEW_SERVICE_FILE)).toContain('getPendingCapturesForWorkspace')
+  })
+
+  it('TC-3N-221: list result shape includes captures', () => {
+    expect(readSrc(REVIEW_SERVICE_FILE)).toContain('captures')
+  })
+})
+
+describe('Slice 7: capture boundary validation', () => {
+  it('TC-3N-222: service validates capture by tenantId/workspaceId/captureId', () => {
+    const src = readSrc(REVIEW_SERVICE_FILE)
+    expect(src.includes('getCaptureById') || src.includes('captureId')).toBe(true)
+  })
+
+  it('TC-3N-223: service returns capture_not_found when capture missing', () => {
+    expect(readSrc(REVIEW_SERVICE_FILE)).toContain('capture_not_found')
+  })
+})
+
+describe('Slice 7: dismiss behavior', () => {
+  it('TC-3N-224: service handles dismiss action', () => {
+    expect(readSrc(REVIEW_SERVICE_FILE)).toContain('dismiss')
+  })
+
+  it('TC-3N-225: service sets match_status to dismissed', () => {
+    expect(readSrc(REVIEW_SERVICE_FILE)).toContain("'dismissed'")
+  })
+
+  it('TC-3N-226: service calls updateCaptureMatchStatus for dismiss', () => {
+    expect(readSrc(REVIEW_SERVICE_FILE)).toContain('updateCaptureMatchStatus')
+  })
+
+  it('TC-3N-227: service sets reviewedByUserId on dismiss', () => {
+    expect(readSrc(REVIEW_SERVICE_FILE)).toContain('reviewedByUserId')
+  })
+
+  it('TC-3N-228: no proposal_event created in review service', () => {
+    expect(readSrc(REVIEW_SERVICE_FILE)).not.toContain('createProposalEvent')
+  })
+})
+
+describe('Slice 7: match behavior', () => {
+  it('TC-3N-229: service handles match action', () => {
+    expect(readSrc(REVIEW_SERVICE_FILE)).toContain("'match'")
+  })
+
+  it('TC-3N-230: service requires leadId for match and returns invalid_input if missing', () => {
+    const src = readSrc(REVIEW_SERVICE_FILE)
+    expect(src).toContain('leadId')
+    expect(src).toContain('invalid_input')
+  })
+
+  it('TC-3N-231: service validates lead workspace boundary', () => {
+    expect(readSrc(REVIEW_SERVICE_FILE)).toContain('workspace_id')
+  })
+
+  it('TC-3N-232: service returns lead_not_found safely', () => {
+    expect(readSrc(REVIEW_SERVICE_FILE)).toContain('lead_not_found')
+  })
+
+  it('TC-3N-233: company_id derived from lead, not from client input', () => {
+    const src = readSrc(REVIEW_SERVICE_FILE)
+    expect(src).toContain('lead.company_id')
+    expect(src).not.toContain('input.companyId')
+  })
+
+  it('TC-3N-234: accounts.domain not referenced in review service or action', () => {
+    expect(readSrc(REVIEW_SERVICE_FILE)).not.toContain('accounts.domain')
+    expect(readSrc(REVIEW_ACTION_FILE)).not.toContain('accounts.domain')
+  })
+
+  it('TC-3N-235: service sets matchedLeadId on match', () => {
+    expect(readSrc(REVIEW_SERVICE_FILE)).toContain('matchedLeadId')
+  })
+
+  it('TC-3N-236: service sets matchedByUserId for match action', () => {
+    expect(readSrc(REVIEW_SERVICE_FILE)).toContain('matchedByUserId')
+  })
+})
+
+describe('Slice 7: repository extensions for review fields', () => {
+  it('TC-3N-237: captures repo exports getCaptureById', () => {
+    expect(readSrc(CAPTURES_REPO_FILE)).toContain('getCaptureById')
+  })
+
+  it('TC-3N-238: CaptureMatchStatusUpdate includes reviewedByUserId', () => {
+    expect(readSrc(CAPTURES_REPO_FILE)).toContain('reviewedByUserId')
+  })
+
+  it('TC-3N-239: CaptureMatchStatusUpdate includes reviewedAt', () => {
+    expect(readSrc(CAPTURES_REPO_FILE)).toContain('reviewedAt')
+  })
+
+  it('TC-3N-240: review_notes field is handled in repo', () => {
+    expect(readSrc(CAPTURES_REPO_FILE)).toContain('reviewNotes')
+  })
+})
+
+describe('Slice 7: activity event readiness', () => {
+  it('TC-3N-241: service references PROPOSAL_CAPTURE_REVIEWED', () => {
+    const src = readSrc(REVIEW_SERVICE_FILE)
+    expect(
+      src.includes('PROPOSAL_CAPTURE_REVIEWED') || src.includes('proposal_capture_reviewed')
+    ).toBe(true)
+  })
+
+  it('TC-3N-242: service references PROPOSAL_CAPTURE_MATCHED', () => {
+    const src = readSrc(REVIEW_SERVICE_FILE)
+    expect(
+      src.includes('PROPOSAL_CAPTURE_MATCHED') || src.includes('proposal_capture_matched')
+    ).toBe(true)
+  })
+})
+
+describe('Slice 7: forbidden patterns — no send, no LLM, no workflow', () => {
+  const allSlice7 = (): string => readSrc(REVIEW_ACTION_FILE) + readSrc(REVIEW_SERVICE_FILE)
+
+  it('TC-3N-243: no Resend/email send imports', () => {
+    const src = allSlice7()
+    expect(src).not.toMatch(/from ['"]resend['"]/)
+    expect(src).not.toContain('emails.send')
+    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+
+  it('TC-3N-244: no LLM/AI imports', () => {
+    const src = allSlice7()
+    expect(src).not.toMatch(/from ['"]openai['"]/)
+    expect(src).not.toMatch(/from ['"]@anthropic/)
+    expect(src).not.toContain('chat.completions')
+    expect(src).not.toContain('messages.create')
+    expect(src).not.toContain('responses.create')
+  })
+
+  it('TC-3N-245: no Inngest or workflow dispatch calls', () => {
+    const src = allSlice7()
+    expect(src).not.toContain('inngest')
+    expect(src).not.toContain('sendEvent')
+    expect(src).not.toContain('dispatchPendingEvents')
+  })
+
+  it('TC-3N-246: no calendar_event_id, scheduled_activities, or calendar_sync_links', () => {
+    const src = allSlice7()
+    expect(src).not.toContain('calendar_event_id')
+    expect(src).not.toContain('scheduled_activities')
+    expect(src).not.toContain('calendar_sync_links')
+  })
+})
+
+describe('Slice 7: no forbidden files created', () => {
+  it('TC-3N-247: no proposal-inbox UI file exists', () => {
+    expect(() => readSrc('app/[workspaceSlug]/settings/proposal-inbox/page.tsx')).toThrow()
+  })
+
+  it('TC-3N-248: no BCC/forward ingest webhook route exists', () => {
+    expect(() => readSrc('app/api/webhooks/proposal-capture/route.ts')).toThrow()
+  })
+
+  it('TC-3N-249: no migration 20240039 exists', () => {
+    expect(() => readSrc('supabase/migrations/20240039_phase3n_proposal_bundle_rpc.sql')).toThrow()
+  })
+
+  it('TC-3N-250: action file does not import from any UI component', () => {
+    const src = readSrc(REVIEW_ACTION_FILE)
+    expect(src).not.toContain('components/')
+    expect(src).not.toContain('.tsx')
+  })
+})

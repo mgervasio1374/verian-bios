@@ -30,6 +30,27 @@ export interface CaptureMatchStatusUpdate {
   matchedAt?: string | null
   captureConfidence?: number | null
   resolvedEventId?: string | null
+  reviewedByUserId?: string | null
+  reviewedAt?: string | null
+  reviewNotes?: string | null
+}
+
+export async function getCaptureById(
+  tenantId: string,
+  workspaceId: string,
+  captureId: string
+): Promise<ProposalCaptureRow | null> {
+  const supabase = createSupabaseServiceClient()
+  const { data } = await supabase
+    .from('proposal_captures')
+    .select('*')
+    .eq('id', captureId)
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .is('deleted_at', null)
+    .maybeSingle()
+
+  return data ?? null
 }
 
 export async function createProposalCapture(
@@ -113,8 +134,11 @@ export async function updateCaptureMatchStatus(
   if (update.matchedCompanyId !== undefined) patch.matched_company_id = update.matchedCompanyId
   if (update.matchedByUserId  !== undefined) patch.matched_by_user_id = update.matchedByUserId
   if (update.matchedAt        !== undefined) patch.matched_at         = update.matchedAt
-  if (update.captureConfidence !== undefined) patch.capture_confidence = update.captureConfidence
-  if (update.resolvedEventId  !== undefined) patch.resolved_event_id  = update.resolvedEventId
+  if (update.captureConfidence !== undefined) patch.capture_confidence   = update.captureConfidence
+  if (update.resolvedEventId   !== undefined) patch.resolved_event_id   = update.resolvedEventId
+  if (update.reviewedByUserId  !== undefined) patch.reviewed_by_user_id = update.reviewedByUserId
+  if (update.reviewedAt        !== undefined) patch.reviewed_at          = update.reviewedAt
+  if (update.reviewNotes       !== undefined) patch.review_notes         = update.reviewNotes
 
   const { data, error } = await supabase
     .from('proposal_captures')
