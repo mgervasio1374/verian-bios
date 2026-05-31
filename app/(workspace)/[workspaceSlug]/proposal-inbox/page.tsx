@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import { listProposalCapturesForReview } from '@/modules/proposals/services/proposal-capture-review.service'
@@ -25,7 +26,7 @@ function fmtDate(iso: string | null | undefined): string {
 }
 
 export default async function ProposalInboxPage({ params }: PageProps) {
-  await params
+  const { workspaceSlug } = await params
   const supabase = await createSupabaseServerClient()
   const ctx = await buildRequestContext(supabase)
 
@@ -72,6 +73,7 @@ export default async function ProposalInboxPage({ params }: PageProps) {
                   <th className="text-left p-3 font-medium">Status</th>
                   <th className="text-left p-3 font-medium">Received</th>
                   <th className="text-left p-3 font-medium">Captured</th>
+                  <th className="p-3" />
                 </tr>
               </thead>
               <tbody>
@@ -107,6 +109,14 @@ export default async function ProposalInboxPage({ params }: PageProps) {
                     </td>
                     <td className="p-3 text-muted-foreground text-xs whitespace-nowrap">
                       {fmtDate(c.created_at)}
+                    </td>
+                    <td className="p-3">
+                      <Link
+                        href={`/${workspaceSlug}/proposal-inbox/${c.id}`}
+                        className="text-xs text-primary hover:underline whitespace-nowrap"
+                      >
+                        View →
+                      </Link>
                     </td>
                   </tr>
                 ))}
