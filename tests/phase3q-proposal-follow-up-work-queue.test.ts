@@ -288,8 +288,8 @@ describe('Slice 2: follow-up queue repo — listProposalFollowUpQueueItemsForWor
     expect(() => readSrc('modules/proposals/actions/proposal-follow-up-queue.actions.ts')).not.toThrow()
   })
 
-  it('TC-3Q-034: no UI page for follow-up queue created in Slice 2 (guard)', () => {
-    expect(() => readSrc('app/(workspace)/[workspaceSlug]/proposal-follow-ups/page.tsx')).toThrow()
+  it('TC-3Q-034: UI page for follow-up queue exists (created in Slice 6)', () => {
+    expect(() => readSrc('app/(workspace)/[workspaceSlug]/proposal-follow-ups/page.tsx')).not.toThrow()
   })
 
 })

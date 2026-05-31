@@ -176,8 +176,8 @@ describe('Slice 4: follow-up queue action — getProposalFollowUpQueueAction', (
     expect(fnBody).toContain('error')
   })
 
-  it('TC-3Q-083: no UI page for follow-up queue created in this slice (guard)', () => {
-    expect(() => readSrc('app/(workspace)/[workspaceSlug]/proposal-follow-ups/page.tsx')).toThrow()
+  it('TC-3Q-083: UI page for follow-up queue exists (created in Slice 6)', () => {
+    expect(() => readSrc('app/(workspace)/[workspaceSlug]/proposal-follow-ups/page.tsx')).not.toThrow()
   })
 
   it('TC-3Q-084: action does not import from route handlers or next/server response utilities', () => {
