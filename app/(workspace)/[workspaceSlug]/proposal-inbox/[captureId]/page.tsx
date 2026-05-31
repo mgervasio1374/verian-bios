@@ -7,6 +7,7 @@ import * as leadRepo from '@/modules/crm/repositories/lead.repo'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ProposalCaptureReviewActions } from './ProposalCaptureReviewActions'
+import { ProposalCaptureConvertAction } from './ProposalCaptureConvertAction'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string; captureId: string }>
@@ -45,6 +46,11 @@ export default async function CaptureDetailPage({ params }: PageProps) {
   if (!capture) notFound()
 
   const isPending = capture.match_status === 'pending'
+
+  const isEligibleForConversion =
+    capture.match_status === 'matched' &&
+    capture.resolved_event_id === null &&
+    !!capture.matched_lead_id
 
   const leads = isPending
     ? await leadRepo.listLeads({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId, limit: 200 })
@@ -136,6 +142,22 @@ export default async function CaptureDetailPage({ params }: PageProps) {
           captureId={capture.id}
           backHref={base}
           leads={leads.map(l => ({ id: l.id, name: l.name }))}
+        />
+      )}
+
+      {capture.resolved_event_id !== null && (
+        <Card>
+          <CardHeader><CardTitle>Proposal Event Created</CardTitle></CardHeader>
+          <CardContent className="py-2">
+            <DetailRow label="Proposal Event ID" value={capture.resolved_event_id} />
+          </CardContent>
+        </Card>
+      )}
+
+      {isEligibleForConversion && (
+        <ProposalCaptureConvertAction
+          captureId={capture.id}
+          rawReceivedAt={capture.raw_received_at ?? null}
         />
       )}
     </div>

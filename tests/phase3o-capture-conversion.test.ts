@@ -567,3 +567,187 @@ describe('Slice 3: forbidden patterns — no send, no LLM, no workflow', () => {
     expect(src).not.toContain('scheduled_activities')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Slice 4 — Proposal Capture Detail UI Conversion Action
+// TC-3O-085–104
+// ---------------------------------------------------------------------------
+
+const CONVERT_COMPONENT = 'app/(workspace)/[workspaceSlug]/proposal-inbox/[captureId]/ProposalCaptureConvertAction.tsx'
+const DETAIL_PAGE       = 'app/(workspace)/[workspaceSlug]/proposal-inbox/[captureId]/page.tsx'
+
+describe('Slice 4: ProposalCaptureConvertAction component exists and structure', () => {
+  it('TC-3O-085: ProposalCaptureConvertAction.tsx exists', () => {
+    expect(() => readSrc(CONVERT_COMPONENT)).not.toThrow()
+  })
+
+  it('TC-3O-086: component declares use client', () => {
+    expect(readSrc(CONVERT_COMPONENT)).toContain("'use client'")
+  })
+
+  it('TC-3O-087: component imports convertCaptureToProposalEventAction', () => {
+    expect(readSrc(CONVERT_COMPONENT)).toContain('convertCaptureToProposalEventAction')
+  })
+
+  it('TC-3O-088: component uses useRouter', () => {
+    expect(readSrc(CONVERT_COMPONENT)).toContain('useRouter')
+  })
+
+  it('TC-3O-089: component has proposalSentAt form state', () => {
+    expect(readSrc(CONVERT_COMPONENT)).toContain('proposalSentAt')
+  })
+})
+
+describe('Slice 4: component sends only safe fields to action', () => {
+  it('TC-3O-090: component sends captureId to action', () => {
+    expect(readSrc(CONVERT_COMPONENT)).toContain('captureId')
+  })
+
+  it('TC-3O-091: component sends proposalSentAt to action', () => {
+    const src = readSrc(CONVERT_COMPONENT)
+    expect(src).toContain('proposalSentAt:')
+  })
+
+  it('TC-3O-092: component does not send tenantId, workspaceId, userId, leadId, companyId, or contactId to action', () => {
+    const src = readSrc(CONVERT_COMPONENT)
+    // These fields must not appear as keys passed to the action call.
+    // Check the action call block: the input object inside convertCaptureToProposalEventAction({...})
+    const actionCallStart = src.indexOf('convertCaptureToProposalEventAction({')
+    const actionCallBody  = src.slice(actionCallStart, actionCallStart + 600)
+    expect(actionCallBody).not.toContain('tenantId:')
+    expect(actionCallBody).not.toContain('workspaceId:')
+    expect(actionCallBody).not.toContain('userId:')
+    expect(actionCallBody).not.toContain('leadId:')
+    expect(actionCallBody).not.toContain('companyId:')
+    expect(actionCallBody).not.toContain('contactId:')
+  })
+})
+
+describe('Slice 4: component success and error states', () => {
+  it('TC-3O-093: component shows proposalEventId on success', () => {
+    expect(readSrc(CONVERT_COMPONENT)).toContain('proposalEventId')
+  })
+
+  it('TC-3O-094: component shows commitmentCount on success', () => {
+    expect(readSrc(CONVERT_COMPONENT)).toContain('commitmentCount')
+  })
+
+  it('TC-3O-095: component handles error state', () => {
+    const src = readSrc(CONVERT_COMPONENT)
+    expect(src).toContain('setError')
+    expect(src).toContain('error &&')
+  })
+
+  it('TC-3O-096: component calls router.refresh on success', () => {
+    expect(readSrc(CONVERT_COMPONENT)).toContain('router.refresh()')
+  })
+})
+
+describe('Slice 4: component forbidden patterns', () => {
+  it('TC-3O-097: no email/campaign/LLM/Inngest references in component', () => {
+    const src = readSrc(CONVERT_COMPONENT)
+    expect(src).not.toMatch(/from ['"]resend['"]/)
+    expect(src).not.toMatch(/from ['"]openai['"]/)
+    expect(src).not.toMatch(/from ['"]@anthropic/)
+    expect(src).not.toContain('inngest')
+    expect(src).not.toContain('sendEmail')
+    expect(src).not.toContain('Send Email')
+    expect(src).not.toContain('Launch Campaign')
+    expect(src).not.toContain('Start Follow-Up')
+    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+})
+
+describe('Slice 4: detail page integration', () => {
+  it('TC-3O-098: detail page imports ProposalCaptureConvertAction', () => {
+    expect(readSrc(DETAIL_PAGE)).toContain('ProposalCaptureConvertAction')
+  })
+
+  it('TC-3O-099: detail page checks match_status === matched for conversion eligibility', () => {
+    expect(readSrc(DETAIL_PAGE)).toContain("match_status === 'matched'")
+  })
+
+  it('TC-3O-100: detail page checks resolved_event_id === null before rendering conversion action', () => {
+    const src = readSrc(DETAIL_PAGE)
+    expect(src).toContain('resolved_event_id === null')
+    // Use JSX tag position (<ProposalCaptureConvertAction) to skip the import line.
+    const nullCheckPos  = src.indexOf('resolved_event_id === null')
+    const componentPos  = src.indexOf('<ProposalCaptureConvertAction')
+    expect(nullCheckPos).toBeGreaterThan(-1)
+    expect(componentPos).toBeGreaterThan(-1)
+    expect(nullCheckPos).toBeLessThan(componentPos)
+  })
+
+  it('TC-3O-101: detail page renders read-only Proposal Event Created card when resolved_event_id is non-null', () => {
+    const src = readSrc(DETAIL_PAGE)
+    expect(src).toContain('resolved_event_id !== null')
+    expect(src).toContain('Proposal Event Created')
+  })
+
+  it('TC-3O-102: detail page passes captureId to ProposalCaptureConvertAction', () => {
+    const src = readSrc(DETAIL_PAGE)
+    const componentStart = src.indexOf('<ProposalCaptureConvertAction')
+    const componentBlock = src.slice(componentStart, componentStart + 200)
+    expect(componentBlock).toContain('captureId')
+  })
+
+  it('TC-3O-103: detail page passes rawReceivedAt to ProposalCaptureConvertAction', () => {
+    const src = readSrc(DETAIL_PAGE)
+    const componentStart = src.indexOf('<ProposalCaptureConvertAction')
+    const componentBlock = src.slice(componentStart, componentStart + 200)
+    expect(componentBlock).toContain('rawReceivedAt')
+  })
+
+  it('TC-3O-104: detail page does not pass tenantId, workspaceId, or userId to ProposalCaptureConvertAction', () => {
+    const src = readSrc(DETAIL_PAGE)
+    const componentStart = src.indexOf('<ProposalCaptureConvertAction')
+    const componentBlock = src.slice(componentStart, componentStart + 200)
+    expect(componentBlock).not.toContain('tenantId')
+    expect(componentBlock).not.toContain('workspaceId')
+    expect(componentBlock).not.toContain('userId')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Slice 4 (fix) — datetime-local timezone correctness
+// TC-3O-105–110
+// ---------------------------------------------------------------------------
+
+describe('Slice 4 (fix): datetime-local default uses local time, not UTC slice', () => {
+  it('TC-3O-105: component does not use toISOString().slice(0, 16) for datetime-local default', () => {
+    expect(readSrc(CONVERT_COMPONENT)).not.toContain("toISOString().slice(0, 16)")
+  })
+
+  it('TC-3O-106: component has formatLocalDateTimeInputValue helper', () => {
+    expect(readSrc(CONVERT_COMPONENT)).toContain('formatLocalDateTimeInputValue')
+  })
+
+  it('TC-3O-107: helper uses getFullYear, getMonth, getDate for date parts', () => {
+    const src = readSrc(CONVERT_COMPONENT)
+    const helperStart = src.indexOf('formatLocalDateTimeInputValue')
+    const helperBody  = src.slice(helperStart, helperStart + 400)
+    expect(helperBody).toContain('getFullYear')
+    expect(helperBody).toContain('getMonth')
+    expect(helperBody).toContain('getDate')
+  })
+
+  it('TC-3O-108: helper uses getHours and getMinutes for time parts', () => {
+    const src = readSrc(CONVERT_COMPONENT)
+    const helperStart = src.indexOf('formatLocalDateTimeInputValue')
+    const helperBody  = src.slice(helperStart, helperStart + 400)
+    expect(helperBody).toContain('getHours')
+    expect(helperBody).toContain('getMinutes')
+  })
+
+  it('TC-3O-109: component has comment explaining datetime-local is formatted in local time', () => {
+    const src = readSrc(CONVERT_COMPONENT)
+    expect(src.toLowerCase()).toContain('local time')
+  })
+
+  it('TC-3O-110: submit still converts proposalSentAt to ISO before calling action', () => {
+    const src = readSrc(CONVERT_COMPONENT)
+    // The submit handler must call new Date(...).toISOString() for the proposalSentAt value.
+    expect(src).toContain('new Date(proposalSentAt).toISOString()')
+  })
+})
