@@ -148,15 +148,13 @@ describe('Slice 4: follow-up queue action — getProposalFollowUpQueueAction', (
     expect(src).not.toContain('scheduleFollowUpAction')
   })
 
-  it('TC-3Q-080: action passes filter options through to the service call', () => {
+  it('TC-3Q-080: action calls sanitizeFollowUpQueueInput and passes sanitized result to service', () => {
     const src = readSrc(QUEUE_ACTION)
     const fnStart = src.indexOf('export async function getProposalFollowUpQueueAction')
     const fnBody = src.slice(fnStart)
-    expect(fnBody).toContain('input?.due')
-    expect(fnBody).toContain('input?.followUpSequence')
-    expect(fnBody).toContain('input?.proposalStatus')
-    expect(fnBody).toContain('input?.limit')
-    expect(fnBody).toContain('input?.offset')
+    // Sanitized options (not raw input fields) are passed to the service
+    expect(fnBody).toContain('sanitizeFollowUpQueueInput')
+    expect(fnBody).toContain('getProposalFollowUpQueueForWorkspace')
   })
 
   it('TC-3Q-081: action returns success:true with items, summary, appliedFilters, generatedAt on success', () => {
@@ -191,6 +189,105 @@ describe('Slice 4: follow-up queue action — getProposalFollowUpQueueAction', (
 
   it('TC-3Q-085: action imports ActionResult type from company.actions', () => {
     expect(readSrc(QUEUE_ACTION)).toContain('company.actions')
+  })
+
+})
+
+// ---------------------------------------------------------------------------
+// Slice 5 — input validation / sanitization
+// TC-3Q-086 through TC-3Q-100
+// ---------------------------------------------------------------------------
+
+describe('Slice 5: follow-up queue action — input sanitization', () => {
+
+  it('TC-3Q-086: sanitizeDueFilter function is defined in action file', () => {
+    expect(readSrc(QUEUE_ACTION)).toContain('function sanitizeDueFilter')
+  })
+
+  it('TC-3Q-087: sanitizeLimit function is defined in action file', () => {
+    expect(readSrc(QUEUE_ACTION)).toContain('function sanitizeLimit')
+  })
+
+  it('TC-3Q-088: sanitizeOffset function is defined in action file', () => {
+    expect(readSrc(QUEUE_ACTION)).toContain('function sanitizeOffset')
+  })
+
+  it('TC-3Q-089: sanitizeFollowUpSequence function is defined in action file', () => {
+    expect(readSrc(QUEUE_ACTION)).toContain('function sanitizeFollowUpSequence')
+  })
+
+  it('TC-3Q-090: sanitizeProposalStatusFilter function is defined in action file', () => {
+    expect(readSrc(QUEUE_ACTION)).toContain('function sanitizeProposalStatusFilter')
+  })
+
+  it('TC-3Q-091: sanitizeFollowUpQueueInput function is defined in action file', () => {
+    expect(readSrc(QUEUE_ACTION)).toContain('function sanitizeFollowUpQueueInput')
+  })
+
+  it('TC-3Q-092: LIMIT_MAX is defined as 100', () => {
+    const src = readSrc(QUEUE_ACTION)
+    expect(src).toContain('LIMIT_MAX')
+    expect(src).toContain('= 100')
+  })
+
+  it('TC-3Q-093: FOLLOW_UP_SEQUENCE_MAX is defined', () => {
+    expect(readSrc(QUEUE_ACTION)).toContain('FOLLOW_UP_SEQUENCE_MAX')
+  })
+
+  it('TC-3Q-094: sanitizeLimit uses Math.min to clamp values at or below LIMIT_MAX', () => {
+    const src = readSrc(QUEUE_ACTION)
+    const fnStart = src.indexOf('function sanitizeLimit')
+    const fnBody = src.slice(fnStart, fnStart + 400)
+    expect(fnBody).toContain('Math.min')
+    expect(fnBody).toContain('LIMIT_MAX')
+  })
+
+  it('TC-3Q-095: sanitizeOffset rejects negative values', () => {
+    const src = readSrc(QUEUE_ACTION)
+    const fnStart = src.indexOf('function sanitizeOffset')
+    const fnBody = src.slice(fnStart, fnStart + 300)
+    expect(fnBody).toContain('n < 0')
+  })
+
+  it('TC-3Q-096: sanitizeFollowUpSequence checks both min and max bounds', () => {
+    const src = readSrc(QUEUE_ACTION)
+    const fnStart = src.indexOf('function sanitizeFollowUpSequence')
+    const fnBody = src.slice(fnStart, fnStart + 400)
+    expect(fnBody).toContain('FOLLOW_UP_SEQUENCE_MIN')
+    expect(fnBody).toContain('FOLLOW_UP_SEQUENCE_MAX')
+  })
+
+  it('TC-3Q-097: sanitizeProposalStatusFilter trims strings', () => {
+    const src = readSrc(QUEUE_ACTION)
+    const fnStart = src.indexOf('function sanitizeProposalStatusFilter')
+    const fnBody = src.slice(fnStart, fnStart + 400)
+    expect(fnBody).toContain('.trim()')
+  })
+
+  it('TC-3Q-098: sanitizeProposalStatusFilter filters out empty strings', () => {
+    const src = readSrc(QUEUE_ACTION)
+    const fnStart = src.indexOf('function sanitizeProposalStatusFilter')
+    const fnBody = src.slice(fnStart, fnStart + 400)
+    expect(fnBody).toContain('.filter(')
+    expect(fnBody).toContain('length > 0')
+  })
+
+  it('TC-3Q-099: action function body does not directly pass raw input fields to service — all go through sanitizer', () => {
+    const src = readSrc(QUEUE_ACTION)
+    const fnStart = src.indexOf('export async function getProposalFollowUpQueueAction')
+    const fnBody = src.slice(fnStart)
+    // Raw input field access must not appear inside the action function body
+    expect(fnBody).not.toContain('input?.due')
+    expect(fnBody).not.toContain('input?.followUpSequence')
+    expect(fnBody).not.toContain('input?.proposalStatus')
+    expect(fnBody).not.toContain('input?.limit')
+    expect(fnBody).not.toContain('input?.offset')
+  })
+
+  it('TC-3Q-100: sanitizers use Number.isFinite and Number.isInteger for numeric validation', () => {
+    const src = readSrc(QUEUE_ACTION)
+    expect(src).toContain('Number.isFinite')
+    expect(src).toContain('Number.isInteger')
   })
 
 })
