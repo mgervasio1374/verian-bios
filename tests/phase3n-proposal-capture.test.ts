@@ -869,3 +869,255 @@ describe('Slice 4: constants file — no forbidden imports or patterns', () => {
     expect(readSrc(CONSTANTS_FILE)).toContain('export function isProposalActivityEventType')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Slice 5 — Manual Proposal Capture Server Action (source-reading)
+// TC-3N-137–172
+// ---------------------------------------------------------------------------
+
+const ACTION_FILE  = 'modules/proposals/actions/manual-proposal-capture.actions.ts'
+const SERVICE_FILE = 'modules/proposals/services/manual-proposal-capture.service.ts'
+
+describe('Slice 5: action and service files exist', () => {
+  it('TC-3N-137: manual-proposal-capture.actions.ts exists', () => {
+    expect(() => readSrc(ACTION_FILE)).not.toThrow()
+  })
+
+  it('TC-3N-138: manual-proposal-capture.service.ts exists', () => {
+    expect(() => readSrc(SERVICE_FILE)).not.toThrow()
+  })
+
+  it('TC-3N-139: createManualProposalCaptureAction is exported from action file', () => {
+    expect(readSrc(ACTION_FILE)).toContain('export async function createManualProposalCaptureAction')
+  })
+
+  it('TC-3N-140: action file uses use server directive', () => {
+    expect(readSrc(ACTION_FILE)).toContain("'use server'")
+  })
+})
+
+describe('Slice 5: request context and tenant/workspace safety', () => {
+  it('TC-3N-141: action uses buildRequestContext', () => {
+    expect(readSrc(ACTION_FILE)).toContain('buildRequestContext')
+  })
+
+  it('TC-3N-142: action uses ctx.tenantId and ctx.workspaceId (not client input)', () => {
+    const src = readSrc(ACTION_FILE)
+    expect(src).toContain('ctx.tenantId')
+    expect(src).toContain('ctx.workspaceId')
+  })
+
+  it('TC-3N-143: service takes tenantId and workspaceId as explicit params', () => {
+    const src = readSrc(SERVICE_FILE)
+    expect(/createManualProposalCapture[\s\S]{0,200}tenantId/.test(src)).toBe(true)
+    expect(/createManualProposalCapture[\s\S]{0,200}workspaceId/.test(src)).toBe(true)
+  })
+})
+
+describe('Slice 5: lead validation and company_id derivation', () => {
+  it('TC-3N-144: service loads lead from repository', () => {
+    const src = readSrc(SERVICE_FILE)
+    expect(src).toContain('leadRepo')
+    expect(src).toContain('getLead')
+  })
+
+  it('TC-3N-145: service validates lead workspace_id matches workspaceId', () => {
+    expect(readSrc(SERVICE_FILE)).toContain('workspace_id')
+  })
+
+  it('TC-3N-146: service returns lead_not_found if lead missing or out of workspace', () => {
+    expect(readSrc(SERVICE_FILE)).toContain('lead_not_found')
+  })
+
+  it('TC-3N-147: company_id is derived from lead, not from client input', () => {
+    const src = readSrc(SERVICE_FILE)
+    // company_id comes from lead.company_id
+    expect(src).toContain('lead.company_id')
+    // must NOT accept company_id from external input object
+    expect(src).not.toContain('input.companyId')
+  })
+
+  it('TC-3N-148: accounts.domain is not referenced in service or action', () => {
+    expect(readSrc(SERVICE_FILE)).not.toContain('accounts.domain')
+    expect(readSrc(ACTION_FILE)).not.toContain('accounts.domain')
+  })
+
+  it('TC-3N-149: account_id is always null in Phase 3N (reserved field)', () => {
+    expect(readSrc(SERVICE_FILE)).toContain('accountId: null')
+  })
+})
+
+describe('Slice 5: proposal_sent_at validation', () => {
+  it('TC-3N-150: service rejects future proposal_sent_at', () => {
+    const src = readSrc(SERVICE_FILE)
+    expect(src).toContain('isFutureDate')
+    expect(src).toContain('invalid_proposal_sent_at')
+  })
+})
+
+describe('Slice 5: one-open-proposal enforcement', () => {
+  it('TC-3N-151: service calls getOpenProposalEventForLead', () => {
+    expect(readSrc(SERVICE_FILE)).toContain('getOpenProposalEventForLead')
+  })
+
+  it('TC-3N-152: service returns open_proposal_exists when open proposal found', () => {
+    expect(readSrc(SERVICE_FILE)).toContain('open_proposal_exists')
+  })
+
+  it('TC-3N-153: service handles DB unique constraint idx_proposal_events_one_open_per_lead', () => {
+    expect(readSrc(SERVICE_FILE)).toContain('idx_proposal_events_one_open_per_lead')
+  })
+})
+
+describe('Slice 5: bundle write — capture, event, commitments', () => {
+  it('TC-3N-154: service calls createProposalCapture', () => {
+    expect(readSrc(SERVICE_FILE)).toContain('createProposalCapture')
+  })
+
+  it('TC-3N-155: service creates capture with capture_source manual', () => {
+    expect(readSrc(SERVICE_FILE)).toContain("captureSource: 'manual'")
+  })
+
+  it('TC-3N-156: service calls createProposalEvent', () => {
+    expect(readSrc(SERVICE_FILE)).toContain('createProposalEvent')
+  })
+
+  it('TC-3N-157: service calls createFollowUpCommitments', () => {
+    expect(readSrc(SERVICE_FILE)).toContain('createFollowUpCommitments')
+  })
+
+  it('TC-3N-158: service uses buildFollowUpCommitmentsFromRule for schedule', () => {
+    expect(readSrc(SERVICE_FILE)).toContain('buildFollowUpCommitmentsFromRule')
+  })
+
+  it('TC-3N-159: default schedule rule key is standard_3_5_10', () => {
+    expect(readSrc(SERVICE_FILE)).toContain('standard_3_5_10')
+  })
+})
+
+describe('Slice 5: compensating cleanup / atomicity', () => {
+  it('TC-3N-160: service soft-deletes capture if event creation fails', () => {
+    const src = readSrc(SERVICE_FILE)
+    expect(src).toContain('softDeleteCapture')
+  })
+
+  it('TC-3N-161: service compensates if commitment creation fails (event not left open)', () => {
+    // After commitment failure, the event must be closed/withdrawn so it is not open
+    const src = readSrc(SERVICE_FILE)
+    expect(src).toContain('withdrawEventForCleanup')
+  })
+
+  it('TC-3N-162: compensating cleanup comment references future RPC option', () => {
+    const src = readSrc(SERVICE_FILE)
+    // Comment explaining the limitation must exist
+    expect(src.toLowerCase()).toMatch(/rpc|transaction|compensat/)
+  })
+})
+
+describe('Slice 5: activity event readiness', () => {
+  it('TC-3N-163: service references PROPOSAL_ACTIVITY_EVENTS or proposal_sent_recorded', () => {
+    const src = readSrc(SERVICE_FILE)
+    expect(
+      src.includes('PROPOSAL_ACTIVITY_EVENTS') ||
+      src.includes('proposal_sent_recorded') ||
+      src.includes('PROPOSAL_SENT_RECORDED')
+    ).toBe(true)
+  })
+
+  it('TC-3N-164: service has TODO comment for audit event emission', () => {
+    const src = readSrc(SERVICE_FILE)
+    expect(src.toUpperCase()).toContain('TODO')
+  })
+})
+
+describe('Slice 5: forbidden patterns — no send, no LLM, no workflow', () => {
+  const allSlice5 = (): string => readSrc(ACTION_FILE) + readSrc(SERVICE_FILE)
+
+  it('TC-3N-165: no Resend/email send imports', () => {
+    const src = allSlice5()
+    expect(src).not.toMatch(/from ['"]resend['"]/)
+    expect(src).not.toContain('emails.send')
+    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+
+  it('TC-3N-166: no LLM/AI imports', () => {
+    const src = allSlice5()
+    expect(src).not.toMatch(/from ['"]openai['"]/)
+    expect(src).not.toMatch(/from ['"]@anthropic/)
+    expect(src).not.toContain('chat.completions')
+    expect(src).not.toContain('messages.create')
+    expect(src).not.toContain('responses.create')
+  })
+
+  it('TC-3N-167: no Inngest or workflow dispatch calls', () => {
+    const src = allSlice5()
+    expect(src).not.toContain('inngest')
+    expect(src).not.toContain('sendEvent')
+    expect(src).not.toContain('dispatchPendingEvents')
+  })
+
+  it('TC-3N-168: no calendar_event_id, scheduled_activities, or calendar_sync_links', () => {
+    const src = allSlice5()
+    expect(src).not.toContain('calendar_event_id')
+    expect(src).not.toContain('scheduled_activities')
+    expect(src).not.toContain('calendar_sync_links')
+  })
+})
+
+describe('Slice 5: no forbidden files created', () => {
+  it('TC-3N-169: no proposal-inbox UI file exists', () => {
+    expect(() => readSrc('app/[workspaceSlug]/settings/proposal-inbox/page.tsx')).toThrow()
+  })
+
+  it('TC-3N-170: no BCC/forward ingest webhook route exists', () => {
+    expect(() => readSrc('app/api/webhooks/proposal-capture/route.ts')).toThrow()
+  })
+
+  it('TC-3N-171: no migration 20240039 exists', () => {
+    expect(() => readSrc('supabase/migrations/20240039_phase3n_proposal_bundle_rpc.sql')).toThrow()
+  })
+
+  it('TC-3N-172: action file does not import from any UI component', () => {
+    const src = readSrc(ACTION_FILE)
+    expect(src).not.toContain('components/')
+    expect(src).not.toContain('.tsx')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Slice 5 — Commitment count guard (source-reading)
+// TC-3N-173–178
+// ---------------------------------------------------------------------------
+
+describe('Slice 5: commitment count validation guard', () => {
+  it('TC-3N-173: service checks created.length after createFollowUpCommitments', () => {
+    expect(readSrc(SERVICE_FILE)).toContain('created.length')
+  })
+
+  it('TC-3N-174: service compares created.length against planned.length', () => {
+    expect(readSrc(SERVICE_FILE)).toContain('planned.length')
+  })
+
+  it('TC-3N-175: withdrawEventForCleanup is called in both catch and count-guard paths', () => {
+    const src = readSrc(SERVICE_FILE)
+    const occurrences = (src.match(/withdrawEventForCleanup/g) ?? []).length
+    expect(occurrences).toBeGreaterThanOrEqual(2)
+  })
+
+  it('TC-3N-176: softDeleteCapture is called in all three cleanup paths', () => {
+    const src = readSrc(SERVICE_FILE)
+    const occurrences = (src.match(/softDeleteCapture/g) ?? []).length
+    expect(occurrences).toBeGreaterThanOrEqual(3)
+  })
+
+  it('TC-3N-177: count guard returns create_failed (zero commitments not treated as success)', () => {
+    const src = readSrc(SERVICE_FILE)
+    // created.length check must lead to create_failed, not ok: true
+    expect(/created\.length[\s\S]{0,300}create_failed/.test(src)).toBe(true)
+  })
+
+  it('TC-3N-178: no unused createSupabaseServiceClient import in service', () => {
+    expect(readSrc(SERVICE_FILE)).not.toContain('createSupabaseServiceClient')
+  })
+})
