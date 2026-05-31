@@ -13,6 +13,42 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { describe, it, expect } from 'vitest'
 
+// Slice 3 pure-function imports
+import {
+  AUTO_MATCH_THRESHOLD,
+  REVIEW_THRESHOLD,
+  calculateCaptureConfidence,
+  shouldAutoMatch,
+  shouldRouteToInbox,
+  isProbablySpam,
+} from '../modules/proposals/lib/confidence-scoring'
+import {
+  STANDARD_3_5_10,
+  getScheduleRule,
+  buildFollowUpCommitmentsFromRule,
+} from '../modules/proposals/lib/schedule-rules'
+import {
+  addDays,
+  isDateInFuture,
+  isFutureDate,
+  isWeekend,
+  normalizeToBusinessHour,
+  isSameDay,
+} from '../modules/proposals/lib/date-math'
+import {
+  OPEN_PROPOSAL_STATUSES,
+  CLOSED_PROPOSAL_STATUSES,
+  isOpenProposalStatus,
+  isClosedProposalStatus,
+  canCreateNewProposal,
+} from '../modules/proposals/lib/open-proposal'
+import {
+  normalizeMessageId,
+  hasUsableMessageId,
+  buildTenantMessageDedupKey,
+  extractWorkspaceSlugFromCaptureAddress,
+} from '../modules/proposals/lib/message-dedup'
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -380,5 +416,319 @@ describe('Slice 2: Forbidden imports and patterns', () => {
     const src = allRepos()
     expect(src).not.toContain('inngest')
     expect(src).not.toContain('sendEvent')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Slice 3 — Pure Utility Modules (runtime tests)
+// TC-3N-065–110
+// ---------------------------------------------------------------------------
+
+describe('Slice 3: confidence-scoring — constants', () => {
+  it('TC-3N-065: AUTO_MATCH_THRESHOLD equals 85', () => {
+    expect(AUTO_MATCH_THRESHOLD).toBe(85)
+  })
+
+  it('TC-3N-066: REVIEW_THRESHOLD equals 40', () => {
+    expect(REVIEW_THRESHOLD).toBe(40)
+  })
+})
+
+describe('Slice 3: confidence-scoring — shouldAutoMatch', () => {
+  it('TC-3N-067: shouldAutoMatch(95) is true', () => {
+    expect(shouldAutoMatch(95)).toBe(true)
+  })
+
+  it('TC-3N-068: shouldAutoMatch(90) is true', () => {
+    expect(shouldAutoMatch(90)).toBe(true)
+  })
+
+  it('TC-3N-069: shouldAutoMatch(85) is true', () => {
+    expect(shouldAutoMatch(85)).toBe(true)
+  })
+
+  it('TC-3N-070: shouldAutoMatch(84) is false', () => {
+    expect(shouldAutoMatch(84)).toBe(false)
+  })
+
+  it('TC-3N-071: shouldAutoMatch(80) is false', () => {
+    expect(shouldAutoMatch(80)).toBe(false)
+  })
+})
+
+describe('Slice 3: confidence-scoring — calculateCaptureConfidence', () => {
+  it('TC-3N-072: company_domain score is 80 and does NOT auto-match', () => {
+    const score = calculateCaptureConfidence({ type: 'company_domain' })
+    expect(score).toBe(80)
+    expect(shouldAutoMatch(score)).toBe(false)
+  })
+
+  it('TC-3N-073: company_domain_with_user score is 90 and DOES auto-match', () => {
+    const score = calculateCaptureConfidence({ type: 'company_domain_with_user' })
+    expect(score).toBe(90)
+    expect(shouldAutoMatch(score)).toBe(true)
+  })
+
+  it('TC-3N-074: contact_email score is 95 and DOES auto-match', () => {
+    const score = calculateCaptureConfidence({ type: 'contact_email' })
+    expect(score).toBe(95)
+    expect(shouldAutoMatch(score)).toBe(true)
+  })
+
+  it('TC-3N-075: ambiguous company_domain routes to inbox, not auto-match', () => {
+    const score = calculateCaptureConfidence({ type: 'company_domain', isAmbiguous: true })
+    expect(shouldAutoMatch(score)).toBe(false)
+    expect(shouldRouteToInbox(score)).toBe(true)
+  })
+
+  it('TC-3N-076: shouldRouteToInbox(80) is true', () => {
+    expect(shouldRouteToInbox(80)).toBe(true)
+  })
+
+  it('TC-3N-077: isProbablySpam(0) is true, isProbablySpam(39) is true', () => {
+    expect(isProbablySpam(0)).toBe(true)
+    expect(isProbablySpam(39)).toBe(true)
+  })
+
+  it('TC-3N-078: isProbablySpam(40) is false', () => {
+    expect(isProbablySpam(40)).toBe(false)
+  })
+})
+
+describe('Slice 3: schedule-rules', () => {
+  it('TC-3N-079: STANDARD_3_5_10 rule key is standard_3_5_10', () => {
+    expect(STANDARD_3_5_10.key).toBe('standard_3_5_10')
+  })
+
+  it('TC-3N-080: getScheduleRule returns standard_3_5_10 with intervals [3,5,10]', () => {
+    const rule = getScheduleRule('standard_3_5_10')
+    expect(rule.intervals).toEqual([3, 5, 10])
+  })
+
+  it('TC-3N-081: getScheduleRule throws for unknown key', () => {
+    expect(() => getScheduleRule('unknown_rule')).toThrow()
+  })
+
+  it('TC-3N-082: buildFollowUpCommitmentsFromRule produces 3 commitments for standard_3_5_10', () => {
+    const base = '2026-06-01T12:00:00.000Z'
+    const result = buildFollowUpCommitmentsFromRule(base, 'standard_3_5_10')
+    expect(result).toHaveLength(3)
+  })
+
+  it('TC-3N-083: commitment sequences are 1, 2, 3', () => {
+    const result = buildFollowUpCommitmentsFromRule('2026-06-01T12:00:00.000Z', 'standard_3_5_10')
+    expect(result.map(c => c.followUpSequence)).toEqual([1, 2, 3])
+  })
+
+  it('TC-3N-084: all commitment due dates are after proposal_sent_at', () => {
+    const sentAt = '2026-06-01T12:00:00.000Z'
+    const result = buildFollowUpCommitmentsFromRule(sentAt, 'standard_3_5_10')
+    const sentMs = new Date(sentAt).getTime()
+    for (const c of result) {
+      expect(new Date(c.followUpDueAt).getTime()).toBeGreaterThan(sentMs)
+    }
+  })
+
+  it('TC-3N-085: schedule_rule_key is set on every commitment', () => {
+    const result = buildFollowUpCommitmentsFromRule('2026-06-01T12:00:00.000Z', 'standard_3_5_10')
+    for (const c of result) {
+      expect(c.scheduleRuleKey).toBe('standard_3_5_10')
+    }
+  })
+})
+
+describe('Slice 3: date-math', () => {
+  const MONDAY    = new Date('2026-06-01T10:00:00.000Z')  // UTC Monday
+  const SATURDAY  = new Date('2026-06-06T10:00:00.000Z')  // UTC Saturday
+  const SUNDAY    = new Date('2026-06-07T10:00:00.000Z')  // UTC Sunday
+  const PAST      = new Date('2020-01-01T00:00:00.000Z')
+  const FUTURE    = new Date('2099-12-31T00:00:00.000Z')
+  const NOW_REF   = new Date('2026-06-01T00:00:00.000Z')
+
+  it('TC-3N-086: isWeekend returns false for Monday', () => {
+    expect(isWeekend(MONDAY)).toBe(false)
+  })
+
+  it('TC-3N-087: isWeekend returns true for Saturday', () => {
+    expect(isWeekend(SATURDAY)).toBe(true)
+  })
+
+  it('TC-3N-088: isWeekend returns true for Sunday', () => {
+    expect(isWeekend(SUNDAY)).toBe(true)
+  })
+
+  it('TC-3N-089: isFutureDate detects a future date correctly', () => {
+    expect(isFutureDate(FUTURE, NOW_REF)).toBe(true)
+  })
+
+  it('TC-3N-090: isFutureDate returns false for a past date', () => {
+    expect(isFutureDate(PAST, NOW_REF)).toBe(false)
+  })
+
+  it('TC-3N-091: isDateInFuture and isFutureDate are consistent', () => {
+    expect(isDateInFuture(FUTURE, NOW_REF)).toBe(isFutureDate(FUTURE, NOW_REF))
+    expect(isDateInFuture(PAST, NOW_REF)).toBe(isFutureDate(PAST, NOW_REF))
+  })
+
+  it('TC-3N-092: addDays adds correct number of days', () => {
+    const result = addDays(MONDAY, 3)
+    expect(result.getUTCDate()).toBe(MONDAY.getUTCDate() + 3)
+  })
+
+  it('TC-3N-093: addDays does not mutate the input', () => {
+    const original = new Date(MONDAY.getTime())
+    addDays(MONDAY, 5)
+    expect(MONDAY.getTime()).toBe(original.getTime())
+  })
+
+  it('TC-3N-094: normalizeToBusinessHour sets UTC hour to 9', () => {
+    const result = normalizeToBusinessHour(SATURDAY)
+    expect(result.getUTCHours()).toBe(9)
+    expect(result.getUTCMinutes()).toBe(0)
+    expect(result.getUTCSeconds()).toBe(0)
+  })
+
+  it('TC-3N-095: normalizeToBusinessHour keeps the same UTC calendar day', () => {
+    const result = normalizeToBusinessHour(SATURDAY)
+    expect(isSameDay(result, SATURDAY)).toBe(true)
+  })
+
+  it('TC-3N-096: isSameDay returns true for same calendar day', () => {
+    const a = new Date('2026-06-01T00:00:00.000Z')
+    const b = new Date('2026-06-01T23:59:59.000Z')
+    expect(isSameDay(a, b)).toBe(true)
+  })
+
+  it('TC-3N-097: isSameDay returns false for different calendar days', () => {
+    const a = new Date('2026-06-01T00:00:00.000Z')
+    const b = new Date('2026-06-02T00:00:00.000Z')
+    expect(isSameDay(a, b)).toBe(false)
+  })
+})
+
+describe('Slice 3: open-proposal', () => {
+  it('TC-3N-098: isOpenProposalStatus returns true for sent', () => {
+    expect(isOpenProposalStatus('sent')).toBe(true)
+  })
+
+  it('TC-3N-099: isOpenProposalStatus returns true for viewed', () => {
+    expect(isOpenProposalStatus('viewed')).toBe(true)
+  })
+
+  it('TC-3N-100: isOpenProposalStatus returns false for accepted', () => {
+    expect(isOpenProposalStatus('accepted')).toBe(false)
+  })
+
+  it('TC-3N-101: isClosedProposalStatus returns true for all terminal statuses', () => {
+    for (const status of CLOSED_PROPOSAL_STATUSES) {
+      expect(isClosedProposalStatus(status)).toBe(true)
+    }
+  })
+
+  it('TC-3N-102: isClosedProposalStatus returns false for open statuses', () => {
+    for (const status of OPEN_PROPOSAL_STATUSES) {
+      expect(isClosedProposalStatus(status)).toBe(false)
+    }
+  })
+
+  it('TC-3N-103: canCreateNewProposal returns true when no existing open proposal', () => {
+    expect(canCreateNewProposal(null)).toBe(true)
+  })
+
+  it('TC-3N-104: canCreateNewProposal returns false when existing open proposal present', () => {
+    expect(canCreateNewProposal({ id: 'some-uuid' })).toBe(false)
+  })
+})
+
+describe('Slice 3: message-dedup', () => {
+  it('TC-3N-105: normalizeMessageId strips angle brackets', () => {
+    expect(normalizeMessageId('<abc@domain.com>')).toBe('abc@domain.com')
+  })
+
+  it('TC-3N-106: normalizeMessageId returns null for null input', () => {
+    expect(normalizeMessageId(null)).toBeNull()
+  })
+
+  it('TC-3N-107: normalizeMessageId returns null for empty string', () => {
+    expect(normalizeMessageId('')).toBeNull()
+  })
+
+  it('TC-3N-108: normalizeMessageId returns null for whitespace-only string', () => {
+    expect(normalizeMessageId('   ')).toBeNull()
+  })
+
+  it('TC-3N-109: hasUsableMessageId returns false for null/empty/blank', () => {
+    expect(hasUsableMessageId(null)).toBe(false)
+    expect(hasUsableMessageId('')).toBe(false)
+    expect(hasUsableMessageId('   ')).toBe(false)
+  })
+
+  it('TC-3N-110: hasUsableMessageId returns true for a valid message ID', () => {
+    expect(hasUsableMessageId('abc@domain.com')).toBe(true)
+    expect(hasUsableMessageId('<wrapped@domain.com>')).toBe(true)
+  })
+
+  it('TC-3N-111: buildTenantMessageDedupKey includes tenantId', () => {
+    const key = buildTenantMessageDedupKey('tenant-abc', '<msg@domain.com>')
+    expect(key).toContain('tenant-abc')
+  })
+
+  it('TC-3N-112: buildTenantMessageDedupKey includes normalized message ID', () => {
+    const key = buildTenantMessageDedupKey('tenant-abc', '<msg@domain.com>')
+    expect(key).toContain('msg@domain.com')
+    // Must not include raw angle brackets
+    expect(key).not.toContain('<')
+  })
+
+  it('TC-3N-113: buildTenantMessageDedupKey throws for unusable message ID', () => {
+    expect(() => buildTenantMessageDedupKey('tenant-abc', '')).toThrow()
+    expect(() => buildTenantMessageDedupKey('tenant-abc', '   ')).toThrow()
+  })
+
+  it('TC-3N-114: extractWorkspaceSlugFromCaptureAddress parses slug correctly', () => {
+    expect(extractWorkspaceSlugFromCaptureAddress('acme-solar@capture.verian.app')).toBe('acme-solar')
+  })
+
+  it('TC-3N-115: extractWorkspaceSlugFromCaptureAddress returns null for non-matching address', () => {
+    expect(extractWorkspaceSlugFromCaptureAddress('user@gmail.com')).toBeNull()
+    expect(extractWorkspaceSlugFromCaptureAddress('acme@other.domain.com')).toBeNull()
+  })
+})
+
+describe('Slice 3: lib files — no forbidden imports', () => {
+  const LIB_FILES = [
+    'modules/proposals/lib/confidence-scoring.ts',
+    'modules/proposals/lib/schedule-rules.ts',
+    'modules/proposals/lib/date-math.ts',
+    'modules/proposals/lib/open-proposal.ts',
+    'modules/proposals/lib/message-dedup.ts',
+  ]
+
+  const allLib = (): string => LIB_FILES.map(f => readSrc(f)).join('\n')
+
+  it('TC-3N-116: no Supabase client in lib files', () => {
+    expect(allLib()).not.toContain('createSupabaseServiceClient')
+    expect(allLib()).not.toContain('createSupabaseBrowserClient')
+  })
+
+  it('TC-3N-117: no LLM/AI imports in lib files', () => {
+    const src = allLib()
+    expect(src).not.toMatch(/from ['"]openai['"]/)
+    expect(src).not.toMatch(/from ['"]@anthropic/)
+    expect(src).not.toContain('chat.completions')
+  })
+
+  it('TC-3N-118: no Resend or send imports in lib files', () => {
+    const src = allLib()
+    expect(src).not.toMatch(/from ['"]resend['"]/)
+    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+
+  it('TC-3N-119: no calendar_event_id, scheduled_activities, or calendar_sync_links in lib files', () => {
+    const src = allLib()
+    expect(src).not.toContain('calendar_event_id')
+    expect(src).not.toContain('scheduled_activities')
+    expect(src).not.toContain('calendar_sync_links')
   })
 })
