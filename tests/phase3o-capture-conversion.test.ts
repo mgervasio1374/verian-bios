@@ -428,3 +428,142 @@ describe('Slice 2 (fix): cleanupFailedConversion helper in service', () => {
     expect(step9Body).not.toContain('cleanupFailedConversion')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Slice 3 — Server Action Wrapper
+// TC-3O-063–084
+// ---------------------------------------------------------------------------
+
+const ACTION_FILE = 'modules/proposals/actions/capture-to-event-conversion.actions.ts'
+
+describe('Slice 3: action file exists and basic structure', () => {
+  it('TC-3O-063: capture-to-event-conversion.actions.ts exists', () => {
+    expect(() => readSrc(ACTION_FILE)).not.toThrow()
+  })
+
+  it('TC-3O-064: action file declares use server', () => {
+    expect(readSrc(ACTION_FILE)).toContain("'use server'")
+  })
+
+  it('TC-3O-065: action exports ConvertCaptureToProposalEventActionInput interface', () => {
+    expect(readSrc(ACTION_FILE)).toContain('export interface ConvertCaptureToProposalEventActionInput')
+  })
+
+  it('TC-3O-066: action exports convertCaptureToProposalEventAction function', () => {
+    expect(readSrc(ACTION_FILE)).toContain('export async function convertCaptureToProposalEventAction')
+  })
+})
+
+describe('Slice 3: action imports', () => {
+  it('TC-3O-067: action imports createSupabaseServerClient', () => {
+    expect(readSrc(ACTION_FILE)).toContain('createSupabaseServerClient')
+  })
+
+  it('TC-3O-068: action imports buildRequestContext', () => {
+    expect(readSrc(ACTION_FILE)).toContain('buildRequestContext')
+  })
+
+  it('TC-3O-069: action imports requirePermission', () => {
+    expect(readSrc(ACTION_FILE)).toContain('requirePermission')
+  })
+
+  it('TC-3O-070: action imports convertCaptureToProposalEvent from service', () => {
+    expect(readSrc(ACTION_FILE)).toContain('convertCaptureToProposalEvent')
+  })
+})
+
+describe('Slice 3: action input interface — forbidden fields', () => {
+  it('TC-3O-071: action input does not accept tenantId', () => {
+    const src = readSrc(ACTION_FILE)
+    const ifaceStart = src.indexOf('ConvertCaptureToProposalEventActionInput')
+    const ifaceBody  = src.slice(ifaceStart, ifaceStart + 250)
+    expect(ifaceBody).not.toContain('tenantId')
+  })
+
+  it('TC-3O-072: action input does not accept workspaceId', () => {
+    const src = readSrc(ACTION_FILE)
+    const ifaceStart = src.indexOf('ConvertCaptureToProposalEventActionInput')
+    const ifaceBody  = src.slice(ifaceStart, ifaceStart + 250)
+    expect(ifaceBody).not.toContain('workspaceId')
+  })
+
+  it('TC-3O-073: action input does not accept userId', () => {
+    const src = readSrc(ACTION_FILE)
+    const ifaceStart = src.indexOf('ConvertCaptureToProposalEventActionInput')
+    const ifaceBody  = src.slice(ifaceStart, ifaceStart + 250)
+    expect(ifaceBody).not.toContain('userId')
+  })
+
+  it('TC-3O-074: action input does not accept leadId', () => {
+    const src = readSrc(ACTION_FILE)
+    const ifaceStart = src.indexOf('ConvertCaptureToProposalEventActionInput')
+    const ifaceBody  = src.slice(ifaceStart, ifaceStart + 600)
+    expect(ifaceBody).not.toContain('leadId')
+  })
+
+  it('TC-3O-075: action input does not accept companyId', () => {
+    const src = readSrc(ACTION_FILE)
+    const ifaceStart = src.indexOf('ConvertCaptureToProposalEventActionInput')
+    const ifaceBody  = src.slice(ifaceStart, ifaceStart + 600)
+    expect(ifaceBody).not.toContain('companyId')
+  })
+
+  it('TC-3O-076: action input does not accept contactId', () => {
+    const src = readSrc(ACTION_FILE)
+    const ifaceStart = src.indexOf('ConvertCaptureToProposalEventActionInput')
+    const ifaceBody  = src.slice(ifaceStart, ifaceStart + 600)
+    expect(ifaceBody).not.toContain('contactId')
+  })
+})
+
+describe('Slice 3: action security — context-only IDs', () => {
+  it('TC-3O-077: action calls requirePermission with crm.leads.view', () => {
+    expect(readSrc(ACTION_FILE)).toContain("requirePermission(ctx, 'crm.leads.view')")
+  })
+
+  it('TC-3O-078: action passes ctx.tenantId to service', () => {
+    expect(readSrc(ACTION_FILE)).toContain('ctx.tenantId')
+  })
+
+  it('TC-3O-079: action passes ctx.workspaceId to service', () => {
+    expect(readSrc(ACTION_FILE)).toContain('ctx.workspaceId')
+  })
+
+  it('TC-3O-080: action passes ctx.userId to service', () => {
+    expect(readSrc(ACTION_FILE)).toContain('ctx.userId')
+  })
+})
+
+describe('Slice 3: action result shape', () => {
+  it('TC-3O-081: action returns proposalEventId on success', () => {
+    expect(readSrc(ACTION_FILE)).toContain('proposalEventId')
+  })
+
+  it('TC-3O-082: action returns captureId on success', () => {
+    const src = readSrc(ACTION_FILE)
+    // captureId must appear in both the return data and the success: true block
+    expect(src).toContain('captureId:')
+    expect(src).toContain('commitmentCount')
+  })
+
+  it('TC-3O-083: action returns failure when service returns ok:false', () => {
+    const src = readSrc(ACTION_FILE)
+    expect(src).toContain('success: false')
+    expect(src).toContain('result.error')
+  })
+})
+
+describe('Slice 3: forbidden patterns — no send, no LLM, no workflow', () => {
+  it('TC-3O-084: no Resend, LLM, Inngest, or campaign references in action', () => {
+    const src = readSrc(ACTION_FILE)
+    expect(src).not.toMatch(/from ['"]resend['"]/)
+    expect(src).not.toMatch(/from ['"]openai['"]/)
+    expect(src).not.toMatch(/from ['"]@anthropic/)
+    expect(src).not.toContain('inngest')
+    expect(src).not.toContain('sendEmail')
+    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
+    expect(src).not.toContain('calendar_event_id')
+    expect(src).not.toContain('scheduled_activities')
+  })
+})
