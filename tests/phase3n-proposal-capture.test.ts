@@ -1121,3 +1121,182 @@ describe('Slice 5: commitment count validation guard', () => {
     expect(readSrc(SERVICE_FILE)).not.toContain('createSupabaseServiceClient')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Slice 6 — Proposal Status / Commitment Closing (source-reading)
+// TC-3N-179–207
+// ---------------------------------------------------------------------------
+
+const STATUS_ACTION_FILE  = 'modules/proposals/actions/proposal-status.actions.ts'
+const STATUS_SERVICE_FILE = 'modules/proposals/services/proposal-status.service.ts'
+
+describe('Slice 6: status action and service files exist', () => {
+  it('TC-3N-179: proposal-status.actions.ts exists', () => {
+    expect(() => readSrc(STATUS_ACTION_FILE)).not.toThrow()
+  })
+
+  it('TC-3N-180: proposal-status.service.ts exists', () => {
+    expect(() => readSrc(STATUS_SERVICE_FILE)).not.toThrow()
+  })
+
+  it('TC-3N-181: updateProposalStatusAction is exported from action file', () => {
+    expect(readSrc(STATUS_ACTION_FILE)).toContain('export async function updateProposalStatusAction')
+  })
+
+  it('TC-3N-182: action file uses use server directive', () => {
+    expect(readSrc(STATUS_ACTION_FILE)).toContain("'use server'")
+  })
+})
+
+describe('Slice 6: request context and tenant/workspace safety', () => {
+  it('TC-3N-183: action uses buildRequestContext', () => {
+    expect(readSrc(STATUS_ACTION_FILE)).toContain('buildRequestContext')
+  })
+
+  it('TC-3N-184: action uses ctx.tenantId and ctx.workspaceId', () => {
+    const src = readSrc(STATUS_ACTION_FILE)
+    expect(src).toContain('ctx.tenantId')
+    expect(src).toContain('ctx.workspaceId')
+  })
+
+  it('TC-3N-185: service takes tenantId and workspaceId as explicit params', () => {
+    const src = readSrc(STATUS_SERVICE_FILE)
+    expect(/updateProposalStatus[\s\S]{0,200}tenantId/.test(src)).toBe(true)
+    expect(/updateProposalStatus[\s\S]{0,200}workspaceId/.test(src)).toBe(true)
+  })
+})
+
+describe('Slice 6: action input type does not accept forbidden fields', () => {
+  const inputBlock = (): string =>
+    readSrc(STATUS_ACTION_FILE).match(/interface UpdateProposalStatusActionInput[\s\S]{0,300}}/)?.[0] ?? ''
+
+  it('TC-3N-186: input type does not accept tenantId', () => {
+    expect(inputBlock()).not.toContain('tenantId')
+  })
+
+  it('TC-3N-187: input type does not accept workspaceId', () => {
+    expect(inputBlock()).not.toContain('workspaceId')
+  })
+
+  it('TC-3N-188: input type does not accept companyId', () => {
+    expect(inputBlock()).not.toContain('companyId')
+  })
+
+  it('TC-3N-189: input type does not accept accountId', () => {
+    expect(inputBlock()).not.toContain('accountId')
+  })
+})
+
+describe('Slice 6: proposal boundary validation', () => {
+  it('TC-3N-190: service calls getProposalEventById', () => {
+    expect(readSrc(STATUS_SERVICE_FILE)).toContain('getProposalEventById')
+  })
+
+  it('TC-3N-191: service returns proposal_not_found when event missing', () => {
+    expect(readSrc(STATUS_SERVICE_FILE)).toContain('proposal_not_found')
+  })
+})
+
+describe('Slice 6: status validation', () => {
+  it('TC-3N-192: service includes all six allowed statuses', () => {
+    const src = readSrc(STATUS_SERVICE_FILE)
+    for (const s of ['sent', 'viewed', 'accepted', 'rejected', 'expired', 'withdrawn']) {
+      expect(src).toContain(s)
+    }
+  })
+
+  it('TC-3N-193: service returns invalid_status for unknown status', () => {
+    expect(readSrc(STATUS_SERVICE_FILE)).toContain('invalid_status')
+  })
+})
+
+describe('Slice 6: status update', () => {
+  it('TC-3N-194: service calls eventRepo updateProposalStatus with tenantId and workspaceId', () => {
+    const src = readSrc(STATUS_SERVICE_FILE)
+    expect(src).toContain('updateProposalStatus')
+    expect(src).toContain('tenantId')
+    expect(src).toContain('workspaceId')
+  })
+
+  it('TC-3N-195: service returns update_failed error type', () => {
+    expect(readSrc(STATUS_SERVICE_FILE)).toContain('update_failed')
+  })
+})
+
+describe('Slice 6: commitment closing', () => {
+  it('TC-3N-196: service calls closeOpenCommitmentsForProposal', () => {
+    expect(readSrc(STATUS_SERVICE_FILE)).toContain('closeOpenCommitmentsForProposal')
+  })
+
+  it('TC-3N-197: service uses isClosedProposalStatus to gate commitment closing', () => {
+    expect(readSrc(STATUS_SERVICE_FILE)).toContain('isClosedProposalStatus')
+  })
+
+  it('TC-3N-198: closedCommitmentIds is in the success return shape', () => {
+    expect(readSrc(STATUS_SERVICE_FILE)).toContain('closedCommitmentIds')
+  })
+})
+
+describe('Slice 6: activity event readiness', () => {
+  it('TC-3N-199: service references PROPOSAL_STATUS_UPDATED', () => {
+    const src = readSrc(STATUS_SERVICE_FILE)
+    expect(
+      src.includes('PROPOSAL_STATUS_UPDATED') || src.includes('proposal_status_updated')
+    ).toBe(true)
+  })
+})
+
+describe('Slice 6: forbidden patterns — no send, no LLM, no workflow', () => {
+  const allSlice6 = (): string => readSrc(STATUS_ACTION_FILE) + readSrc(STATUS_SERVICE_FILE)
+
+  it('TC-3N-200: no Resend/email send imports', () => {
+    const src = allSlice6()
+    expect(src).not.toMatch(/from ['"]resend['"]/)
+    expect(src).not.toContain('emails.send')
+    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+
+  it('TC-3N-201: no LLM/AI imports', () => {
+    const src = allSlice6()
+    expect(src).not.toMatch(/from ['"]openai['"]/)
+    expect(src).not.toMatch(/from ['"]@anthropic/)
+    expect(src).not.toContain('chat.completions')
+    expect(src).not.toContain('messages.create')
+    expect(src).not.toContain('responses.create')
+  })
+
+  it('TC-3N-202: no Inngest or workflow dispatch calls', () => {
+    const src = allSlice6()
+    expect(src).not.toContain('inngest')
+    expect(src).not.toContain('sendEvent')
+    expect(src).not.toContain('dispatchPendingEvents')
+  })
+
+  it('TC-3N-203: no calendar_event_id, scheduled_activities, or calendar_sync_links', () => {
+    const src = allSlice6()
+    expect(src).not.toContain('calendar_event_id')
+    expect(src).not.toContain('scheduled_activities')
+    expect(src).not.toContain('calendar_sync_links')
+  })
+})
+
+describe('Slice 6: no forbidden files created', () => {
+  it('TC-3N-204: no proposal-inbox UI file exists', () => {
+    expect(() => readSrc('app/[workspaceSlug]/settings/proposal-inbox/page.tsx')).toThrow()
+  })
+
+  it('TC-3N-205: no BCC/forward ingest webhook route exists', () => {
+    expect(() => readSrc('app/api/webhooks/proposal-capture/route.ts')).toThrow()
+  })
+
+  it('TC-3N-206: no migration 20240039 exists', () => {
+    expect(() => readSrc('supabase/migrations/20240039_phase3n_proposal_bundle_rpc.sql')).toThrow()
+  })
+
+  it('TC-3N-207: action file does not import from any UI component', () => {
+    const src = readSrc(STATUS_ACTION_FILE)
+    expect(src).not.toContain('components/')
+    expect(src).not.toContain('.tsx')
+  })
+})
