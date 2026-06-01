@@ -212,22 +212,49 @@ describe('Slice 4: proposal follow-up mutations repo — completeFollowUpCommitm
     expect(() => readSrc(MUTATIONS_ACTION)).toThrow()
   })
 
-  it('TC-3R-029: repo file uses update().select().single() pattern for the write step', () => {
+  it('TC-3R-029: repo file uses update().select().maybeSingle() for the write step', () => {
     const src = readSrc(MUTATIONS_REPO)
     const fnStart = src.indexOf('export async function completeFollowUpCommitment')
     const fnBody  = src.slice(fnStart)
     expect(fnBody).toContain('.update(')
     expect(fnBody).toContain('.select()')
-    expect(fnBody).toContain('.single()')
+    expect(fnBody).toContain('.maybeSingle()')
   })
 
   it('TC-3R-030: repo file scopes the update by tenant_id and workspace_id — not bare commitmentId only', () => {
     const src = readSrc(MUTATIONS_REPO)
     // The update chain must also scope by tenant and workspace (defence-in-depth after fetch-before-write)
     const updateStart = src.indexOf('.update(')
-    const updateSection = src.slice(updateStart, updateStart + 600)
+    const updateSection = src.slice(updateStart, updateStart + 700)
     expect(updateSection).toContain(".eq('tenant_id', tenantId)")
     expect(updateSection).toContain(".eq('workspace_id', workspaceId)")
+  })
+
+  it('TC-3R-031: update predicate includes commitment_status = open race guard', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const updateStart = src.indexOf('.update(')
+    const updateSection = src.slice(updateStart, updateStart + 700)
+    expect(updateSection).toContain(".eq('commitment_status', 'open')")
+  })
+
+  it('TC-3R-032: no-row-after-update maps to not_open, not write_failed', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const fnStart = src.indexOf('export async function completeFollowUpCommitment')
+    const fnBody  = src.slice(fnStart)
+    // After the update, missing row must throw not_open (race condition)
+    // rather than being lumped in with write_failed errors.
+    const notOpenCount = (fnBody.match(/'not_open'/g) || []).length
+    expect(notOpenCount).toBeGreaterThanOrEqual(2) // once for fetch guard, once for update race guard
+    // The no-row case after update must NOT map to write_failed alone
+    expect(fnBody).toContain('!updated')
+  })
+
+  it('TC-3R-033: whitespace-only completionNotes normalizes to null', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const fnStart = src.indexOf('export async function completeFollowUpCommitment')
+    const fnBody  = src.slice(fnStart)
+    // Whitespace-only string must be treated as absent (falsy check after trim)
+    expect(fnBody).toContain('|| null')
   })
 
 })

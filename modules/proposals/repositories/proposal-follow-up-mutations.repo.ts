@@ -81,6 +81,8 @@ export async function completeFollowUpCommitment(
   }
 
   const now = new Date().toISOString()
+  // Normalize: whitespace-only notes are treated as absent.
+  const normalizedNotes = completionNotes?.trim() || null
 
   const { data: updated, error: updateError } = await supabase
     .from('proposal_follow_up_commitments')
@@ -88,19 +90,30 @@ export async function completeFollowUpCommitment(
       commitment_status:    'completed',
       completed_at:         now,
       completed_by_user_id: actorUserId,
-      completion_notes:     completionNotes?.trim() ?? null,
+      completion_notes:     normalizedNotes,
       updated_at:           now,
     })
     .eq('id', commitmentId)
     .eq('tenant_id', tenantId)
     .eq('workspace_id', workspaceId)
+    // Race guard: if another request closed this commitment between our fetch
+    // and this update, the predicate matches nothing and no row is returned.
+    .eq('commitment_status', 'open')
     .select()
-    .single()
+    .maybeSingle()
 
-  if (updateError || !updated) {
+  if (updateError) {
     throw new ProposalFollowUpMutationError(
       'write_failed',
-      `completeFollowUpCommitment update: ${updateError?.message ?? 'no row returned'}`,
+      `completeFollowUpCommitment update: ${updateError.message}`,
+    )
+  }
+
+  if (!updated) {
+    // Row was open at fetch time but status changed before the update landed.
+    throw new ProposalFollowUpMutationError(
+      'not_open',
+      `completeFollowUpCommitment: commitment ${commitmentId} was no longer open at update time`,
     )
   }
 
