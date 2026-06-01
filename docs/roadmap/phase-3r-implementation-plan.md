@@ -2,6 +2,7 @@
 
 **Status:** Documentation only — no implementation started
 **Created:** 2026-06-01
+**Updated:** 2026-06-01 (Slice 3 QA polish — slice sequence reordered, activity event wording clarified)
 **Predecessor:** Phase 3R Slice 1 design (`docs/roadmap/phase-3r-controlled-proposal-follow-up-mutations-design.md`)
 **Depends on:** Phase 3Q locked read-only foundation
 
@@ -184,7 +185,7 @@ Reschedule keeps `commitment_status = 'open'` — it is not a status transition,
 **Why `activity_events` is the right choice:**
 
 1. Already exists — no new migration, no new table, no new infrastructure
-2. Already used for proposal lifecycle events (`PROPOSAL_STATUS_UPDATED`, `PROPOSAL_FOLLOW_UP_CREATED`)
+2. Already used for proposal lifecycle events (e.g. `PROPOSAL_STATUS_UPDATED`); the follow-up event type constants (`PROPOSAL_FOLLOW_UP_COMPLETED`, `PROPOSAL_FOLLOW_UP_SKIPPED`) are already defined and ready for Phase 3R to use as the first emitters
 3. Queryable per entity via `(entity_type, entity_id)` — enabling per-commitment audit history
 4. `properties` JSON can store `previous_status`, `next_status`, `previous_due_at`, `new_due_at`, and any mutation-specific metadata
 5. `lead_id` field allows querying all mutation events for a lead
@@ -199,7 +200,7 @@ A dedicated table would be appropriate if full queryable before/after snapshots 
 
 ### Existing `ActivityEventType` constants for Phase 3R mutations
 
-`ActivityEventType` in `modules/intelligence/types.agent.ts` already has Phase 3N constants for follow-up mutations:
+`ActivityEventType` in `modules/intelligence/types.agent.ts` already defines Phase 3N constants for follow-up mutations:
 
 ```typescript
 PROPOSAL_FOLLOW_UP_CREATED:   'proposal_follow_up_created',
@@ -207,7 +208,7 @@ PROPOSAL_FOLLOW_UP_COMPLETED: 'proposal_follow_up_completed',
 PROPOSAL_FOLLOW_UP_SKIPPED:   'proposal_follow_up_skipped',
 ```
 
-These can be used directly for Complete and Skip audit events. No new constants need to be added for these two mutations.
+**Important — provenance:** These constants are defined and ready to use, but **no proposal mutation service currently exists or emits them**. They were added to `ActivityEventType` in Phase 3N as planned infrastructure for a write layer that has not yet been built. No code in the current codebase calls `recordActivityEvent` with `PROPOSAL_FOLLOW_UP_COMPLETED` or `PROPOSAL_FOLLOW_UP_SKIPPED`. The first actual callers will be the Phase 3R Complete service (Slice 3R-5) and Skip service (Slice 3R-9) respectively. No new constants need to be added for Complete or Skip.
 
 For Reschedule and Reopen, new constants must be added to `ActivityEventType` when those mutations are implemented:
 
@@ -431,11 +432,11 @@ The following files do not exist yet. They are proposed for future implementatio
 
 | File | Purpose | Earliest creating slice |
 |------|---------|------------------------|
-| `modules/proposals/repositories/proposal-follow-up-mutations.repo.ts` | Write functions: complete, skip, reschedule, reopen | Phase 3R Slice 5 |
-| `modules/proposals/services/proposal-follow-up-mutations.service.ts` | Service layer with audit event writes | Phase 3R Slice 6 |
-| `modules/proposals/actions/proposal-follow-up-mutations.actions.ts` | Server actions with permission checks | Phase 3R Slice 7 |
-| `tests/phase3r-proposal-follow-up-mutations.test.ts` | Source-reading + runtime test suite | Phase 3R Slice 5+ |
-| `supabase/migrations/20240039_phase3r_follow_up_skip_fields.sql` | Add `skipped_at`, `skipped_reason`, `skipped_by_user_id` | Phase 3R Slice 4 |
+| `modules/proposals/repositories/proposal-follow-up-mutations.repo.ts` | Write functions: complete, skip, reschedule, reopen | Phase 3R Slice 4 |
+| `modules/proposals/services/proposal-follow-up-mutations.service.ts` | Service layer with audit event writes | Phase 3R Slice 5 |
+| `modules/proposals/actions/proposal-follow-up-mutations.actions.ts` | Server actions with permission checks | Phase 3R Slice 6 |
+| `tests/phase3r-proposal-follow-up-mutations.test.ts` | Source-reading + runtime test suite | Phase 3R Slice 4+ |
+| `supabase/migrations/20240039_phase3r_follow_up_skip_fields.sql` | Add `skipped_at`, `skipped_reason`, `skipped_by_user_id` | Phase 3R Slice 8 |
 
 ---
 
@@ -446,7 +447,7 @@ The following files do not exist yet. They are proposed for future implementatio
 **Proposed migration number:** `20240039`
 **Proposed filename:** `supabase/migrations/20240039_phase3r_follow_up_skip_fields.sql`
 
-**Do not create this migration in Phase 3R Slice 2 or 3.** Create it in Phase 3R Slice 4 only, after this plan is reviewed and approved.
+**Do not create this migration until Phase 3R Slice 8.** Complete (Slices 4–7) requires no migration and must proceed first. The skip migration is created only when Skip is the immediate next implementation target.
 
 ### Proposed DDL
 
@@ -545,22 +546,22 @@ The existing `GRANT ALL ON proposal_follow_up_commitments TO service_role` from 
 | Slice | Deliverable | Migration? | Notes |
 |-------|-------------|-----------|-------|
 | **3R-1** | Design document | No | Done — `286a633` |
-| **3R-2** | This implementation plan | No | Current slice — documentation only |
-| **3R-3** | Schema decision lock / Codex review of this plan | No | Documentation only, if needed; else skip directly to 3R-4 |
-| **3R-4** | Migration 20240039 — skip fields only | Yes | `skipped_at`, `skipped_reason`, `skipped_by_user_id`; typed, reviewed before apply |
-| **3R-5** | Repository write model — Complete only | No | `completeFollowUpCommitment` in new mutations repo file; tests TC-3R-001+ |
-| **3R-6** | Service layer — Complete with audit event | No | `completeFollowUpCommitmentForWorkspace`; uses `recordActivityEvent`; tests |
-| **3R-7** | Server action — Complete with permission checks | No | `completeFollowUpCommitmentAction`; tests |
-| **3R-8** | Skip repository + service + action | Requires 3R-4 | Depends on migration; mirrors Complete structure |
-| **3R-9** | Reschedule repository + service + action | No | Option A (update in place); add `PROPOSAL_FOLLOW_UP_RESCHEDULED` to `ActivityEventType` |
-| **3R-10** | UI confirmation control for Complete | No | Read-only drawer or modal; no send button; gated by permission |
-| **3R-11** | Complete + Skip UI controls on queue page | Requires 3R-10 | Wires actions; permission-gated |
+| **3R-2** | Implementation plan | No | Done — `979a37b` |
+| **3R-3** | Implementation plan QA / doc polish | No | Current slice — activity event wording + slice reorder |
+| **3R-4** | Repository write model — Complete only | No | `completeFollowUpCommitment` in new mutations repo file; tests TC-3R-001+ |
+| **3R-5** | Service layer — Complete with audit event | No | `completeFollowUpCommitmentForWorkspace`; uses `recordActivityEvent`; first caller of `PROPOSAL_FOLLOW_UP_COMPLETED` |
+| **3R-6** | Server action — Complete with permission checks | No | `completeFollowUpCommitmentAction`; `crm.leads.edit`; tests |
+| **3R-7** | UI confirmation control for Complete only | No | Confirmation dialog; no send button; gated by `crm.leads.edit` |
+| **3R-8** | Migration 20240039 — Skip fields only | Yes | `skipped_at`, `skipped_reason`, `skipped_by_user_id`; reviewed before apply |
+| **3R-9** | Skip repository + service + action | Requires 3R-8 | Mirrors Complete structure; first caller of `PROPOSAL_FOLLOW_UP_SKIPPED` |
+| **3R-10** | Skip UI confirmation | No | Wires skip action; reason input; permission-gated |
+| **3R-11** | Reschedule repository + service + action | No | Option A (update in place); add `PROPOSAL_FOLLOW_UP_RESCHEDULED` to `ActivityEventType` |
 | **3R-12** | Reschedule UI control on queue page | No | Date picker; wires reschedule action |
-| **3R-13** | Reopen (if approved) | Requires decision | Only after Complete + Skip stable; decision from open question 3 |
+| **3R-13** | Reopen (if approved) | Requires decision | Only after Complete + Skip stable; decision from open question 2 |
 | **Phase 3S** | Draft generation design and implementation | TBD | Separate phase; LLM; `pending_approval` lifecycle |
 | **Phase 3T** | Approved send path | TBD | Separate phase; `EMAIL_SENDING_ENABLED` decision required |
 
-**Guiding principle:** smallest safe write surface first. Complete is first because it requires no migration and has the clearest semantics. Skip follows after the migration is applied. Reschedule and Reopen are lower urgency.
+**Guiding principle:** smallest safe write surface first. Complete is first because it requires no migration and has the clearest semantics. The skip migration (20240039) is deferred to Slice 3R-8 — it is not needed until Skip is the immediate next implementation target, avoiding unnecessary schema churn. Reschedule and Reopen are lower urgency.
 
 Each slice must:
 1. Commit independently
@@ -571,18 +572,18 @@ Each slice must:
 
 ## 13. Open Questions to Resolve Before First Code Slice (3R-5)
 
-| # | Question | Decision needed by |
-|---|----------|--------------------|
-| 1 | Is `skipped_reason` required or optional? | Before Slice 3R-8 (Skip implementation) |
-| 2 | Is Complete reversible (Reopen)? | Before Slice 3R-13 |
-| 3 | Does completing all commitments for a proposal change proposal status? | Before Slice 3R-6 (Complete service) |
-| 4 | Can `buildRequestContext` expose `ctx.userId`? If not, how is `actorUserId` derived for audit events? | Before Slice 3R-5 |
-| 5 | Is Reopen included in Phase 3R or deferred to Phase 3U? | Before Slice 3R-13 planning |
-| 6 | Is there a `completionNotes` character limit? | Before Slice 3R-7 (action input validation) |
-| 7 | Should reschedule be permitted on past-due dates (catch-up rescheduling)? | Before Slice 3R-9 (Reschedule implementation) |
-| 8 | Should the queue page reload automatically after a mutation, or require manual refresh? | Before Slice 3R-10 (UI) |
+| # | Question | Status | Decision needed by |
+|---|----------|--------|--------------------|
+| 1 | Is `skipped_reason` required or optional? | Open | Before Slice 3R-9 (Skip implementation) |
+| 2 | Is Complete reversible (Reopen)? | Open | Before Slice 3R-13 |
+| 3 | Does completing all commitments for a proposal change proposal status? | Open | Before Slice 3R-5 (Complete service) |
+| 4 | Can `buildRequestContext` expose `ctx.userId`? | **Resolved — yes** | Confirmed by Codex Slice 2 review |
+| 5 | Is Reopen included in Phase 3R or deferred to Phase 3U? | Open | Before Slice 3R-13 planning |
+| 6 | Is there a `completionNotes` character limit? | Open | Before Slice 3R-6 (action input validation) |
+| 7 | Should reschedule be permitted on past-due dates (catch-up rescheduling)? | Open | Before Slice 3R-11 (Reschedule implementation) |
+| 8 | Should the queue page reload automatically after a mutation, or require manual refresh? | Open | Before Slice 3R-7 (UI) |
 
-**Question 4 (`ctx.userId` availability) is the most critical.** The Complete service must know the actor user ID to write `completed_by_user_id` and the audit event. If `buildRequestContext` does not expose `userId`, this must be resolved before the repo/service can be designed.
+Open question 3 (proposal status side effects from Complete) remains the highest-priority unresolved item. It must be answered before the Complete service (Slice 3R-5) is implemented, as the service must either trigger or explicitly not trigger a status-update side effect.
 
 ---
 
@@ -590,21 +591,21 @@ Each slice must:
 
 **Do not implement any mutation code until:**
 
-1. This implementation plan is reviewed (internal team review).
+1. This polished implementation plan is reviewed (internal team review).
 2. Codex reviews this plan — not just the eventual code.
-3. Open question 4 (`ctx.userId` availability) is confirmed.
-4. The team confirms whether Complete should trigger any proposal-status side effects (open question 3).
-5. Migration 20240039 is designed, reviewed as a standalone document, and committed before being applied to any environment.
-6. All Phase 3Q guardrails remain unchanged: `EMAIL_SENDING_ENABLED` and `CAMPAIGN_SENDING_ENABLED` disabled, no Inngest, no LLM in mutation files.
+3. Open question 3 (proposal-status side effects from Complete) is answered before the Complete service (Slice 3R-5).
+4. All Phase 3Q guardrails remain unchanged: `EMAIL_SENDING_ENABLED` and `CAMPAIGN_SENDING_ENABLED` disabled, no Inngest, no LLM in mutation files.
 
-**The safe first implementation path is:**
+**The safe first implementation path (updated slice numbers):**
 
 ```
-Slice 3R-5 → completeFollowUpCommitment (repo)  ← no migration, no UI, smallest surface
-Slice 3R-6 → service layer + audit event
-Slice 3R-7 → server action + permission check
-Slice 3R-8 → Skip (repo + service + action)       ← requires migration 20240039
-Slice 3R-10→ UI confirmation                       ← after all actions are stable
+Slice 3R-4 → completeFollowUpCommitment (repo)     ← no migration, no UI, smallest surface
+Slice 3R-5 → service layer + audit event             ← first caller of PROPOSAL_FOLLOW_UP_COMPLETED
+Slice 3R-6 → server action + permission check
+Slice 3R-7 → UI confirmation for Complete
+Slice 3R-8 → migration 20240039 (skip fields only)   ← deferred to here, not needed until Skip
+Slice 3R-9 → Skip (repo + service + action)
+Slice 3R-10→ Skip UI confirmation
 ```
 
 Draft generation and sending remain firmly out of scope for Phase 3R. Phase 3S and Phase 3T must each have their own design documents, Codex reviews, and `EMAIL_SENDING_ENABLED` decision records before any implementation begins.
