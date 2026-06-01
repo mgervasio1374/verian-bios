@@ -208,8 +208,8 @@ describe('Slice 4: proposal follow-up mutations repo — completeFollowUpCommitm
     expect(() => readSrc(MUTATIONS_SERVICE)).not.toThrow()
   })
 
-  it('TC-3R-028: action file for follow-up mutations does not yet exist (guard — Slice 3R-6)', () => {
-    expect(() => readSrc(MUTATIONS_ACTION)).toThrow()
+  it('TC-3R-028: action file for follow-up mutations exists (Slice 3R-6 complete)', () => {
+    expect(() => readSrc(MUTATIONS_ACTION)).not.toThrow()
   })
 
   it('TC-3R-029: repo file uses update().select().maybeSingle() for the write step', () => {
@@ -387,11 +387,154 @@ describe('Slice 5: proposal follow-up mutations service — completeFollowUpComm
     expect(src).not.toContain('sendFollowUp')
   })
 
-  it('TC-3R-058: action file for follow-up mutations still does not exist (guard — Slice 3R-6)', () => {
-    expect(() => readSrc(MUTATIONS_ACTION)).toThrow()
+  it('TC-3R-058: action file for follow-up mutations exists (Slice 3R-6 complete)', () => {
+    expect(() => readSrc(MUTATIONS_ACTION)).not.toThrow()
   })
 
   it('TC-3R-059: migration 20240039 still does not exist (guard — Slice 3R-8)', () => {
+    expect(() => readSrc(MIGRATION_039)).toThrow()
+  })
+
+})
+
+// ---------------------------------------------------------------------------
+// Slice 6 — Complete-only server action with crm.leads.edit permission
+// TC-3R-060 through TC-3R-086
+// ---------------------------------------------------------------------------
+
+describe('Slice 6: proposal follow-up mutations action — completeFollowUpCommitmentAction', () => {
+
+  it('TC-3R-060: mutations action file exists and is readable', () => {
+    expect(() => readSrc(MUTATIONS_ACTION)).not.toThrow()
+  })
+
+  it('TC-3R-061: action file declares use server', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain("'use server'")
+  })
+
+  it('TC-3R-062: completeFollowUpCommitmentAction is exported', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('export async function completeFollowUpCommitmentAction')
+  })
+
+  it('TC-3R-063: CompleteFollowUpCommitmentActionInput is exported', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('export interface CompleteFollowUpCommitmentActionInput')
+  })
+
+  it('TC-3R-064: CompleteFollowUpCommitmentActionData is exported', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('export interface CompleteFollowUpCommitmentActionData')
+  })
+
+  it('TC-3R-065: action imports and calls completeFollowUpCommitmentForWorkspace', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).toContain('completeFollowUpCommitmentForWorkspace')
+    expect(src).toContain('proposal-follow-up-mutations.service')
+  })
+
+  it('TC-3R-066: action does not import from the mutations repo directly', () => {
+    // Action must go through the service — repo import would be a bypass.
+    expect(readSrc(MUTATIONS_ACTION)).not.toContain('proposal-follow-up-mutations.repo')
+  })
+
+  it('TC-3R-067: action uses buildRequestContext', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('buildRequestContext')
+  })
+
+  it('TC-3R-068: action uses requirePermission', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('requirePermission')
+  })
+
+  it('TC-3R-069: action requires crm.leads.edit permission', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain("'crm.leads.edit'")
+  })
+
+  it('TC-3R-070: action passes ctx.tenantId to service, not input.tenantId', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).toContain('ctx.tenantId')
+    expect(src).not.toContain('input.tenantId')
+  })
+
+  it('TC-3R-071: action passes ctx.workspaceId to service, not input.workspaceId', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).toContain('ctx.workspaceId')
+    expect(src).not.toContain('input.workspaceId')
+  })
+
+  it('TC-3R-072: action passes ctx.userId as actorUserId, not input.actorUserId', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).toContain('ctx.userId')
+    expect(src).not.toContain('input.actorUserId')
+  })
+
+  it('TC-3R-073: action trims commitmentId from input', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).toContain('commitmentId')
+    expect(src).toContain('.trim()')
+  })
+
+  it('TC-3R-074: action validates commitmentId is non-empty after trim', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).toContain('commitmentId is required')
+  })
+
+  it('TC-3R-075: action trims completionNotes from input', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).toContain('completionNotes')
+    expect(src).toContain('.trim()')
+  })
+
+  it('TC-3R-076: action maps not_found to success:false', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain("'not_found'")
+  })
+
+  it('TC-3R-077: action maps not_open to success:false', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain("'not_open'")
+  })
+
+  it('TC-3R-078: action maps write_failed to success:false', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain("'write_failed'")
+  })
+
+  it('TC-3R-079: action maps audit_failed to success:false', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain("'audit_failed'")
+  })
+
+  it('TC-3R-080: action does not import recordActivityEvent', () => {
+    // Audit belongs to the service layer; action must not import the audit repo.
+    expect(readSrc(MUTATIONS_ACTION)).not.toContain('activity-event.repo')
+  })
+
+  it('TC-3R-081: action does not reference Resend, Inngest, OpenAI, Anthropic', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).not.toContain('Resend')
+    expect(src).not.toContain('Inngest')
+    expect(src).not.toContain('OpenAI')
+    expect(src).not.toContain('Anthropic')
+  })
+
+  it('TC-3R-082: action does not reference EMAIL_SENDING_ENABLED or CAMPAIGN_SENDING_ENABLED', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+
+  it('TC-3R-083: action does not reference email_drafts', () => {
+    expect(readSrc(MUTATIONS_ACTION)).not.toContain('email_drafts')
+  })
+
+  it('TC-3R-084: action does not export skip/reschedule/reopen/send/draft functions', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).not.toContain('skipFollowUp')
+    expect(src).not.toContain('rescheduleFollowUp')
+    expect(src).not.toContain('reopenFollowUp')
+    expect(src).not.toContain('generateFollowUpDraft')
+    expect(src).not.toContain('sendFollowUp')
+  })
+
+  it('TC-3R-085: action returns status completed in success data', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain("status: 'completed'")
+  })
+
+  it('TC-3R-086: migration 20240039 still does not exist (guard — Slice 3R-8)', () => {
     expect(() => readSrc(MIGRATION_039)).toThrow()
   })
 
