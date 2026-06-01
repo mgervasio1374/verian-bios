@@ -204,8 +204,8 @@ describe('Slice 4: proposal follow-up mutations repo — completeFollowUpCommitm
     expect(() => readSrc(MIGRATION_039)).toThrow()
   })
 
-  it('TC-3R-027: service file for follow-up mutations does not yet exist (guard — Slice 3R-5)', () => {
-    expect(() => readSrc(MUTATIONS_SERVICE)).toThrow()
+  it('TC-3R-027: service file for follow-up mutations exists (Slice 3R-5 complete)', () => {
+    expect(() => readSrc(MUTATIONS_SERVICE)).not.toThrow()
   })
 
   it('TC-3R-028: action file for follow-up mutations does not yet exist (guard — Slice 3R-6)', () => {
@@ -255,6 +255,144 @@ describe('Slice 4: proposal follow-up mutations repo — completeFollowUpCommitm
     const fnBody  = src.slice(fnStart)
     // Whitespace-only string must be treated as absent (falsy check after trim)
     expect(fnBody).toContain('|| null')
+  })
+
+})
+
+// ---------------------------------------------------------------------------
+// Slice 5 — Complete-only service layer with activity_events audit
+// TC-3R-034 through TC-3R-059
+// ---------------------------------------------------------------------------
+
+describe('Slice 5: proposal follow-up mutations service — completeFollowUpCommitmentForWorkspace', () => {
+
+  it('TC-3R-034: mutations service file exists and is readable', () => {
+    expect(() => readSrc(MUTATIONS_SERVICE)).not.toThrow()
+  })
+
+  it('TC-3R-035: completeFollowUpCommitmentForWorkspace is exported', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain('export async function completeFollowUpCommitmentForWorkspace')
+  })
+
+  it('TC-3R-036: CompleteFollowUpCommitmentResult type is exported', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain('export type CompleteFollowUpCommitmentResult')
+  })
+
+  it('TC-3R-037: service imports and calls completeFollowUpCommitment from repo', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    expect(src).toContain('completeFollowUpCommitment')
+    expect(src).toContain('proposal-follow-up-mutations.repo')
+  })
+
+  it('TC-3R-038: service imports and calls recordActivityEvent', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    expect(src).toContain('recordActivityEvent')
+    expect(src).toContain('activity-event.repo')
+  })
+
+  it('TC-3R-039: service uses ActivityEventType.PROPOSAL_FOLLOW_UP_COMPLETED', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    expect(src).toContain('ActivityEventType')
+    expect(src).toContain('PROPOSAL_FOLLOW_UP_COMPLETED')
+  })
+
+  it('TC-3R-040: service passes tenantId and workspaceId to both repo and audit calls', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    const fnStart = src.indexOf('export async function completeFollowUpCommitmentForWorkspace')
+    const fnBody  = src.slice(fnStart)
+    // tenantId and workspaceId appear as args and are forwarded to both calls
+    expect(fnBody).toContain('tenantId')
+    expect(fnBody).toContain('workspaceId')
+  })
+
+  it('TC-3R-041: service uses entityType proposal_follow_up_commitment in audit', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain("'proposal_follow_up_commitment'")
+  })
+
+  it('TC-3R-042: service includes actor_user_id in audit properties', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain('actor_user_id')
+  })
+
+  it('TC-3R-043: service includes proposal_event_id in audit properties', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain('proposal_event_id')
+  })
+
+  it('TC-3R-044: service includes follow_up_commitment_id in audit properties', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain('follow_up_commitment_id')
+  })
+
+  it('TC-3R-045: service uses eventSource operator_action', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain("'operator_action'")
+  })
+
+  it('TC-3R-046: service forwards leadId from the committed row to audit', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain('lead_id')
+  })
+
+  it('TC-3R-047: service maps ProposalFollowUpMutationError not_found to ok:false error:not_found', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    expect(src).toContain('ProposalFollowUpMutationError')
+    expect(src).toContain("'not_found'")
+  })
+
+  it('TC-3R-048: service maps ProposalFollowUpMutationError not_open to ok:false error:not_open', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain("'not_open'")
+  })
+
+  it('TC-3R-049: service maps ProposalFollowUpMutationError write_failed to ok:false error:write_failed', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain("'write_failed'")
+  })
+
+  it('TC-3R-050: service maps unknown errors to ok:false error:unknown_error', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain("'unknown_error'")
+  })
+
+  it('TC-3R-051: service includes audit_failed result path', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain("'audit_failed'")
+  })
+
+  it('TC-3R-052: service includes ok:true with commitment in success result', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain('ok: true')
+    expect(readSrc(MUTATIONS_SERVICE)).toContain('commitment')
+  })
+
+  it('TC-3R-053: service does not call requirePermission', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).not.toContain('requirePermission')
+  })
+
+  it('TC-3R-054: service does not reference Resend, Inngest, OpenAI, Anthropic', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    expect(src).not.toContain('Resend')
+    expect(src).not.toContain('Inngest')
+    expect(src).not.toContain('OpenAI')
+    expect(src).not.toContain('Anthropic')
+  })
+
+  it('TC-3R-055: service does not reference EMAIL_SENDING_ENABLED or CAMPAIGN_SENDING_ENABLED', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+
+  it('TC-3R-056: service does not reference email_drafts', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).not.toContain('email_drafts')
+  })
+
+  it('TC-3R-057: service does not export skip/reschedule/reopen/send/draft functions', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    expect(src).not.toContain('skipFollowUp')
+    expect(src).not.toContain('rescheduleFollowUp')
+    expect(src).not.toContain('reopenFollowUp')
+    expect(src).not.toContain('generateFollowUpDraft')
+    expect(src).not.toContain('sendFollowUp')
+  })
+
+  it('TC-3R-058: action file for follow-up mutations still does not exist (guard — Slice 3R-6)', () => {
+    expect(() => readSrc(MUTATIONS_ACTION)).toThrow()
+  })
+
+  it('TC-3R-059: migration 20240039 still does not exist (guard — Slice 3R-8)', () => {
+    expect(() => readSrc(MIGRATION_039)).toThrow()
   })
 
 })
