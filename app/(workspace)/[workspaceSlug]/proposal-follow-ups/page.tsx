@@ -3,6 +3,7 @@ import { getProposalFollowUpQueueAction } from '@/modules/proposals/actions/prop
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ListChecks } from 'lucide-react'
+import { CompleteFollowUpButton } from './CompleteFollowUpButton'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -211,12 +212,15 @@ export default async function ProposalFollowUpsPage({ params, searchParams }: Pa
                         {fmtDate(item.created_at)}
                       </td>
                       <td className="p-3">
-                        <Link
-                          href={`/${workspaceSlug}/proposal-events/${item.proposal_event_id}`}
-                          className="text-xs text-primary hover:underline whitespace-nowrap"
-                        >
-                          View →
-                        </Link>
+                        <div className="flex flex-col gap-1.5 items-end">
+                          <Link
+                            href={`/${workspaceSlug}/proposal-events/${item.proposal_event_id}`}
+                            className="text-xs text-primary hover:underline whitespace-nowrap"
+                          >
+                            View →
+                          </Link>
+                          <CompleteFollowUpButton commitmentId={item.id} />
+                        </div>
                       </td>
                     </tr>
                   )

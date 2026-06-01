@@ -28,6 +28,8 @@ const MUTATIONS_REPO    = 'modules/proposals/repositories/proposal-follow-up-mut
 const MUTATIONS_SERVICE = 'modules/proposals/services/proposal-follow-up-mutations.service.ts'
 const MUTATIONS_ACTION  = 'modules/proposals/actions/proposal-follow-up-mutations.actions.ts'
 const MIGRATION_039     = 'supabase/migrations/20240039_phase3r_follow_up_skip_fields.sql'
+const COMPLETE_BUTTON   = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/CompleteFollowUpButton.tsx'
+const QUEUE_PAGE        = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/page.tsx'
 
 // ---------------------------------------------------------------------------
 // Slice 4 — Complete-only repository write model
@@ -535,6 +537,118 @@ describe('Slice 6: proposal follow-up mutations action — completeFollowUpCommi
   })
 
   it('TC-3R-086: migration 20240039 still does not exist (guard — Slice 3R-8)', () => {
+    expect(() => readSrc(MIGRATION_039)).toThrow()
+  })
+
+})
+
+// ---------------------------------------------------------------------------
+// Slice 7 — Complete UI confirmation control
+// TC-3R-087 through TC-3R-105
+// ---------------------------------------------------------------------------
+
+describe('Slice 7: proposal follow-up complete UI control — CompleteFollowUpButton', () => {
+
+  it('TC-3R-087: CompleteFollowUpButton component file exists and is readable', () => {
+    expect(() => readSrc(COMPLETE_BUTTON)).not.toThrow()
+  })
+
+  it('TC-3R-088: component declares use client', () => {
+    expect(readSrc(COMPLETE_BUTTON)).toContain("'use client'")
+  })
+
+  it('TC-3R-089: CompleteFollowUpButton is exported', () => {
+    expect(readSrc(COMPLETE_BUTTON)).toContain('export function CompleteFollowUpButton')
+  })
+
+  it('TC-3R-090: component imports completeFollowUpCommitmentAction from action file', () => {
+    const src = readSrc(COMPLETE_BUTTON)
+    expect(src).toContain('completeFollowUpCommitmentAction')
+    expect(src).toContain('proposal-follow-up-mutations.actions')
+  })
+
+  it('TC-3R-091: component does not import from mutations service directly', () => {
+    expect(readSrc(COMPLETE_BUTTON)).not.toContain('proposal-follow-up-mutations.service')
+  })
+
+  it('TC-3R-092: component does not import from mutations repo directly', () => {
+    expect(readSrc(COMPLETE_BUTTON)).not.toContain('proposal-follow-up-mutations.repo')
+  })
+
+  it('TC-3R-093: component accepts commitmentId prop', () => {
+    expect(readSrc(COMPLETE_BUTTON)).toContain('commitmentId')
+  })
+
+  it('TC-3R-094: component does not reference tenantId, workspaceId, or actorUserId', () => {
+    const src = readSrc(COMPLETE_BUTTON)
+    expect(src).not.toContain('tenantId')
+    expect(src).not.toContain('workspaceId')
+    expect(src).not.toContain('actorUserId')
+  })
+
+  it('TC-3R-095: component includes confirmation text for completing commitment', () => {
+    expect(readSrc(COMPLETE_BUTTON)).toContain('Mark this follow-up commitment complete?')
+  })
+
+  it('TC-3R-096: component calls router.refresh() after successful completion', () => {
+    const src = readSrc(COMPLETE_BUTTON)
+    expect(src).toContain('router.refresh()')
+    expect(src).toContain('useRouter')
+  })
+
+  it('TC-3R-097: component includes error state with message display', () => {
+    const src = readSrc(COMPLETE_BUTTON)
+    expect(src).toContain("type: 'error'")
+    expect(src).toContain('state.message')
+  })
+
+  it('TC-3R-098: component does not reference Resend, Inngest, OpenAI, Anthropic', () => {
+    const src = readSrc(COMPLETE_BUTTON)
+    expect(src).not.toContain('Resend')
+    expect(src).not.toContain('Inngest')
+    expect(src).not.toContain('OpenAI')
+    expect(src).not.toContain('Anthropic')
+  })
+
+  it('TC-3R-099: component does not reference EMAIL_SENDING_ENABLED or CAMPAIGN_SENDING_ENABLED', () => {
+    const src = readSrc(COMPLETE_BUTTON)
+    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+
+  it('TC-3R-100: component does not reference email_drafts', () => {
+    expect(readSrc(COMPLETE_BUTTON)).not.toContain('email_drafts')
+  })
+
+  it('TC-3R-101: component does not export skip/reschedule/reopen/send/draft functions', () => {
+    const src = readSrc(COMPLETE_BUTTON)
+    expect(src).not.toContain('skipFollowUp')
+    expect(src).not.toContain('rescheduleFollowUp')
+    expect(src).not.toContain('reopenFollowUp')
+    expect(src).not.toContain('generateFollowUpDraft')
+    expect(src).not.toContain('sendFollowUp')
+  })
+
+  it('TC-3R-102: follow-up queue page imports CompleteFollowUpButton', () => {
+    const src = readSrc(QUEUE_PAGE)
+    expect(src).toContain('CompleteFollowUpButton')
+    expect(src).toContain('CompleteFollowUpButton')
+  })
+
+  it('TC-3R-103: queue page passes commitmentId to CompleteFollowUpButton', () => {
+    const src = readSrc(QUEUE_PAGE)
+    expect(src).toContain('commitmentId={item.id}')
+  })
+
+  it('TC-3R-104: queue page does not pass tenantId, workspaceId, or actorUserId to button', () => {
+    const src = readSrc(QUEUE_PAGE)
+    // Server page passes only the commitment id — never session-derived fields
+    expect(src).not.toContain('tenantId={')
+    expect(src).not.toContain('workspaceId={')
+    expect(src).not.toContain('actorUserId={')
+  })
+
+  it('TC-3R-105: migration 20240039 still does not exist (guard — Slice 3R-8)', () => {
     expect(() => readSrc(MIGRATION_039)).toThrow()
   })
 

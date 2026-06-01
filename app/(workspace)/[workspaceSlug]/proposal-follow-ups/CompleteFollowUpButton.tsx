@@ -1,0 +1,107 @@
+'use client'
+
+import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { CheckCircle2, Loader2, AlertTriangle } from 'lucide-react'
+import { completeFollowUpCommitmentAction } from '@/modules/proposals/actions/proposal-follow-up-mutations.actions'
+
+interface CompleteFollowUpButtonProps {
+  commitmentId: string
+}
+
+type State =
+  | { type: 'idle' }
+  | { type: 'confirming' }
+  | { type: 'loading' }
+  | { type: 'success' }
+  | { type: 'error'; message: string }
+
+export function CompleteFollowUpButton({ commitmentId }: CompleteFollowUpButtonProps) {
+  const [state, setState] = useState<State>({ type: 'idle' })
+  const [, startTransition] = useTransition()
+  const router = useRouter()
+
+  function handleConfirm() {
+    setState({ type: 'loading' })
+    startTransition(async () => {
+      const result = await completeFollowUpCommitmentAction({ commitmentId })
+      if (result.success) {
+        setState({ type: 'success' })
+        router.refresh()
+      } else {
+        setState({ type: 'error', message: result.error })
+      }
+    })
+  }
+
+  if (state.type === 'success') {
+    return (
+      <span className="flex items-center gap-1 text-xs text-green-600 font-medium whitespace-nowrap">
+        <CheckCircle2 className="h-3.5 w-3.5" />
+        Completed
+      </span>
+    )
+  }
+
+  if (state.type === 'error') {
+    return (
+      <div className="flex flex-col gap-1 min-w-[140px]">
+        <div className="flex items-start gap-1 rounded bg-red-50 border border-red-200 p-1.5 text-[10px] text-red-700">
+          <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+          <span className="break-words">{state.message}</span>
+        </div>
+        <button
+          onClick={() => setState({ type: 'idle' })}
+          className="text-[10px] text-muted-foreground hover:text-foreground text-left"
+        >
+          Dismiss
+        </button>
+      </div>
+    )
+  }
+
+  if (state.type === 'confirming') {
+    return (
+      <div className="flex flex-col gap-1">
+        <p className="text-[10px] text-muted-foreground whitespace-nowrap">
+          Mark this follow-up commitment complete?
+        </p>
+        <div className="flex gap-1">
+          <button
+            onClick={handleConfirm}
+            className="text-[10px] font-medium text-white bg-green-600 hover:bg-green-700
+                       rounded px-2 py-0.5 transition-colors whitespace-nowrap"
+          >
+            Confirm
+          </button>
+          <button
+            onClick={() => setState({ type: 'idle' })}
+            className="text-[10px] text-muted-foreground hover:text-foreground
+                       border rounded px-2 py-0.5 transition-colors whitespace-nowrap"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (state.type === 'loading') {
+    return (
+      <span className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        Completing…
+      </span>
+    )
+  }
+
+  return (
+    <button
+      onClick={() => setState({ type: 'confirming' })}
+      className="text-xs font-medium text-muted-foreground hover:text-foreground
+                 border rounded-md px-2 py-1 transition-colors whitespace-nowrap"
+    >
+      Mark Complete
+    </button>
+  )
+}
