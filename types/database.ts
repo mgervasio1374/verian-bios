@@ -4846,6 +4846,9 @@ export type Database = {
           lead_id: string | null
           proposal_event_id: string
           schedule_rule_key: string
+          skipped_at: string | null
+          skipped_by_user_id: string | null
+          skipped_reason: string | null
           tenant_id: string
           updated_at: string
           workspace_id: string
@@ -4864,6 +4867,9 @@ export type Database = {
           lead_id?: string | null
           proposal_event_id: string
           schedule_rule_key: string
+          skipped_at?: string | null
+          skipped_by_user_id?: string | null
+          skipped_reason?: string | null
           tenant_id: string
           updated_at?: string
           workspace_id: string
@@ -4882,6 +4888,9 @@ export type Database = {
           lead_id?: string | null
           proposal_event_id?: string
           schedule_rule_key?: string
+          skipped_at?: string | null
+          skipped_by_user_id?: string | null
+          skipped_reason?: string | null
           tenant_id?: string
           updated_at?: string
           workspace_id?: string
@@ -4920,6 +4929,13 @@ export type Database = {
             columns: ["proposal_event_id"]
             isOneToOne: false
             referencedRelation: "proposal_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_follow_up_commitments_skipped_by_user_id_fkey"
+            columns: ["skipped_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]

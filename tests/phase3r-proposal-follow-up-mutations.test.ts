@@ -202,8 +202,8 @@ describe('Slice 4: proposal follow-up mutations repo — completeFollowUpCommitm
     expect(readSrc(MUTATIONS_REPO)).toContain('createSupabaseServiceClient')
   })
 
-  it('TC-3R-026: migration 20240039 does not yet exist (guard — skip fields deferred to Slice 3R-8)', () => {
-    expect(() => readSrc(MIGRATION_039)).toThrow()
+  it('TC-3R-026: migration 20240039 exists (Slice 3R-8 complete)', () => {
+    expect(() => readSrc(MIGRATION_039)).not.toThrow()
   })
 
   it('TC-3R-027: service file for follow-up mutations exists (Slice 3R-5 complete)', () => {
@@ -393,8 +393,8 @@ describe('Slice 5: proposal follow-up mutations service — completeFollowUpComm
     expect(() => readSrc(MUTATIONS_ACTION)).not.toThrow()
   })
 
-  it('TC-3R-059: migration 20240039 still does not exist (guard — Slice 3R-8)', () => {
-    expect(() => readSrc(MIGRATION_039)).toThrow()
+  it('TC-3R-059: migration 20240039 exists (Slice 3R-8 complete)', () => {
+    expect(() => readSrc(MIGRATION_039)).not.toThrow()
   })
 
 })
@@ -536,8 +536,8 @@ describe('Slice 6: proposal follow-up mutations action — completeFollowUpCommi
     expect(readSrc(MUTATIONS_ACTION)).toContain("status: 'completed'")
   })
 
-  it('TC-3R-086: migration 20240039 still does not exist (guard — Slice 3R-8)', () => {
-    expect(() => readSrc(MIGRATION_039)).toThrow()
+  it('TC-3R-086: migration 20240039 exists (Slice 3R-8 complete)', () => {
+    expect(() => readSrc(MIGRATION_039)).not.toThrow()
   })
 
 })
@@ -648,8 +648,112 @@ describe('Slice 7: proposal follow-up complete UI control — CompleteFollowUpBu
     expect(src).not.toContain('actorUserId={')
   })
 
-  it('TC-3R-105: migration 20240039 still does not exist (guard — Slice 3R-8)', () => {
-    expect(() => readSrc(MIGRATION_039)).toThrow()
+  it('TC-3R-105: migration 20240039 exists (Slice 3R-8 complete)', () => {
+    expect(() => readSrc(MIGRATION_039)).not.toThrow()
+  })
+
+})
+
+// ---------------------------------------------------------------------------
+// Slice 8 — Migration 20240039: Skip fields
+// TC-3R-106 through TC-3R-125
+// ---------------------------------------------------------------------------
+
+describe('Slice 8: migration 20240039 — proposal_follow_up_commitments skip fields', () => {
+
+  it('TC-3R-106: migration file 20240039 exists and is readable', () => {
+    expect(() => readSrc(MIGRATION_039)).not.toThrow()
+  })
+
+  it('TC-3R-107: migration targets proposal_follow_up_commitments table', () => {
+    expect(readSrc(MIGRATION_039)).toContain('proposal_follow_up_commitments')
+  })
+
+  it('TC-3R-108: migration adds skipped_at column', () => {
+    expect(readSrc(MIGRATION_039)).toContain('skipped_at')
+  })
+
+  it('TC-3R-109: migration adds skipped_reason column', () => {
+    expect(readSrc(MIGRATION_039)).toContain('skipped_reason')
+  })
+
+  it('TC-3R-110: migration adds skipped_by_user_id column', () => {
+    expect(readSrc(MIGRATION_039)).toContain('skipped_by_user_id')
+  })
+
+  it('TC-3R-111: migration uses ADD COLUMN IF NOT EXISTS', () => {
+    expect(readSrc(MIGRATION_039)).toContain('ADD COLUMN IF NOT EXISTS')
+  })
+
+  it('TC-3R-112: migration adds FK for skipped_by_user_id to auth.users', () => {
+    const src = readSrc(MIGRATION_039)
+    expect(src).toContain('skipped_by_user_id_fkey')
+    expect(src).toContain('auth.users')
+  })
+
+  it('TC-3R-113: migration does not add reschedule fields', () => {
+    const src = readSrc(MIGRATION_039)
+    expect(src).not.toContain('rescheduled_from')
+    expect(src).not.toContain('rescheduled_to')
+    expect(src).not.toContain('reschedule_count')
+    expect(src).not.toContain('reschedule_')
+  })
+
+  it('TC-3R-114: migration does not add reopen fields', () => {
+    expect(readSrc(MIGRATION_039)).not.toContain('reopened_')
+  })
+
+  it('TC-3R-115: migration does not add send or draft fields', () => {
+    const src = readSrc(MIGRATION_039)
+    expect(src).not.toContain('sent_at')
+    expect(src).not.toContain('draft_generated_at')
+  })
+
+  it('TC-3R-116: types/database.ts includes skipped_at in proposal_follow_up_commitments Row', () => {
+    const src = readSrc('types/database.ts')
+    expect(src).toContain('skipped_at')
+  })
+
+  it('TC-3R-117: types/database.ts includes skipped_reason in proposal_follow_up_commitments Row', () => {
+    const src = readSrc('types/database.ts')
+    expect(src).toContain('skipped_reason')
+  })
+
+  it('TC-3R-118: types/database.ts includes skipped_by_user_id in proposal_follow_up_commitments Row', () => {
+    const src = readSrc('types/database.ts')
+    expect(src).toContain('skipped_by_user_id')
+  })
+
+  it('TC-3R-119: types/database.ts includes skipped_by_user_id FK relationship entry', () => {
+    expect(readSrc('types/database.ts')).toContain('proposal_follow_up_commitments_skipped_by_user_id_fkey')
+  })
+
+  it('TC-3R-120: no Skip repository function exists yet (guard — Slice 3R-9)', () => {
+    expect(readSrc(MUTATIONS_REPO)).not.toContain('skipFollowUpCommitment')
+  })
+
+  it('TC-3R-121: no Skip service function exists yet (guard — Slice 3R-9)', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).not.toContain('skipFollowUpCommitment')
+  })
+
+  it('TC-3R-122: no Skip action function exists yet (guard — Slice 3R-9)', () => {
+    expect(readSrc(MUTATIONS_ACTION)).not.toContain('skipFollowUpCommitment')
+  })
+
+  it('TC-3R-123: no Skip UI control exists yet (guard — Slice 3R-9)', () => {
+    expect(readSrc(COMPLETE_BUTTON)).not.toContain('skip')
+  })
+
+  it('TC-3R-124: Complete repository mutation is unchanged — still uses open-status race guard', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    expect(src).toContain('completeFollowUpCommitment')
+    expect(src).toContain(".eq('commitment_status', 'open')")
+  })
+
+  it('TC-3R-125: Complete service audit path is unchanged — still uses PROPOSAL_FOLLOW_UP_COMPLETED', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    expect(src).toContain('PROPOSAL_FOLLOW_UP_COMPLETED')
+    expect(src).toContain('recordActivityEvent')
   })
 
 })
