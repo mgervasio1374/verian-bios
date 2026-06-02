@@ -524,9 +524,8 @@ describe('Slice 6: proposal follow-up mutations action — completeFollowUpCommi
     expect(readSrc(MUTATIONS_ACTION)).not.toContain('email_drafts')
   })
 
-  it('TC-3R-084: action does not export reschedule/reopen/send/draft functions (skip action now permitted)', () => {
+  it('TC-3R-084: action does not export reopen/send/draft functions (skip and reschedule now permitted)', () => {
     const src = readSrc(MUTATIONS_ACTION)
-    expect(src).not.toContain('rescheduleFollowUp')
     expect(src).not.toContain('reopenFollowUp')
     expect(src).not.toContain('generateFollowUpDraft')
     expect(src).not.toContain('sendFollowUp')
@@ -1289,9 +1288,8 @@ describe('Slice 11: proposal follow-up mutations action — skipFollowUpCommitme
     expect(readSrc(MUTATIONS_ACTION)).not.toContain('email_drafts')
   })
 
-  it('TC-3R-208: action file does not export reschedule/reopen/send/draft functions', () => {
+  it('TC-3R-208: action file does not export reopen/send/draft functions (reschedule now permitted)', () => {
     const src = readSrc(MUTATIONS_ACTION)
-    expect(src).not.toContain('rescheduleFollowUp')
     expect(src).not.toContain('reopenFollowUp')
     expect(src).not.toContain('generateFollowUpDraft')
     expect(src).not.toContain('sendFollowUp')
@@ -1649,8 +1647,8 @@ describe('Slice 14B: proposal follow-up mutations repo — rescheduleFollowUpCom
     expect(readSrc(MUTATIONS_SERVICE)).toContain('rescheduleFollowUpCommitmentForWorkspace')
   })
 
-  it('TC-3R-261: no Reschedule action function exists yet (guard — Slice 14D)', () => {
-    expect(readSrc(MUTATIONS_ACTION)).not.toContain('rescheduleFollowUpCommitmentAction')
+  it('TC-3R-261: Reschedule action function exists (Slice 14D complete)', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('rescheduleFollowUpCommitmentAction')
   })
 
   it('TC-3R-262: no Reschedule UI component exists yet (guard — Slice 14E)', () => {
@@ -1850,8 +1848,8 @@ describe('Slice 14C: proposal follow-up mutations service — rescheduleFollowUp
     expect(src).not.toContain('sendFollowUp')
   })
 
-  it('TC-3R-294: no Reschedule action function exists yet (guard — Slice 14D)', () => {
-    expect(readSrc(MUTATIONS_ACTION)).not.toContain('rescheduleFollowUpCommitmentAction')
+  it('TC-3R-294: Reschedule action function exists (Slice 14D complete)', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('rescheduleFollowUpCommitmentAction')
   })
 
   it('TC-3R-295: no Reschedule UI component exists yet (guard — Slice 14E)', () => {
@@ -1864,6 +1862,196 @@ describe('Slice 14C: proposal follow-up mutations service — rescheduleFollowUp
     expect(src).toContain('PROPOSAL_FOLLOW_UP_COMPLETED')
     expect(src).toContain('export async function skipFollowUpCommitmentForWorkspace')
     expect(src).toContain('PROPOSAL_FOLLOW_UP_SKIPPED')
+  })
+
+})
+
+// ---------------------------------------------------------------------------
+// Slice 14D — Reschedule server action with crm.leads.edit permission
+// TC-3R-297 through TC-3R-325
+// ---------------------------------------------------------------------------
+
+describe('Slice 14D: proposal follow-up mutations action — rescheduleFollowUpCommitmentAction', () => {
+
+  it('TC-3R-297: rescheduleFollowUpCommitmentAction is exported', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('export async function rescheduleFollowUpCommitmentAction')
+  })
+
+  it('TC-3R-298: RescheduleFollowUpCommitmentActionInput is exported', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('export interface RescheduleFollowUpCommitmentActionInput')
+  })
+
+  it('TC-3R-299: RescheduleFollowUpCommitmentActionData is exported', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('export interface RescheduleFollowUpCommitmentActionData')
+  })
+
+  it('TC-3R-300: action imports and calls rescheduleFollowUpCommitmentForWorkspace from service', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).toContain('rescheduleFollowUpCommitmentForWorkspace')
+    expect(src).toContain('proposal-follow-up-mutations.service')
+  })
+
+  it('TC-3R-301: action does not import from the mutations repo directly', () => {
+    expect(readSrc(MUTATIONS_ACTION)).not.toContain('proposal-follow-up-mutations.repo')
+  })
+
+  it('TC-3R-302: action uses buildRequestContext', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('buildRequestContext')
+  })
+
+  it('TC-3R-303: action uses requirePermission', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('requirePermission')
+  })
+
+  it('TC-3R-304: action requires crm.leads.edit permission', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain("'crm.leads.edit'")
+  })
+
+  it('TC-3R-305: Reschedule action passes ctx.tenantId to service, not input.tenantId', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('ctx.tenantId')
+    expect(fnBody).not.toContain('input.tenantId')
+  })
+
+  it('TC-3R-306: Reschedule action passes ctx.workspaceId to service, not input.workspaceId', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('ctx.workspaceId')
+    expect(fnBody).not.toContain('input.workspaceId')
+  })
+
+  it('TC-3R-307: Reschedule action passes ctx.userId as actorUserId, not input.actorUserId', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('ctx.userId')
+    expect(fnBody).not.toContain('input.actorUserId')
+  })
+
+  it('TC-3R-308: action trims commitmentId from input', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('commitmentId')
+    expect(fnBody).toContain('.trim()')
+  })
+
+  it('TC-3R-309: action validates commitmentId is non-empty after trim', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('commitmentId is required')
+  })
+
+  it('TC-3R-310: action trims nextFollowUpDueAt from input', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('nextFollowUpDueAt')
+    expect(fnBody).toContain('.trim()')
+  })
+
+  it('TC-3R-311: action validates nextFollowUpDueAt is non-empty after trim', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('nextFollowUpDueAt is required')
+  })
+
+  it('TC-3R-312: action validates nextFollowUpDueAt parses as a valid date/time', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('new Date(')
+    expect(fnBody).toContain('isNaN')
+    expect(fnBody).toContain('valid date')
+  })
+
+  it('TC-3R-313: action normalizes nextFollowUpDueAt to ISO string before service call', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('.toISOString()')
+  })
+
+  it('TC-3R-314: Reschedule action maps not_found to success:false', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain("'not_found'")
+  })
+
+  it('TC-3R-315: Reschedule action maps not_open to success:false', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain("'not_open'")
+  })
+
+  it('TC-3R-316: Reschedule action maps write_failed to success:false', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain("'write_failed'")
+  })
+
+  it('TC-3R-317: Reschedule action maps audit_failed to success:false', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain("'audit_failed'")
+  })
+
+  it('TC-3R-318: action does not import recordActivityEvent', () => {
+    expect(readSrc(MUTATIONS_ACTION)).not.toContain('activity-event.repo')
+  })
+
+  it('TC-3R-319: action does not reference Resend, Inngest, OpenAI, Anthropic', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).not.toContain('Resend')
+    expect(src).not.toContain('Inngest')
+    expect(src).not.toContain('OpenAI')
+    expect(src).not.toContain('Anthropic')
+  })
+
+  it('TC-3R-320: action does not reference EMAIL_SENDING_ENABLED or CAMPAIGN_SENDING_ENABLED', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+
+  it('TC-3R-321: action does not reference email_drafts', () => {
+    expect(readSrc(MUTATIONS_ACTION)).not.toContain('email_drafts')
+  })
+
+  it('TC-3R-322: action does not export Reopen/send/draft functions', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).not.toContain('reopenFollowUp')
+    expect(src).not.toContain('generateFollowUpDraft')
+    expect(src).not.toContain('sendFollowUp')
+  })
+
+  it('TC-3R-323: Reschedule action returns status open and nextFollowUpDueAt on success', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain("status: 'open'")
+    expect(fnBody).toContain('nextFollowUpDueAt')
+  })
+
+  it('TC-3R-324: no Reschedule UI component exists yet (guard — Slice 14E)', () => {
+    expect(() => readSrc('app/(workspace)/[workspaceSlug]/proposal-follow-ups/RescheduleFollowUpButton.tsx')).toThrow()
+  })
+
+  it('TC-3R-325: Complete and Skip actions are unchanged by Slice 14D', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).toContain('export async function completeFollowUpCommitmentAction')
+    expect(src).toContain("status: 'completed'")
+    expect(src).toContain('export async function skipFollowUpCommitmentAction')
+    expect(src).toContain("status: 'skipped'")
   })
 
 })
