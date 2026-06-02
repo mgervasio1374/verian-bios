@@ -119,6 +119,9 @@ export interface ProposalFollowUpQueueItem {
   created_at: string
   // Phase 3S — read-only; indicates whether a draft has been created for this commitment
   draft_id: string | null
+  // Phase 3T — read-only; current status of the linked draft, if any (batch-loaded)
+  draft_status: string | null
+  draft_sent_at: string | null
   // Enriched from proposal_events (batch-loaded — not N+1).
   // These fields are non-nullable: rows whose proposal event cannot be
   // tenant/workspace-loaded are omitted entirely from the result.
@@ -195,6 +198,22 @@ export async function listProposalFollowUpQueueItemsForWorkspace(
 
   const eventMap = new Map((rawEvents ?? []).map(e => [e.id, e]))
 
+  // Batch-load email_draft statuses for linked drafts — one query, not N+1.
+  // Phase 3T: needed for Send UI eligibility display (approved vs pending_approval vs sent).
+  const draftIds = [...new Set(commitments.map(c => c.draft_id).filter((id): id is string => id !== null))]
+  const draftStatusMap = new Map<string, { status: string; sent_at: string | null }>()
+  if (draftIds.length > 0) {
+    const { data: rawDrafts } = await supabase
+      .from('email_drafts')
+      .select('id, status, sent_at')
+      .in('id', draftIds)
+      .eq('tenant_id', tenantId)
+      .eq('workspace_id', workspaceId)
+    for (const d of rawDrafts ?? []) {
+      draftStatusMap.set(d.id, { status: d.status, sent_at: d.sent_at ?? null })
+    }
+  }
+
   const items: ProposalFollowUpQueueItem[] = []
   for (const c of commitments) {
     const event = eventMap.get(c.proposal_event_id)
@@ -221,6 +240,8 @@ export async function listProposalFollowUpQueueItemsForWorkspace(
       completed_at:        c.completed_at,
       created_at:          c.created_at,
       draft_id:            c.draft_id,
+      draft_status:        c.draft_id ? (draftStatusMap.get(c.draft_id)?.status ?? null) : null,
+      draft_sent_at:       c.draft_id ? (draftStatusMap.get(c.draft_id)?.sent_at ?? null) : null,
       proposal_status:     event.proposal_status,
       proposal_sent_at:    event.proposal_sent_at,
       proposal_reference:  event.proposal_reference,

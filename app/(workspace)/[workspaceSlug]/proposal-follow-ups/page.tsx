@@ -3,6 +3,8 @@ import { getProposalFollowUpQueueAction } from '@/modules/proposals/actions/prop
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import { hasPermission } from '@/lib/auth/permissions'
+import { getBooleanControl } from '@/modules/intelligence/repositories/system-control.repo'
+import { SystemControlKey } from '@/modules/intelligence/types.agent'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ListChecks } from 'lucide-react'
@@ -10,6 +12,7 @@ import { CompleteFollowUpButton } from './CompleteFollowUpButton'
 import { SkipFollowUpButton } from './SkipFollowUpButton'
 import { RescheduleFollowUpButton } from './RescheduleFollowUpButton'
 import { GenerateFollowUpDraftButton } from './GenerateFollowUpDraftButton'
+import { SendFollowUpDraftButton } from './SendFollowUpDraftButton'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -47,15 +50,26 @@ export default async function ProposalFollowUpsPage({ params, searchParams }: Pa
 
   const result = await getProposalFollowUpQueueAction({ due })
 
-  // Determine whether the current user has mutation permission.
-  // Falls back to false on any auth error — hiding controls is safer than showing broken buttons.
+  // Determine whether the current user has mutation permission and whether email
+  // sending is enabled for this tenant. Both fall back to false on error — hiding
+  // controls is safer than showing broken or premature send buttons.
   let canMutate = false
+  let canSendEmail = false
+  let emailSendingEnabled = false
   try {
     const supabase = await createSupabaseServerClient()
     const ctx = await buildRequestContext(supabase)
-    canMutate = hasPermission(ctx, 'crm.leads.edit')
+    canMutate    = hasPermission(ctx, 'crm.leads.edit')
+    // messaging.send_emails is the authority for the send UI — mirrors the backend
+    // action permission. crm.leads.edit alone is not sufficient for sending.
+    canSendEmail = hasPermission(ctx, 'messaging.send_emails')
+    // Reads EMAIL_SENDING_ENABLED system control. Defaults to false when no row
+    // exists — opt-in model. The send UI shows a disabled state while false.
+    emailSendingEnabled = await getBooleanControl(SystemControlKey.EMAIL_SENDING_ENABLED, ctx.tenantId)
   } catch {
-    canMutate = false
+    canMutate       = false
+    canSendEmail    = false
+    emailSendingEnabled = false
   }
 
   const base      = `/${workspaceSlug}/proposal-follow-ups`
@@ -243,6 +257,13 @@ export default async function ProposalFollowUpsPage({ params, searchParams }: Pa
                               <RescheduleFollowUpButton commitmentId={item.id} currentDueAt={item.follow_up_due_at} />
                               <GenerateFollowUpDraftButton commitmentId={item.id} existingDraftId={item.draft_id} />
                             </>
+                          )}
+                          {canSendEmail && (
+                            <SendFollowUpDraftButton
+                              commitmentId={item.id}
+                              draftStatus={item.draft_status}
+                              emailSendingEnabled={emailSendingEnabled}
+                            />
                           )}
                         </div>
                       </td>

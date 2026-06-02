@@ -253,11 +253,13 @@ describe('Slice 4: queue page wiring', () => {
     expect(src).toContain('RescheduleFollowUpButton')
   })
 
-  it('TC-3S-UI-031: queue page does not reference send actions', () => {
+  it('TC-3S-UI-031: queue page does not reference campaign sending or batch-send actions', () => {
     const src = readSrc(QUEUE_PAGE)
-    expect(src).not.toContain('sendFollowUp')
-    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    // Phase 3T added a controlled send path; sendFollowUp is the expected Phase 3T component.
+    // Campaign sending and batch-send must not appear.
     expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
+    // EMAIL_SENDING_ENABLED is now legitimately read by the page for the Phase 3T
+    // SendFollowUpDraftButton feature flag gate — its presence here is expected.
   })
 
   it('TC-3S-UI-032: queue page does not include a Send button label', () => {
