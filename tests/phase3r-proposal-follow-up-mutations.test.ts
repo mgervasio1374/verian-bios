@@ -194,9 +194,8 @@ describe('Slice 4: proposal follow-up mutations repo — completeFollowUpCommitm
     expect(readSrc(MUTATIONS_REPO)).not.toContain('email_drafts')
   })
 
-  it('TC-3R-024: repo file does not export reschedule/reopen/send/draft functions (skip now permitted)', () => {
+  it('TC-3R-024: repo file does not export reopen/send/draft functions (skip and reschedule now permitted)', () => {
     const src = readSrc(MUTATIONS_REPO)
-    expect(src).not.toContain('rescheduleFollowUpCommitment')
     expect(src).not.toContain('reopenFollowUpCommitment')
     expect(src).not.toContain('generateFollowUpDraft')
     expect(src).not.toContain('sendFollowUp')
@@ -915,14 +914,18 @@ describe('Slice 9: proposal follow-up mutations repo — skipFollowUpCommitment'
   it('TC-3R-146: Skip does not call recordActivityEvent', () => {
     const src = readSrc(MUTATIONS_REPO)
     const fnStart = src.indexOf('export async function skipFollowUpCommitment')
-    const fnBody  = src.slice(fnStart)
+    // Bound at the Reschedule comment block so only the Skip function body is checked.
+    const fnEnd   = src.indexOf('// Reschedule follow-up commitment', fnStart)
+    const fnBody  = src.slice(fnStart, fnEnd > fnStart ? fnEnd : undefined)
     expect(fnBody).not.toContain('recordActivityEvent')
   })
 
   it('TC-3R-147: Skip does not call requirePermission', () => {
     const src = readSrc(MUTATIONS_REPO)
     const fnStart = src.indexOf('export async function skipFollowUpCommitment')
-    const fnBody  = src.slice(fnStart)
+    // Bound at the Reschedule comment block so only the Skip function body is checked.
+    const fnEnd   = src.indexOf('// Reschedule follow-up commitment', fnStart)
+    const fnBody  = src.slice(fnStart, fnEnd > fnStart ? fnEnd : undefined)
     expect(fnBody).not.toContain('requirePermission')
   })
 
@@ -944,9 +947,8 @@ describe('Slice 9: proposal follow-up mutations repo — skipFollowUpCommitment'
     expect(readSrc(MUTATIONS_REPO)).not.toContain('email_drafts')
   })
 
-  it('TC-3R-151: repo file does not export reschedule or reopen functions', () => {
+  it('TC-3R-151: repo file does not export reopen functions (reschedule now permitted)', () => {
     const src = readSrc(MUTATIONS_REPO)
-    expect(src).not.toContain('rescheduleFollowUpCommitment')
     expect(src).not.toContain('reopenFollowUpCommitment')
     expect(src).not.toContain('generateFollowUpDraft')
     expect(src).not.toContain('sendFollowUp')
@@ -1445,6 +1447,238 @@ describe('Slice 13: proposal follow-up skip UI control — SkipFollowUpButton', 
 
   it('TC-3R-234: migration 20240039 exists (guard — applied to local and remote-dev in Slice 12B)', () => {
     expect(() => readSrc(MIGRATION_039)).not.toThrow()
+  })
+
+})
+
+// ---------------------------------------------------------------------------
+// Slice 14B — Reschedule repository write model
+// TC-3R-235 through TC-3R-265
+// ---------------------------------------------------------------------------
+
+describe('Slice 14B: proposal follow-up mutations repo — rescheduleFollowUpCommitment', () => {
+
+  it('TC-3R-235: rescheduleFollowUpCommitment is exported', () => {
+    expect(readSrc(MUTATIONS_REPO)).toContain('export async function rescheduleFollowUpCommitment')
+  })
+
+  it('TC-3R-236: RescheduleFollowUpCommitmentResult interface is exported', () => {
+    expect(readSrc(MUTATIONS_REPO)).toContain('export interface RescheduleFollowUpCommitmentResult')
+  })
+
+  it('TC-3R-237: result interface includes previousFollowUpDueAt', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    expect(src).toContain('previousFollowUpDueAt')
+  })
+
+  it('TC-3R-238: result interface includes commitment field', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const ifaceStart = src.indexOf('export interface RescheduleFollowUpCommitmentResult')
+    const ifaceBody  = src.slice(ifaceStart, ifaceStart + 200)
+    expect(ifaceBody).toContain('commitment')
+  })
+
+  it('TC-3R-239: Reschedule function scopes fetch-before-write by tenant_id', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitment')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain(".eq('tenant_id', tenantId)")
+  })
+
+  it('TC-3R-240: Reschedule function scopes fetch-before-write by workspace_id', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitment')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain(".eq('workspace_id', workspaceId)")
+  })
+
+  it('TC-3R-241: Reschedule function scopes fetch-before-write by commitment id', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitment')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain(".eq('id', commitmentId)")
+  })
+
+  it('TC-3R-242: Reschedule function uses maybeSingle for fetch step', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitment')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('.maybeSingle()')
+  })
+
+  it('TC-3R-243: Reschedule fetch selects follow_up_due_at to capture previous value', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitment')
+    // find the select call before the update
+    const selectStart = src.indexOf('.select(', fnStart)
+    const updateStart = src.indexOf('.update(', fnStart)
+    // first .select() should precede the .update() — that is the fetch select
+    expect(selectStart).toBeLessThan(updateStart)
+    const fetchBlock = src.slice(fnStart, updateStart)
+    expect(fetchBlock).toContain('follow_up_due_at')
+  })
+
+  it('TC-3R-244: Reschedule throws not_found when commitment absent', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitment')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain("'not_found'")
+    expect(fnBody).toContain('!existing')
+  })
+
+  it('TC-3R-245: Reschedule checks commitment_status !== open before update', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitment')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain("commitment_status !== 'open'")
+    expect(fnBody).toContain("'not_open'")
+  })
+
+  it('TC-3R-246: Reschedule update predicate includes commitment_status = open race guard', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const updateStart = src.indexOf('.update(', src.indexOf('export async function rescheduleFollowUpCommitment'))
+    const updateSection = src.slice(updateStart, updateStart + 700)
+    expect(updateSection).toContain(".eq('commitment_status', 'open')")
+  })
+
+  it('TC-3R-246b: Reschedule update predicate includes follow_up_due_at guard for concurrent-reschedule safety', () => {
+    // Guards reschedule-vs-reschedule races so previousFollowUpDueAt in the
+    // return value is the value that was actually superseded.
+    const src = readSrc(MUTATIONS_REPO)
+    const updateStart = src.indexOf('.update(', src.indexOf('export async function rescheduleFollowUpCommitment'))
+    const updateSection = src.slice(updateStart, updateStart + 700)
+    expect(updateSection).toContain(".eq('follow_up_due_at', previousFollowUpDueAt)")
+  })
+
+  it('TC-3R-247: Reschedule update predicate includes tenant_id and workspace_id', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const updateStart = src.indexOf('.update(', src.indexOf('export async function rescheduleFollowUpCommitment'))
+    const updateSection = src.slice(updateStart, updateStart + 700)
+    expect(updateSection).toContain(".eq('tenant_id', tenantId)")
+    expect(updateSection).toContain(".eq('workspace_id', workspaceId)")
+  })
+
+  it('TC-3R-248: Reschedule no-row-after-update maps to not_open, not write_failed', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitment')
+    const fnBody  = src.slice(fnStart)
+    const notOpenCount = (fnBody.match(/'not_open'/g) || []).length
+    expect(notOpenCount).toBeGreaterThanOrEqual(2) // fetch guard + race guard
+    expect(fnBody).toContain('!updated')
+  })
+
+  it('TC-3R-249: Reschedule writes follow_up_due_at', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitment')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('follow_up_due_at:')
+  })
+
+  it('TC-3R-250: Reschedule writes updated_at', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitment')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('updated_at:')
+  })
+
+  it('TC-3R-251: Reschedule update does not set commitment_status', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const updateStart = src.indexOf('.update(', src.indexOf('export async function rescheduleFollowUpCommitment'))
+    // The update payload object ends before the first .eq() chain
+    const updatePayload = src.slice(updateStart, updateStart + 300)
+    expect(updatePayload).not.toContain('commitment_status:')
+  })
+
+  it('TC-3R-252: Reschedule does not write completed_at, completed_by_user_id, or completion_notes', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitment')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).not.toContain('completed_at:')
+    expect(fnBody).not.toContain('completed_by_user_id:')
+    expect(fnBody).not.toContain('completion_notes:')
+  })
+
+  it('TC-3R-253: Reschedule does not write skipped_at, skipped_by_user_id, or skipped_reason', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitment')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).not.toContain('skipped_at:')
+    expect(fnBody).not.toContain('skipped_by_user_id:')
+    expect(fnBody).not.toContain('skipped_reason:')
+  })
+
+  it('TC-3R-254: Reschedule does not mutate proposal_events', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitment')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).not.toMatch(/from\('proposal_events'\).*\.update\(/)
+    expect(fnBody).not.toMatch(/from\('proposal_events'\).*\.insert\(/)
+  })
+
+  it('TC-3R-255: Reschedule function does not call recordActivityEvent', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitment')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).not.toContain('recordActivityEvent')
+  })
+
+  it('TC-3R-256: Reschedule function does not call requirePermission', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitment')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).not.toContain('requirePermission')
+  })
+
+  it('TC-3R-257: repo file does not reference Resend, Inngest, OpenAI, Anthropic', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    expect(src).not.toContain('Resend')
+    expect(src).not.toContain('Inngest')
+    expect(src).not.toContain('OpenAI')
+    expect(src).not.toContain('Anthropic')
+  })
+
+  it('TC-3R-258: repo file does not reference EMAIL_SENDING_ENABLED or CAMPAIGN_SENDING_ENABLED', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+
+  it('TC-3R-259: repo file does not reference email_drafts', () => {
+    expect(readSrc(MUTATIONS_REPO)).not.toContain('email_drafts')
+  })
+
+  it('TC-3R-260: no Reschedule service function exists yet (guard — Slice 14C)', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).not.toContain('rescheduleFollowUpCommitmentForWorkspace')
+  })
+
+  it('TC-3R-261: no Reschedule action function exists yet (guard — Slice 14D)', () => {
+    expect(readSrc(MUTATIONS_ACTION)).not.toContain('rescheduleFollowUpCommitmentAction')
+  })
+
+  it('TC-3R-262: no Reschedule UI component exists yet (guard — Slice 14E)', () => {
+    expect(() => readSrc('app/(workspace)/[workspaceSlug]/proposal-follow-ups/RescheduleFollowUpButton.tsx')).toThrow()
+  })
+
+  it('TC-3R-263: no Reopen functions exist in repo, service, or action', () => {
+    const repo    = readSrc(MUTATIONS_REPO)
+    const service = readSrc(MUTATIONS_SERVICE)
+    const action  = readSrc(MUTATIONS_ACTION)
+    expect(repo).not.toContain('reopenFollowUpCommitment')
+    expect(service).not.toContain('reopenFollowUp')
+    expect(action).not.toContain('reopenFollowUp')
+  })
+
+  it('TC-3R-264: Complete repository mutation is unchanged by Slice 14B', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    expect(src).toContain('export async function completeFollowUpCommitment')
+    expect(src).toContain(".eq('commitment_status', 'open')")
+    expect(src).toContain("commitment_status:    'completed'")
+  })
+
+  it('TC-3R-265: Skip repository mutation is unchanged by Slice 14B', () => {
+    const src = readSrc(MUTATIONS_REPO)
+    expect(src).toContain('export async function skipFollowUpCommitment')
+    expect(src).toContain("commitment_status:  'skipped'")
   })
 
 })
