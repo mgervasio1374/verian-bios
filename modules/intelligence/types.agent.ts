@@ -258,5 +258,9 @@ export const ActivityEventType = {
   PROPOSAL_FOLLOW_UP_COMPLETED:    'proposal_follow_up_completed',
   PROPOSAL_FOLLOW_UP_SKIPPED:      'proposal_follow_up_skipped',
   PROPOSAL_FOLLOW_UP_RESCHEDULED:  'proposal_follow_up_rescheduled',
+
+  // Phase 3S — Proposal Follow-Up Draft Generation (additive)
+  PROPOSAL_FOLLOW_UP_DRAFT_CREATED:           'proposal_follow_up_draft_created',
+  PROPOSAL_FOLLOW_UP_DRAFT_GENERATION_FAILED: 'proposal_follow_up_draft_generation_failed',
 } as const
 export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType]

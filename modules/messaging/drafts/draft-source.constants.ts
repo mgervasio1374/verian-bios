@@ -18,6 +18,7 @@ export const DRAFT_SOURCE_BADGE: Record<string, { label: string; colorClass: str
   [DRAFT_SOURCE_TYPE.AI_STRATEGY_COPYWRITING]:   { label: 'AI Pipeline',       colorClass: 'bg-blue-100 text-blue-700' },
   [DRAFT_SOURCE_TYPE.CAMPAIGN_ASSET_RENDER]:     { label: 'Campaign Asset',    colorClass: 'bg-green-100 text-green-700' },
   [DRAFT_SOURCE_TYPE.AI_CAMPAIGN_ASSET_REVISION]:{ label: 'AI Asset Revision', colorClass: 'bg-blue-100 text-blue-700' },
+  [DRAFT_SOURCE_TYPE.FUTURE_FOLLOW_UP]:          { label: 'Follow-Up',         colorClass: 'bg-purple-100 text-purple-700' },
 } as const
 
 export const DRAFT_READINESS_REASON = {
