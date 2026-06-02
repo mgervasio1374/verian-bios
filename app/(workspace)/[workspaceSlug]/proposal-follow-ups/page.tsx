@@ -9,6 +9,7 @@ import { ListChecks } from 'lucide-react'
 import { CompleteFollowUpButton } from './CompleteFollowUpButton'
 import { SkipFollowUpButton } from './SkipFollowUpButton'
 import { RescheduleFollowUpButton } from './RescheduleFollowUpButton'
+import { GenerateFollowUpDraftButton } from './GenerateFollowUpDraftButton'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -240,6 +241,7 @@ export default async function ProposalFollowUpsPage({ params, searchParams }: Pa
                               <CompleteFollowUpButton commitmentId={item.id} />
                               <SkipFollowUpButton commitmentId={item.id} />
                               <RescheduleFollowUpButton commitmentId={item.id} currentDueAt={item.follow_up_due_at} />
+                              <GenerateFollowUpDraftButton commitmentId={item.id} existingDraftId={item.draft_id} />
                             </>
                           )}
                         </div>

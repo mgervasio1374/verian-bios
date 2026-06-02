@@ -117,6 +117,8 @@ export interface ProposalFollowUpQueueItem {
   assigned_to_user_id: string | null
   completed_at: string | null
   created_at: string
+  // Phase 3S — read-only; indicates whether a draft has been created for this commitment
+  draft_id: string | null
   // Enriched from proposal_events (batch-loaded — not N+1).
   // These fields are non-nullable: rows whose proposal event cannot be
   // tenant/workspace-loaded are omitted entirely from the result.
@@ -218,6 +220,7 @@ export async function listProposalFollowUpQueueItemsForWorkspace(
       assigned_to_user_id: c.assigned_to_user_id,
       completed_at:        c.completed_at,
       created_at:          c.created_at,
+      draft_id:            c.draft_id,
       proposal_status:     event.proposal_status,
       proposal_sent_at:    event.proposal_sent_at,
       proposal_reference:  event.proposal_reference,
