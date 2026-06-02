@@ -29,6 +29,7 @@ const MUTATIONS_SERVICE = 'modules/proposals/services/proposal-follow-up-mutatio
 const MUTATIONS_ACTION  = 'modules/proposals/actions/proposal-follow-up-mutations.actions.ts'
 const MIGRATION_039     = 'supabase/migrations/20240039_phase3r_follow_up_skip_fields.sql'
 const COMPLETE_BUTTON   = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/CompleteFollowUpButton.tsx'
+const SKIP_BUTTON       = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/SkipFollowUpButton.tsx'
 const QUEUE_PAGE        = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/page.tsx'
 
 // ---------------------------------------------------------------------------
@@ -741,7 +742,7 @@ describe('Slice 8: migration 20240039 — proposal_follow_up_commitments skip fi
     expect(readSrc(MUTATIONS_ACTION)).toContain('skipFollowUpCommitmentAction')
   })
 
-  it('TC-3R-123: no Skip UI control exists yet (guard — Slice 3R-9)', () => {
+  it('TC-3R-123: CompleteFollowUpButton does not reference skip — skip is in its own component (Slice 13)', () => {
     expect(readSrc(COMPLETE_BUTTON)).not.toContain('skip')
   })
 
@@ -968,7 +969,7 @@ describe('Slice 9: proposal follow-up mutations repo — skipFollowUpCommitment'
     expect(readSrc(MUTATIONS_ACTION)).toContain('skipFollowUpCommitmentAction')
   })
 
-  it('TC-3R-155: no Skip UI control exists yet (guard — future slice)', () => {
+  it('TC-3R-155: CompleteFollowUpButton does not reference skip — skip is in its own component (Slice 13)', () => {
     expect(readSrc(COMPLETE_BUTTON)).not.toContain('skip')
   })
 
@@ -1303,7 +1304,7 @@ describe('Slice 11: proposal follow-up mutations action — skipFollowUpCommitme
     expect(fnBody).toContain("status: 'skipped'")
   })
 
-  it('TC-3R-210: no Skip UI control exists yet (guard — future slice)', () => {
+  it('TC-3R-210: CompleteFollowUpButton does not reference skipFollowUp — skip is in its own component (Slice 13)', () => {
     expect(readSrc(COMPLETE_BUTTON)).not.toContain('skipFollowUp')
   })
 
@@ -1315,6 +1316,135 @@ describe('Slice 11: proposal follow-up mutations action — skipFollowUpCommitme
     const src = readSrc(MUTATIONS_ACTION)
     expect(src).toContain('export async function completeFollowUpCommitmentAction')
     expect(src).toContain("status: 'completed'")
+  })
+
+})
+
+// ---------------------------------------------------------------------------
+// Slice 13 — Skip UI confirmation control
+// TC-3R-213 through TC-3R-234
+// ---------------------------------------------------------------------------
+
+describe('Slice 13: proposal follow-up skip UI control — SkipFollowUpButton', () => {
+
+  it('TC-3R-213: SkipFollowUpButton component file exists and is readable', () => {
+    expect(() => readSrc(SKIP_BUTTON)).not.toThrow()
+  })
+
+  it('TC-3R-214: component declares use client', () => {
+    expect(readSrc(SKIP_BUTTON)).toContain("'use client'")
+  })
+
+  it('TC-3R-215: SkipFollowUpButton is exported', () => {
+    expect(readSrc(SKIP_BUTTON)).toContain('export function SkipFollowUpButton')
+  })
+
+  it('TC-3R-216: component imports and calls skipFollowUpCommitmentAction from action file', () => {
+    const src = readSrc(SKIP_BUTTON)
+    expect(src).toContain('skipFollowUpCommitmentAction')
+    expect(src).toContain('proposal-follow-up-mutations.actions')
+  })
+
+  it('TC-3R-217: component does not import from mutations service directly', () => {
+    expect(readSrc(SKIP_BUTTON)).not.toContain('proposal-follow-up-mutations.service')
+  })
+
+  it('TC-3R-218: component does not import from mutations repo directly', () => {
+    expect(readSrc(SKIP_BUTTON)).not.toContain('proposal-follow-up-mutations.repo')
+  })
+
+  it('TC-3R-219: component accepts commitmentId prop', () => {
+    expect(readSrc(SKIP_BUTTON)).toContain('commitmentId')
+  })
+
+  it('TC-3R-220: component does not reference tenantId, workspaceId, or actorUserId', () => {
+    const src = readSrc(SKIP_BUTTON)
+    expect(src).not.toContain('tenantId')
+    expect(src).not.toContain('workspaceId')
+    expect(src).not.toContain('actorUserId')
+  })
+
+  it('TC-3R-221: component includes confirmation text for skipping commitment', () => {
+    expect(readSrc(SKIP_BUTTON)).toContain('Skip this follow-up commitment?')
+  })
+
+  it('TC-3R-222: component states does not send email — no misleading send language', () => {
+    const src = readSrc(SKIP_BUTTON)
+    expect(src).toContain('does not send an email')
+  })
+
+  it('TC-3R-223: component calls router.refresh() after successful skip', () => {
+    const src = readSrc(SKIP_BUTTON)
+    expect(src).toContain('router.refresh()')
+    expect(src).toContain('useRouter')
+  })
+
+  it('TC-3R-224: component includes error state with message display', () => {
+    const src = readSrc(SKIP_BUTTON)
+    expect(src).toContain("type: 'error'")
+    expect(src).toContain('state.message')
+  })
+
+  it('TC-3R-225: component trims skippedReason before passing to action', () => {
+    const src = readSrc(SKIP_BUTTON)
+    expect(src).toContain('skippedReason')
+    expect(src).toContain('.trim()')
+  })
+
+  it('TC-3R-226: component does not reference Resend, Inngest, OpenAI, Anthropic', () => {
+    const src = readSrc(SKIP_BUTTON)
+    expect(src).not.toContain('Resend')
+    expect(src).not.toContain('Inngest')
+    expect(src).not.toContain('OpenAI')
+    expect(src).not.toContain('Anthropic')
+  })
+
+  it('TC-3R-227: component does not reference EMAIL_SENDING_ENABLED or CAMPAIGN_SENDING_ENABLED', () => {
+    const src = readSrc(SKIP_BUTTON)
+    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+
+  it('TC-3R-228: component does not reference email_drafts', () => {
+    expect(readSrc(SKIP_BUTTON)).not.toContain('email_drafts')
+  })
+
+  it('TC-3R-229: component does not export complete/reschedule/reopen/send/draft functions', () => {
+    const src = readSrc(SKIP_BUTTON)
+    expect(src).not.toContain('completeFollowUp')
+    expect(src).not.toContain('rescheduleFollowUp')
+    expect(src).not.toContain('reopenFollowUp')
+    expect(src).not.toContain('generateFollowUpDraft')
+    expect(src).not.toContain('sendFollowUp')
+  })
+
+  it('TC-3R-230: follow-up queue page imports SkipFollowUpButton', () => {
+    const src = readSrc(QUEUE_PAGE)
+    expect(src).toContain('SkipFollowUpButton')
+    expect(src).toContain('SkipFollowUpButton')
+  })
+
+  it('TC-3R-231: queue page passes commitmentId to SkipFollowUpButton', () => {
+    const src = readSrc(QUEUE_PAGE)
+    // Page must pass the commitment id — and only the id — to the Skip button
+    expect(src).toContain('commitmentId={item.id}')
+  })
+
+  it('TC-3R-232: queue page does not pass tenantId, workspaceId, or actorUserId to Skip button', () => {
+    const src = readSrc(QUEUE_PAGE)
+    expect(src).not.toContain('tenantId={')
+    expect(src).not.toContain('workspaceId={')
+    expect(src).not.toContain('actorUserId={')
+  })
+
+  it('TC-3R-233: Complete UI is unchanged — CompleteFollowUpButton still exported', () => {
+    const src = readSrc(COMPLETE_BUTTON)
+    expect(src).toContain('export function CompleteFollowUpButton')
+    expect(src).toContain('Mark this follow-up commitment complete?')
+  })
+
+  it('TC-3R-234: migration 20240039 exists (guard — applied to local and remote-dev in Slice 12B)', () => {
+    expect(() => readSrc(MIGRATION_039)).not.toThrow()
   })
 
 })

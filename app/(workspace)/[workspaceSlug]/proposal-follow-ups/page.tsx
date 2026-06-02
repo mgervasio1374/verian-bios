@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ListChecks } from 'lucide-react'
 import { CompleteFollowUpButton } from './CompleteFollowUpButton'
+import { SkipFollowUpButton } from './SkipFollowUpButton'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -220,6 +221,7 @@ export default async function ProposalFollowUpsPage({ params, searchParams }: Pa
                             View →
                           </Link>
                           <CompleteFollowUpButton commitmentId={item.id} />
+                          <SkipFollowUpButton commitmentId={item.id} />
                         </div>
                       </td>
                     </tr>
