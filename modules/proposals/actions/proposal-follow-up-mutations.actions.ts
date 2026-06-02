@@ -3,7 +3,10 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import { requirePermission } from '@/lib/auth/permissions'
-import { completeFollowUpCommitmentForWorkspace } from '@/modules/proposals/services/proposal-follow-up-mutations.service'
+import {
+  completeFollowUpCommitmentForWorkspace,
+  skipFollowUpCommitmentForWorkspace,
+} from '@/modules/proposals/services/proposal-follow-up-mutations.service'
 import type { ActionResult } from '@/modules/crm/actions/company.actions'
 
 export interface CompleteFollowUpCommitmentActionInput {
@@ -68,6 +71,77 @@ export async function completeFollowUpCommitmentAction(
         return {
           success: false,
           error: 'Follow-up commitment completed but audit logging failed.',
+        }
+      default:
+        return { success: false, error: 'An unexpected error occurred.' }
+    }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
+export interface SkipFollowUpCommitmentActionInput {
+  commitmentId?: string
+  skippedReason?: string
+}
+
+export interface SkipFollowUpCommitmentActionData {
+  commitmentId: string
+  status: 'skipped'
+}
+
+// ---------------------------------------------------------------------------
+// Skip a follow-up commitment.
+//
+// tenantId, workspaceId, and actorUserId are derived from the server-side
+// request context — they are never read from client input.
+//
+// Permission: crm.leads.edit (same permission used for all Phase 3R mutations).
+// Audit: handled by the service layer — do not call recordActivityEvent here.
+// ---------------------------------------------------------------------------
+
+export async function skipFollowUpCommitmentAction(
+  input: SkipFollowUpCommitmentActionInput,
+): Promise<ActionResult<SkipFollowUpCommitmentActionData>> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx = await buildRequestContext(supabase)
+    requirePermission(ctx, 'crm.leads.edit')
+
+    const commitmentId = input.commitmentId?.trim() ?? ''
+    if (!commitmentId) {
+      return { success: false, error: 'commitmentId is required.' }
+    }
+
+    const rawReason = input.skippedReason?.trim()
+    const skippedReason = rawReason || undefined
+
+    const result = await skipFollowUpCommitmentForWorkspace(
+      ctx.tenantId,
+      ctx.workspaceId,
+      commitmentId,
+      ctx.userId,
+      skippedReason,
+    )
+
+    if (result.ok) {
+      return {
+        success: true,
+        data: { commitmentId: result.commitment.id, status: 'skipped' },
+      }
+    }
+
+    switch (result.error) {
+      case 'not_found':
+        return { success: false, error: 'Follow-up commitment not found.' }
+      case 'not_open':
+        return { success: false, error: 'Follow-up commitment is no longer open.' }
+      case 'write_failed':
+        return { success: false, error: 'Failed to skip follow-up commitment.' }
+      case 'audit_failed':
+        return {
+          success: false,
+          error: 'Follow-up commitment skipped but audit logging failed.',
         }
       default:
         return { success: false, error: 'An unexpected error occurred.' }

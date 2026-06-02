@@ -525,9 +525,8 @@ describe('Slice 6: proposal follow-up mutations action — completeFollowUpCommi
     expect(readSrc(MUTATIONS_ACTION)).not.toContain('email_drafts')
   })
 
-  it('TC-3R-084: action does not export skip/reschedule/reopen/send/draft functions', () => {
+  it('TC-3R-084: action does not export reschedule/reopen/send/draft functions (skip action now permitted)', () => {
     const src = readSrc(MUTATIONS_ACTION)
-    expect(src).not.toContain('skipFollowUp')
     expect(src).not.toContain('rescheduleFollowUp')
     expect(src).not.toContain('reopenFollowUp')
     expect(src).not.toContain('generateFollowUpDraft')
@@ -738,8 +737,8 @@ describe('Slice 8: migration 20240039 — proposal_follow_up_commitments skip fi
     expect(readSrc(MUTATIONS_SERVICE)).toContain('skipFollowUpCommitmentForWorkspace')
   })
 
-  it('TC-3R-122: no Skip action function exists yet (guard — Slice 3R-9)', () => {
-    expect(readSrc(MUTATIONS_ACTION)).not.toContain('skipFollowUpCommitment')
+  it('TC-3R-122: Skip action function exists (Slice 3R-11 complete)', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('skipFollowUpCommitmentAction')
   })
 
   it('TC-3R-123: no Skip UI control exists yet (guard — Slice 3R-9)', () => {
@@ -965,8 +964,8 @@ describe('Slice 9: proposal follow-up mutations repo — skipFollowUpCommitment'
     expect(readSrc(MUTATIONS_SERVICE)).toContain('skipFollowUpCommitmentForWorkspace')
   })
 
-  it('TC-3R-154: no Skip action function exists yet (guard — Slice 3R-10)', () => {
-    expect(readSrc(MUTATIONS_ACTION)).not.toContain('skipFollowUpCommitment')
+  it('TC-3R-154: Skip action function exists (Slice 3R-11 complete)', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('skipFollowUpCommitmentAction')
   })
 
   it('TC-3R-155: no Skip UI control exists yet (guard — future slice)', () => {
@@ -1133,8 +1132,8 @@ describe('Slice 10: proposal follow-up mutations service — skipFollowUpCommitm
     expect(src).not.toContain('sendFollowUp')
   })
 
-  it('TC-3R-183: no Skip action function exists yet (guard — Slice 3R-11)', () => {
-    expect(readSrc(MUTATIONS_ACTION)).not.toContain('skipFollowUpCommitmentAction')
+  it('TC-3R-183: Skip action function exists (Slice 3R-11 complete)', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('skipFollowUpCommitmentAction')
   })
 
   it('TC-3R-184: Complete service audit path is unchanged — still uses PROPOSAL_FOLLOW_UP_COMPLETED', () => {
@@ -1145,6 +1144,177 @@ describe('Slice 10: proposal follow-up mutations service — skipFollowUpCommitm
 
   it('TC-3R-185: migration 20240039 exists (guard — applied separately)', () => {
     expect(() => readSrc(MIGRATION_039)).not.toThrow()
+  })
+
+})
+
+// ---------------------------------------------------------------------------
+// Slice 11 — Skip server action with crm.leads.edit permission
+// TC-3R-186 through TC-3R-212
+// ---------------------------------------------------------------------------
+
+describe('Slice 11: proposal follow-up mutations action — skipFollowUpCommitmentAction', () => {
+
+  it('TC-3R-186: skipFollowUpCommitmentAction is exported', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('export async function skipFollowUpCommitmentAction')
+  })
+
+  it('TC-3R-187: SkipFollowUpCommitmentActionInput is exported', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('export interface SkipFollowUpCommitmentActionInput')
+  })
+
+  it('TC-3R-188: SkipFollowUpCommitmentActionData is exported', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('export interface SkipFollowUpCommitmentActionData')
+  })
+
+  it('TC-3R-189: action imports and calls skipFollowUpCommitmentForWorkspace from service', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).toContain('skipFollowUpCommitmentForWorkspace')
+    expect(src).toContain('proposal-follow-up-mutations.service')
+  })
+
+  it('TC-3R-190: action does not import from the mutations repo directly', () => {
+    // Action must go through the service — repo import would be a bypass.
+    expect(readSrc(MUTATIONS_ACTION)).not.toContain('proposal-follow-up-mutations.repo')
+  })
+
+  it('TC-3R-191: action uses buildRequestContext', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('buildRequestContext')
+  })
+
+  it('TC-3R-192: action uses requirePermission', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain('requirePermission')
+  })
+
+  it('TC-3R-193: action requires crm.leads.edit permission', () => {
+    expect(readSrc(MUTATIONS_ACTION)).toContain("'crm.leads.edit'")
+  })
+
+  it('TC-3R-194: Skip action passes ctx.tenantId to service, not input.tenantId', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function skipFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('ctx.tenantId')
+    expect(fnBody).not.toContain('input.tenantId')
+  })
+
+  it('TC-3R-195: Skip action passes ctx.workspaceId to service, not input.workspaceId', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function skipFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('ctx.workspaceId')
+    expect(fnBody).not.toContain('input.workspaceId')
+  })
+
+  it('TC-3R-196: Skip action passes ctx.userId as actorUserId, not input.actorUserId', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function skipFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('ctx.userId')
+    expect(fnBody).not.toContain('input.actorUserId')
+  })
+
+  it('TC-3R-197: Skip action trims commitmentId from input', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function skipFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('commitmentId')
+    expect(fnBody).toContain('.trim()')
+  })
+
+  it('TC-3R-198: Skip action validates commitmentId is non-empty after trim', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function skipFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('commitmentId is required')
+  })
+
+  it('TC-3R-199: Skip action trims skippedReason from input', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function skipFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('skippedReason')
+    expect(fnBody).toContain('.trim()')
+  })
+
+  it('TC-3R-200: Skip action maps not_found to success:false', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function skipFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain("'not_found'")
+  })
+
+  it('TC-3R-201: Skip action maps not_open to success:false', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function skipFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain("'not_open'")
+  })
+
+  it('TC-3R-202: Skip action maps write_failed to success:false', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function skipFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain("'write_failed'")
+  })
+
+  it('TC-3R-203: Skip action maps audit_failed to success:false', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function skipFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain("'audit_failed'")
+  })
+
+  it('TC-3R-204: Skip action does not import recordActivityEvent', () => {
+    // Audit belongs to the service layer; action must not import the audit repo.
+    expect(readSrc(MUTATIONS_ACTION)).not.toContain('activity-event.repo')
+  })
+
+  it('TC-3R-205: Skip action does not reference Resend, Inngest, OpenAI, Anthropic', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).not.toContain('Resend')
+    expect(src).not.toContain('Inngest')
+    expect(src).not.toContain('OpenAI')
+    expect(src).not.toContain('Anthropic')
+  })
+
+  it('TC-3R-206: Skip action does not reference EMAIL_SENDING_ENABLED or CAMPAIGN_SENDING_ENABLED', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+
+  it('TC-3R-207: Skip action does not reference email_drafts', () => {
+    expect(readSrc(MUTATIONS_ACTION)).not.toContain('email_drafts')
+  })
+
+  it('TC-3R-208: action file does not export reschedule/reopen/send/draft functions', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).not.toContain('rescheduleFollowUp')
+    expect(src).not.toContain('reopenFollowUp')
+    expect(src).not.toContain('generateFollowUpDraft')
+    expect(src).not.toContain('sendFollowUp')
+  })
+
+  it('TC-3R-209: Skip action returns status skipped in success data', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    const fnStart = src.indexOf('export async function skipFollowUpCommitmentAction')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain("status: 'skipped'")
+  })
+
+  it('TC-3R-210: no Skip UI control exists yet (guard — future slice)', () => {
+    expect(readSrc(COMPLETE_BUTTON)).not.toContain('skipFollowUp')
+  })
+
+  it('TC-3R-211: migration 20240039 exists (guard — applied separately)', () => {
+    expect(() => readSrc(MIGRATION_039)).not.toThrow()
+  })
+
+  it('TC-3R-212: Complete action is unchanged — still exports completeFollowUpCommitmentAction', () => {
+    const src = readSrc(MUTATIONS_ACTION)
+    expect(src).toContain('export async function completeFollowUpCommitmentAction')
+    expect(src).toContain("status: 'completed'")
   })
 
 })
