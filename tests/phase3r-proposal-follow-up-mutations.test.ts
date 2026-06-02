@@ -29,7 +29,8 @@ const MUTATIONS_SERVICE = 'modules/proposals/services/proposal-follow-up-mutatio
 const MUTATIONS_ACTION  = 'modules/proposals/actions/proposal-follow-up-mutations.actions.ts'
 const MIGRATION_039     = 'supabase/migrations/20240039_phase3r_follow_up_skip_fields.sql'
 const COMPLETE_BUTTON   = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/CompleteFollowUpButton.tsx'
-const SKIP_BUTTON       = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/SkipFollowUpButton.tsx'
+const SKIP_BUTTON           = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/SkipFollowUpButton.tsx'
+const RESCHEDULE_BUTTON     = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/RescheduleFollowUpButton.tsx'
 const QUEUE_PAGE        = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/page.tsx'
 
 // ---------------------------------------------------------------------------
@@ -1651,8 +1652,8 @@ describe('Slice 14B: proposal follow-up mutations repo — rescheduleFollowUpCom
     expect(readSrc(MUTATIONS_ACTION)).toContain('rescheduleFollowUpCommitmentAction')
   })
 
-  it('TC-3R-262: no Reschedule UI component exists yet (guard — Slice 14E)', () => {
-    expect(() => readSrc('app/(workspace)/[workspaceSlug]/proposal-follow-ups/RescheduleFollowUpButton.tsx')).toThrow()
+  it('TC-3R-262: Reschedule UI component exists (Slice 14E complete)', () => {
+    expect(() => readSrc(RESCHEDULE_BUTTON)).not.toThrow()
   })
 
   it('TC-3R-263: no Reopen functions exist in repo, service, or action', () => {
@@ -1852,8 +1853,8 @@ describe('Slice 14C: proposal follow-up mutations service — rescheduleFollowUp
     expect(readSrc(MUTATIONS_ACTION)).toContain('rescheduleFollowUpCommitmentAction')
   })
 
-  it('TC-3R-295: no Reschedule UI component exists yet (guard — Slice 14E)', () => {
-    expect(() => readSrc('app/(workspace)/[workspaceSlug]/proposal-follow-ups/RescheduleFollowUpButton.tsx')).toThrow()
+  it('TC-3R-295: Reschedule UI component exists (Slice 14E complete)', () => {
+    expect(() => readSrc(RESCHEDULE_BUTTON)).not.toThrow()
   })
 
   it('TC-3R-296: Complete and Skip service functions are unchanged by Slice 14C', () => {
@@ -2042,8 +2043,8 @@ describe('Slice 14D: proposal follow-up mutations action — rescheduleFollowUpC
     expect(fnBody).toContain('nextFollowUpDueAt')
   })
 
-  it('TC-3R-324: no Reschedule UI component exists yet (guard — Slice 14E)', () => {
-    expect(() => readSrc('app/(workspace)/[workspaceSlug]/proposal-follow-ups/RescheduleFollowUpButton.tsx')).toThrow()
+  it('TC-3R-324: Reschedule UI component exists (Slice 14E complete)', () => {
+    expect(() => readSrc(RESCHEDULE_BUTTON)).not.toThrow()
   })
 
   it('TC-3R-325: Complete and Skip actions are unchanged by Slice 14D', () => {
@@ -2052,6 +2053,168 @@ describe('Slice 14D: proposal follow-up mutations action — rescheduleFollowUpC
     expect(src).toContain("status: 'completed'")
     expect(src).toContain('export async function skipFollowUpCommitmentAction')
     expect(src).toContain("status: 'skipped'")
+  })
+
+})
+
+// ---------------------------------------------------------------------------
+// Slice 14E — Reschedule UI confirmation control
+// TC-3R-326 through TC-3R-353
+// ---------------------------------------------------------------------------
+
+describe('Slice 14E: proposal follow-up reschedule UI control — RescheduleFollowUpButton', () => {
+
+  it('TC-3R-326: RescheduleFollowUpButton component file exists and is readable', () => {
+    expect(() => readSrc(RESCHEDULE_BUTTON)).not.toThrow()
+  })
+
+  it('TC-3R-327: component declares use client', () => {
+    expect(readSrc(RESCHEDULE_BUTTON)).toContain("'use client'")
+  })
+
+  it('TC-3R-328: RescheduleFollowUpButton is exported', () => {
+    expect(readSrc(RESCHEDULE_BUTTON)).toContain('export function RescheduleFollowUpButton')
+  })
+
+  it('TC-3R-329: component imports and calls rescheduleFollowUpCommitmentAction from action file', () => {
+    const src = readSrc(RESCHEDULE_BUTTON)
+    expect(src).toContain('rescheduleFollowUpCommitmentAction')
+    expect(src).toContain('proposal-follow-up-mutations.actions')
+  })
+
+  it('TC-3R-330: component does not import from mutations service directly', () => {
+    expect(readSrc(RESCHEDULE_BUTTON)).not.toContain('proposal-follow-up-mutations.service')
+  })
+
+  it('TC-3R-331: component does not import from mutations repo directly', () => {
+    expect(readSrc(RESCHEDULE_BUTTON)).not.toContain('proposal-follow-up-mutations.repo')
+  })
+
+  it('TC-3R-332: component accepts commitmentId prop', () => {
+    expect(readSrc(RESCHEDULE_BUTTON)).toContain('commitmentId')
+  })
+
+  it('TC-3R-333: component accepts optional currentDueAt prop', () => {
+    expect(readSrc(RESCHEDULE_BUTTON)).toContain('currentDueAt')
+  })
+
+  it('TC-3R-334: component does not accept tenantId, workspaceId, or actorUserId', () => {
+    const src = readSrc(RESCHEDULE_BUTTON)
+    expect(src).not.toContain('tenantId')
+    expect(src).not.toContain('workspaceId')
+    expect(src).not.toContain('actorUserId')
+  })
+
+  it('TC-3R-335: component includes datetime-local input', () => {
+    expect(readSrc(RESCHEDULE_BUTTON)).toContain('datetime-local')
+  })
+
+  it('TC-3R-336: component validates date input before calling action', () => {
+    const src = readSrc(RESCHEDULE_BUTTON)
+    expect(src).toContain('isNaN')
+    expect(src).toContain('parsedDate')
+  })
+
+  it('TC-3R-337: component converts datetime-local to ISO string before action call', () => {
+    // The Codex timezone note requires the client to convert datetime-local to ISO
+    // before passing to the server action.
+    const src = readSrc(RESCHEDULE_BUTTON)
+    expect(src).toContain('.toISOString()')
+    expect(src).toContain('isoNextFollowUpDueAt')
+  })
+
+  it('TC-3R-338: component passes ISO string variable to action, not raw datetime-local value', () => {
+    const src = readSrc(RESCHEDULE_BUTTON)
+    // isoNextFollowUpDueAt is the converted ISO variable passed to the action
+    expect(src).toContain('nextFollowUpDueAt: isoNextFollowUpDueAt')
+  })
+
+  it('TC-3R-339: component includes confirmation text for rescheduling commitment', () => {
+    expect(readSrc(RESCHEDULE_BUTTON)).toContain('Reschedule this follow-up commitment?')
+  })
+
+  it('TC-3R-340: component states does not send email or close commitment', () => {
+    const src = readSrc(RESCHEDULE_BUTTON)
+    expect(src).toContain('does not send an email or close the commitment')
+  })
+
+  it('TC-3R-341: component calls router.refresh() after successful reschedule', () => {
+    const src = readSrc(RESCHEDULE_BUTTON)
+    expect(src).toContain('router.refresh()')
+    expect(src).toContain('useRouter')
+  })
+
+  it('TC-3R-342: component includes error state with message display', () => {
+    const src = readSrc(RESCHEDULE_BUTTON)
+    expect(src).toContain("type: 'error'")
+    expect(src).toContain('state.message')
+  })
+
+  it('TC-3R-343: component does not reference Resend, Inngest, OpenAI, Anthropic', () => {
+    const src = readSrc(RESCHEDULE_BUTTON)
+    expect(src).not.toContain('Resend')
+    expect(src).not.toContain('Inngest')
+    expect(src).not.toContain('OpenAI')
+    expect(src).not.toContain('Anthropic')
+  })
+
+  it('TC-3R-344: component does not reference EMAIL_SENDING_ENABLED or CAMPAIGN_SENDING_ENABLED', () => {
+    const src = readSrc(RESCHEDULE_BUTTON)
+    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+
+  it('TC-3R-345: component does not reference email_drafts', () => {
+    expect(readSrc(RESCHEDULE_BUTTON)).not.toContain('email_drafts')
+  })
+
+  it('TC-3R-346: component does not reference complete/skip/reopen/send/draft mutation functions', () => {
+    const src = readSrc(RESCHEDULE_BUTTON)
+    expect(src).not.toContain('completeFollowUpCommitment')
+    expect(src).not.toContain('skipFollowUpCommitment')
+    expect(src).not.toContain('reopenFollowUpCommitment')
+    expect(src).not.toContain('generateFollowUpDraft')
+    expect(src).not.toContain('sendFollowUp')
+  })
+
+  it('TC-3R-347: follow-up queue page imports RescheduleFollowUpButton', () => {
+    const src = readSrc(QUEUE_PAGE)
+    expect(src).toContain('RescheduleFollowUpButton')
+  })
+
+  it('TC-3R-348: queue page passes commitmentId to RescheduleFollowUpButton', () => {
+    const src = readSrc(QUEUE_PAGE)
+    expect(src).toContain('commitmentId={item.id}')
+  })
+
+  it('TC-3R-349: queue page passes currentDueAt to RescheduleFollowUpButton', () => {
+    const src = readSrc(QUEUE_PAGE)
+    expect(src).toContain('currentDueAt={item.follow_up_due_at}')
+  })
+
+  it('TC-3R-350: queue page does not pass tenantId, workspaceId, or actorUserId to Reschedule button', () => {
+    const src = readSrc(QUEUE_PAGE)
+    expect(src).not.toContain('tenantId={')
+    expect(src).not.toContain('workspaceId={')
+    expect(src).not.toContain('actorUserId={')
+  })
+
+  it('TC-3R-351: Complete and Skip UI controls are unchanged by Slice 14E', () => {
+    expect(readSrc(COMPLETE_BUTTON)).toContain('export function CompleteFollowUpButton')
+    expect(readSrc(SKIP_BUTTON)).toContain('export function SkipFollowUpButton')
+  })
+
+  it('TC-3R-352: migration 20240039 exists (guard — applied to local and remote-dev in Slice 12B)', () => {
+    expect(() => readSrc(MIGRATION_039)).not.toThrow()
+  })
+
+  it('TC-3R-353: no Reopen controls exist in any Phase 3R file', () => {
+    const repo    = readSrc(MUTATIONS_REPO)
+    const service = readSrc(MUTATIONS_SERVICE)
+    const action  = readSrc(MUTATIONS_ACTION)
+    expect(repo).not.toContain('reopenFollowUpCommitment')
+    expect(service).not.toContain('reopenFollowUp')
+    expect(action).not.toContain('reopenFollowUp')
   })
 
 })

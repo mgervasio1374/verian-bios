@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ListChecks } from 'lucide-react'
 import { CompleteFollowUpButton } from './CompleteFollowUpButton'
 import { SkipFollowUpButton } from './SkipFollowUpButton'
+import { RescheduleFollowUpButton } from './RescheduleFollowUpButton'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -222,6 +223,7 @@ export default async function ProposalFollowUpsPage({ params, searchParams }: Pa
                           </Link>
                           <CompleteFollowUpButton commitmentId={item.id} />
                           <SkipFollowUpButton commitmentId={item.id} />
+                          <RescheduleFollowUpButton commitmentId={item.id} currentDueAt={item.follow_up_due_at} />
                         </div>
                       </td>
                     </tr>
