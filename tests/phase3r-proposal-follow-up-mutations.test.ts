@@ -383,9 +383,8 @@ describe('Slice 5: proposal follow-up mutations service — completeFollowUpComm
     expect(readSrc(MUTATIONS_SERVICE)).not.toContain('email_drafts')
   })
 
-  it('TC-3R-057: service does not export reschedule/reopen/send/draft functions (skip now permitted)', () => {
+  it('TC-3R-057: service does not export reopen/send/draft functions (skip and reschedule now permitted)', () => {
     const src = readSrc(MUTATIONS_SERVICE)
-    expect(src).not.toContain('rescheduleFollowUp')
     expect(src).not.toContain('reopenFollowUp')
     expect(src).not.toContain('generateFollowUpDraft')
     expect(src).not.toContain('sendFollowUp')
@@ -1127,9 +1126,8 @@ describe('Slice 10: proposal follow-up mutations service — skipFollowUpCommitm
     expect(readSrc(MUTATIONS_SERVICE)).not.toContain('email_drafts')
   })
 
-  it('TC-3R-182: service does not export reschedule/reopen/send/draft functions', () => {
+  it('TC-3R-182: service does not export reopen/send/draft functions (reschedule now permitted)', () => {
     const src = readSrc(MUTATIONS_SERVICE)
-    expect(src).not.toContain('rescheduleFollowUp')
     expect(src).not.toContain('reopenFollowUp')
     expect(src).not.toContain('generateFollowUpDraft')
     expect(src).not.toContain('sendFollowUp')
@@ -1647,8 +1645,8 @@ describe('Slice 14B: proposal follow-up mutations repo — rescheduleFollowUpCom
     expect(readSrc(MUTATIONS_REPO)).not.toContain('email_drafts')
   })
 
-  it('TC-3R-260: no Reschedule service function exists yet (guard — Slice 14C)', () => {
-    expect(readSrc(MUTATIONS_SERVICE)).not.toContain('rescheduleFollowUpCommitmentForWorkspace')
+  it('TC-3R-260: Reschedule service function exists (Slice 14C complete)', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain('rescheduleFollowUpCommitmentForWorkspace')
   })
 
   it('TC-3R-261: no Reschedule action function exists yet (guard — Slice 14D)', () => {
@@ -1679,6 +1677,193 @@ describe('Slice 14B: proposal follow-up mutations repo — rescheduleFollowUpCom
     const src = readSrc(MUTATIONS_REPO)
     expect(src).toContain('export async function skipFollowUpCommitment')
     expect(src).toContain("commitment_status:  'skipped'")
+  })
+
+})
+
+// ---------------------------------------------------------------------------
+// Slice 14C — Reschedule service layer with activity_events audit
+// TC-3R-266 through TC-3R-296
+// ---------------------------------------------------------------------------
+
+describe('Slice 14C: proposal follow-up mutations service — rescheduleFollowUpCommitmentForWorkspace', () => {
+
+  it('TC-3R-266: ActivityEventType.PROPOSAL_FOLLOW_UP_RESCHEDULED constant exists in types.agent.ts', () => {
+    const src = readSrc('modules/intelligence/types.agent.ts')
+    expect(src).toContain('PROPOSAL_FOLLOW_UP_RESCHEDULED')
+  })
+
+  it('TC-3R-267: PROPOSAL_FOLLOW_UP_RESCHEDULED maps to proposal_follow_up_rescheduled', () => {
+    expect(readSrc('modules/intelligence/types.agent.ts')).toContain("'proposal_follow_up_rescheduled'")
+  })
+
+  it('TC-3R-268: rescheduleFollowUpCommitmentForWorkspace is exported', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain('export async function rescheduleFollowUpCommitmentForWorkspace')
+  })
+
+  it('TC-3R-269: RescheduleFollowUpCommitmentResult type is exported', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain('export type RescheduleFollowUpCommitmentResult')
+  })
+
+  it('TC-3R-270: service imports and calls rescheduleFollowUpCommitment from repo', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    expect(src).toContain('rescheduleFollowUpCommitment')
+    expect(src).toContain('proposal-follow-up-mutations.repo')
+  })
+
+  it('TC-3R-271: service imports and calls recordActivityEvent', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    expect(src).toContain('recordActivityEvent')
+    expect(src).toContain('activity-event.repo')
+  })
+
+  it('TC-3R-272: service uses ActivityEventType.PROPOSAL_FOLLOW_UP_RESCHEDULED', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    expect(src).toContain('ActivityEventType')
+    expect(src).toContain('PROPOSAL_FOLLOW_UP_RESCHEDULED')
+  })
+
+  it('TC-3R-273: service passes tenantId and workspaceId to both repo and audit calls', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentForWorkspace')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('tenantId')
+    expect(fnBody).toContain('workspaceId')
+  })
+
+  it('TC-3R-274: service uses previousFollowUpDueAt from repository result', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentForWorkspace')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('previousFollowUpDueAt')
+  })
+
+  it('TC-3R-275: service includes previous_follow_up_due_at in audit properties', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentForWorkspace')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('previous_follow_up_due_at')
+  })
+
+  it('TC-3R-276: service includes next_follow_up_due_at in audit properties', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentForWorkspace')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('next_follow_up_due_at')
+  })
+
+  it('TC-3R-277: service uses entityType proposal_follow_up_commitment in audit', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain("'proposal_follow_up_commitment'")
+  })
+
+  it('TC-3R-278: service uses eventSource operator_action', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain("'operator_action'")
+  })
+
+  it('TC-3R-279: service uses eventSummary Follow-up commitment rescheduled', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain('Follow-up commitment rescheduled')
+  })
+
+  it('TC-3R-280: service includes actor_user_id in Reschedule audit properties', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentForWorkspace')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('actor_user_id')
+  })
+
+  it('TC-3R-281: service includes proposal_event_id in Reschedule audit properties', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentForWorkspace')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('proposal_event_id')
+  })
+
+  it('TC-3R-282: service includes follow_up_commitment_id in Reschedule audit properties', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentForWorkspace')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('follow_up_commitment_id')
+  })
+
+  it('TC-3R-283: service includes follow_up_sequence in Reschedule audit properties', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentForWorkspace')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain('follow_up_sequence')
+  })
+
+  it('TC-3R-284: service audit records previous_status open and next_status open', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentForWorkspace')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain("previous_status:           'open'")
+    expect(fnBody).toContain("next_status:               'open'")
+  })
+
+  it('TC-3R-285: service maps ProposalFollowUpMutationError not_found', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    expect(src).toContain('ProposalFollowUpMutationError')
+    expect(src).toContain("'not_found'")
+  })
+
+  it('TC-3R-286: service maps ProposalFollowUpMutationError not_open', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain("'not_open'")
+  })
+
+  it('TC-3R-287: service maps ProposalFollowUpMutationError write_failed', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).toContain("'write_failed'")
+  })
+
+  it('TC-3R-288: service includes audit_failed result path', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    const fnStart = src.indexOf('export async function rescheduleFollowUpCommitmentForWorkspace')
+    const fnBody  = src.slice(fnStart)
+    expect(fnBody).toContain("'audit_failed'")
+  })
+
+  it('TC-3R-289: service does not call requirePermission', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).not.toContain('requirePermission')
+  })
+
+  it('TC-3R-290: service does not reference Resend, Inngest, OpenAI, Anthropic', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    expect(src).not.toContain('Resend')
+    expect(src).not.toContain('Inngest')
+    expect(src).not.toContain('OpenAI')
+    expect(src).not.toContain('Anthropic')
+  })
+
+  it('TC-3R-291: service does not reference EMAIL_SENDING_ENABLED or CAMPAIGN_SENDING_ENABLED', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
+  })
+
+  it('TC-3R-292: service does not reference email_drafts', () => {
+    expect(readSrc(MUTATIONS_SERVICE)).not.toContain('email_drafts')
+  })
+
+  it('TC-3R-293: service does not export Reopen/send/draft functions', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    expect(src).not.toContain('reopenFollowUp')
+    expect(src).not.toContain('generateFollowUpDraft')
+    expect(src).not.toContain('sendFollowUp')
+  })
+
+  it('TC-3R-294: no Reschedule action function exists yet (guard — Slice 14D)', () => {
+    expect(readSrc(MUTATIONS_ACTION)).not.toContain('rescheduleFollowUpCommitmentAction')
+  })
+
+  it('TC-3R-295: no Reschedule UI component exists yet (guard — Slice 14E)', () => {
+    expect(() => readSrc('app/(workspace)/[workspaceSlug]/proposal-follow-ups/RescheduleFollowUpButton.tsx')).toThrow()
+  })
+
+  it('TC-3R-296: Complete and Skip service functions are unchanged by Slice 14C', () => {
+    const src = readSrc(MUTATIONS_SERVICE)
+    expect(src).toContain('export async function completeFollowUpCommitmentForWorkspace')
+    expect(src).toContain('PROPOSAL_FOLLOW_UP_COMPLETED')
+    expect(src).toContain('export async function skipFollowUpCommitmentForWorkspace')
+    expect(src).toContain('PROPOSAL_FOLLOW_UP_SKIPPED')
   })
 
 })

@@ -254,8 +254,9 @@ export const ActivityEventType = {
   PROPOSAL_CAPTURE_MATCHED:     'proposal_capture_matched',
   PROPOSAL_CAPTURE_REVIEWED:    'proposal_capture_reviewed',
   PROPOSAL_STATUS_UPDATED:      'proposal_status_updated',
-  PROPOSAL_FOLLOW_UP_CREATED:   'proposal_follow_up_created',
-  PROPOSAL_FOLLOW_UP_COMPLETED: 'proposal_follow_up_completed',
-  PROPOSAL_FOLLOW_UP_SKIPPED:   'proposal_follow_up_skipped',
+  PROPOSAL_FOLLOW_UP_CREATED:      'proposal_follow_up_created',
+  PROPOSAL_FOLLOW_UP_COMPLETED:    'proposal_follow_up_completed',
+  PROPOSAL_FOLLOW_UP_SKIPPED:      'proposal_follow_up_skipped',
+  PROPOSAL_FOLLOW_UP_RESCHEDULED:  'proposal_follow_up_rescheduled',
 } as const
 export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType]
