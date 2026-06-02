@@ -1,5 +1,8 @@
 import Link from 'next/link'
 import { getProposalFollowUpQueueAction } from '@/modules/proposals/actions/proposal-follow-up-queue.actions'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { buildRequestContext } from '@/lib/auth/context'
+import { hasPermission } from '@/lib/auth/permissions'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ListChecks } from 'lucide-react'
@@ -42,6 +45,17 @@ export default async function ProposalFollowUpsPage({ params, searchParams }: Pa
     : undefined
 
   const result = await getProposalFollowUpQueueAction({ due })
+
+  // Determine whether the current user has mutation permission.
+  // Falls back to false on any auth error — hiding controls is safer than showing broken buttons.
+  let canMutate = false
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx = await buildRequestContext(supabase)
+    canMutate = hasPermission(ctx, 'crm.leads.edit')
+  } catch {
+    canMutate = false
+  }
 
   const base      = `/${workspaceSlug}/proposal-follow-ups`
   const eventsBase = `/${workspaceSlug}/proposal-events`
@@ -221,9 +235,13 @@ export default async function ProposalFollowUpsPage({ params, searchParams }: Pa
                           >
                             View →
                           </Link>
-                          <CompleteFollowUpButton commitmentId={item.id} />
-                          <SkipFollowUpButton commitmentId={item.id} />
-                          <RescheduleFollowUpButton commitmentId={item.id} currentDueAt={item.follow_up_due_at} />
+                          {canMutate && (
+                            <>
+                              <CompleteFollowUpButton commitmentId={item.id} />
+                              <SkipFollowUpButton commitmentId={item.id} />
+                              <RescheduleFollowUpButton commitmentId={item.id} currentDueAt={item.follow_up_due_at} />
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

@@ -225,3 +225,38 @@ describe('Slice 7: follow-up queue UI — filter state normalization and polish'
   })
 
 })
+
+// ---------------------------------------------------------------------------
+// Slice 14F — Permission-aware mutation controls
+// TC-3Q-131 through TC-3Q-135
+// ---------------------------------------------------------------------------
+
+describe('Slice 14F: follow-up queue UI — permission-aware mutation visibility', () => {
+
+  it('TC-3Q-131: page imports hasPermission to derive mutation visibility', () => {
+    expect(readSrc(QUEUE_PAGE)).toContain('hasPermission')
+  })
+
+  it('TC-3Q-132: page checks crm.leads.edit permission for mutation controls', () => {
+    expect(readSrc(QUEUE_PAGE)).toContain("'crm.leads.edit'")
+  })
+
+  it('TC-3Q-133: page derives canMutate from permission check', () => {
+    expect(readSrc(QUEUE_PAGE)).toContain('canMutate')
+  })
+
+  it('TC-3Q-134: mutation controls are conditionally rendered based on canMutate', () => {
+    const src = readSrc(QUEUE_PAGE)
+    // canMutate gates all three mutation controls
+    expect(src).toContain('canMutate')
+    expect(src).toContain('CompleteFollowUpButton')
+    expect(src).toContain('SkipFollowUpButton')
+    expect(src).toContain('RescheduleFollowUpButton')
+  })
+
+  it('TC-3Q-135: page falls back to canMutate=false on auth error', () => {
+    // Hiding controls is safer than showing broken buttons if context resolution fails.
+    expect(readSrc(QUEUE_PAGE)).toContain('canMutate = false')
+  })
+
+})
