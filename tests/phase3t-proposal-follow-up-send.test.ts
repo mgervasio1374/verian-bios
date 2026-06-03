@@ -367,12 +367,13 @@ describe('Slice 3: activity event constant', () => {
 
 describe('Slice 3: provider-success/local-update failure risk documentation', () => {
 
-  it('TC-3T-045: action documents provider-success/local-update failure risk and flag precondition', () => {
+  it('TC-3T-045: action comment reflects Phase 3U hardening and flag precondition', () => {
     const src = readSrc(SEND_ACTION)
-    // The risk comment must be present in the action file
-    expect(src).toContain('Provider-success/local-update failure risk')
-    expect(src).toContain('resend_message_id is NOT persisted')
-    expect(src).toContain('email sending feature flag must remain disabled')
+    // Phase 3U hardening replaced the old "risk not persisted" comment.
+    // The updated comment must reference the Phase 3U fixes and the flag gate.
+    expect(src).toContain('Phase 3U hardening')
+    expect(src).toContain('provider_accepted')
+    expect(src).toContain('EMAIL_SENDING_ENABLED still remains the required delivery gate')
   })
 
 })

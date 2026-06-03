@@ -50,14 +50,15 @@ export interface SendFollowUpDraftActionData {
 //   J. checkDraftSendReadiness (subject, body, approval_request_id, status)
 //   K. sendApprovedDraft (feature flag gate, lifecycle double-gate, idempotency)
 //
-// Provider-success/local-update failure risk:
-//   If sendApprovedDraft's Resend call succeeds but Promise.all([updateEmailSend,
-//   updateDraftStatus]) subsequently fails, the resend_message_id is NOT persisted
-//   to email_sends (the update to 'sent' failed before writing it). email_sends is
-//   then updated to 'failed' without resend_message_id, making it impossible to
-//   determine from the DB alone whether the email was actually delivered.
-//   The email sending feature flag must remain disabled until this scenario is
-//   confirmed safe or explicitly hardened in sendApprovedDraft.
+// Phase 3U hardening (ef8eb2f):
+//   sendApprovedDraft now preserves provider-known send state via:
+//   - getBlockingSendForDraft (blocks queued/sent/provider_accepted and failed+resend_message_id)
+//   - provider_accepted intermediate status written immediately after provider success
+//   - hardened catch block that writes top-level resendMessageId and preserves
+//     provider_accepted status if local finalization subsequently fails
+//   resend_message_id is no longer lost if Promise.all fails after provider success.
+//   EMAIL_SENDING_ENABLED still remains the required delivery gate and must be
+//   enabled only through a separate explicit production readiness step.
 //
 // This action does NOT:
 //   - Call the email delivery provider directly
