@@ -94,12 +94,21 @@ export async function sendApprovedDraft(
   }
 
   // ---- 4. Idempotency: block duplicate sends ----
-  const existingSend = await emailSendRepo.getActiveSendForDraft(draftId, ctx.tenantId)
+  // Phase 3U: use getBlockingSendForDraft instead of getActiveSendForDraft.
+  // getBlockingSendForDraft also blocks 'provider_accepted' (provider received request;
+  // local finalization may be pending) and 'failed'+resend_message_id (provider may have sent).
+  // 'provider_accepted' is application-guarded — the email_sends_draft_active_unique DB index
+  // only covers 'queued' and 'sent'; a future migration may extend it.
+  const existingSend = await emailSendRepo.getBlockingSendForDraft(draftId, ctx.tenantId)
   if (existingSend) {
     return {
       ok: false,
       reason: `duplicate_send_blocked (existing send ${existingSend.id} status: ${existingSend.status})`,
-      alreadySent: existingSend.status === 'sent',
+      // alreadySent: provider_accepted and failed+resend_message_id are operationally
+      // sent-equivalent — treat them as alreadySent to prevent further provider calls.
+      alreadySent: existingSend.status === 'sent'
+               || existingSend.status === 'provider_accepted'
+               || (existingSend.status === 'failed' && existingSend.resend_message_id !== null),
     }
   }
 
@@ -248,7 +257,23 @@ export async function sendApprovedDraft(
 
     resendMessageId = resendData.id ?? null
 
-    // ---- Success path ----
+    // ---- Phase 3U: persist provider ID immediately before local finalization ----
+    // Write 'provider_accepted' + resendMessageId now, before Promise.all.
+    // If Promise.all subsequently fails, resendMessageId is already in the DB and
+    // the status is 'provider_accepted' — not overwritten to 'failed' by the catch block.
+    // This ensures resend_message_id is never lost after a confirmed provider acceptance.
+    await emailSendRepo.updateEmailSend(emailSend.id, {
+      status:          'provider_accepted',
+      resendMessageId,
+      metadata: {
+        ...sendMetadata,
+        provider_success:      true,
+        provider_accepted_at:  now,
+        resend_message_id:     resendMessageId,
+      },
+    })
+
+    // ---- Success path: finalize local state ----
     await Promise.all([
       emailSendRepo.updateEmailSend(emailSend.id, {
         status:           'sent',
@@ -305,46 +330,121 @@ export async function sendApprovedDraft(
     return { ok: true, sendId: emailSend.id, resendMessageId }
   } catch (err) {
     // ---- Failure path ----
-    // email_sends → failed, email_drafts stays 'approved'
     const errorMessage = err instanceof Error ? err.message : String(err)
+    const failedAt     = new Date().toISOString()
 
-    await emailSendRepo.updateEmailSend(emailSend.id, {
-      status:        'failed',
-      errorMessage,
-      // Phase 3H: typed column alongside metadata.error for structured queries.
-      failureReason: errorMessage,
-      metadata:      { ...sendMetadata, error: errorMessage },
-    })
+    if (resendMessageId !== null) {
+      // ---- Phase 3U: provider-success / local-finalization failure ----
+      // Resend accepted the request (resendMessageId is set) but a subsequent
+      // local DB update failed. Do NOT overwrite status to 'failed' — the row
+      // was written to 'provider_accepted' above and must stay that way so
+      // getBlockingSendForDraft will block any retry from calling the provider again.
+      //
+      // Note: timeout/no-ID failures (resendMessageId = null) are handled below and
+      // are generally retryable, but can be ambiguous if a provider timeout occurred
+      // before the ID was returned. That case is deferred to future reconciliation.
+      // Best-effort: write status + resendMessageId as top-level fields so
+      // resend_message_id is persisted to the DB column even if the earlier
+      // provider_accepted write (step 8) was the one that threw. This closes
+      // the gap where the row could still be 'queued' with resend_message_id = null.
+      await emailSendRepo.updateEmailSend(emailSend.id, {
+        status:         'provider_accepted',    // explicit — do not rely on prior write
+        resendMessageId,                        // explicit — write to column, not only metadata
+        failureReason:  'local_finalization_failed_after_provider_success',
+        errorMessage,
+        metadata: {
+          ...sendMetadata,
+          provider_success:             true,
+          local_finalization_failed_at: failedAt,
+          resend_message_id:            resendMessageId,
+          local_finalization_error:     errorMessage,
+        },
+      })
 
-    // Phase 3H: ET_SEND_FAILED emitted for ALL sends. (non-fatal)
-    activityEventService.recordActivity({
-      tenantId:     ctx.tenantId,
-      workspaceId:  ctx.workspaceId,
-      eventType:    'ET_SEND_FAILED',
-      entityType:   phase3bMeta !== null ? 'message_version' : 'email_draft',
-      entityId:     phase3bMeta !== null
-        ? (phase3bMeta.message_version_id ?? undefined)
-        : draftId,
-      eventSummary: phase3bMeta !== null
-        ? `Send failed for version ${phase3bMeta.version_label ?? '?'}: ${errorMessage}`
-        : `Send failed for draft to ${draft.to_email}: ${errorMessage}`,
-      leadId:       phase3bMeta !== null
-        ? (phase3bMeta.lead_id ?? undefined)
-        : (draftLeadId ?? undefined),
-      contactId:    draft.contact_id ?? undefined,
-      companyId:    draft.company_id ?? undefined,
-      metadata: {
-        ...(etAudit.buildSendFailedPayload({
-          emailSendId:  emailSend.id,
-          draftId,
-          phase3bMeta,
-          toEmail:      draft.to_email,
-          errorReason:  errorMessage,
-        }) as unknown as Record<string, unknown>),
-        ...(phase3bMeta === null ? { send_path: 'phase_3a_template' } : {}),
-      },
-    }).catch(() => {})
+      // ET_SEND_FAILED emitted; metadata explicitly enriched with provider_success and
+      // resend_message_id because buildSendFailedPayload does not include those fields.
+      activityEventService.recordActivity({
+        tenantId:     ctx.tenantId,
+        workspaceId:  ctx.workspaceId,
+        eventType:    'ET_SEND_FAILED',
+        entityType:   phase3bMeta !== null ? 'message_version' : 'email_draft',
+        entityId:     phase3bMeta !== null
+          ? (phase3bMeta.message_version_id ?? undefined)
+          : draftId,
+        eventSummary: phase3bMeta !== null
+          ? `Send failed (local finalization) for version ${phase3bMeta.version_label ?? '?'}: ${errorMessage}`
+          : `Send failed (local finalization) for draft to ${draft.to_email}: ${errorMessage}`,
+        leadId:    phase3bMeta !== null
+          ? (phase3bMeta.lead_id ?? undefined)
+          : (draftLeadId ?? undefined),
+        contactId: draft.contact_id ?? undefined,
+        companyId: draft.company_id ?? undefined,
+        metadata: {
+          ...(etAudit.buildSendFailedPayload({
+            emailSendId:  emailSend.id,
+            draftId,
+            phase3bMeta,
+            toEmail:      draft.to_email,
+            errorReason:  errorMessage,
+          }) as unknown as Record<string, unknown>),
+          // Explicit enrichment — buildSendFailedPayload does not include these:
+          provider_success:                        true,
+          resend_message_id:                       resendMessageId,
+          failure_reason:                          'local_finalization_failed_after_provider_success',
+          local_finalization_failed_at:            failedAt,
+          ...(phase3bMeta === null ? { send_path: 'phase_3a_template' } : {}),
+        },
+      }).catch(() => {})
 
-    return { ok: false, reason: `send_failed: ${errorMessage}` }
+      return { ok: false, reason: 'local_finalization_failed_after_provider_success' }
+
+    } else {
+      // ---- Clean provider failure (no provider ID) ----
+      // Resend did not confirm the request. email_sends → 'failed'.
+      // email_drafts stays 'approved' — operator may retry.
+      //
+      // Caution: in rare timeout scenarios the provider may have received the request
+      // internally before the connection dropped without returning an ID. This case
+      // cannot be detected here and is deferred to future provider-side reconciliation.
+      // Do not treat this path as "definitely not sent" in comments or tests.
+      await emailSendRepo.updateEmailSend(emailSend.id, {
+        status:        'failed',
+        errorMessage,
+        failureReason: errorMessage,
+        metadata:      { ...sendMetadata, error: errorMessage, provider_success: false },
+      })
+
+      // Phase 3H: ET_SEND_FAILED emitted for ALL sends. (non-fatal)
+      activityEventService.recordActivity({
+        tenantId:     ctx.tenantId,
+        workspaceId:  ctx.workspaceId,
+        eventType:    'ET_SEND_FAILED',
+        entityType:   phase3bMeta !== null ? 'message_version' : 'email_draft',
+        entityId:     phase3bMeta !== null
+          ? (phase3bMeta.message_version_id ?? undefined)
+          : draftId,
+        eventSummary: phase3bMeta !== null
+          ? `Send failed for version ${phase3bMeta.version_label ?? '?'}: ${errorMessage}`
+          : `Send failed for draft to ${draft.to_email}: ${errorMessage}`,
+        leadId:    phase3bMeta !== null
+          ? (phase3bMeta.lead_id ?? undefined)
+          : (draftLeadId ?? undefined),
+        contactId: draft.contact_id ?? undefined,
+        companyId: draft.company_id ?? undefined,
+        metadata: {
+          ...(etAudit.buildSendFailedPayload({
+            emailSendId:  emailSend.id,
+            draftId,
+            phase3bMeta,
+            toEmail:      draft.to_email,
+            errorReason:  errorMessage,
+          }) as unknown as Record<string, unknown>),
+          provider_success: false,
+          ...(phase3bMeta === null ? { send_path: 'phase_3a_template' } : {}),
+        },
+      }).catch(() => {})
+
+      return { ok: false, reason: `send_failed: ${errorMessage}` }
+    }
   }
 }

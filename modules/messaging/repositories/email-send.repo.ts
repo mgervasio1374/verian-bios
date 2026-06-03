@@ -54,6 +54,65 @@ export async function getActiveSendForDraft(
   return data ?? null
 }
 
+// ---- Phase 3U: blocking send check ----
+//
+// Returns any email_send record that should block a new send attempt for this draft.
+//
+// Blocks:
+//   - status = 'queued'            — send in progress, provider not yet called
+//   - status = 'sent'              — already successfully delivered
+//   - status = 'provider_accepted' — provider received request; local finalization may be pending
+//   - status = 'failed' AND resend_message_id IS NOT NULL — provider may have sent
+//
+// Does NOT block:
+//   - status = 'failed' AND resend_message_id IS NULL — clean provider failure; generally retryable
+//
+// Note: status = 'failed' + resend_message_id IS NOT NULL is operationally blocking/sent-equivalent
+// even though the public return type is unchanged. The alreadySent flag reflects this.
+//
+// Important: 'provider_accepted' is application-guarded — it is NOT covered by the
+// email_sends_draft_active_unique DB index (which only covers 'queued' and 'sent').
+// A future migration could extend that index to include 'provider_accepted' and/or
+// add a partial index on (draft_id) WHERE resend_message_id IS NOT NULL.
+//
+// Timeout/no-ID note: status = 'failed' + resend_message_id IS NULL covers most clean
+// failures, but provider timeout can leave resend_message_id null even when delivery
+// may have occurred. That case is deferred to future reconciliation.
+
+export async function getBlockingSendForDraft(
+  draftId: string,
+  tenantId: string,
+): Promise<Pick<EmailSendRow, 'id' | 'status' | 'resend_message_id'> | null> {
+  const supabase = createSupabaseServiceClient()
+
+  // Query 1: standard blocking statuses
+  const { data: activeRow } = await supabase
+    .from('email_sends')
+    .select('id, status, resend_message_id')
+    .eq('draft_id', draftId)
+    .eq('tenant_id', tenantId)
+    .in('status', ['queued', 'sent', 'provider_accepted'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (activeRow) return activeRow
+
+  // Query 2: failed but provider ID known — treat as blocking to prevent duplicate send
+  const { data: failedWithId } = await supabase
+    .from('email_sends')
+    .select('id, status, resend_message_id')
+    .eq('draft_id', draftId)
+    .eq('tenant_id', tenantId)
+    .eq('status', 'failed')
+    .not('resend_message_id', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  return failedWithId ?? null
+}
+
 // ---- Create ----
 
 interface CreateEmailSendInput {
