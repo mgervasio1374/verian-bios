@@ -114,9 +114,11 @@ describe('Slice 6: follow-up queue UI page', () => {
     expect(src).not.toContain('Anthropic')
   })
 
-  it('TC-3Q-116: page does not reference EMAIL_SENDING_ENABLED or CAMPAIGN_SENDING_ENABLED', () => {
+  it('TC-3Q-116: page does not reference campaign sending flag', () => {
     const src = readSrc(QUEUE_PAGE)
-    expect(src).not.toContain('EMAIL_SENDING_ENABLED')
+    // Phase 3T added a legitimate read of EMAIL_SENDING_ENABLED for the Send UI
+    // feature flag gate — its presence is expected from that point forward.
+    // CAMPAIGN_SENDING_ENABLED must still not appear.
     expect(src).not.toContain('CAMPAIGN_SENDING_ENABLED')
   })
 
