@@ -69,33 +69,33 @@ Fill in all fields before writing a Slice 5 prompt. Fields marked `TBD` must be 
 
 | # | Evidence field | Value |
 |---|----------------|-------|
-| 1 | **Environment name** | TBD |
-| 2 | **Environment type** (must be staging/local/dev — NOT production) | TBD |
-| 3 | **Supabase project ref** | TBD |
-| 4 | **App URL** (staging/local URL only) | TBD |
-| 5 | **Tenant ID** | TBD |
-| 6 | **Workspace ID** | TBD |
-| 7 | **Workspace slug** | TBD |
-| 8 | **`verifiedScope`** (null = platform/global; tenantId = per-tenant override — prefer tenantId) | TBD |
-| 9 | **`verifiedScope` blast radius** (how many tenants are affected) | TBD |
-| 10 | **Internal recipient email** (must be `@321swipe.com` or equivalent internal) | TBD |
-| 11 | **Proposal follow-up commitment ID** | TBD |
-| 12 | **Email draft ID** | TBD |
-| 13 | **Draft status** (must be `approved`) | TBD |
-| 14 | **Draft subject** (must contain `[TEST ONLY]` or equivalent marker) | TBD |
-| 15 | **`approval_request_id`** (from draft row) | TBD |
-| 16 | **Approval status** (must be `approved`) | TBD |
-| 17 | **Sender identity ID** | TBD |
-| 18 | **Sender email/domain** | TBD |
-| 19 | **Sender identity verification status** (must be `is_verified = true`) | TBD |
+| 1 | **Environment name** | **⛔ AMBIGUOUS / BLOCKED** — `kxrplupzbsmujjznzhpy` is identified as **PRODUCTION** throughout repo docs (`docs/ai-context/00_CURRENT_STATUS.md`, `06_GIT_MILESTONES.md`, `deployment-flow-cleanup-design.md`). Prior evidence collection queried this project in error. |
+| 2 | **Environment type** (must be staging/local/dev — NOT production) | **⛔ CLASSIFICATION CONFLICT** — queries ran against `kxrplupzbsmujjznzhpy` which repo docs consistently identify as production. Staging project ref is `smbausuyetlgxflyhmfg`. Use staging or local Docker only for Slice 5. |
+| 3 | **Supabase project ref** | `kxrplupzbsmujjznzhpy` — **⛔ THIS IS PRODUCTION** per repo docs. Do NOT use for Slice 5. Correct non-production ref: `smbausuyetlgxflyhmfg` (staging) or `http://127.0.0.1:54321` (local Docker). |
+| 4 | **App URL** (staging/local URL only) | TBD — operator confirms staging/local app URL (NOT `https://verian-bios.vercel.app` which is production) |
+| 5 | **Tenant ID** | TBD — re-collect from correct non-production environment (staging/local) |
+| 6 | **Workspace ID** | TBD — re-collect from correct non-production environment |
+| 7 | **Workspace slug** | TBD — re-collect from correct non-production environment |
+| 8 | **`verifiedScope`** (null = platform/global; tenantId = per-tenant override — prefer tenantId) | TBD — must be determined for the correct non-production environment after classification is resolved |
+| 9 | **`verifiedScope` blast radius** (how many tenants are affected) | TBD — must be determined for the correct non-production environment |
+| 10 | **Internal recipient email** (must be `@321swipe.com` or equivalent internal) | **TBD — BLOCKER:** No proposal follow-up draft exists yet; existing approved draft uses `mgervasio1374@gmail.com` (non-`@321swipe.com`; operator must confirm control and no external forwarding) |
+| 11 | **Proposal follow-up commitment ID** | **TBD — BLOCKER:** No open commitment with a linked draft exists in DB (`COUNT = 0`) |
+| 12 | **Email draft ID** | **TBD — BLOCKER:** No proposal follow-up draft exists (`source_type = 'future_follow_up'`) |
+| 13 | **Draft status** (must be `approved`) | TBD (blocked by field 12) |
+| 14 | **Draft subject** (must contain `[TEST ONLY]` or equivalent marker) | **TBD — BLOCKER:** Existing approved draft subject has no test marker |
+| 15 | **`approval_request_id`** (from draft row) | TBD (blocked by field 12) |
+| 16 | **Approval status** (must be `approved`) | TBD (blocked by field 12) |
+| 17 | **Sender identity ID** | **⛔ INVALID** — collected from production DB (`kxrplupzbsmujjznzhpy`); must re-collect from staging/local |
+| 18 | **Sender email/domain** | **⛔ INVALID** — `noreply@321swipe.com` found in production DB; must verify in correct non-production environment |
+| 19 | **Sender identity verification status** (must be `is_verified = true`) | TBD — re-collect from correct non-production environment; previous finding (`is_verified = false`) was from production DB |
 | 20 | **Provider** | Resend |
-| 21 | **Provider key environment** (must be staging/non-production — NOT production key) | TBD |
-| 22 | **User ID with `messaging.send_emails`** (operator's user ID) | TBD |
+| 21 | **Provider key environment** (must be staging/non-production — NOT production key) | TBD — operator must confirm env var is non-production key |
+| 22 | **User ID with `messaging.send_emails`** (operator's user ID) | TBD — operator confirms in staging app |
 | 23 | **Operator** (who executes Slice 5) | TBD |
 | 24 | **Reviewer** (who approves Slice 5) | TBD |
 | 25 | **Rollback owner** (who disables flag immediately after test) | TBD |
 | 26 | **Planned test window** | TBD |
-| 27 | **Rollback command** | `setControlValue(SystemControlKey.EMAIL_SENDING_ENABLED, false, <verifiedScope>)` |
+| 27 | **Rollback command** | `setControlValue(SystemControlKey.EMAIL_SENDING_ENABLED, false, null)` (current global scope) |
 | 28 | **Evidence reviewer** (who reviews this document for Codex gate) | TBD |
 
 ---
@@ -230,21 +230,21 @@ WHERE w.slug = '<workspace_slug>';
 All items must be `[x]` before a Slice 5 execution prompt is written.
 
 ### Environment
-- [ ] Environment confirmed non-production (staging/local/dev only)
-- [ ] App URL confirmed staging/local/dev
-- [ ] Supabase project ref confirmed non-production
+- [ ] Environment confirmed non-production — **⛔ UNCHECKED: `kxrplupzbsmujjznzhpy` is PRODUCTION per repo docs; evidence must be re-collected from staging (`smbausuyetlgxflyhmfg`) or local Docker**
+- [ ] App URL confirmed staging/local/dev (TBD — NOT `https://verian-bios.vercel.app`)
+- [ ] Supabase project ref confirmed non-production — **⛔ UNCHECKED: `kxrplupzbsmujjznzhpy` is production; use `smbausuyetlgxflyhmfg` or local Docker**
 
 ### Tenant / Workspace
-- [ ] Tenant ID confirmed
-- [ ] Workspace ID confirmed
-- [ ] `verifiedScope` documented (null or tenantId)
-- [ ] `verifiedScope` blast radius documented and accepted
+- [ ] Tenant ID confirmed — TBD (re-collect from correct non-production environment)
+- [ ] Workspace ID confirmed — TBD (re-collect from correct non-production environment)
+- [ ] `verifiedScope` documented — TBD (re-collect from correct non-production environment)
+- [ ] `verifiedScope` blast radius documented and accepted — TBD
 
 ### Recipient
-- [ ] Recipient is internal and controlled by 321 Swipe
-- [ ] Recipient does not forward externally
-- [ ] Exactly one recipient
-- [ ] Recipient email confirmed: TBD
+- [ ] Recipient is internal and controlled by 321 Swipe (TBD — existing draft uses `mgervasio1374@gmail.com`; must confirm this is operator-controlled and does not forward externally, OR create a new test draft with `@321swipe.com` recipient)
+- [ ] Recipient does not forward externally (TBD — requires operator confirmation)
+- [ ] Exactly one recipient (TBD — follows from commitment/draft creation)
+- [ ] Recipient email confirmed: **TBD — blocked pending proposal follow-up draft creation**
 
 ### Draft
 - [ ] Approved draft exists (`status = 'approved'`)
@@ -264,23 +264,23 @@ All items must be `[x]` before a Slice 5 execution prompt is written.
 - [ ] `decided_at` is non-null
 
 ### Sender / Provider
-- [ ] Sender identity exists in staging DB
-- [ ] `is_verified = true` for sender identity
-- [ ] Provider key is staging/non-production (NOT production key)
-- [ ] Provider key prefix or type confirmed (without exposing value)
+- [ ] Sender identity exists in staging DB — **⛔ UNCHECKED: prior finding was from production DB (`kxrplupzbsmujjznzhpy`); must re-confirm in staging/local**
+- [ ] `is_verified = true` for sender identity — TBD (re-collect from non-production environment)
+- [ ] Provider key is staging/non-production (NOT production key) — TBD, operator confirms
+- [ ] Provider key prefix or type confirmed (without exposing value) — TBD
 
 ### Permissions
-- [ ] Test user has `messaging.send_emails` permission
-- [ ] `crm.leads.edit` alone is NOT sufficient — `messaging.send_emails` is required
+- [ ] Test user has `messaging.send_emails` permission — TBD, operator confirms in staging app
+- [x] `crm.leads.edit` alone is NOT sufficient — `messaging.send_emails` is required (confirmed in action code)
 
 ### System Controls
-- [ ] `EMAIL_SENDING_ENABLED` currently `false` (verified via `getBooleanControl`)
-- [ ] `CAMPAIGN_SENDING_ENABLED` currently `false`
+- [ ] `EMAIL_SENDING_ENABLED` currently `false` — **⛔ UNCHECKED: prior check queried production DB; must verify in correct non-production environment**
+- [ ] `CAMPAIGN_SENDING_ENABLED` currently `false` — **⛔ UNCHECKED: same reason; must verify in non-production**
 
 ### Rollback
-- [ ] Rollback command documented (Section D field 27)
-- [ ] `verifiedScope` for rollback matches enablement scope
-- [ ] Rollback owner assigned
+- [ ] Rollback command documented — TBD (depends on correct non-production `verifiedScope`)
+- [ ] `verifiedScope` for rollback matches enablement scope — TBD
+- [ ] Rollback owner assigned — TBD
 
 ---
 
@@ -348,3 +348,81 @@ This document does **not** authorize:
 - Proceeding to Slice 5 without completing this evidence checklist and receiving Codex PASS
 
 > **Completing this evidence document is not authorization to send email. Slice 5 is a separate decision that requires explicit operator approval, Codex review of this document, and all evidence fields confirmed.**
+
+---
+
+## K. Read-Only Evidence Collected (Slice 4A — 2026-06-04)
+
+> **⛔ ENVIRONMENT CLASSIFICATION CORRECTION:** Slice 4A queries were run against `kxrplupzbsmujjznzhpy.supabase.co` using `npx supabase db query --linked`, which was incorrectly labeled as "remote-dev." Repo docs (`docs/ai-context/00_CURRENT_STATUS.md`, `06_GIT_MILESTONES.md`, `deployment-flow-cleanup-design.md`) consistently identify `kxrplupzbsmujjznzhpy` as **PRODUCTION**. The staging project is `smbausuyetlgxflyhmfg`. All results below are from the **production database** and must NOT be used to authorize Slice 5. Evidence must be re-collected from staging (`smbausuyetlgxflyhmfg`) or local Docker.
+
+**Results from production DB (informational only — cannot authorize Slice 5):**
+
+| Check | Result (PRODUCTION — do not use for Slice 5) |
+|-------|--------|
+| Tenant exists | `10000000-0000-0000-0000-000000000001` "Verian Internal" |
+| Workspace exists | `20000000-0000-0000-0000-000000000001` slug: `main` |
+| `email_sending_enabled` system control | `value = 'false'`, global (`tenant_id = null`) |
+| `campaign_sending_enabled` system control | `value = 'false'`, global (`tenant_id = null`) |
+| `proposal_follow_up_commitments` count | 0 |
+| `email_drafts` approved with `source_type = 'future_follow_up'` | **0** — no proposal follow-up drafts |
+| Approved drafts (any type) | 1 — lead draft, `subject_type = 'lead'`, not usable for `sendFollowUpDraftAction` |
+| Sender identity | `noreply@321swipe.com`, `is_verified = false`, `status = 'pending'` |
+
+**Local Docker environment (also checked):**
+- Local DB (`http://127.0.0.1:54321`) also has 0 commitments and no approved proposal follow-up drafts. Sender identity `noreply@verian.internal`, `is_verified = false`.
+
+**Conclusion from evidence:** Both checked environments lack a valid proposal follow-up draft. Additionally, the primary evidence collection environment was production — all findings from it are invalid for Slice 5 authorization.
+
+---
+
+## L. Remaining TBD Items Before Slice 5
+
+The following items must be resolved before Slice 5 can be written:
+
+| # | Item | Required action |
+|---|------|----------------|
+| **0** | **⛔ Environment classification conflict** | Confirm correct non-production Supabase project: staging = `smbausuyetlgxflyhmfg`, local Docker = `http://127.0.0.1:54321`. Do NOT use `kxrplupzbsmujjznzhpy` (production). |
+| A | **No proposal follow-up commitment with linked approved draft** | Create test proposal event → follow-up commitment → generate draft → approve draft in confirmed non-production environment |
+| B | **No `source_type = 'future_follow_up'` approved draft** | Must exist before `sendFollowUpDraftAction` can be used |
+| C | **Sender identity verification in non-production** | Verify sender domain in Resend staging account for the correct non-production environment |
+| D | **`verifiedScope` decision for non-production** | Determine after environment classification is resolved; prefer per-tenant override |
+| E | **Draft subject must have `[TEST ONLY]` marker** | New test draft must have `[TEST ONLY]` in subject before approval |
+| F | **Draft recipient must be confirmed internal** | Must be `@321swipe.com` or confirmed operator-controlled inbox with no external forwarding |
+| G | **App URL** | Operator confirms staging/local app URL (NOT `https://verian-bios.vercel.app`) |
+| H | **Tenant/workspace IDs** | Re-collect from confirmed non-production environment |
+| I | **Provider key environment** | Operator confirms Resend key in staging/local is non-production |
+| J | **`messaging.send_emails` permission** | Operator verifies test user has this permission in staging/local |
+| K | **Operator / Reviewer / Rollback owner** | People assignments required |
+| L | **Planned test window** | Schedule required |
+| M | **Evidence reviewer** (field 28) | Assign |
+
+---
+
+## M. Slice 5 Status
+
+**STATUS: BLOCKED — evidence incomplete and environment classification unresolved**
+
+**Critical blockers (must be resolved before Slice 5):**
+
+1. **⛔ Environment classification conflict:** `kxrplupzbsmujjznzhpy` is PRODUCTION per repo docs (`docs/ai-context/00_CURRENT_STATUS.md`, `06_GIT_MILESTONES.md`, `deployment-flow-cleanup-design.md`). Slice 4A queries ran against production in error. All findings from that environment are invalid for Slice 5 authorization. The correct non-production Supabase project is `smbausuyetlgxflyhmfg` (staging) or local Docker (`http://127.0.0.1:54321`). Evidence must be re-collected from a confirmed non-production environment.
+
+2. **No proposal follow-up commitment with a linked `source_type = 'future_follow_up'` approved draft** exists in any confirmed non-production environment. `sendFollowUpDraftAction` validates `subject_type = 'proposal_follow_up_commitment'` and `source_type = DRAFT_SOURCE_TYPE.FUTURE_FOLLOW_UP`. Neither staging nor local currently has a valid test object.
+
+3. **Sender identity verification unknown** in the correct non-production environment. Prior finding was from the production DB and cannot be used.
+
+4. **`verifiedScope` must be determined** for the correct non-production environment after blocker 1 is resolved.
+
+**Slice 5 cannot be written until all items in Section L are resolved and a new Codex review of this updated evidence document passes.**
+
+---
+
+## N. Recommended Blocker Resolution Order
+
+1. **Resolve authoritative environment classification** — confirm that `smbausuyetlgxflyhmfg` is the staging project (or confirm local Docker is the appropriate test environment)
+2. **Identify the correct non-production app URL** — operator confirms staging or local dev URL (NOT `https://verian-bios.vercel.app`)
+3. **Establish tenant-specific `verifiedScope`** in the correct non-production environment
+4. **Verify or configure a non-production sender identity** — confirm `is_verified = true` for the sender domain in Resend staging
+5. **Create and approve one internal `[TEST ONLY]` proposal follow-up commitment / `future_follow_up` draft** in the correct non-production environment with a `@321swipe.com` internal recipient
+6. **Confirm `messaging.send_emails` permission holder** in staging/local
+7. **Re-run Slice 4A evidence collection** against the confirmed non-production environment
+8. **Submit updated evidence doc to Codex again** for a new PASS review before Slice 5
