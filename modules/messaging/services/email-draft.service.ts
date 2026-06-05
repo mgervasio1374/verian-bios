@@ -259,6 +259,17 @@ export async function createLeadEmailDraft(
 
 // ---- Approval sync ----
 
+// Approval request types whose linked email_draft status should be synced
+// when the approval is decided. Both follow the same payload.draft_id convention.
+const DRAFT_SYNC_APPROVAL_TYPES = [
+  'email_draft_review',
+  'proposal_follow_up_draft_review',
+] as const
+
+function isDraftSyncApprovalType(requestType: string): boolean {
+  return (DRAFT_SYNC_APPROVAL_TYPES as readonly string[]).includes(requestType)
+}
+
 /**
  * Sync the email_draft status when its approval_request is decided.
  * Idempotent: uses an `ifCurrentStatus` guard so repeated calls are safe.
@@ -271,7 +282,7 @@ export async function syncApprovalDecisionToDraft(
   approval: Pick<ApprovalRow, 'id' | 'request_type' | 'payload'>,
   decision: 'approved' | 'rejected'
 ): Promise<void> {
-  if (approval.request_type !== 'email_draft_review') return
+  if (!isDraftSyncApprovalType(approval.request_type)) return
 
   const payload  = (approval.payload ?? {}) as Record<string, unknown>
   const draftId  = typeof payload.draft_id === 'string' ? payload.draft_id : null
@@ -304,7 +315,7 @@ export async function assertDraftIsApprovable(
   ctx: RequestContext,
   approval: Pick<ApprovalRow, 'request_type' | 'payload'>
 ): Promise<string | null> {
-  if (approval.request_type !== 'email_draft_review') return null
+  if (!isDraftSyncApprovalType(approval.request_type)) return null
 
   const payload = (approval.payload ?? {}) as Record<string, unknown>
   const draftId = typeof payload.draft_id === 'string' ? payload.draft_id : null
