@@ -79,8 +79,8 @@ Fill in all fields before writing a Slice 5 prompt. Fields marked `TBD` must be 
 | 8 | **`verifiedScope`** (null = platform/global; tenantId = per-tenant override — prefer tenantId) | `null` (global — staging `system_controls` has `tenant_id = null`) — **⚠ prefer per-tenant override; hard stop if not explicitly accepted** |
 | 9 | **`verifiedScope` blast radius** (how many tenants are affected) | 1 tenant in staging DB; global scope |
 | 10 | **Internal recipient email** (must be `@321swipe.com` or equivalent internal) | **TBD — BLOCKER:** No proposal follow-up draft exists yet; existing approved draft uses `mgervasio1374@gmail.com` (non-`@321swipe.com`; operator must confirm control and no external forwarding) |
-| 11 | **Proposal follow-up commitment ID** | **TBD — BLOCKER:** `proposal_follow_up_commitments` table does not exist in staging. Staging is at migration `20240036`; the table is created by the Phase 3N/3R migration sequence (`20240038`) which has not yet been applied to staging. Migrations `20240037`–`20240039` must be applied to staging through a separate approved process before any test-object creation. |
-| 12 | **Email draft ID** | **TBD — BLOCKER:** No proposal follow-up draft exists (`source_type = 'future_follow_up'`) |
+| 11 | **Proposal follow-up commitment ID** | **TBD — BLOCKER:** `proposal_follow_up_commitments` table now exists in staging (migrations `20240037`–`20240039` applied in Slice 4F) but has 0 rows. An internal `[TEST ONLY]` commitment must be created through a separate approved workflow before Slice 5. |
+| 12 | **Email draft ID** | **TBD — BLOCKER:** No `source_type = 'future_follow_up'` draft exists in staging (0 rows). Must be created through a separate approved workflow (Phase 3S `generateFollowUpDraftAction` path in staging) after a commitment exists. |
 | 13 | **Draft status** (must be `approved`) | TBD (blocked by field 12) |
 | 14 | **Draft subject** (must contain `[TEST ONLY]` or equivalent marker) | **TBD — BLOCKER:** Existing approved draft subject has no test marker |
 | 15 | **`approval_request_id`** (from draft row) | TBD (blocked by field 12) |
@@ -384,9 +384,9 @@ The following items must be resolved before Slice 5 can be written:
 | ~~0~~ | ~~Environment classification conflict~~ | **RESOLVED — Slice 4C/4D** — staging = `smbausuyetlgxflyhmfg`, URL = `https://verian-bios-staging.vercel.app` |
 | ~~G~~ | ~~App URL~~ | **RESOLVED** — `https://verian-bios-staging.vercel.app` |
 | ~~H~~ | ~~Tenant/workspace IDs~~ | **RESOLVED** — tenant `10000000-...0001`, workspace `20000000-...0001` from staging DB |
-| **NEW** | **⛔ Staging missing migrations `20240037`–`20240039`** | Apply Phase 3M/3N/3R migrations to staging before any test-object creation (`proposal_follow_up_commitments` table requires `20240038`) — requires separate approved migration application step |
-| A | **No proposal follow-up commitment with linked approved draft** | Must apply migrations first, then create test object in staging |
-| B | **No `source_type = 'future_follow_up'` approved draft** | Blocked by missing `proposal_follow_up_commitments` table |
+| ~~NEW~~ | ~~Staging missing migrations~~ | **RESOLVED by Slice 4F** — migrations `20240037`–`20240039` applied; `proposal_follow_up_commitments` table now exists |
+| A | **No proposal follow-up commitment with linked approved draft** | Table exists but 0 rows — create test commitment through a separate approved workflow (Phase 3S generate-draft path in staging) |
+| B | **No `source_type = 'future_follow_up'` approved draft** | 0 rows — must create after commitment exists |
 | C | **Sender identity `is_verified = false`** | Verify `noreply@verian.internal` domain in Resend staging; currently `status = pending` |
 | D | **`verifiedScope` is global null** | Create per-tenant override for `10000000-...-0001` in staging |
 | E | **Draft subject must have `[TEST ONLY]` marker** | New test draft must have `[TEST ONLY]` in subject |
@@ -401,17 +401,18 @@ The following items must be resolved before Slice 5 can be written:
 
 ## M. Slice 5 Status
 
-**STATUS: BLOCKED — evidence incomplete (new blocker: staging missing Phase 3N/3R migrations)**
+**STATUS: BLOCKED — schema resolved; test data and remaining evidence still missing**
 
-**Resolved since last review:**
+**Resolved since Slice 4D:**
 - ✓ Environment classification: staging = `smbausuyetlgxflyhmfg`, URL = `https://verian-bios-staging.vercel.app`
 - ✓ Tenant/workspace IDs collected from staging
-- ✓ System controls confirmed `false` in staging
+- ✓ System controls confirmed `false` in staging (re-confirmed Slice 4G)
 - ✓ Sender identity ID and email collected from staging
+- ✓ Migrations `20240037`–`20240039` applied to staging (Slice 4F) — `proposal_follow_up_commitments` table now exists
 
 **Critical blockers (must be resolved before Slice 5):**
 
-1. **⛔ Staging DB missing migrations `20240037`–`20240039`:** The `proposal_follow_up_commitments` table does not exist in staging (requires `20240038_phase3n_proposal_capture.sql`). Staging is at `20240036`; local is at `20240039`. Migrations `20240037`, `20240038`, `20240039` must be applied to staging through a separate approved migration-application step before any test-object creation.
+1. **No `proposal_follow_up_commitments` rows in staging:** Table exists but 0 rows. A test commitment must be created through a separate approved workflow using the Phase 3S generate-draft path in staging.
 
 2. **No proposal follow-up commitment or `future_follow_up` approved draft** — blocked by blocker 1 above.
 
@@ -429,10 +430,10 @@ The following items must be resolved before Slice 5 can be written:
 
 1. ~~Resolve authoritative environment classification~~ **RESOLVED by Slice 4C/4D** — staging = `smbausuyetlgxflyhmfg`
 2. ~~Identify the correct non-production app URL~~ **RESOLVED** — `https://verian-bios-staging.vercel.app`
-3. **Apply migrations `20240037`–`20240039` to staging** — `proposal_follow_up_commitments` table does not exist in staging (requires `20240038`); this is a prerequisite for any test-object creation
+3. ~~Apply migrations `20240037`–`20240039` to staging~~ **RESOLVED by Slice 4F** — `proposal_follow_up_commitments` table now exists in staging; no further migrations needed before test-object creation
 4. **Establish tenant-specific `verifiedScope`** — per-tenant override preferred over global null
 5. **Verify or configure non-production sender identity** — `is_verified = false` in staging; Resend domain verification required
-6. **Create and approve one internal `[TEST ONLY]` proposal follow-up commitment / `future_follow_up` draft** in staging with a `@321swipe.com` internal recipient (after migrations applied)
+6. **Create and approve one internal `[TEST ONLY]` proposal follow-up commitment / `future_follow_up` draft** in staging with a `@321swipe.com` internal recipient (requires separate approved workflow via Phase 3S generate-draft path)
 7. **Confirm `messaging.send_emails` permission holder** in staging
 8. **Confirm provider key is non-production** — operator verifies Resend key without exposing value
 9. **Assign operator / reviewer / rollback owner / test window / evidence reviewer**
@@ -455,23 +456,73 @@ The following items must be resolved before Slice 5 can be written:
 | `campaign_sending_enabled` system control | `value = 'false'`, global (`tenant_id = null`) |
 | Sender identity | `e57848e7-91c7-412c-a7f5-859e6b0858e1`, `noreply@verian.internal`, `is_default = true` |
 | Sender `is_verified` | **`false`**, `status = 'pending'` — ⚠ BLOCKER |
-| `proposal_follow_up_commitments` table | **⛔ DOES NOT EXIST** in staging — requires migration `20240038` |
+| `proposal_follow_up_commitments` table | ✓ Exists (Slice 4F migrations applied) |
 | `email_drafts` total | 6 |
-| `email_drafts` approved | TBD (not checked separately; table exists) |
-| `email_drafts` with `source_type = 'future_follow_up'` | **0** — cannot exist without `proposal_follow_up_commitments` table |
-| Staging migration level | `20240036` (highest applied) |
-| Local migration level | `20240039` (migrations 20240037–20240039 applied to local only) |
+| `email_drafts` approved | 2 |
+| `email_drafts` with `source_type = 'future_follow_up'` | **0** — no proposal follow-up draft exists yet |
+| `proposal_follow_up_commitments` rows | **0** — table exists but no test data created |
+| Staging migration level | `20240039` (Slice 4F applied `20240037`–`20240039`) |
+| `email_sends` count | 2 (unchanged) |
+| `campaign_email_sends` count | 0 (unchanged) |
 
-**New critical blocker found in Slice 4D:**
+**Slice 4D blocker resolved by Slice 4F:** Migrations `20240037`–`20240039` were applied to staging in Slice 4F. `proposal_follow_up_commitments` table now exists. Schema blocker is resolved.
 
-> **Staging DB is missing migrations `20240037`–`20240039`.** The `proposal_follow_up_commitments` table (created in migration `20240038_phase3n_proposal_capture.sql`) does not exist in staging. Migrations `20240037` (Phase 3M), `20240038` (Phase 3N), and `20240039` (Phase 3R skip fields) have been applied to local only — not to staging, not to production. Without these migrations, no proposal follow-up commitment or `future_follow_up` draft can exist in staging, and `sendFollowUpDraftAction` cannot be tested there.
-
-**Remaining missing evidence (unchanged from prior):**
-- Sender identity `is_verified = false` in staging
-- No proposal follow-up commitments/drafts (table missing)
+**Remaining missing evidence (Slice 4D → updated for Slice 4G):**
+- Sender identity `is_verified = false` in staging (unchanged)
+- No `proposal_follow_up_commitments` rows — test commitment must be created (separate approved workflow)
+- No `source_type = 'future_follow_up'` draft exists
 - Provider key environment TBD
 - `messaging.send_emails` permission TBD
 - Internal recipient TBD
+- `verifiedScope` still global/null
 - Operator/reviewer/rollback owner/test window/evidence reviewer TBD
 
-**Slice 5 Status: BLOCKED — evidence incomplete (new blocker: staging missing Phase 3N/3R migrations)**
+**Slice 5 Status: BLOCKED — schema resolved; test data and remaining evidence still missing**
+
+---
+
+## P. Slice 4G Post-Migration Staging Evidence Recollection (2026-06-04)
+
+**CLI relink:** `npx supabase link --project-ref smbausuyetlgxflyhmfg` — succeeded. `supabase/.temp/project-ref` verified as `smbausuyetlgxflyhmfg` before all queries.
+
+**SELECT-only queries performed against staging DB after Slice 4F migrations:**
+
+| Check | Result |
+|-------|--------|
+| CLI project-ref | `smbausuyetlgxflyhmfg` ✓ (staging, not production) |
+| Staging migration level | `20240039` ✓ — `20240037`, `20240038`, `20240039` all present |
+| `proposal_captures` table | ✓ Exists |
+| `proposal_events` table | ✓ Exists |
+| `proposal_follow_up_commitments` table | ✓ Exists |
+| `proposal_follow_up_commitments` row count | **0** — no test data yet |
+| `email_drafts` total | 6 |
+| `email_drafts` approved | 2 |
+| `email_drafts` `source_type = 'future_follow_up'` | **0** — no proposal follow-up draft exists |
+| `email_drafts` `subject_type = 'proposal_follow_up_commitment'` | **0** |
+| Tenant `10000000-...-0001` | ✓ "Verian Internal" — preserved |
+| Workspace `20000000-...-0001` slug `main` | ✓ preserved |
+| `email_sending_enabled` | `false` (global) ✓ |
+| `campaign_sending_enabled` | `false` (global) ✓ |
+| Sender identity `e57848e7-...` | ✓ Exists — `noreply@verian.internal`, `is_default = true` |
+| Sender `is_verified` | **`false`**, `status = 'pending'` — ⚠ BLOCKER |
+| `email_sends` count | 2 (unchanged) |
+| `campaign_email_sends` count | 0 (unchanged) |
+
+**Evidence fields newly confirmed or updated (Slice 4G):**
+
+- ✓ Staging migrations now through `20240039`
+- ✓ `proposal_follow_up_commitments` table confirmed in staging
+- ✓ `email_drafts` approved count: 2 (previously TBD)
+- ✓ `email_drafts` `future_follow_up` count: 0 confirmed
+
+**Evidence still TBD or blocked:**
+
+- No test commitment or `future_follow_up` draft exists — must be created via separate approved workflow
+- Sender identity `is_verified = false` — Resend domain verification required
+- Provider key environment — operator confirms
+- `messaging.send_emails` permission holder — operator confirms
+- Internal recipient — operator assigns `@321swipe.com` inbox
+- `verifiedScope` — global null; per-tenant override preferred
+- Operator / reviewer / rollback owner / test window / evidence reviewer — people assignments
+
+**Slice 5 Status: BLOCKED — test commitment/draft/approval not yet created; sender unverified; multiple TBD fields**
