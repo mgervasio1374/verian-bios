@@ -8,11 +8,12 @@ import { enqueueEvent } from '@/modules/workflow/services/event-dispatch.service
 import type { ActionResult } from './company.actions'
 
 export async function createContactFromDialogAction(input: {
-  firstName: string
-  lastName:  string
-  email:     string
-  phone:     string
-  title:     string
+  firstName:  string
+  lastName:   string
+  email:      string
+  phone:      string
+  title:      string
+  companyId?: string
 }): Promise<ActionResult<{ id: string }>> {
   try {
     const supabase = await createSupabaseServerClient()
@@ -41,6 +42,7 @@ export async function createContactFromDialogAction(input: {
         email,
         phone:       input.phone.trim() || null,
         title:       input.title.trim() || null,
+        company_id:  input.companyId || null,
         created_by:  ctx.userId === 'system' ? null : ctx.userId,
       })
       .select('id')

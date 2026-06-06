@@ -103,14 +103,11 @@ export function Sidebar({ workspaceSlug, tenantName }: SidebarProps) {
   return (
     <aside className="flex h-screen w-56 flex-col border-r border-sidebar-border bg-sidebar">
       {/* Brand */}
-      <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
-        <Image src="/brand/verian-logo.png" alt="Verian" width={200} height={60} className="h-7 w-auto object-contain" />
-        <div className="flex flex-col leading-none">
-          <span className="text-sm font-semibold text-sidebar-foreground">Verian BIOS</span>
-          {tenantName && (
-            <span className="text-[10px] text-sidebar-foreground/50 truncate max-w-[120px]">{tenantName}</span>
-          )}
-        </div>
+      <div className="flex h-16 flex-col items-start justify-center border-b border-sidebar-border px-4 gap-0.5">
+        <Image src="/brand/verian-logo.png" alt="Verian" width={200} height={60} className="h-10 w-auto object-contain" />
+        {tenantName && (
+          <span className="text-[10px] text-sidebar-foreground/50 truncate max-w-[160px] leading-none">{tenantName}</span>
+        )}
       </div>
 
       {/* Navigation */}

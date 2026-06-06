@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import * as contactService from '@/modules/crm/services/contact.service'
+import * as companyService from '@/modules/crm/services/company.service'
 import { Badge } from '@/components/ui/badge'
 import { Users } from 'lucide-react'
 import Link from 'next/link'
@@ -17,7 +18,10 @@ export default async function ContactsPage({ params, searchParams }: PageProps) 
 
   const supabase = await createSupabaseServerClient()
   const ctx = await buildRequestContext(supabase)
-  const contacts = await contactService.listContactsWithCompany(ctx, { search, limit: 100 }).catch(() => [])
+  const [contacts, companies] = await Promise.all([
+    contactService.listContactsWithCompany(ctx, { search, limit: 100 }).catch(() => []),
+    companyService.listCompanies(ctx, { limit: 200 }).catch(() => []),
+  ])
 
   return (
     <div className="space-y-6">
@@ -26,7 +30,7 @@ export default async function ContactsPage({ params, searchParams }: PageProps) 
           <h1 className="text-2xl font-bold">Contacts</h1>
           <p className="text-muted-foreground text-sm">{contacts.length} records</p>
         </div>
-        <AddContactDialog />
+        <AddContactDialog companies={companies.map(c => ({ id: c.id, name: c.name }))} />
       </div>
 
       {contacts.length === 0 ? (

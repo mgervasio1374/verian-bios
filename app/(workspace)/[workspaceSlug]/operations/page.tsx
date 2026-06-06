@@ -4,8 +4,10 @@ import * as followUpRepo from '@/modules/proposals/repositories/proposal-follow-
 import * as proposalEventRepo from '@/modules/proposals/repositories/proposal-events.repo'
 import { listPendingApprovals } from '@/modules/workflow/repositories/approval.repo'
 import * as leadService from '@/modules/crm/services/lead.service'
+import { getDraftStatusCounts } from '@/modules/messaging/repositories/email-draft.repo'
+import { getProposedAssignments } from '@/modules/messaging/repositories/campaign-assignment.repo'
 import Link from 'next/link'
-import { ListChecks, FileText, ClipboardList, Zap } from 'lucide-react'
+import { ListChecks, FileText, ClipboardList, Zap, LayoutList } from 'lucide-react'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -16,7 +18,7 @@ export default async function OperationsPage({ params }: PageProps) {
   const supabase = await createSupabaseServerClient()
   const ctx = await buildRequestContext(supabase)
 
-  const [overdueFollowUps, todayFollowUps, upcomingFollowUps, openProposals, pendingApprovals, leadsByStage] =
+  const [overdueFollowUps, todayFollowUps, upcomingFollowUps, openProposals, pendingApprovals, leadsByStage, draftCounts, proposedAssignments] =
     await Promise.all([
       followUpRepo.listProposalFollowUpQueueItemsForWorkspace(ctx.tenantId, ctx.workspaceId, { due: 'overdue', limit: 20 }).catch(() => []),
       followUpRepo.listProposalFollowUpQueueItemsForWorkspace(ctx.tenantId, ctx.workspaceId, { due: 'today',   limit: 20 }).catch(() => []),
@@ -24,7 +26,20 @@ export default async function OperationsPage({ params }: PageProps) {
       proposalEventRepo.listProposalEventInboxItemsForWorkspace(ctx.tenantId, ctx.workspaceId, { status: 'open', limit: 20 }).catch(() => []),
       listPendingApprovals(ctx.tenantId, ctx.workspaceId).catch(() => []),
       leadService.listLeadsByStage(ctx).catch(() => ({})),
+      getDraftStatusCounts(ctx.tenantId).catch(() => []),
+      getProposedAssignments(ctx.workspaceId).catch(() => []),
     ])
+
+  const draftCountMap = Object.fromEntries(draftCounts.map(d => [d.status, d.count]))
+
+  const productionStates = [
+    { label: 'Planned',           count: proposedAssignments.length,                color: 'text-slate-600',  bg: 'bg-slate-50',  border: 'border-slate-200' },
+    { label: 'Draft Ready',       count: draftCountMap['draft'] ?? 0,               color: 'text-blue-600',   bg: 'bg-blue-50',   border: 'border-blue-200'  },
+    { label: 'Awaiting Approval', count: pendingApprovals.length,                   color: 'text-amber-600',  bg: 'bg-amber-50',  border: 'border-amber-200' },
+    { label: 'Approved',          count: draftCountMap['approved'] ?? 0,            color: 'text-teal-600',   bg: 'bg-teal-50',   border: 'border-teal-200'  },
+    { label: 'Sent',              count: draftCountMap['sent'] ?? 0,                color: 'text-green-600',  bg: 'bg-green-50',  border: 'border-green-200' },
+    { label: 'Stopped / Responded', count: draftCountMap['superseded'] ?? 0,        color: 'text-gray-500',   bg: 'bg-gray-50',   border: 'border-gray-200'  },
+  ]
 
   const totalLeads = Object.values(leadsByStage).flat().length
   const followUpsDueCount = overdueFollowUps.length + todayFollowUps.length
@@ -196,6 +211,28 @@ export default async function OperationsPage({ params }: PageProps) {
         </div>
 
       </div>
+
+      {/* Production Schedule */}
+      <div className="rounded-lg border bg-card p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <LayoutList className="h-4 w-4 text-slate-600" />
+          <h2 className="text-sm font-semibold">Production Schedule</h2>
+          <span className="ml-auto text-xs text-muted-foreground">Read-only visibility</span>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-3 md:grid-cols-6">
+          {productionStates.map(s => (
+            <div key={s.label} className={`rounded-md border ${s.border} ${s.bg} px-3 py-2 text-center`}>
+              <p className={`text-lg font-bold leading-none ${s.color}`}>{s.count}</p>
+              <p className="text-xs text-muted-foreground mt-1 leading-tight">{s.label}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground border-t pt-2">
+          Visibility layer only — no scheduling execution or sending. Drafts awaiting approval can be reviewed in{' '}
+          <Link href={`/${workspaceSlug}/inbox`} className="underline">Inbox</Link>.
+        </p>
+      </div>
+
     </div>
   )
 }

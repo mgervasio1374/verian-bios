@@ -15,11 +15,16 @@ import {
 } from '@/components/ui/dialog'
 import { createContactFromDialogAction } from '@/modules/crm/actions/contact.actions'
 
-const EMPTY_FORM = {
-  firstName: '', lastName: '', email: '', phone: '', title: '',
+interface Company {
+  id: string
+  name: string
 }
 
-export function AddContactDialog() {
+const EMPTY_FORM = {
+  firstName: '', lastName: '', email: '', phone: '', title: '', companyId: '',
+}
+
+export function AddContactDialog({ companies = [] }: { companies?: Company[] }) {
   const router  = useRouter()
   const [open, setOpen]     = useState(false)
   const [error, setError]   = useState<string | null>(null)
@@ -41,7 +46,10 @@ export function AddContactDialog() {
     setError(null)
     setLoading(true)
     startTransition(async () => {
-      const result = await createContactFromDialogAction(form)
+      const result = await createContactFromDialogAction({
+        ...form,
+        companyId: form.companyId || undefined,
+      })
       setLoading(false)
       if (result.success) {
         setOpen(false)
@@ -119,6 +127,23 @@ export function AddContactDialog() {
               placeholder="e.g. Owner, CFO"
             />
           </div>
+
+          {companies.length > 0 && (
+            <div className="space-y-1.5">
+              <Label htmlFor="ct-company">Company <span className="text-muted-foreground text-xs font-normal">(optional)</span></Label>
+              <select
+                id="ct-company"
+                value={form.companyId}
+                onChange={e => set('companyId', e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="">— None —</option>
+                {companies.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
