@@ -9,6 +9,7 @@ import * as companyDocService from '@/modules/artifacts/services/company-documen
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Globe, Phone, FileText, ExternalLink } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { ScoreCompanyButton } from './ScoreCompanyButton'
 import { GenerateRecommendationButton } from './GenerateRecommendationButton'
 import { CompanyEditDialog } from './CompanyEditDialog'
@@ -38,15 +39,26 @@ export default async function CompanyDetailPage({ params }: PageProps) {
       {/* Header */}
       <div>
         <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">{company.name}</h1>
-            <div className="flex items-center gap-3 mt-1">
-              {company.industry && (
-                <span className="text-sm text-muted-foreground">{company.industry}</span>
-              )}
-              <Badge variant={company.status === 'active' ? 'default' : 'secondary'}>
-                {company.status}
-              </Badge>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700 text-base font-semibold shrink-0">
+              {company.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">{company.name}</h1>
+              <div className="flex items-center gap-3 mt-1">
+                {company.industry && (
+                  <span className="text-sm text-muted-foreground">{company.industry}</span>
+                )}
+                <span className={cn(
+                  'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize',
+                  company.status === 'active'   ? 'bg-teal-50 text-teal-700 border border-teal-200' :
+                  company.status === 'prospect' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                  company.status === 'churned'  ? 'bg-red-50 text-red-700 border border-red-200' :
+                                                  'bg-gray-100 text-gray-600 border border-gray-200'
+                )}>
+                  {company.status}
+                </span>
+              </div>
             </div>
           </div>
           <CompanyEditDialog company={company} />
@@ -57,7 +69,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
         {/* Company Info */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Company Details</CardTitle>
+            <CardTitle className="text-sm font-semibold">Company Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             {company.domain && (
@@ -96,7 +108,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
         {/* Contacts */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Contacts ({contacts.length})</CardTitle>
+            <CardTitle className="text-sm font-semibold">Contacts ({contacts.length})</CardTitle>
           </CardHeader>
           <CardContent>
             {contacts.length === 0 ? (
@@ -125,7 +137,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Company Score</CardTitle>
+            <CardTitle className="text-sm font-semibold">Company Score</CardTitle>
           </CardHeader>
           <CardContent>
             <ScoreCompanyButton
@@ -137,7 +149,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Next Best Action</CardTitle>
+            <CardTitle className="text-sm font-semibold">Next Best Action</CardTitle>
           </CardHeader>
           <CardContent>
             <GenerateRecommendationButton
@@ -155,7 +167,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm">Documents</CardTitle>
+            <CardTitle className="text-sm font-semibold">Documents</CardTitle>
             <span className="text-xs text-muted-foreground">{documents.length} file{documents.length !== 1 ? 's' : ''}</span>
           </div>
         </CardHeader>

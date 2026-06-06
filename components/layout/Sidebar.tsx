@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -11,14 +12,13 @@ import {
   Activity,
   CheckCircle2,
   FileText,
+  ArrowDownToLine,
+  MessageSquare,
   FolderOpen,
   Settings,
-  ChevronLeft,
-  ArrowDownToLine,
+  Upload,
   Bot,
   ShieldAlert,
-  MessageSquare,
-  Upload,
   Brain,
   BarChart2,
   Cpu,
@@ -40,70 +40,108 @@ interface NavItem {
   icon: React.ReactNode
 }
 
+interface NavSection {
+  label?: string
+  items: NavItem[]
+}
+
 export function Sidebar({ workspaceSlug, tenantName }: SidebarProps) {
   const pathname = usePathname()
   const base = `/${workspaceSlug}`
 
-  const navItems: NavItem[] = [
-    { label: 'Dashboard',   href: `${base}/dashboard`,   icon: <LayoutDashboard className="h-4 w-4" /> },
-    { label: 'Companies',   href: `${base}/companies`,   icon: <Building2 className="h-4 w-4" /> },
-    { label: 'Contacts',    href: `${base}/contacts`,    icon: <Users className="h-4 w-4" /> },
-    { label: 'Leads',       href: `${base}/leads`,       icon: <Zap className="h-4 w-4" /> },
-    { label: 'Opportunities', href: `${base}/opportunities`, icon: <TrendingUp className="h-4 w-4" /> },
-    { label: 'Activities',  href: `${base}/activities`,  icon: <Activity className="h-4 w-4" /> },
-    { label: 'Submissions',  href: `${base}/submissions`,  icon: <ArrowDownToLine className="h-4 w-4" /> },
-    { label: 'Inbox',           href: `${base}/inbox`,           icon: <CheckCircle2 className="h-4 w-4" /> },
-    { label: 'Proposal Inbox',   href: `${base}/proposal-inbox`,   icon: <FileText       className="h-4 w-4" /> },
-    { label: 'Proposal Events',  href: `${base}/proposal-events`,  icon: <ClipboardList  className="h-4 w-4" /> },
-    { label: 'Follow-Up Queue',  href: `${base}/proposal-follow-ups`, icon: <ListChecks className="h-4 w-4" /> },
-    { label: 'Msg Workspace', href: `${base}/message-workspace`, icon: <MessageSquare className="h-4 w-4" /> },
-    { label: 'Artifacts',     href: `${base}/artifacts`,               icon: <FolderOpen className="h-4 w-4" /> },
-    { label: 'Agent Monitor',        href: `${base}/settings/agent-monitor`,        icon: <Bot className="h-4 w-4" /> },
-    { label: 'System Controls',     href: `${base}/settings/system-controls`,     icon: <ShieldAlert className="h-4 w-4" /> },
-    { label: 'Sys Intelligence',    href: `${base}/settings/system-intelligence`, icon: <Brain className="h-4 w-4" /> },
-    { label: 'Imports',             href: `${base}/settings/imports`,             icon: <Upload className="h-4 w-4" /> },
-    { label: 'Analytics',           href: `${base}/settings/analytics`,           icon: <BarChart2 className="h-4 w-4" /> },
-    { label: 'AI Usage',            href: `${base}/settings/ai-usage`,            icon: <Cpu className="h-4 w-4" /> },
-    { label: 'Campaign Assets',     href: `${base}/settings/campaign-assets`,     icon: <BookOpen  className="h-4 w-4" /> },
-    { label: 'Campaign Queue',      href: `${base}/settings/campaign-queue`,      icon: <ListTodo  className="h-4 w-4" /> },
-    { label: 'Settings',        href: `${base}/settings`,                  icon: <Settings className="h-4 w-4" /> },
+  const sections: NavSection[] = [
+    {
+      items: [
+        { label: 'Dashboard',     href: `${base}/dashboard`,     icon: <LayoutDashboard className="h-4 w-4" /> },
+        { label: 'Companies',     href: `${base}/companies`,     icon: <Building2 className="h-4 w-4" /> },
+        { label: 'Contacts',      href: `${base}/contacts`,      icon: <Users className="h-4 w-4" /> },
+        { label: 'Leads',         href: `${base}/leads`,         icon: <Zap className="h-4 w-4" /> },
+        { label: 'Opportunities', href: `${base}/opportunities`, icon: <TrendingUp className="h-4 w-4" /> },
+        { label: 'Activities',    href: `${base}/activities`,    icon: <Activity className="h-4 w-4" /> },
+      ],
+    },
+    {
+      label: 'WORKFLOW',
+      items: [
+        { label: 'Submissions',     href: `${base}/submissions`,         icon: <ArrowDownToLine className="h-4 w-4" /> },
+        { label: 'Inbox',           href: `${base}/inbox`,               icon: <CheckCircle2 className="h-4 w-4" /> },
+        { label: 'Proposal Inbox',  href: `${base}/proposal-inbox`,      icon: <FileText className="h-4 w-4" /> },
+        { label: 'Proposal Events', href: `${base}/proposal-events`,     icon: <ClipboardList className="h-4 w-4" /> },
+        { label: 'Follow-Ups',      href: `${base}/proposal-follow-ups`, icon: <ListChecks className="h-4 w-4" /> },
+      ],
+    },
+    {
+      label: 'OUTREACH',
+      items: [
+        { label: 'Message Workspace', href: `${base}/message-workspace`,        icon: <MessageSquare className="h-4 w-4" /> },
+        { label: 'Artifacts',         href: `${base}/artifacts`,                icon: <FolderOpen className="h-4 w-4" /> },
+        { label: 'Campaign Assets',   href: `${base}/settings/campaign-assets`, icon: <BookOpen className="h-4 w-4" /> },
+        { label: 'Campaign Queue',    href: `${base}/settings/campaign-queue`,  icon: <ListTodo className="h-4 w-4" /> },
+      ],
+    },
+    {
+      label: 'INTELLIGENCE',
+      items: [
+        { label: 'Agent Monitor',       href: `${base}/settings/agent-monitor`,       icon: <Bot className="h-4 w-4" /> },
+        { label: 'System Intelligence', href: `${base}/settings/system-intelligence`, icon: <Brain className="h-4 w-4" /> },
+        { label: 'AI Usage',            href: `${base}/settings/ai-usage`,            icon: <Cpu className="h-4 w-4" /> },
+        { label: 'Analytics',           href: `${base}/settings/analytics`,           icon: <BarChart2 className="h-4 w-4" /> },
+      ],
+    },
+    {
+      label: 'ADMIN',
+      items: [
+        { label: 'System Controls', href: `${base}/settings/system-controls`, icon: <ShieldAlert className="h-4 w-4" /> },
+        { label: 'Imports',         href: `${base}/settings/imports`,         icon: <Upload className="h-4 w-4" /> },
+        { label: 'Settings',        href: `${base}/settings`,                 icon: <Settings className="h-4 w-4" /> },
+      ],
+    },
   ]
 
   return (
-    <aside className="flex h-screen w-56 flex-col border-r bg-background">
-      {/* Logo / Brand */}
-      <div className="flex h-14 items-center gap-2 border-b px-4">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-xs font-bold">
-          V
-        </div>
+    <aside className="flex h-screen w-56 flex-col border-r border-sidebar-border bg-sidebar">
+      {/* Brand */}
+      <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
+        <Image src="/brand/logo-mark.svg" alt="Verian" width={28} height={28} />
         <div className="flex flex-col leading-none">
-          <span className="text-sm font-semibold">Verian BIOS</span>
+          <span className="text-sm font-semibold text-sidebar-foreground">Verian BIOS</span>
           {tenantName && (
-            <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">{tenantName}</span>
+            <span className="text-[10px] text-sidebar-foreground/50 truncate max-w-[120px]">{tenantName}</span>
           )}
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-        {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
-                isActive
-                  ? 'bg-accent text-accent-foreground font-medium'
-                  : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-              )}
-            >
-              {item.icon}
-              {item.label}
-            </Link>
-          )
-        })}
+      <nav className="flex-1 overflow-y-auto px-2 py-3">
+        {sections.map((section, si) => (
+          <div key={si} className={si > 0 ? 'mt-1' : ''}>
+            {section.label && (
+              <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+                {section.label}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {section.items.map((item) => {
+                const isActive = pathname.startsWith(item.href)
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
+                      isActive
+                        ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
+                        : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
+                    )}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
     </aside>
   )

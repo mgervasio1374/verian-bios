@@ -1,10 +1,19 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import * as companyService from '@/modules/crm/services/company.service'
-import { Badge } from '@/components/ui/badge'
 import { Building2 } from 'lucide-react'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 import { AddCompanyDialog } from './AddCompanyDialog'
+
+function getStatusBadgeClass(status: string | null): string {
+  switch (status) {
+    case 'active':   return 'bg-teal-50 text-teal-700 border border-teal-200'
+    case 'prospect': return 'bg-blue-50 text-blue-700 border border-blue-200'
+    case 'churned':  return 'bg-red-50 text-red-700 border border-red-200'
+    default:         return 'bg-gray-100 text-gray-600 border border-gray-200'
+  }
+}
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -68,9 +77,9 @@ export default async function CompaniesPage({ params, searchParams }: PageProps)
                     {[c.city, c.state].filter(Boolean).join(', ') || '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant={c.status === 'active' ? 'default' : 'secondary'}>
-                      {c.status}
-                    </Badge>
+                    <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize', getStatusBadgeClass(c.status))}>
+                      {c.status ?? '—'}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground capitalize">{c.source ?? '—'}</td>
                 </tr>

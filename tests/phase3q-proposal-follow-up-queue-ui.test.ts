@@ -161,7 +161,7 @@ describe('Slice 6: follow-up queue UI page', () => {
 describe('Slice 6: follow-up queue sidebar navigation', () => {
 
   it('TC-3Q-121: sidebar includes Follow-Up Queue nav item', () => {
-    expect(readSrc(SIDEBAR)).toContain('Follow-Up Queue')
+    expect(readSrc(SIDEBAR)).toContain('Follow-Ups')
   })
 
   it('TC-3Q-122: sidebar links to proposal-follow-ups route', () => {

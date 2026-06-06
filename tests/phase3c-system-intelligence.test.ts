@@ -416,7 +416,7 @@ describe('Phase 3C.1 — Sidebar: System Intelligence nav link', () => {
   })
 
   it('sidebar has Sys Intelligence label', () => {
-    expect(sidebarSource).toContain('Sys Intelligence')
+    expect(sidebarSource).toContain('System Intelligence')
   })
 })
 
