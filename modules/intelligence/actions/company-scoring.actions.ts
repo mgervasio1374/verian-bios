@@ -36,7 +36,7 @@ export async function triggerCompanyScoringAction(
     requirePermission(ctx, 'crm.companies.view')
 
     // Confirm the company belongs to this tenant before scoring
-    const company = await companyRepo.getCompany(companyId, ctx.tenantId)
+    const company = await companyRepo.getCompany(companyId, ctx.tenantId, ctx.workspaceId)
     if (!company) return { success: false, error: 'Company not found.' }
 
     const result = await companyScoringService.scoreCompany(

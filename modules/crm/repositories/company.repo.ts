@@ -33,7 +33,24 @@ export async function listCompanies(opts: ListCompaniesOptions): Promise<Company
   return data ?? []
 }
 
-export async function getCompany(id: string, tenantId: string): Promise<CompanyRow | null> {
+export async function getCompany(id: string, tenantId: string, workspaceId: string): Promise<CompanyRow | null> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('companies')
+    .select('*')
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .is('deleted_at', null)
+    .single()
+
+  if (error) return null
+  return data
+}
+
+// System-level read: no workspace filter. Use only in background/AI service contexts
+// where a workspace-scoped RequestContext is not available.
+export async function getCompanyByTenant(id: string, tenantId: string): Promise<CompanyRow | null> {
   const supabase = createSupabaseServiceClient()
   const { data, error } = await supabase
     .from('companies')
@@ -62,6 +79,7 @@ export async function createCompany(data: CompanyInsert): Promise<CompanyRow> {
 export async function updateCompany(
   id: string,
   tenantId: string,
+  workspaceId: string,
   data: CompanyUpdate
 ): Promise<CompanyRow> {
   const supabase = createSupabaseServiceClient()
@@ -70,6 +88,7 @@ export async function updateCompany(
     .update(data)
     .eq('id', id)
     .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
     .is('deleted_at', null)
     .select()
     .single()

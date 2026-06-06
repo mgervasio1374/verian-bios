@@ -93,6 +93,63 @@ export async function createCompanyFromDialogAction(input: {
   }
 }
 
+export async function updateCompanyFromDialogAction(
+  id: string,
+  input: {
+    name: string
+    domain: string
+    website: string
+    phone: string
+    industry: string
+    status: string
+    address_line1: string
+    address_line2: string
+    city: string
+    state: string
+    zip: string
+    country: string
+    employee_count: string
+    annual_revenue: string
+    source: string
+  }
+): Promise<ActionResult> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx = await buildRequestContext(supabase)
+
+    if (!input.name.trim()) return { success: false, error: 'Company name is required.' }
+
+    const parsed = updateCompanySchema.safeParse({
+      name:          input.name.trim(),
+      domain:        input.domain.trim()        || null,
+      website:       normalizeWebsite(input.website),
+      phone:         input.phone.trim()         || null,
+      industry:      input.industry.trim()      || null,
+      status:        input.status               || undefined,
+      address_line1: input.address_line1.trim() || null,
+      address_line2: input.address_line2.trim() || null,
+      city:          input.city.trim()          || null,
+      state:         input.state.trim()         || null,
+      zip:           input.zip.trim()           || null,
+      country:       input.country.trim()       || 'US',
+      employee_count: input.employee_count.trim() || null,
+      annual_revenue: input.annual_revenue.trim() || null,
+      source:        input.source.trim()        || null,
+    })
+
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Validation error' }
+    }
+
+    await companyService.updateCompany(ctx, id, parsed.data)
+    revalidatePath('/[workspaceSlug]/companies', 'page')
+    revalidatePath('/[workspaceSlug]/companies/[id]', 'page')
+    return { success: true, data: undefined }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
 export async function deleteCompanyAction(id: string): Promise<ActionResult> {
   try {
     const supabase = await createSupabaseServerClient()

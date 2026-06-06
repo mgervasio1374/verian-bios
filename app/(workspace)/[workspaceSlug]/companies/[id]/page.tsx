@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Globe, Phone, FileText, ExternalLink } from 'lucide-react'
 import { ScoreCompanyButton } from './ScoreCompanyButton'
 import { GenerateRecommendationButton } from './GenerateRecommendationButton'
+import { CompanyEditDialog } from './CompanyEditDialog'
 import { DOCUMENT_TYPE_LABELS, DOCUMENT_SOURCE_LABELS } from '@/modules/artifacts/types'
 
 interface PageProps {
@@ -48,6 +49,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
               </Badge>
             </div>
           </div>
+          <CompanyEditDialog company={company} />
         </div>
       </div>
 

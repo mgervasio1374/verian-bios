@@ -148,7 +148,7 @@ export async function getAgentRunTraceData(
     const [rec, score, company] = await Promise.all([
       recommendationRepo.getLatestCompanyRecommendation(run.subject_id, tenantId),
       companyScoreRepo.getCurrentCompanyScore(run.subject_id, tenantId, 'overall'),
-      companyRepo.getCompany(run.subject_id, tenantId),
+      companyRepo.getCompanyByTenant(run.subject_id, tenantId),
     ])
     relatedRecommendation = rec
     relatedCompanyScore   = score

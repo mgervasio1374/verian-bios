@@ -203,7 +203,7 @@ export async function generateCompanyRecommendation(
   // ---- Pre-run checks (no agent run started yet) ----
 
   // 1. Load company — must exist in this tenant
-  const company = await companyRepo.getCompany(companyId, tenantId)
+  const company = await companyRepo.getCompanyByTenant(companyId, tenantId)
   if (!company) {
     return { success: false, duplicate: false, error: `Company not found: ${companyId}` }
   }

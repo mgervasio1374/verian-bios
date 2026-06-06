@@ -165,7 +165,7 @@ export async function generateManualCampaignDraft(input: {
   // Load company name (fall back to lead name)
   let companyName = lead.name
   if (lead.company_id) {
-    const company = await companyRepo.getCompany(lead.company_id, input.tenantId)
+    const company = await companyRepo.getCompanyByTenant(lead.company_id, input.tenantId)
     if (company?.name) companyName = company.name
   }
 

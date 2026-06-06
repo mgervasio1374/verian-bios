@@ -33,7 +33,7 @@ export async function triggerCompanyRecommendationAction(
     requirePermission(ctx, 'crm.companies.view')
 
     // Verify the company belongs to this tenant before doing any work
-    const company = await companyRepo.getCompany(companyId, ctx.tenantId)
+    const company = await companyRepo.getCompany(companyId, ctx.tenantId, ctx.workspaceId)
     if (!company) return { success: false, error: 'Company not found.' }
 
     const result = await recommendationService.generateCompanyRecommendation(

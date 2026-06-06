@@ -289,7 +289,7 @@ export async function scoreCompany(
     })
     currentStepId = step0.id
 
-    const company = await companyRepo.getCompany(companyId, tenantId)
+    const company = await companyRepo.getCompanyByTenant(companyId, tenantId)
     if (!company) {
       await agentRunLogging.failAgentRunStep(step0.id, `Company not found: ${companyId}`)
       throw new Error(`Company not found: ${companyId}`)

@@ -48,7 +48,7 @@ export async function createDraftFromAsset(
 
   // 5. Load company (non-fatal — proceed with null)
   const company = lead.company_id
-    ? await companyRepo.getCompany(lead.company_id, input.tenantId).catch(() => null)
+    ? await companyRepo.getCompanyByTenant(lead.company_id, input.tenantId).catch(() => null)
     : null
 
   // 6. Load sender identity (non-fatal)

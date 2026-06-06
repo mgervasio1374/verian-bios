@@ -23,7 +23,7 @@ export async function listCompanies(
 
 export async function getCompany(ctx: RequestContext, id: string) {
   requirePermission(ctx, 'crm.companies.view')
-  const company = await companyRepo.getCompany(id, ctx.tenantId)
+  const company = await companyRepo.getCompany(id, ctx.tenantId, ctx.workspaceId)
   if (!company) throw new NotFoundError('Company')
   return company
 }
@@ -58,7 +58,7 @@ export async function updateCompany(
 ) {
   requirePermission(ctx, 'crm.companies.edit')
 
-  const company = await companyRepo.updateCompany(id, ctx.tenantId, {
+  const company = await companyRepo.updateCompany(id, ctx.tenantId, ctx.workspaceId, {
     ...data,
     updated_by: ctx.userId === 'system' ? null : ctx.userId,
   })
@@ -73,7 +73,7 @@ export async function updateCompany(
 
 export async function deleteCompany(ctx: RequestContext, id: string) {
   requirePermission(ctx, 'crm.companies.edit')
-  const existing = await companyRepo.getCompany(id, ctx.tenantId)
+  const existing = await companyRepo.getCompany(id, ctx.tenantId, ctx.workspaceId)
   if (!existing) throw new NotFoundError('Company')
 
   await softDeleteRecord('companies', id, ctx)
