@@ -10,6 +10,7 @@ import {
   Zap,
   TrendingUp,
   Activity,
+  CalendarDays,
   CheckCircle2,
   FileText,
   ArrowDownToLine,
@@ -58,6 +59,7 @@ export function Sidebar({ workspaceSlug, tenantName }: SidebarProps) {
         { label: 'Leads',         href: `${base}/leads`,         icon: <Zap className="h-4 w-4" /> },
         { label: 'Opportunities', href: `${base}/opportunities`, icon: <TrendingUp className="h-4 w-4" /> },
         { label: 'Activities',    href: `${base}/activities`,    icon: <Activity className="h-4 w-4" /> },
+        { label: 'Operations',    href: `${base}/operations`,    icon: <CalendarDays className="h-4 w-4" /> },
       ],
     },
     {
@@ -102,7 +104,7 @@ export function Sidebar({ workspaceSlug, tenantName }: SidebarProps) {
     <aside className="flex h-screen w-56 flex-col border-r border-sidebar-border bg-sidebar">
       {/* Brand */}
       <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
-        <Image src="/brand/logo-mark.svg" alt="Verian" width={28} height={28} />
+        <Image src="/brand/verian-logo.png" alt="Verian" width={200} height={60} className="h-7 w-auto object-contain" />
         <div className="flex flex-col leading-none">
           <span className="text-sm font-semibold text-sidebar-foreground">Verian BIOS</span>
           {tenantName && (

@@ -3,6 +3,7 @@ import { buildRequestContext } from '@/lib/auth/context'
 import * as contactService from '@/modules/crm/services/contact.service'
 import { Badge } from '@/components/ui/badge'
 import { Users } from 'lucide-react'
+import Link from 'next/link'
 import { AddContactDialog } from './AddContactDialog'
 
 interface PageProps {
@@ -16,7 +17,7 @@ export default async function ContactsPage({ params, searchParams }: PageProps) 
 
   const supabase = await createSupabaseServerClient()
   const ctx = await buildRequestContext(supabase)
-  const contacts = await contactService.listContacts(ctx, { search, limit: 100 }).catch(() => [])
+  const contacts = await contactService.listContactsWithCompany(ctx, { search, limit: 100 }).catch(() => [])
 
   return (
     <div className="space-y-6">
@@ -39,6 +40,7 @@ export default async function ContactsPage({ params, searchParams }: PageProps) 
             <thead className="border-b bg-muted/50">
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Company</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Title</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Email</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Phone</th>
@@ -52,6 +54,18 @@ export default async function ContactsPage({ params, searchParams }: PageProps) 
                     <p className="font-medium">{c.first_name} {c.last_name}</p>
                     {c.is_primary_contact && (
                       <span className="text-xs text-blue-600">Primary Contact</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {c.company ? (
+                      <Link
+                        href={`/${workspaceSlug}/companies/${c.company.id}`}
+                        className="text-sm text-foreground hover:underline"
+                      >
+                        {c.company.name}
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{c.title ?? '—'}</td>

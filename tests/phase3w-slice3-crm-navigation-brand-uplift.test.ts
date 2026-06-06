@@ -62,10 +62,10 @@ describe('TC-3W-S3-002: Sidebar uses sidebar tokens, logo, section labels, and c
     expect(src).toContain('bg-sidebar')
   })
 
-  it('Sidebar imports and renders logo-mark.svg via next/image', () => {
+  it('Sidebar imports and renders official logo via next/image', () => {
     const src = readSrc(SIDEBAR)
     expect(src).toContain("import Image from 'next/image'")
-    expect(src).toContain('/brand/logo-mark.svg')
+    expect(src).toContain('/brand/verian-logo.png')
   })
 
   it('Sidebar contains WORKFLOW, OUTREACH, INTELLIGENCE, ADMIN section labels', () => {
@@ -94,7 +94,7 @@ describe('TC-3W-S3-002: Sidebar uses sidebar tokens, logo, section labels, and c
 describe('TC-3W-S3-003: globals.css sidebar tokens updated to deep navy', () => {
   it('--sidebar is set to deep navy oklch value', () => {
     const src = readSrc(GLOBALS_CSS)
-    expect(src).toContain('--sidebar: oklch(0.22 0.04 248)')
+    expect(src).toContain('--sidebar: oklch(0.22 0.065 258)')
   })
 
   it('--sidebar-foreground is set to near-white oklch value', () => {
@@ -104,7 +104,7 @@ describe('TC-3W-S3-003: globals.css sidebar tokens updated to deep navy', () => 
 
   it('--sidebar-accent is set to lighter navy oklch value', () => {
     const src = readSrc(GLOBALS_CSS)
-    expect(src).toContain('--sidebar-accent: oklch(0.28 0.04 248)')
+    expect(src).toContain('--sidebar-accent: oklch(0.28 0.065 258)')
   })
 })
 

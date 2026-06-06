@@ -2,10 +2,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import * as leadService from '@/modules/crm/services/lead.service'
 import { getPipelineStages } from '@/lib/config/resolve'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Zap } from 'lucide-react'
 import Link from 'next/link'
+import { Zap } from 'lucide-react'
 import { AddLeadDialog } from './AddLeadDialog'
 import type { Database } from '@/types/database'
 
@@ -14,6 +12,13 @@ interface PageProps {
 }
 
 type LeadRow = Database['public']['Tables']['leads']['Row']
+
+const priorityColors: Record<string, string> = {
+  critical: 'bg-red-100 text-red-800',
+  high: 'bg-orange-100 text-orange-800',
+  medium: 'bg-blue-100 text-blue-800',
+  low: 'bg-gray-100 text-gray-600',
+}
 
 export default async function LeadsPage({ params }: PageProps) {
   const { workspaceSlug } = await params
@@ -25,6 +30,7 @@ export default async function LeadsPage({ params }: PageProps) {
     getPipelineStages(ctx.tenantId, 'lead').catch(() => []),
   ])
 
+  const activeStages = stages.filter((s) => !s.is_terminal)
   const totalLeads = Object.values(leadsByStage).flat().length
 
   return (
@@ -44,30 +50,31 @@ export default async function LeadsPage({ params }: PageProps) {
           <p className="text-xs text-muted-foreground mt-1">Add your first lead to start the pipeline</p>
         </div>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {stages.filter((s) => !s.is_terminal).map((stage) => {
+        <div className="space-y-6">
+          {activeStages.map((stage) => {
             const stageLeads = leadsByStage[stage.slug] ?? []
+            if (stageLeads.length === 0) return null
             return (
-              <div key={stage.id} className="flex-none w-64">
-                <div className="flex items-center gap-2 mb-2">
+              <div key={stage.id}>
+                <div className="flex items-center gap-2 mb-2 px-1">
                   <span
-                    className="h-2.5 w-2.5 rounded-full"
+                    className="h-2.5 w-2.5 rounded-full shrink-0"
                     style={{ backgroundColor: stage.color ?? '#6B7280' }}
                   />
-                  <span className="text-sm font-medium">{stage.name}</span>
+                  <span className="text-sm font-semibold text-foreground">{stage.name}</span>
                   <span className="ml-auto text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
                     {stageLeads.length}
                   </span>
                 </div>
-                <div className="space-y-2">
-                  {stageLeads.map((lead) => (
-                    <LeadCard key={lead.id} lead={lead} workspaceSlug={workspaceSlug} />
+                <div className="rounded-lg border bg-card overflow-hidden">
+                  {stageLeads.map((lead, idx) => (
+                    <LeadRow
+                      key={lead.id}
+                      lead={lead}
+                      workspaceSlug={workspaceSlug}
+                      isLast={idx === stageLeads.length - 1}
+                    />
                   ))}
-                  {stageLeads.length === 0 && (
-                    <div className="rounded-lg border border-dashed p-3 text-center">
-                      <p className="text-xs text-muted-foreground">No leads</p>
-                    </div>
-                  )}
                 </div>
               </div>
             )
@@ -78,33 +85,40 @@ export default async function LeadsPage({ params }: PageProps) {
   )
 }
 
-function LeadCard({ lead, workspaceSlug }: { lead: LeadRow; workspaceSlug: string }) {
-  const priorityColors: Record<string, string> = {
-    critical: 'bg-red-100 text-red-800',
-    high: 'bg-orange-100 text-orange-800',
-    medium: 'bg-blue-100 text-blue-800',
-    low: 'bg-gray-100 text-gray-600',
-  }
-
+function LeadRow({
+  lead,
+  workspaceSlug,
+  isLast,
+}: {
+  lead: LeadRow
+  workspaceSlug: string
+  isLast: boolean
+}) {
   return (
     <Link href={`/${workspaceSlug}/leads/${lead.id}`}>
-      <div className="rounded-lg border bg-background p-3 hover:shadow-sm transition-shadow cursor-pointer">
-        <p className="text-sm font-medium line-clamp-2">{lead.name}</p>
+      <div
+        className={`flex items-center gap-4 px-4 py-3 hover:bg-muted/30 transition-colors${
+          isLast ? '' : ' border-b'
+        }`}
+      >
+        <p className="text-sm font-medium flex-1 min-w-0 truncate">{lead.name}</p>
         {lead.estimated_value && (
-          <p className="text-xs text-muted-foreground mt-1">
+          <span className="text-xs text-muted-foreground shrink-0">
             ${lead.estimated_value.toLocaleString()}
-          </p>
-        )}
-        <div className="mt-2 flex items-center gap-1.5">
-          <span className={`text-xs px-1.5 py-0.5 rounded-full capitalize ${priorityColors[lead.priority] ?? priorityColors.medium}`}>
-            {lead.priority}
           </span>
-          {lead.workflow_enabled && (
-            <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">
-              WF On
-            </span>
-          )}
-        </div>
+        )}
+        <span
+          className={`text-xs px-1.5 py-0.5 rounded-full capitalize shrink-0 ${
+            priorityColors[lead.priority] ?? priorityColors.medium
+          }`}
+        >
+          {lead.priority}
+        </span>
+        {lead.workflow_enabled && (
+          <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 shrink-0">
+            WF On
+          </span>
+        )}
       </div>
     </Link>
   )

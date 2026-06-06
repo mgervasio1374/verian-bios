@@ -5,6 +5,10 @@ type ContactRow = Database['public']['Tables']['contacts']['Row']
 type ContactInsert = Database['public']['Tables']['contacts']['Insert']
 type ContactUpdate = Database['public']['Tables']['contacts']['Update']
 
+export type ContactWithCompany = ContactRow & {
+  company: { id: string; name: string } | null
+}
+
 export interface ListContactsOptions {
   tenantId: string
   workspaceId: string
@@ -33,6 +37,27 @@ export async function listContacts(opts: ListContactsOptions): Promise<ContactRo
   const { data, error } = await query
   if (error) throw new Error(`listContacts: ${error.message}`)
   return data ?? []
+}
+
+export async function listContactsWithCompany(opts: ListContactsOptions): Promise<ContactWithCompany[]> {
+  const supabase = createSupabaseServiceClient()
+  let query = supabase
+    .from('contacts')
+    .select('*, company:companies(id, name)')
+    .eq('tenant_id', opts.tenantId)
+    .eq('workspace_id', opts.workspaceId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(opts.limit ?? 50)
+
+  if (opts.companyId) query = query.eq('company_id', opts.companyId)
+  if (opts.search) {
+    query = query.or(`first_name.ilike.%${opts.search}%,last_name.ilike.%${opts.search}%,email.ilike.%${opts.search}%`)
+  }
+
+  const { data, error } = await query
+  if (error) throw new Error(`listContactsWithCompany: ${error.message}`)
+  return (data ?? []) as unknown as ContactWithCompany[]
 }
 
 export async function getContact(id: string, tenantId: string): Promise<ContactRow | null> {

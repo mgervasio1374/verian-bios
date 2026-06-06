@@ -21,6 +21,18 @@ export async function listContacts(
   })
 }
 
+export async function listContactsWithCompany(
+  ctx: RequestContext,
+  opts: { search?: string; limit?: number } = {}
+) {
+  requirePermission(ctx, 'crm.contacts.view')
+  return contactRepo.listContactsWithCompany({
+    tenantId: ctx.tenantId,
+    workspaceId: ctx.workspaceId,
+    ...opts,
+  })
+}
+
 export async function getContact(ctx: RequestContext, id: string) {
   requirePermission(ctx, 'crm.contacts.view')
   const contact = await contactRepo.getContact(id, ctx.tenantId)
