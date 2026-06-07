@@ -34,8 +34,8 @@ describe('TC-G2-S5-001 file existence and scope', () => {
     expect(files).toContain('campaign-schedule-item.repo.ts')
   })
 
-  it('no service files exist yet under campaign-sequence/services', () => {
-    expect(exists('modules/campaign-sequence/services')).toBe(false)
+  it('campaign-sequence service directory exists', () => {
+    expect(exists('modules/campaign-sequence/services')).toBe(true)
   })
 })
 
@@ -344,7 +344,7 @@ describe('TC-G2-S5-011 no UI or migration files touched', () => {
     expect(migSrc).toContain('CREATE TABLE campaign_sequence_steps')
   })
 
-  it('no campaign-sequence service directory exists yet', () => {
-    expect(exists('modules/campaign-sequence/services')).toBe(false)
+  it('campaign-sequence service directory exists', () => {
+    expect(exists('modules/campaign-sequence/services')).toBe(true)
   })
 })

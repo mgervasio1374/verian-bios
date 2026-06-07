@@ -30,9 +30,9 @@ describe('TC-G2-S2-001 file existence and scope', () => {
     expect(exists(typesPath)).toBe(true)
   })
 
-  it('no service files exist yet under campaign-sequence/services', () => {
+  it('campaign-sequence service directory exists', () => {
     const servicesDir = path.join(root, 'modules/campaign-sequence/services')
-    expect(fs.existsSync(servicesDir)).toBe(false)
+    expect(fs.existsSync(servicesDir)).toBe(true)
   })
 
   it('campaign-type.repo.ts exists in the repositories directory', () => {
@@ -281,7 +281,7 @@ describe('TC-G2-S2-010 no UI or migration files touched', () => {
     expect(migSrc).toContain('CREATE TABLE campaign_sequences')
   })
 
-  it('no campaign-sequence service directory exists yet', () => {
-    expect(exists('modules/campaign-sequence/services')).toBe(false)
+  it('campaign-sequence service directory exists', () => {
+    expect(exists('modules/campaign-sequence/services')).toBe(true)
   })
 })
