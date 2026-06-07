@@ -12,24 +12,25 @@ function exists(rel: string) {
   return fs.existsSync(path.join(root, rel))
 }
 
-const repoPath = 'modules/campaign-sequence/repositories/campaign-sequence.repo.ts'
+const repoPath = 'modules/campaign-sequence/repositories/campaign-sequence-step.repo.ts'
 const src = read(repoPath)
 
 // ---------------------------------------------------------------------------
-// TC-G2-S3-001  File existence and scope
+// TC-G2-S4-001  File existence and scope
 // ---------------------------------------------------------------------------
 
-describe('TC-G2-S3-001 file existence and scope', () => {
-  it('campaign-sequence.repo.ts exists and is non-empty', () => {
+describe('TC-G2-S4-001 file existence and scope', () => {
+  it('campaign-sequence-step.repo.ts exists and is non-empty', () => {
     expect(exists(repoPath)).toBe(true)
     expect(src.length).toBeGreaterThan(0)
   })
 
-  it('campaign-sequence.repo.ts exists in the repositories directory', () => {
+  it('campaign-sequence-step.repo.ts exists in the repositories directory', () => {
     const reposDir = path.join(root, 'modules/campaign-sequence/repositories')
     const files = fs.readdirSync(reposDir).sort()
     expect(files).toContain('campaign-type.repo.ts')
     expect(files).toContain('campaign-sequence.repo.ts')
+    expect(files).toContain('campaign-sequence-step.repo.ts')
   })
 
   it('no service files exist yet under campaign-sequence/services', () => {
@@ -38,10 +39,10 @@ describe('TC-G2-S3-001 file existence and scope', () => {
 })
 
 // ---------------------------------------------------------------------------
-// TC-G2-S3-002  Imports
+// TC-G2-S4-002  Imports
 // ---------------------------------------------------------------------------
 
-describe('TC-G2-S3-002 imports', () => {
+describe('TC-G2-S4-002 imports', () => {
   it('imports createSupabaseServiceClient', () => {
     expect(src).toContain('createSupabaseServiceClient')
     expect(src).toContain("from '@/lib/supabase/service'")
@@ -55,65 +56,61 @@ describe('TC-G2-S3-002 imports', () => {
     expect(src).toContain("from '@/modules/campaign-sequence/types'")
   })
 
-  it('imports CampaignSequenceRow', () => {
-    expect(src).toContain('CampaignSequenceRow')
+  it('imports CampaignSequenceStepRow', () => {
+    expect(src).toContain('CampaignSequenceStepRow')
   })
 
-  it('imports CampaignSequenceInsert', () => {
-    expect(src).toContain('CampaignSequenceInsert')
+  it('imports CampaignSequenceStepInsert', () => {
+    expect(src).toContain('CampaignSequenceStepInsert')
   })
 
-  it('imports CampaignSequenceUpdate', () => {
-    expect(src).toContain('CampaignSequenceUpdate')
+  it('imports CampaignSequenceStepUpdate', () => {
+    expect(src).toContain('CampaignSequenceStepUpdate')
   })
 })
 
 // ---------------------------------------------------------------------------
-// TC-G2-S3-003  Function exports
+// TC-G2-S4-003  Function exports
 // ---------------------------------------------------------------------------
 
-describe('TC-G2-S3-003 function exports', () => {
-  it('exports insertCampaignSequence', () => {
-    expect(src).toContain('export async function insertCampaignSequence')
+describe('TC-G2-S4-003 function exports', () => {
+  it('exports insertCampaignSequenceStep', () => {
+    expect(src).toContain('export async function insertCampaignSequenceStep')
   })
 
-  it('exports getCampaignSequenceById', () => {
-    expect(src).toContain('export async function getCampaignSequenceById')
+  it('exports getCampaignSequenceStepById', () => {
+    expect(src).toContain('export async function getCampaignSequenceStepById')
   })
 
-  it('exports listCampaignSequencesForType', () => {
-    expect(src).toContain('export async function listCampaignSequencesForType')
+  it('exports listCampaignSequenceStepsForSequence', () => {
+    expect(src).toContain('export async function listCampaignSequenceStepsForSequence')
   })
 
-  it('exports getDefaultCampaignSequenceForType', () => {
-    expect(src).toContain('export async function getDefaultCampaignSequenceForType')
-  })
-
-  it('exports updateCampaignSequence', () => {
-    expect(src).toContain('export async function updateCampaignSequence')
+  it('exports updateCampaignSequenceStep', () => {
+    expect(src).toContain('export async function updateCampaignSequenceStep')
   })
 
   it('does not export a delete function', () => {
-    expect(src).not.toContain('deleteCampaignSequence')
+    expect(src).not.toContain('deleteCampaignSequenceStep')
     expect(src).not.toContain('export async function delete')
   })
 })
 
 // ---------------------------------------------------------------------------
-// TC-G2-S3-004  Table reference
+// TC-G2-S4-004  Table reference
 // ---------------------------------------------------------------------------
 
-describe('TC-G2-S3-004 table reference', () => {
-  it("references campaign_sequences table", () => {
-    expect(src).toContain(".from('campaign_sequences')")
+describe('TC-G2-S4-004 table reference', () => {
+  it("references campaign_sequence_steps table", () => {
+    expect(src).toContain(".from('campaign_sequence_steps')")
   })
 })
 
 // ---------------------------------------------------------------------------
-// TC-G2-S3-005  insertCampaignSequence query shape
+// TC-G2-S4-005  insertCampaignSequenceStep query shape
 // ---------------------------------------------------------------------------
 
-describe('TC-G2-S3-005 insertCampaignSequence query shape', () => {
+describe('TC-G2-S4-005 insertCampaignSequenceStep query shape', () => {
   it('uses .insert(data)', () => {
     expect(src).toContain('.insert(data)')
   })
@@ -128,18 +125,18 @@ describe('TC-G2-S3-005 insertCampaignSequence query shape', () => {
 
   it('throws on insert error', () => {
     const insertBody = src.slice(
-      src.indexOf('export async function insertCampaignSequence'),
-      src.indexOf('export async function getCampaignSequenceById'),
+      src.indexOf('export async function insertCampaignSequenceStep'),
+      src.indexOf('export async function getCampaignSequenceStepById'),
     )
     expect(insertBody).toContain('throw new Error')
   })
 })
 
 // ---------------------------------------------------------------------------
-// TC-G2-S3-006  getCampaignSequenceById scoping
+// TC-G2-S4-006  getCampaignSequenceStepById scoping
 // ---------------------------------------------------------------------------
 
-describe('TC-G2-S3-006 getCampaignSequenceById scoping', () => {
+describe('TC-G2-S4-006 getCampaignSequenceStepById scoping', () => {
   it('scopes by id', () => {
     expect(src).toContain(".eq('id', id)")
   })
@@ -154,128 +151,82 @@ describe('TC-G2-S3-006 getCampaignSequenceById scoping', () => {
 
   it('returns null on not-found (not throw)', () => {
     const getByIdBody = src.slice(
-      src.indexOf('export async function getCampaignSequenceById'),
-      src.indexOf('export async function listCampaignSequencesForType'),
+      src.indexOf('export async function getCampaignSequenceStepById'),
+      src.indexOf('export async function listCampaignSequenceStepsForSequence'),
     )
     expect(getByIdBody).toContain('return null')
   })
 })
 
 // ---------------------------------------------------------------------------
-// TC-G2-S3-007  listCampaignSequencesForType scoping
+// TC-G2-S4-007  listCampaignSequenceStepsForSequence scoping and ordering
 // ---------------------------------------------------------------------------
 
-describe('TC-G2-S3-007 listCampaignSequencesForType scoping', () => {
-  it('scopes by campaign_type_id', () => {
-    expect(src).toContain(".eq('campaign_type_id', campaignTypeId)")
+describe('TC-G2-S4-007 listCampaignSequenceStepsForSequence scoping and ordering', () => {
+  it('scopes by campaign_sequence_id', () => {
+    expect(src).toContain(".eq('campaign_sequence_id', campaignSequenceId)")
   })
 
   it('scopes by tenant_id in list', () => {
     const listBody = src.slice(
-      src.indexOf('export async function listCampaignSequencesForType'),
-      src.indexOf('export async function getDefaultCampaignSequenceForType'),
+      src.indexOf('export async function listCampaignSequenceStepsForSequence'),
+      src.indexOf('export async function updateCampaignSequenceStep'),
     )
     expect(listBody).toContain(".eq('tenant_id', tenantId)")
   })
 
   it('scopes by workspace_id in list', () => {
     const listBody = src.slice(
-      src.indexOf('export async function listCampaignSequencesForType'),
-      src.indexOf('export async function getDefaultCampaignSequenceForType'),
+      src.indexOf('export async function listCampaignSequenceStepsForSequence'),
+      src.indexOf('export async function updateCampaignSequenceStep'),
     )
     expect(listBody).toContain(".eq('workspace_id', workspaceId)")
   })
 
-  it('applies an order clause', () => {
+  it('orders by step_number ascending', () => {
     const listBody = src.slice(
-      src.indexOf('export async function listCampaignSequencesForType'),
-      src.indexOf('export async function getDefaultCampaignSequenceForType'),
+      src.indexOf('export async function listCampaignSequenceStepsForSequence'),
+      src.indexOf('export async function updateCampaignSequenceStep'),
     )
-    expect(listBody).toContain('.order(')
+    expect(listBody).toContain(".order('step_number', { ascending: true })")
   })
 })
 
 // ---------------------------------------------------------------------------
-// TC-G2-S3-008  getDefaultCampaignSequenceForType scoping
+// TC-G2-S4-008  updateCampaignSequenceStep scoping
 // ---------------------------------------------------------------------------
 
-describe('TC-G2-S3-008 getDefaultCampaignSequenceForType scoping', () => {
-  it('scopes by campaign_type_id', () => {
-    const defaultBody = src.slice(
-      src.indexOf('export async function getDefaultCampaignSequenceForType'),
-      src.indexOf('export async function updateCampaignSequence'),
-    )
-    expect(defaultBody).toContain(".eq('campaign_type_id', campaignTypeId)")
-  })
-
-  it('scopes by tenant_id in default lookup', () => {
-    const defaultBody = src.slice(
-      src.indexOf('export async function getDefaultCampaignSequenceForType'),
-      src.indexOf('export async function updateCampaignSequence'),
-    )
-    expect(defaultBody).toContain(".eq('tenant_id', tenantId)")
-  })
-
-  it('scopes by workspace_id in default lookup', () => {
-    const defaultBody = src.slice(
-      src.indexOf('export async function getDefaultCampaignSequenceForType'),
-      src.indexOf('export async function updateCampaignSequence'),
-    )
-    expect(defaultBody).toContain(".eq('workspace_id', workspaceId)")
-  })
-
-  it('filters by is_default = true', () => {
-    const defaultBody = src.slice(
-      src.indexOf('export async function getDefaultCampaignSequenceForType'),
-      src.indexOf('export async function updateCampaignSequence'),
-    )
-    expect(defaultBody).toContain(".eq('is_default', true)")
-  })
-
-  it('returns null on not-found (not throw)', () => {
-    const defaultBody = src.slice(
-      src.indexOf('export async function getDefaultCampaignSequenceForType'),
-      src.indexOf('export async function updateCampaignSequence'),
-    )
-    expect(defaultBody).toContain('return null')
-  })
-})
-
-// ---------------------------------------------------------------------------
-// TC-G2-S3-009  updateCampaignSequence scoping
-// ---------------------------------------------------------------------------
-
-describe('TC-G2-S3-009 updateCampaignSequence scoping', () => {
+describe('TC-G2-S4-008 updateCampaignSequenceStep scoping', () => {
   it('uses .update(data)', () => {
     expect(src).toContain('.update(data)')
   })
 
   it('scopes by id in update', () => {
-    const updateBody = src.slice(src.indexOf('export async function updateCampaignSequence'))
+    const updateBody = src.slice(src.indexOf('export async function updateCampaignSequenceStep'))
     expect(updateBody).toContain(".eq('id', id)")
   })
 
   it('scopes by tenant_id in update', () => {
-    const updateBody = src.slice(src.indexOf('export async function updateCampaignSequence'))
+    const updateBody = src.slice(src.indexOf('export async function updateCampaignSequenceStep'))
     expect(updateBody).toContain(".eq('tenant_id', tenantId)")
   })
 
   it('scopes by workspace_id in update', () => {
-    const updateBody = src.slice(src.indexOf('export async function updateCampaignSequence'))
+    const updateBody = src.slice(src.indexOf('export async function updateCampaignSequenceStep'))
     expect(updateBody).toContain(".eq('workspace_id', workspaceId)")
   })
 
   it('throws on update error (not swallowed)', () => {
-    const updateBody = src.slice(src.indexOf('export async function updateCampaignSequence'))
+    const updateBody = src.slice(src.indexOf('export async function updateCampaignSequenceStep'))
     expect(updateBody).toContain('throw new Error')
   })
 })
 
 // ---------------------------------------------------------------------------
-// TC-G2-S3-010  No forbidden content
+// TC-G2-S4-009  No forbidden content
 // ---------------------------------------------------------------------------
 
-describe('TC-G2-S3-010 no forbidden content', () => {
+describe('TC-G2-S4-009 no forbidden content', () => {
   it('does not reference sendFollowUpDraftAction', () => {
     expect(src).not.toContain('sendFollowUpDraftAction')
   })
@@ -326,14 +277,14 @@ describe('TC-G2-S3-010 no forbidden content', () => {
 })
 
 // ---------------------------------------------------------------------------
-// TC-G2-S3-011  No UI or migration files touched
+// TC-G2-S4-010  No UI or migration files touched
 // ---------------------------------------------------------------------------
 
-describe('TC-G2-S3-011 no UI or migration files touched', () => {
+describe('TC-G2-S4-010 no UI or migration files touched', () => {
   it('migration file for campaign sequence is unchanged', () => {
     const migSrc = read('supabase/migrations/20240040_phase3x_campaign_sequence_foundation.sql')
-    expect(migSrc).toContain('CREATE TABLE campaign_sequences')
-    expect(migSrc).toContain('CREATE TABLE campaign_types')
+    expect(migSrc).toContain('CREATE TABLE campaign_sequence_steps')
+    expect(migSrc).toContain('chk_campaign_sequence_steps_recurrence')
   })
 
   it('no campaign-sequence service directory exists yet', () => {
