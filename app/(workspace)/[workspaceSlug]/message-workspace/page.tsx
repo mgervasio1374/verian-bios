@@ -50,6 +50,27 @@ export default async function MessageWorkspaceIndexPage({ params }: PageProps) {
         </div>
       </div>
 
+      <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Agent Activation Roadmap</p>
+        <div className="grid gap-3 sm:grid-cols-2 text-xs">
+          <div className="space-y-1">
+            <p className="font-semibold text-foreground">Implemented agents</p>
+            <p className="text-muted-foreground">
+              Message Strategy Agent can produce operator-reviewed strategy context for a selected lead.
+            </p>
+            <p className="text-muted-foreground">
+              Campaign asset and follow-up draft surfaces remain approval-driven; no live agent sends from this page.
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="font-semibold text-foreground">Pending live-ops prerequisites</p>
+            <p className="text-muted-foreground">Campaign rules and sequence persistence need a future reviewed schema slice.</p>
+            <p className="text-muted-foreground">Approvals, scheduling visibility, and controlled send testing must be green before activation.</p>
+            <p className="text-muted-foreground">System controls must remain disabled until an explicit enablement slice approves them.</p>
+          </div>
+        </div>
+      </div>
+
       <div className="rounded-lg border bg-background">
         <div className="px-4 py-3 border-b bg-muted/20">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Recent Active Leads</p>

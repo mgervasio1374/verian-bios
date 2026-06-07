@@ -22,6 +22,16 @@ const CAMPAIGN_TYPE_OPTIONS = Object.entries(CAMPAIGN_TYPE).map(([, v]) => ({
   value: v,
 }))
 
+const DEFAULT_SEQUENCE_OFFSETS = [
+  ['Touch 1', 'Day 1'],
+  ['Touch 2', 'Day 3'],
+  ['Touch 3', 'Day 7'],
+  ['Touch 4', 'Day 14'],
+  ['Touch 5', 'Day 31'],
+  ['Touch 6', 'Day 91'],
+  ['Touch 7+', 'Every 90 days until response'],
+]
+
 export function CampaignAssetEditor({ workspaceSlug, assetId, initial }: Props) {
   const router      = useRouter()
   const [pending, startTransition] = useTransition()
@@ -136,6 +146,33 @@ export function CampaignAssetEditor({ workspaceSlug, assetId, initial }: Props) 
             ))}
           </select>
         </label>
+
+        <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-3">
+          <div>
+            <p className="font-semibold">Sequence Configuration Preview</p>
+            <p className="text-muted-foreground mt-1">
+              Design surface only. Campaign sequence persistence requires a future schema-approved slice.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <p><span className="font-medium">Sequence Name</span>: Initial Contact</p>
+              <p><span className="font-medium">Number of Touches</span>: 6 planned touches plus long-tail follow-up</p>
+              <p><span className="font-medium">Day Offsets</span>: configurable cadence shown below</p>
+              <p><span className="font-medium">Stop Condition</span>: customer response stops remaining outreach</p>
+              <p><span className="font-medium">System Response Trigger</span>: operator review before any next-step action</p>
+              <p><span className="font-medium">Approval Required</span>: every draft must be approved before sending</p>
+            </div>
+            <div className="space-y-1.5">
+              {DEFAULT_SEQUENCE_OFFSETS.map(([touch, offset]) => (
+                <div key={touch} className="flex items-center justify-between gap-3 border-b last:border-0 pb-1 last:pb-0">
+                  <span className="font-medium text-foreground">{touch}</span>
+                  <span className="text-muted-foreground text-right">{offset}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
         <label className="flex flex-col gap-1 text-xs">
           <span className="font-medium">Subject Template</span>

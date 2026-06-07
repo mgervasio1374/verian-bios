@@ -27,6 +27,7 @@ import {
   ListTodo,
   ClipboardList,
   ListChecks,
+  UserCog,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -93,6 +94,7 @@ export function Sidebar({ workspaceSlug, tenantName }: SidebarProps) {
     {
       label: 'ADMIN',
       items: [
+        { label: 'User Management', href: `${base}/settings/user-management`, icon: <UserCog className="h-4 w-4" /> },
         { label: 'System Controls', href: `${base}/settings/system-controls`, icon: <ShieldAlert className="h-4 w-4" /> },
         { label: 'Imports',         href: `${base}/settings/imports`,         icon: <Upload className="h-4 w-4" /> },
         { label: 'Settings',        href: `${base}/settings`,                 icon: <Settings className="h-4 w-4" /> },
@@ -101,12 +103,12 @@ export function Sidebar({ workspaceSlug, tenantName }: SidebarProps) {
   ]
 
   return (
-    <aside className="flex h-screen w-56 flex-col border-r border-sidebar-border bg-sidebar">
+    <aside className="flex h-screen w-60 flex-col border-r border-sidebar-border bg-sidebar">
       {/* Brand */}
-      <div className="flex h-16 flex-col items-start justify-center border-b border-sidebar-border px-4 gap-0.5">
-        <Image src="/brand/verian-logo.png" alt="Verian" width={200} height={60} className="h-10 w-auto object-contain" />
+      <div className="flex h-20 flex-col items-start justify-center border-b border-sidebar-border px-5 gap-1">
+        <Image src="/brand/verian-logo.png" alt="Verian" width={240} height={72} className="h-12 w-auto object-contain" priority />
         {tenantName && (
-          <span className="text-[10px] text-sidebar-foreground/50 truncate max-w-[160px] leading-none">{tenantName}</span>
+          <span className="text-[10px] text-sidebar-foreground/55 truncate max-w-[180px] leading-none">{tenantName}</span>
         )}
       </div>
 

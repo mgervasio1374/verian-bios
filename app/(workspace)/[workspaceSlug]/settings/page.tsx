@@ -4,7 +4,7 @@ import { buildRequestContext } from '@/lib/auth/context'
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Settings, Bot, ArrowRight, ShieldAlert, Activity } from 'lucide-react'
+import { Settings, Bot, ArrowRight, ShieldAlert, Activity, UserCog } from 'lucide-react'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -92,6 +92,24 @@ export default async function SettingsPage({ params }: PageProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* User Management */}
+      <Link href={`/${workspaceSlug}/settings/user-management`}>
+        <div className="rounded-lg border p-4 hover:bg-accent/40 transition-colors cursor-pointer">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <UserCog className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-semibold">User Management</p>
+                <p className="text-xs text-muted-foreground">
+                  View the planned users, admins, invites, roles, and permissions surface before writable controls are approved.
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </div>
+      </Link>
 
       {/* System Controls */}
       <Link href={`/${workspaceSlug}/settings/system-controls`}>
