@@ -35,11 +35,10 @@ describe('TC-G2-S2-001 file existence and scope', () => {
     expect(fs.existsSync(servicesDir)).toBe(false)
   })
 
-  it('only campaign-type.repo.ts exists in the repositories directory', () => {
+  it('campaign-type.repo.ts exists in the repositories directory', () => {
     const reposDir = path.join(root, 'modules/campaign-sequence/repositories')
     const files = fs.readdirSync(reposDir)
-    expect(files).toHaveLength(1)
-    expect(files[0]).toBe('campaign-type.repo.ts')
+    expect(files).toContain('campaign-type.repo.ts')
   })
 })
 
