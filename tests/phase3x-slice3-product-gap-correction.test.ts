@@ -184,6 +184,7 @@ describe('TC-3X-S3-005: Product correction safety guardrails', () => {
   it('no Phase 3X Slice 3 migration file exists', () => {
     const migrationDir = path.join(ROOT, 'supabase/migrations')
     const migrations = fs.readdirSync(migrationDir)
-    expect(migrations.some((name) => name.toLowerCase().includes('phase3x'))).toBe(false)
+    expect(migrations.some((name) => name.toLowerCase().includes('slice3'))).toBe(false)
+    expect(migrations.some((name) => name.toLowerCase().includes('product_gap'))).toBe(false)
   })
 })

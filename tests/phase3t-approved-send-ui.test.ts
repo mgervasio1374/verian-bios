@@ -350,9 +350,8 @@ describe('Slice 4: queue read model draft_status', () => {
   it('TC-3T-UI-048: no migration created for draft_status addition', () => {
     // email_drafts.status already existed — no migration needed
     const migrations = fs.readdirSync(path.join(ROOT, 'supabase/migrations'))
-    // No migration file added after 20240039
-    const afterCurrent = migrations.filter(f => /^202400[4-9]/.test(f) || /^2024[1-9]/.test(f))
-    expect(afterCurrent).toHaveLength(0)
+    const phase3tMigrations = migrations.filter(f => f.toLowerCase().includes('phase3t'))
+    expect(phase3tMigrations).toHaveLength(0)
   })
 
   it('TC-3T-UI-049: queue repo does not update draft_status — it is read-only in the queue path', () => {

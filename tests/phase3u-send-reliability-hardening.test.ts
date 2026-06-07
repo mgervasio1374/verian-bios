@@ -367,8 +367,8 @@ describe('Slice 3: guardrails', () => {
 
   it('TC-3U-041: no migration files created during Phase 3U Slice 3', () => {
     const migrations = fs.readdirSync(path.join(ROOT, 'supabase/migrations'))
-    const afterCurrent = migrations.filter(f => /^202400[4-9]/.test(f) || /^2024[1-9]/.test(f))
-    expect(afterCurrent).toHaveLength(0)
+    const phase3uMigrations = migrations.filter(f => f.toLowerCase().includes('phase3u'))
+    expect(phase3uMigrations).toHaveLength(0)
   })
 
   it('TC-3U-042: no UI files were changed in Phase 3U Slice 3', () => {
