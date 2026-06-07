@@ -33,6 +33,12 @@ export type VerianBridgeReviewQueueState =
   | 'denied'
   | 'archived'
 
+// Restricted subset of VerianBridgeReviewQueueState for queue submissions.
+// A packet may only enter the queue in one of these two states.
+export type VerianBridgeReviewQueueInitialState =
+  | 'draft_packet'
+  | 'pending_policy_review'
+
 // ---------------------------------------------------------------------------
 // Approval actions
 // ---------------------------------------------------------------------------
@@ -116,7 +122,7 @@ export type VerianBridgeReviewQueueSubmission = {
   readonly title: string
   readonly submittedBy: VerianBridgeRequestedBy
   readonly submittedAt: string
-  readonly initialState: VerianBridgeReviewQueueState
+  readonly initialState: VerianBridgeReviewQueueInitialState
   readonly dryRunOnly: true
 }
 
