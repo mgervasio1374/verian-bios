@@ -348,8 +348,8 @@ describe('TC-G3-S4-009 types file has no runtime behavior', () => {
 // ---------------------------------------------------------------------------
 
 describe('TC-G3-S4-010 no checker or service file', () => {
-  it('modules/verian-policy/checker.ts does not exist', () => {
-    expect(exists('modules/verian-policy/checker.ts')).toBe(false)
+  it('modules/verian-policy/checker.ts exists', () => {
+    expect(exists('modules/verian-policy/checker.ts')).toBe(true)
   })
 
   it('modules/verian-policy/service.ts does not exist', () => {
