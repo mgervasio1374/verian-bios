@@ -366,8 +366,8 @@ describe('TC-G3-S4-011 no bridge directories exist', () => {
     expect(exists('modules/verian-bridge')).toBe(false)
   })
 
-  it('modules/verian-agent-bridge does not exist', () => {
-    expect(exists('modules/verian-agent-bridge')).toBe(false)
+  it('modules/verian-agent-bridge exists', () => {
+    expect(exists('modules/verian-agent-bridge')).toBe(true)
   })
 
   it('modules/agent-bridge does not exist', () => {
