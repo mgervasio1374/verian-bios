@@ -27,11 +27,8 @@ describe('TC-G5-S3-001 expected Goal 5 files only', () => {
     expect(exists(rqPath)).toBe(true)
     expect(exists(alPath)).toBe(true)
 
+    // Slice 10 implementation files now legitimately exist. UI remains not created.
     const notExpected = [
-      'modules/verian-agent-bridge/review-queue/review-queue.service.ts',
-      'modules/verian-agent-bridge/review-queue/review-queue.repo.ts',
-      'modules/verian-agent-bridge/audit-ledger/audit-ledger.service.ts',
-      'modules/verian-agent-bridge/audit-ledger/audit-ledger.repo.ts',
       'app/(workspace)/[workspaceSlug]/agent-bridge/review-queue/page.tsx',
     ]
     for (const f of notExpected) {
@@ -259,8 +256,18 @@ describe('TC-G5-S3-012 no DB/UI/service/repo files created', () => {
   it('only allowed Goal 5 files exist — no implementation created', () => {
     const rqDir = path.join(root, 'modules/verian-agent-bridge/review-queue')
     const alDir = path.join(root, 'modules/verian-agent-bridge/audit-ledger')
-    expect(fs.readdirSync(rqDir).sort()).toEqual(['types.ts'])
-    expect(fs.readdirSync(alDir).sort()).toEqual(['types.ts'])
+    // Slice 10 added repo, service, and reviewer-authorization to these directories.
+    expect(fs.readdirSync(rqDir).sort()).toEqual([
+      'review-queue.repo.ts',
+      'review-queue.service.ts',
+      'reviewer-authorization.ts',
+      'types.ts',
+    ])
+    expect(fs.readdirSync(alDir).sort()).toEqual([
+      'audit-ledger.repo.ts',
+      'audit-ledger.service.ts',
+      'types.ts',
+    ])
     expect(
       exists('tests/goal5-agent-bridge-review-queue-audit-types.test.ts')
     ).toBe(true)

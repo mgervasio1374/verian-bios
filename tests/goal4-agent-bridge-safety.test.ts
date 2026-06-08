@@ -25,7 +25,17 @@ const allBridgeSrc = [typesSrc, registrySrc, routerSrc, serviceSrc]
 describe('TC-G4-S6-001 bridge file inventory', () => {
   it('contains exactly the 4 expected files and no disallowed extras', () => {
     const files = fs.readdirSync(bridgeDir).sort()
-    expect(files).toEqual(['agent-registry.ts', 'dry-run.service.ts', 'model-router.ts', 'types.ts'])
+    // Slice 10 added service/repository subdirectories to the bridge module
+    expect(files).toEqual([
+      'agent-registry.ts',
+      'audit-ledger',
+      'codex-reviews',
+      'dry-run.service.ts',
+      'model-router.ts',
+      'review-queue',
+      'task-packets',
+      'types.ts',
+    ])
     const forbidden = [
       'task-packet.ts', 'bridge.service.ts', 'execution.service.ts',
       'model-router.service.ts', 'qwen.service.ts', 'claude.service.ts',

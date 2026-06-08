@@ -1418,6 +1418,341 @@ export type Database = {
           },
         ]
       }
+      bridge_audit_events: {
+        Row: {
+          actor_type: string
+          actor_user_id: string | null
+          created_at: string
+          dry_run_only: boolean
+          event_type: string
+          evidence: Json
+          id: string
+          next_state: string | null
+          packet_id: string
+          policy_id: string
+          previous_state: string | null
+          prompt_hash: string | null
+          prompt_summary: string | null
+          queue_item_id: string | null
+          summary: string
+          task_id: string
+          tenant_id: string
+          workspace_id: string
+        }
+        Insert: {
+          actor_type: string
+          actor_user_id?: string | null
+          created_at?: string
+          dry_run_only?: boolean
+          event_type: string
+          evidence?: Json
+          id?: string
+          next_state?: string | null
+          packet_id: string
+          policy_id: string
+          previous_state?: string | null
+          prompt_hash?: string | null
+          prompt_summary?: string | null
+          queue_item_id?: string | null
+          summary: string
+          task_id: string
+          tenant_id: string
+          workspace_id: string
+        }
+        Update: {
+          actor_type?: string
+          actor_user_id?: string | null
+          created_at?: string
+          dry_run_only?: boolean
+          event_type?: string
+          evidence?: Json
+          id?: string
+          next_state?: string | null
+          packet_id?: string
+          policy_id?: string
+          previous_state?: string | null
+          prompt_hash?: string | null
+          prompt_summary?: string | null
+          queue_item_id?: string | null
+          summary?: string
+          task_id?: string
+          tenant_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bridge_audit_events_packet_id_fkey"
+            columns: ["packet_id"]
+            isOneToOne: false
+            referencedRelation: "bridge_task_packets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bridge_audit_events_queue_item_id_fkey"
+            columns: ["queue_item_id"]
+            isOneToOne: false
+            referencedRelation: "bridge_review_queue_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bridge_audit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bridge_audit_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bridge_codex_reviews: {
+        Row: {
+          artifact_payload: Json
+          blocking_issues: Json
+          created_at: string
+          dry_run_only: boolean
+          id: string
+          non_blocking_issues: Json
+          packet_id: string
+          queue_item_id: string
+          review_status: string
+          reviewed_by: string
+          summary: string
+          task_id: string
+          tenant_id: string
+          workspace_id: string
+        }
+        Insert: {
+          artifact_payload: Json
+          blocking_issues?: Json
+          created_at?: string
+          dry_run_only?: boolean
+          id?: string
+          non_blocking_issues?: Json
+          packet_id: string
+          queue_item_id: string
+          review_status: string
+          reviewed_by?: string
+          summary: string
+          task_id: string
+          tenant_id: string
+          workspace_id: string
+        }
+        Update: {
+          artifact_payload?: Json
+          blocking_issues?: Json
+          created_at?: string
+          dry_run_only?: boolean
+          id?: string
+          non_blocking_issues?: Json
+          packet_id?: string
+          queue_item_id?: string
+          review_status?: string
+          reviewed_by?: string
+          summary?: string
+          task_id?: string
+          tenant_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bridge_codex_reviews_packet_id_fkey"
+            columns: ["packet_id"]
+            isOneToOne: false
+            referencedRelation: "bridge_task_packets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bridge_codex_reviews_queue_item_id_fkey"
+            columns: ["queue_item_id"]
+            isOneToOne: false
+            referencedRelation: "bridge_review_queue_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bridge_codex_reviews_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bridge_codex_reviews_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bridge_review_queue_items: {
+        Row: {
+          assigned_reviewer_id: string | null
+          created_at: string
+          current_policy_check_status: string
+          dry_run_only: boolean
+          id: string
+          last_decision_summary: string | null
+          packet_id: string
+          requires_codex_review: boolean
+          requires_human_approval: boolean
+          status: string
+          task_id: string
+          tenant_id: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_reviewer_id?: string | null
+          created_at?: string
+          current_policy_check_status: string
+          dry_run_only?: boolean
+          id?: string
+          last_decision_summary?: string | null
+          packet_id: string
+          requires_codex_review?: boolean
+          requires_human_approval?: boolean
+          status: string
+          task_id: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_reviewer_id?: string | null
+          created_at?: string
+          current_policy_check_status?: string
+          dry_run_only?: boolean
+          id?: string
+          last_decision_summary?: string | null
+          packet_id?: string
+          requires_codex_review?: boolean
+          requires_human_approval?: boolean
+          status?: string
+          task_id?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bridge_review_queue_items_packet_id_fkey"
+            columns: ["packet_id"]
+            isOneToOne: false
+            referencedRelation: "bridge_task_packets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bridge_review_queue_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bridge_review_queue_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bridge_task_packets: {
+        Row: {
+          agent_category: string
+          agent_id: string
+          blocked_actions: Json
+          created_at: string
+          created_by: string | null
+          dry_run_only: boolean
+          goal_id: string | null
+          id: string
+          packet_payload: Json
+          policy_check_status: string
+          policy_id: string
+          prompt_hash: string | null
+          prompt_summary: string
+          recommended_model: string
+          required_evidence: Json
+          risk_level: string
+          slice_id: string | null
+          stop_conditions: Json
+          task_id: string
+          tenant_id: string
+          workspace_id: string
+        }
+        Insert: {
+          agent_category: string
+          agent_id: string
+          blocked_actions?: Json
+          created_at?: string
+          created_by?: string | null
+          dry_run_only?: boolean
+          goal_id?: string | null
+          id?: string
+          packet_payload: Json
+          policy_check_status: string
+          policy_id: string
+          prompt_hash?: string | null
+          prompt_summary: string
+          recommended_model: string
+          required_evidence?: Json
+          risk_level: string
+          slice_id?: string | null
+          stop_conditions?: Json
+          task_id: string
+          tenant_id: string
+          workspace_id: string
+        }
+        Update: {
+          agent_category?: string
+          agent_id?: string
+          blocked_actions?: Json
+          created_at?: string
+          created_by?: string | null
+          dry_run_only?: boolean
+          goal_id?: string | null
+          id?: string
+          packet_payload?: Json
+          policy_check_status?: string
+          policy_id?: string
+          prompt_hash?: string | null
+          prompt_summary?: string
+          recommended_model?: string
+          required_evidence?: Json
+          risk_level?: string
+          slice_id?: string | null
+          stop_conditions?: Json
+          task_id?: string
+          tenant_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bridge_task_packets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bridge_task_packets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_email_assets: {
         Row: {
           id: string

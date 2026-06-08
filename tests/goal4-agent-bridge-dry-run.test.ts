@@ -629,6 +629,11 @@ describe('TC-G4-S5-023 no unexpected bridge files', () => {
     'agent-registry.ts',
     'model-router.ts',
     'dry-run.service.ts',
+    // Slice 10 added these subdirectories for the service/repository layer
+    'audit-ledger',
+    'codex-reviews',
+    'review-queue',
+    'task-packets',
   ])
 
   it('modules/verian-agent-bridge contains only the four expected files', () => {
