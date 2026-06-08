@@ -256,8 +256,9 @@ describe('TC-G5-S3-012 no DB/UI/service/repo files created', () => {
   it('only allowed Goal 5 files exist — no implementation created', () => {
     const rqDir = path.join(root, 'modules/verian-agent-bridge/review-queue')
     const alDir = path.join(root, 'modules/verian-agent-bridge/audit-ledger')
-    // Slice 10 added repo, service, and reviewer-authorization to these directories.
+    // Slice 10 added repo, service, and reviewer-authorization; Slice 11 added mapper.
     expect(fs.readdirSync(rqDir).sort()).toEqual([
+      'review-queue.mapper.ts',
       'review-queue.repo.ts',
       'review-queue.service.ts',
       'reviewer-authorization.ts',

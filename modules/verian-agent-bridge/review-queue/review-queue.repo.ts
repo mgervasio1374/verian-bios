@@ -17,6 +17,7 @@ export type ReviewQueueStatusUpdate = {
   status: string
   assignedReviewerId?: string | null
   lastDecisionSummary?: string | null
+  policyCheckStatus?: string
 }
 
 export class StaleStateError extends Error {
@@ -95,6 +96,9 @@ export async function updateReviewQueueItemStatus(
   }
   if (update.lastDecisionSummary !== undefined) {
     updatePayload.last_decision_summary = update.lastDecisionSummary
+  }
+  if (update.policyCheckStatus !== undefined) {
+    updatePayload.current_policy_check_status = update.policyCheckStatus
   }
 
   const { data: row, error } = await supabase

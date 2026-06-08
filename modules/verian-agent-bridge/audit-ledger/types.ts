@@ -29,6 +29,8 @@ export type VerianBridgeAuditEventType =
   | 'codex_review_received'
   | 'manual_handoff_prepared'
   | 'packet_archived'
+  // Slice 11 addition — requires migration 20240044 (applied local + staging):
+  | 'policy_review_submitted'
 
 // ---------------------------------------------------------------------------
 // Audit actor

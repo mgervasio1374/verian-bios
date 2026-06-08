@@ -52,6 +52,13 @@ export type VerianBridgeReviewQueueAction =
   | 'mark_codex_review_received'
   | 'archive'
   | 'reopen_for_review'
+  // Slice 11 additions — policy-check outcome actions:
+  | 'submit_for_policy_review'
+  | 'policy_check_passed'
+  | 'policy_check_warning'
+  | 'policy_check_blocked'
+  | 'policy_check_requires_codex'
+  | 'policy_check_requires_human'
 
 // ---------------------------------------------------------------------------
 // Queue item

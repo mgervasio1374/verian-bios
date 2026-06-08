@@ -59,6 +59,14 @@ export function assertActorCanTransitionState(
   ]
   const archiveActions: VerianBridgeReviewQueueAction[] = ['archive']
   const codexActions: VerianBridgeReviewQueueAction[] = ['mark_codex_review_received']
+  const policyActions: VerianBridgeReviewQueueAction[] = [
+    'submit_for_policy_review',
+    'policy_check_passed',
+    'policy_check_warning',
+    'policy_check_blocked',
+    'policy_check_requires_codex',
+    'policy_check_requires_human',
+  ]
 
   if (approvalActions.includes(action) && actorType !== 'michael') {
     throw new ReviewerAuthorizationError(
@@ -77,6 +85,12 @@ export function assertActorCanTransitionState(
       `assertActorCanTransitionState: only 'codex' or 'michael' may mark Codex review received; got '${actorType}'`
     )
   }
+
+  if (policyActions.includes(action) && actorType !== 'system' && actorType !== 'michael') {
+    throw new ReviewerAuthorizationError(
+      `assertActorCanTransitionState: only 'system' or 'michael' may perform policy-check action '${action}'; got '${actorType}'`
+    )
+  }
 }
 
 // Validates that the requested state transition is permitted by the state machine.
@@ -89,8 +103,15 @@ export function assertValidStateTransition(
   action: VerianBridgeReviewQueueAction
 ): void {
   const permitted: Partial<Record<VerianBridgeReviewQueueState, VerianBridgeReviewQueueAction[]>> = {
-    draft_packet: ['archive'],
-    pending_policy_review: ['archive'],
+    draft_packet: ['submit_for_policy_review', 'archive'],
+    pending_policy_review: [
+      'policy_check_passed',
+      'policy_check_warning',
+      'policy_check_blocked',
+      'policy_check_requires_codex',
+      'policy_check_requires_human',
+      'archive',
+    ],
     blocked_by_policy: ['archive'],
     waiting_codex_review: ['mark_codex_review_received', 'archive'],
     waiting_human_approval: [
