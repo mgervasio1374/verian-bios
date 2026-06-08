@@ -636,6 +636,8 @@ describe('TC-G4-S5-023 no unexpected bridge files', () => {
     'task-packets',
     // Slice 11 added the policy-check service directory
     'policy-check',
+    // Slice 12 added the intake orchestration service directory
+    'intake',
   ])
 
   it('modules/verian-agent-bridge contains only the four expected files', () => {

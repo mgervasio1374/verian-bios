@@ -25,12 +25,13 @@ const allBridgeSrc = [typesSrc, registrySrc, routerSrc, serviceSrc]
 describe('TC-G4-S6-001 bridge file inventory', () => {
   it('contains exactly the 4 expected files and no disallowed extras', () => {
     const files = fs.readdirSync(bridgeDir).sort()
-    // Slice 10 added service/repository subdirectories; Slice 11 added policy-check
+    // Slice 10 added service/repository subdirectories; Slice 11 added policy-check; Slice 12 added intake
     expect(files).toEqual([
       'agent-registry.ts',
       'audit-ledger',
       'codex-reviews',
       'dry-run.service.ts',
+      'intake',
       'model-router.ts',
       'policy-check',
       'review-queue',
