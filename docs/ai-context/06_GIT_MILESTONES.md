@@ -8,6 +8,7 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `goal-5-slice-12-bridge-intake-service-v1` | Goal 5 Slice 12 Bridge Intake Orchestration Service — `347614e`; dry-run only; `submitBridgeRequest()` composes buildVerianBridgeDryRunPacket → actorUserId preflight → submitPacketToQueue → submitForPolicyReview; ordered non-atomic recoverable flow; BridgeIntakeResult discriminated union (blocked/submitted); dryRunOnly: true enforced; no direct repo imports; no direct audit writes; no migrations; 49 source-reading tests; Codex PASS WITH NOTES |
 | `goal-5-slice-11-policy-check-service-v1` | Goal 5 Slice 11 Policy-Check Service Implementation — `fb3b2b2`; dry-run only outcome-recording service; 6 functions (submitForPolicyReview, markPolicyCheckPassed/Warning/Blocked/RequiresCodex/RequiresHuman); shared state machine extended; shared actor authorization extended; review-queue.mapper.ts extracted; migration 20240044 prerequisite (policy_review_submitted audit event); 48 tests; Codex PASS WITH NOTES |
 | `goal-5-slice-10-bridge-review-queue-audit-v1` | Goal 5 Slice 10 Bridge Review Queue & Audit Ledger Services — `73f7c7b`; 7 new module files (task-packet.repo.ts, audit-ledger.repo.ts, audit-ledger.service.ts, codex-review.repo.ts, review-queue.repo.ts, reviewer-authorization.ts, review-queue.service.ts); 2 test files; 3 updated guard tests; updated types/database.ts; 42 tests; Codex PASS WITH NOTES |
 | `phase-3m-campaign-work-queue-v1` | Phase 3M Campaign Work Queue & Assignment-to-Draft Linkage — `email_drafts.campaign_assignment_id` FK column (migration `20240037`, local only); `getCampaignWorkQueue` database-only read service; `createDraftFromAssignmentAction` with full boundary validation (tenant, workspace, status, blocking-draft, pinned-asset tenant/workspace/status/type); `getBlockingDraftForLead` repo function (blocks draft/pending_approval/approved); `CreateDraftFromAssignmentCard` on lead detail; `CampaignAssignmentCard` extended with linked-draft indicator; Campaign Queue page at `/settings/campaign-queue` with visible error state; sidebar nav `ListTodo` icon; non-fatal `completeCampaignAssignment` wiring in `email-send.service.ts`; 1 new `ActivityEventType` (`CAMPAIGN_DRAFT_CREATED_FROM_ASSIGNMENT`); 90 source-reading tests (TC-3M-001–090) including token/cost guardrail, workspace-boundary, and Codex-review-fix coverage; no LLM path; no Resend path; `generatedByAi` remains false; migration `20240037` not applied to staging or production; no production deploy |
@@ -45,6 +46,8 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `347614e` | Goal 5 Slice 12: add bridge intake orchestration | Goal 5 |
+| `bfd1ec3` | Docs: update AI context after Goal 5 Slice 11 lock | Goal 5 Docs |
 | `fb3b2b2` | Goal 5 Slice 11: add policy-check service | Goal 5 |
 | `7a54ebd` | Docs: add Goal 5 migration 20240044 staging evidence report | Goal 5 Docs |
 | `07d8d76` | Docs: add Goal 5 migration 20240044 staging apply plan | Goal 5 Docs |
@@ -170,6 +173,37 @@
 | `b50665d` | Add statement analysis PDF proposal package | Phase 4 |
 
 ## What Each Group Contains
+
+### Goal 5 Slice 12: Bridge Intake Orchestration Service (`347614e`)
+
+**Lock tag:** `goal-5-slice-12-bridge-intake-service-v1`
+**Full commit hash:** `347614e4d5b5f2b50608bc39901993e16f1eb740`
+**Codex final review:** PASS WITH NOTES — no required fixes
+**Tests:** 49/49 Slice 12 PASS; 139/139 adjacent Goal 5 PASS; Full Vitest 3788/3789 PASS (one known unrelated pre-existing TC-3K-030 source-spacing failure)
+**TypeScript:** 7 known pre-existing errors only (phase3h-send-safety-hardening.test.ts ×3, quality-review-agent.test.ts ×4); zero new Slice 12 errors
+**Migration state:** local/staging through 20240044; production through 20240034 (hard stop); next migration 20240045; no Slice 12 migration
+**Safety:** dry-run only; no execution authorization; no sending; no automation/jobs; no model calls; no bridge execution; no direct repo imports; no direct audit writes; no new state machine entries; no new actor authorization rules; no staging/production commands during Slice 12 lock
+
+**New files:**
+- `modules/verian-agent-bridge/intake/bridge-intake.service.ts` — single entry point `submitBridgeRequest(input, ctx, summary?)`. Ordered non-atomic flow: (1) `buildVerianBridgeDryRunPacket(input)` — synchronous, no DB; (2) block if dry-run `status === 'blocked'`; (3) actorUserId preflight: if `actorType === 'michael'` and no `actorUserId`, return `status: 'blocked'` before any DB write; (4) defensive guard: taskPacket must be present; (5) `submitPacketToQueue(submission, downstreamCtx)` — first DB write (inserts task packet + queue item, appends `packet_created` audit event); (6) `submitForPolicyReview(queueItemId, downstreamCtx, summary)` — second DB write (updates to `pending_policy_review`, appends `policy_review_submitted` audit event). If step 6 throws after step 5 succeeded: error propagates unchanged; queue item remains in `draft_packet` — a valid, recoverable partial-success state. `dryRunOnly: true` enforced on every submission. Exports: `submitBridgeRequest`, `BridgeIntakeContext`, `BridgeIntakeResult`.
+- `tests/goal5-slice-12-bridge-intake-service.test.ts` — 49 source-reading tests (TC-G5-S12-001–047 including 026a/026b; TC-G5-S12-048 is a process gate only). All 49 automated tests use `fs.readFileSync`; no Supabase connection, no model calls, no DB writes. Scopes ordering assertions to `fnBody = src.slice(src.indexOf('export async function submitBridgeRequest'))`.
+
+**Modified files:**
+- `tests/goal4-agent-bridge-dry-run.test.ts` — added `'intake'` to `expectedBridgeFiles` Set (TC-G4-S5-023 inventory maintenance; Slice 12 added the intake orchestration service directory)
+- `tests/goal4-agent-bridge-safety.test.ts` — added `'intake'` to sorted bridge directory `toEqual` list between `'dry-run.service.ts'` and `'model-router.ts'`; updated maintenance comment
+
+**New docs:**
+- `docs/roadmap/goal-5-slice-12-bridge-intake-orchestration-design.md` — design and test cases
+- `docs/roadmap/goal-5-slice-12-bridge-intake-orchestration-implementation-plan.md` — implementation plan (49 automated checks)
+
+**Key design decisions:**
+- Flow is explicitly NOT atomic and NOT transactional — partial-success is a valid, recoverable state
+- actorUserId preflight fires before any DB write (not after), ensuring no orphaned queue items for blocked michael submissions
+- `BridgeIntakeContext.actorType ('michael' | 'system')` is a subset of `BridgeRequestContext` — direct assignment is type-safe; `PolicyCheckContext` is structurally identical to `BridgeRequestContext`, so a single `downstreamCtx: BridgeRequestContext` passes both calls
+- Recovery from partial-success goes through lookup/retry using tenant/workspace/task identifiers — intake service does not catch/wrap errors to embed `queueItemId`
+- Source-order tests use call-specific markers (`await submitPacketToQueue(`, `await submitForPolicyReview(`) scoped to `fnBody`, not bare import names
+
+---
 
 ### Goal 5 Slice 11: Policy-Check Service Implementation (`fb3b2b2`)
 
@@ -603,6 +637,7 @@ No migration created. Databases remain through `20240034`. `EMAIL_SENDING_ENABLE
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-06-08 | 49/49 + 3788/3789 | PASSED | Goal 5 Slice 12 Bridge Intake Orchestration Service — 49 source-reading tests (TC-G5-S12-001–047 including 026a/026b; TC-G5-S12-048 is process gate). Full Vitest 3788/3789 (one known unrelated pre-existing TC-3K-030 source-spacing failure). TypeScript: 7 pre-existing test-file errors only; zero new errors. No migrations. No DB commands. No staging/production touch. `EMAIL_SENDING_ENABLED` remains disabled. `CAMPAIGN_SENDING_ENABLED` remains disabled. No bridge execution. No sending. No automation. No model calls. Implementation commit: `347614e`. Lock tag `goal-5-slice-12-bridge-intake-service-v1 → 347614e4d5b5f2b50608bc39901993e16f1eb740` created and pushed. |
 | 2026-06-08 | 48/48 + 152/152 | PASSED | Goal 5 Slice 11 Policy-Check Service — 48 source-reading tests (TC-G5-S11-001–048). Migration 20240044 applied to local and staging (`smbausuyetlgxflyhmfg`) 2026-06-08. TypeScript: 7 pre-existing test-file errors only; zero new errors. `EMAIL_SENDING_ENABLED` remains disabled. No bridge execution. No sending. No automation. No production touch. Implementation commit: `fb3b2b2`. Lock tag `goal-5-slice-11-policy-check-service-v1 → fb3b2b2e355f20e07490fa2ac1f6628d10a229fa` created and pushed. |
 | 2026-06-08 | 42/42 + 111/111 | PASSED | Goal 5 Slice 10 Bridge Review Queue & Audit Ledger Services — 42 source-reading tests (TC-G5-S10-001–042). Local migration state: 001–043. TypeScript: 7 pre-existing test-file errors only; zero new errors. `EMAIL_SENDING_ENABLED` remains disabled. No bridge execution. No sending. No production touch. Implementation commit: `73f7c7b`. Lock tag `goal-5-slice-10-bridge-review-queue-audit-v1 → 73f7c7b` created and pushed. |
 | 2026-05-30 | 1332/1332 passed | PASSED | Phase 3L Campaign Assignment Model — 65 new source-reading tests (TC-3L-001 through TC-3L-065). Migration `20240036` applied to local and staging (`smbausuyetlgxflyhmfg`); not applied to production. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. Staging UI smoke PASSED; staging DB verification PASSED: assignment `9aad7bcc` (campaign_type=proposal_follow_up, source=manual, status=assigned), activity event `70521e41` (campaign_assigned), `campaign_email_sends` = 0. Implementation commit: `7adbd25`. Lock tag `phase-3l-campaign-assignment-model-v1 → 7adbd25` created and pushed. |
@@ -637,7 +672,7 @@ No migration created. Databases remain through `20240034`. `EMAIL_SENDING_ENABLE
 
 ## Current HEAD
 
-`fb3b2b2` — Goal 5 Slice 11: add policy-check service
+`347614e` — Goal 5 Slice 12: add bridge intake orchestration
 
 ### Phase 3G: Agent Operations Readiness & Control Map (`a4f488a`)
 - `docs/roadmap/phase-3g-agent-operations-readiness-design.md` — **new** — full control map: agent inventory (13 active agents, 4 planned), decision lifecycle audit (12 steps), human approval gates, email engine redesign boundary, campaign assignment model design, Resend readiness checklist, observability gaps, safety model, roadmap 3H→3M, recommended pause milestone
