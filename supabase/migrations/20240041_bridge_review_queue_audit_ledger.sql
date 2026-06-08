@@ -1,6 +1,8 @@
 -- =============================================================================
--- Goal 5 Slice 6 — Verian Agent Bridge Review Queue and Audit Ledger
+-- Goal 5 Slice 6/7 — Verian Agent Bridge Review Queue and Audit Ledger
 -- Migration: 20240041
+-- Revised in Slice 7: tenant/workspace FK integrity added; authenticated role
+-- changed to read-only (SELECT only); all inserts are service-mediated.
 --
 -- NOTE ON NUMBERING: The prompt specified 20240038, but that number is already
 -- taken by 20240038_phase3n_proposal_capture.sql. This migration uses 20240041,
@@ -17,12 +19,18 @@
 --     This cannot be set false without a separate policy-reviewed migration.
 --   - approved_for_manual_handoff status does NOT authorize execution. No execution
 --     path exists anywhere in this migration.
---   - No ON DELETE CASCADE is used. All FK relationships use ON DELETE RESTRICT.
---     Parent rows may not be deleted while child audit/queue/review records exist.
---   - bridge_audit_events: no UPDATE or DELETE policy for the app role.
---     This table is an append-only accountability ledger. Corrections are new rows.
---   - bridge_codex_reviews: no UPDATE or DELETE policy for the app role.
---     Codex review artifacts are immutable once inserted.
+--   - No ON DELETE CASCADE is used on inter-bridge FK relationships.
+--     All five inter-bridge FKs use ON DELETE RESTRICT.
+--   - tenant_id/workspace_id reference tenants(id)/workspaces(id) with ON DELETE RESTRICT.
+--     These are accountability tables; tenant/workspace deletion should be blocked
+--     while bridge records exist. This differs from normal app tables that use CASCADE.
+--   - bridge_audit_events: no UPDATE or DELETE policy for the app role (append-only).
+--   - bridge_codex_reviews: no UPDATE or DELETE policy for the app role (immutable).
+--   - authenticated role is READ-ONLY (SELECT only) for all four tables in this
+--     first migration. All inserts and updates must go through service-mediated
+--     server actions/repositories using the service_role path. Authenticated INSERT
+--     will be re-evaluated once the review queue service and authorization gates
+--     are implemented in a future migration slice.
 --   - The only trigger in this migration (set_bridge_review_queue_items_updated_at)
 --     is an internal updated_at trigger. It calls no external systems, webhooks,
 --     or background jobs.
@@ -30,7 +38,7 @@
 --   - No sending, automation, background jobs, or model API calls are introduced.
 --
 -- DO NOT APPLY THIS MIGRATION without explicit Michael approval.
--- Pending: Codex review of this SQL before any supabase db push or migration apply.
+-- Pending: Codex review of this hardened SQL before any supabase db push.
 -- =============================================================================
 
 
@@ -40,12 +48,17 @@
 --    Rows are immutable after creation — corrections require a new packet row.
 --    dry_run_only must always be true. No execution path exists in this table.
 --    No updated_at: packets cannot be modified after creation.
+--    Authenticated INSERT intentionally omitted; task packet creation must go
+--    through the dry-run builder service via service_role path only.
 -- -----------------------------------------------------------------------------
 
 CREATE TABLE bridge_task_packets (
   id                    uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id             uuid        NOT NULL,
-  workspace_id          uuid        NOT NULL,
+  -- tenant_id/workspace_id use ON DELETE RESTRICT (not CASCADE) because bridge
+  -- records are accountability artifacts. A tenant/workspace with bridge records
+  -- must not be silently deleted along with its audit trail.
+  tenant_id             uuid        NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
+  workspace_id          uuid        NOT NULL REFERENCES workspaces(id) ON DELETE RESTRICT,
   task_id               text        NOT NULL,
   goal_id               text        NULL,
   slice_id              text        NULL,
@@ -79,12 +92,14 @@ CREATE TABLE bridge_task_packets (
 --    The audit ledger is the immutable record; this table is the mutable state surface.
 --    approved_for_manual_handoff does NOT authorize execution.
 --    Queue items must be archived (status = 'archived') — never deleted.
+--    Authenticated INSERT/UPDATE intentionally omitted; queue submission and status
+--    transitions must go through service-mediated server actions using service_role.
 -- -----------------------------------------------------------------------------
 
 CREATE TABLE bridge_review_queue_items (
   id                          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id                   uuid        NOT NULL,
-  workspace_id                uuid        NOT NULL,
+  tenant_id                   uuid        NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
+  workspace_id                uuid        NOT NULL REFERENCES workspaces(id) ON DELETE RESTRICT,
   -- ON DELETE RESTRICT: a packet may not be deleted while a queue item references it.
   packet_id                   uuid        NOT NULL
                                           REFERENCES bridge_task_packets(id) ON DELETE RESTRICT,
@@ -126,15 +141,18 @@ CREATE TRIGGER set_bridge_review_queue_items_updated_at
 --    Append-only accountability ledger for every packet and queue state transition.
 --    ROWS ARE NEVER UPDATED OR DELETED after insertion.
 --    Corrections must be new inserted rows referencing the corrected event in summary.
---    All FK relationships use ON DELETE RESTRICT — audit events cannot be removed
---    by cascading deletion of a parent packet or queue item.
+--    All inter-bridge FK relationships use ON DELETE RESTRICT — audit events cannot
+--    be removed by cascading deletion of a parent packet or queue item.
 --    No updated_at: audit event timestamps are immutable (created_at only).
+--    Authenticated INSERT intentionally omitted; audit events must be created through
+--    service-mediated server actions/repository after policy checks. Direct INSERT
+--    by authenticated users would allow bypassing policy validation.
 -- -----------------------------------------------------------------------------
 
 CREATE TABLE bridge_audit_events (
   id                uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id         uuid        NOT NULL,
-  workspace_id      uuid        NOT NULL,
+  tenant_id         uuid        NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
+  workspace_id      uuid        NOT NULL REFERENCES workspaces(id) ON DELETE RESTRICT,
   -- ON DELETE RESTRICT: a packet may not be deleted while audit events reference it.
   packet_id         uuid        NOT NULL
                                 REFERENCES bridge_task_packets(id) ON DELETE RESTRICT,
@@ -178,14 +196,16 @@ CREATE TABLE bridge_audit_events (
 -- 4. bridge_codex_reviews
 --    Immutable Codex review artifacts linked to packets and queue items.
 --    If a review is superseded, insert a new row. Do not update or delete existing rows.
---    All FK relationships use ON DELETE RESTRICT.
+--    All inter-bridge FK relationships use ON DELETE RESTRICT.
 --    No updated_at: Codex review artifacts are immutable.
+--    Authenticated INSERT intentionally omitted; Codex review artifacts must be
+--    created through service-mediated server actions/repository after review validation.
 -- -----------------------------------------------------------------------------
 
 CREATE TABLE bridge_codex_reviews (
   id                    uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id             uuid        NOT NULL,
-  workspace_id          uuid        NOT NULL,
+  tenant_id             uuid        NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
+  workspace_id          uuid        NOT NULL REFERENCES workspaces(id) ON DELETE RESTRICT,
   -- ON DELETE RESTRICT: a packet may not be deleted while a Codex review references it.
   packet_id             uuid        NOT NULL
                                     REFERENCES bridge_task_packets(id) ON DELETE RESTRICT,
@@ -214,28 +234,31 @@ CREATE TABLE bridge_codex_reviews (
 -- RLS helpers used: public.current_tenant_id(), public.is_workspace_member()
 -- These helpers are defined in migration 20240007_rls.sql.
 --
+-- AUTHENTICATED ROLE IS READ-ONLY for all four tables in this migration.
+-- All inserts and updates must go through service-mediated server actions or
+-- repositories using the service_role path. Direct authenticated INSERT is
+-- intentionally omitted until:
+--   (a) the review queue service and reviewer authorization model are implemented,
+--   (b) the audit event creation path is policy-validated end-to-end,
+--   (c) a future migration slice explicitly adds scoped INSERT policies.
+--
 -- INTENTIONAL POLICY OMISSIONS:
 --
---   bridge_audit_events — UPDATE and DELETE policies are intentionally absent
---     for the app role. This table is an append-only accountability ledger.
---     Authenticated paths must only insert audit events, never modify or remove them.
---     The service_role policy is the only administrative access path.
+--   INSERT policies — intentionally absent for the authenticated role on all four
+--     tables. Inserts must flow through service-mediated action/repository only.
 --
---   bridge_codex_reviews — UPDATE and DELETE policies are intentionally absent
---     for the app role. Codex review artifacts are immutable once inserted.
---     Superseded reviews must be represented by a new inserted row.
---     The service_role policy is the only administrative access path.
+--   bridge_audit_events — UPDATE and DELETE policies intentionally absent.
+--     This table is an append-only accountability ledger. Events must never be
+--     modified or removed after insertion. Corrections must be new rows.
 --
---   bridge_review_queue_items — UPDATE policy is intentionally absent in this
---     migration. Status transitions require a scoped reviewer authorization model
---     that will be defined in a future implementation migration slice.
---     Until that slice is implemented, status transitions must use the service_role
---     path only.
+--   bridge_codex_reviews — UPDATE and DELETE policies intentionally absent.
+--     Review artifacts are immutable once inserted. Superseded reviews are new rows.
 --
---   No DELETE policy is created for any of the four tables. Packets must be
---     preserved. Queue items must be archived. Audit events and Codex review
---     artifacts are permanent records. ON DELETE RESTRICT FK constraints
---     additionally prevent cascaded deletion via parent row removal.
+--   bridge_review_queue_items — UPDATE policy intentionally absent. Status
+--     transitions require a scoped reviewer authorization model defined in a
+--     future migration slice.
+--
+--   No DELETE policy is created for any of the four tables.
 -- =============================================================================
 
 -- bridge_task_packets ---------------------------------------------------------
@@ -248,13 +271,8 @@ CREATE POLICY "bridge_task_packets_select" ON bridge_task_packets
     AND public.is_workspace_member(workspace_id)
   );
 
-CREATE POLICY "bridge_task_packets_insert" ON bridge_task_packets
-  FOR INSERT WITH CHECK (
-    tenant_id = public.current_tenant_id()
-    AND public.is_workspace_member(workspace_id)
-    AND dry_run_only = true
-  );
-
+-- Authenticated INSERT intentionally omitted.
+-- Task packet creation must go through the dry-run builder service (service_role).
 -- No UPDATE policy: packets are immutable after creation.
 -- No DELETE policy: ON DELETE RESTRICT FKs prevent deletion once referenced.
 
@@ -272,16 +290,10 @@ CREATE POLICY "bridge_review_queue_items_select" ON bridge_review_queue_items
     AND public.is_workspace_member(workspace_id)
   );
 
-CREATE POLICY "bridge_review_queue_items_insert" ON bridge_review_queue_items
-  FOR INSERT WITH CHECK (
-    tenant_id = public.current_tenant_id()
-    AND public.is_workspace_member(workspace_id)
-    AND dry_run_only = true
-  );
-
--- UPDATE policy intentionally omitted: a reviewer-scoped authorization model
--- is required before status transitions can be exposed to the authenticated role.
--- A future migration slice will add this policy once the model is approved.
+-- Authenticated INSERT intentionally omitted.
+-- Queue submission must go through the review queue service (service_role).
+-- UPDATE policy intentionally omitted: status transitions require a scoped
+-- reviewer authorization model to be defined in a future migration slice.
 -- No DELETE policy: queue items must be archived (status = 'archived'), not deleted.
 
 CREATE POLICY "bridge_review_queue_items_service_role" ON bridge_review_queue_items
@@ -298,19 +310,13 @@ CREATE POLICY "bridge_audit_events_select" ON bridge_audit_events
     AND public.is_workspace_member(workspace_id)
   );
 
-CREATE POLICY "bridge_audit_events_insert" ON bridge_audit_events
-  FOR INSERT WITH CHECK (
-    tenant_id = public.current_tenant_id()
-    AND public.is_workspace_member(workspace_id)
-    AND dry_run_only = true
-  );
-
--- UPDATE policy intentionally omitted for the app role.
--- bridge_audit_events is an append-only accountability ledger. Audit events must
--- never be modified after insertion. Corrections must be new inserted rows.
--- DELETE policy intentionally omitted for the app role.
--- Audit events must never be removed. ON DELETE RESTRICT FK constraints additionally
--- prevent cascaded deletion when parent packets or queue items are targeted.
+-- Authenticated INSERT intentionally omitted.
+-- Audit events must be created through the service-mediated audit repository
+-- (service_role) after policy checks. Direct authenticated INSERT would allow
+-- bypassing policy validation and break the append-only accountability guarantee.
+-- UPDATE policy intentionally omitted: bridge_audit_events is append-only.
+-- DELETE policy intentionally omitted: audit events must never be removed.
+-- ON DELETE RESTRICT FK constraints additionally prevent cascaded deletion.
 
 CREATE POLICY "bridge_audit_events_service_role" ON bridge_audit_events
   FOR ALL USING (auth.role() = 'service_role')
@@ -326,17 +332,12 @@ CREATE POLICY "bridge_codex_reviews_select" ON bridge_codex_reviews
     AND public.is_workspace_member(workspace_id)
   );
 
-CREATE POLICY "bridge_codex_reviews_insert" ON bridge_codex_reviews
-  FOR INSERT WITH CHECK (
-    tenant_id = public.current_tenant_id()
-    AND public.is_workspace_member(workspace_id)
-    AND dry_run_only = true
-  );
-
--- UPDATE policy intentionally omitted for the app role.
--- Codex review artifacts are immutable once inserted. If a review is superseded,
--- a new artifact row must be inserted — the original is preserved.
--- DELETE policy intentionally omitted for the app role.
+-- Authenticated INSERT intentionally omitted.
+-- Codex review artifacts must be created through the service-mediated review
+-- repository (service_role) after review validation. Artifacts are immutable.
+-- If a review is superseded, a new artifact row must be inserted via service_role.
+-- UPDATE policy intentionally omitted: artifacts are immutable once inserted.
+-- DELETE policy intentionally omitted: artifacts must never be removed.
 
 CREATE POLICY "bridge_codex_reviews_service_role" ON bridge_codex_reviews
   FOR ALL USING (auth.role() = 'service_role')
@@ -346,28 +347,27 @@ CREATE POLICY "bridge_codex_reviews_service_role" ON bridge_codex_reviews
 -- =============================================================================
 -- Grants
 --
--- authenticated: SELECT, INSERT only (no UPDATE, no DELETE on any table).
+-- authenticated: SELECT only (read-only) on all four tables.
+--   No INSERT, UPDATE, or DELETE grant to authenticated.
+--   All writes must flow through service-mediated server actions (service_role).
 -- service_role: ALL (administrative access; RLS bypassed by Postgres default).
---
--- bridge_audit_events and bridge_codex_reviews: INSERT is the only write path
--- for the authenticated role. UPDATE and DELETE are intentionally excluded.
 -- =============================================================================
 
-GRANT SELECT, INSERT ON bridge_task_packets       TO authenticated;
-GRANT ALL             ON bridge_task_packets       TO service_role;
+GRANT SELECT ON bridge_task_packets       TO authenticated;
+GRANT ALL    ON bridge_task_packets       TO service_role;
 
-GRANT SELECT, INSERT  ON bridge_review_queue_items TO authenticated;
-GRANT ALL             ON bridge_review_queue_items TO service_role;
+GRANT SELECT ON bridge_review_queue_items TO authenticated;
+GRANT ALL    ON bridge_review_queue_items TO service_role;
 
--- Append-only: authenticated role may only SELECT and INSERT audit events.
--- UPDATE and DELETE are intentionally excluded from this grant.
-GRANT SELECT, INSERT  ON bridge_audit_events       TO authenticated;
-GRANT ALL             ON bridge_audit_events       TO service_role;
+-- Read-only for authenticated: audit events are service-mediated insert only.
+-- UPDATE and DELETE are intentionally excluded.
+GRANT SELECT ON bridge_audit_events       TO authenticated;
+GRANT ALL    ON bridge_audit_events       TO service_role;
 
--- Immutable: authenticated role may only SELECT and INSERT Codex review artifacts.
--- UPDATE and DELETE are intentionally excluded from this grant.
-GRANT SELECT, INSERT  ON bridge_codex_reviews      TO authenticated;
-GRANT ALL             ON bridge_codex_reviews      TO service_role;
+-- Read-only for authenticated: Codex review artifacts are service-mediated only.
+-- UPDATE and DELETE are intentionally excluded.
+GRANT SELECT ON bridge_codex_reviews      TO authenticated;
+GRANT ALL    ON bridge_codex_reviews      TO service_role;
 
 
 -- =============================================================================
