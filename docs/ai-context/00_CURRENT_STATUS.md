@@ -33,7 +33,7 @@
 | Phase 3K — Unified Draft / Send Path | Locked. Committed through `bf98582`, tagged `phase-3k-unified-draft-send-path-v1`. Migration `20240035` applied to local and staging (`smbausuyetlgxflyhmfg`). Production migration `20240035` not applied. Staging UI smoke PASSED. Staging DB verification PASSED 29/29. |
 | Phase 3L — Campaign Assignment Model | Locked. Committed `7adbd25`, tagged `phase-3l-campaign-assignment-model-v1`. Migration `20240036` applied to local and staging (`smbausuyetlgxflyhmfg`). Production migration `20240036` not applied. Staging UI smoke PASSED. Staging DB verification PASSED. |
 | Phase 3M — Campaign Work Queue & Assignment-to-Draft Linkage | Locked. Committed `e33b130`, tagged `phase-3m-campaign-work-queue-v1`. Migration `20240037` applied to local only. Staging migration `20240037` not applied. Production migration `20240037` not applied. 90/90 tests. No LLM path. No send path. |
-| Goal 5 — Verian Agent Bridge / Orchestration Layer | In progress. Bridge review queue / audit ledger schema and grant hardening (migrations 20240041–20240043) applied and verified on local and staging (`smbausuyetlgxflyhmfg`). Intervening migrations 20240038–20240040 were applied previously as part of earlier phases/goals. Production not applied (hard stop). **Slice 10 locked**: bridge review queue + audit ledger repository/service implementation. Codex reviewed: PASS WITH NOTES. No bridge execution. No executable model routing. No sending. No automation. Production remains hard stop. Evidence: `docs/roadmap/goal-5-staging-bridge-review-queue-audit-schema-grant-hardening-evidence-report.md`. Next slice: Goal 5 Policy-Check Service, dry-run only. |
+| Goal 5 — Verian Agent Bridge / Orchestration Layer | In progress. Bridge review queue / audit ledger schema and grant hardening (migrations 20240041–20240043) applied and verified on local and staging (`smbausuyetlgxflyhmfg`). Migration 20240044 (`policy_review_submitted` audit event type) applied to local and staging 2026-06-08. Intervening migrations 20240038–20240040 were applied previously as part of earlier phases/goals. Production not applied (hard stop). **Slice 10 locked**: bridge review queue + audit ledger repository/service implementation. **Slice 11 locked**: Policy-Check Service (dry-run only, outcome-recording). Codex reviewed: PASS WITH NOTES. No bridge execution. No executable model routing. No sending. No automation. Production remains hard stop. Lock tags: `goal-5-slice-10-bridge-review-queue-audit-v1`, `goal-5-slice-11-policy-check-service-v1`. Next: Goal 5 Slice 12 (not yet designed). |
 
 ## Staging Foundation v1 — Locked
 
@@ -46,9 +46,9 @@
 
 | Environment | Supabase ref | Migrations applied | Auth/Access |
 |-------------|-------------|-------------------|-------------|
-| Local | Docker / `127.0.0.1:54321` | 001–043 | Local seed user `dev@verian.local` |
-| Production | `kxrplupzbsmujjznzhpy` | 001–034 (previously reported; not queried in Goal 5 staging workflow) | Standard access — `https://verian-bios.vercel.app` |
-| Staging | `smbausuyetlgxflyhmfg` | 001–043 | `staging@verian.internal` / platform_admin |
+| Local | Docker / `127.0.0.1:54321` | 001–044 | Local seed user `dev@verian.local` |
+| Production | `kxrplupzbsmujjznzhpy` | 001–034 (previously reported; not queried in Goal 5 Slice 11 work — production is a hard stop) | Standard access — `https://verian-bios.vercel.app` |
+| Staging | `smbausuyetlgxflyhmfg` | 001–044 (20240044 applied 2026-06-08) | `staging@verian.internal` / platform_admin |
 
 ### Verified Access Paths
 
@@ -81,15 +81,17 @@
 
 ## QA Status (Last Verified)
 
-Verified before Phase 3M commit `e33b130`.
+Verified at Goal 5 Slice 11 commit `fb3b2b2`.
 
 ```
-npx vitest run (phase3m only) → PASSED  90/90 Phase 3M tests passed
-TypeScript                    → 7 pre-existing test-file errors only (phase3h-send-safety-hardening.test.ts,
-                                 quality-review-agent.test.ts); no Phase 3M errors introduced
-  90 new Phase 3M tests: TC-3M-001 through TC-3M-090 across 17 describe blocks
-    Includes: token/cost guardrail (TC-3M-080–088), workspace boundary (TC-3M-089–090),
-    Codex review fixes (TC-3M-074–079)
+npx vitest run (goal5-slice-11 only) → PASSED  48/48 Slice 11 tests passed
+npx vitest run (related goal4/5)     → PASSED  152/152 related Goal 4/5 tests passed
+TypeScript                           → 7 pre-existing test-file errors only
+                                        (phase3h-send-safety-hardening.test.ts,
+                                         quality-review-agent.test.ts); zero new Slice 11 errors
+  48 new Slice 11 tests: TC-G5-S11-001 through TC-G5-S11-048 across 7 describe blocks
+    Includes: type/action coverage, shared state machine, shared actor authorization,
+    repository extension, service safety, directory inventory, mapper
 ```
 
 ## Active Routes
@@ -117,15 +119,16 @@ TypeScript                    → 7 pre-existing test-file errors only (phase3h-
 
 ## Working Tree
 
-Clean. `master` up to date with `origin/master`.
+`?? docs/roadmap/operational-twin-north-star.md` (untracked only). `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`6319c06` — Docs: add Goal 5 staging bridge schema evidence report
+`fb3b2b2` — Goal 5 Slice 11: add policy-check service
 
 ## Lock Tags
 
-`goal-5-slice-10-bridge-review-queue-audit-v1` → [committed in this step — see git tag]
+`goal-5-slice-11-policy-check-service-v1` → `fb3b2b2e355f20e07490fa2ac1f6628d10a229fa` (2026-06-08)
+`goal-5-slice-10-bridge-review-queue-audit-v1` → `73f7c7b`
 `phase-3m-campaign-work-queue-v1` → `e33b130`
 `phase-3l-campaign-assignment-model-v1` → `7adbd25`
 `phase-3k-unified-draft-send-path-v1` → `bf98582`
@@ -137,13 +140,13 @@ Clean. `master` up to date with `origin/master`.
 
 | Guardrail | Reason |
 |-----------|--------|
-| Production Supabase (`kxrplupzbsmujjznzhpy`) is current through migration `20240034` (previously reported; not queried in Goal 5 staging workflow — production is a hard stop) | Migrations `20240035` through `20240043` applied to local and/or staging — not applied to production. Next available production migration is `20240035`. |
+| Production Supabase (`kxrplupzbsmujjznzhpy`) is current through migration `20240034` (previously reported; not queried in Goal 5 staging workflow — production is a hard stop) | Migrations `20240035` through `20240044` applied to local and/or staging — not applied to production. Next available production migration is `20240035`. |
 | Production Vercel (`verian-bios`) no longer auto-deploys from `origin/master` | Track A complete — Git disconnected. Production deploys must be explicit via `vercel --prod` or Vercel dashboard |
 | Do not reconnect production Vercel Git without explicit user approval | Reconnecting restores auto-deploy on every master push |
 | Staging (`verian-bios-staging`) auto-deploys from master — unchanged | Staging is the continuous integration target; every push to master deploys staging |
 | Staging must remain deployable | All app code must stay compatible with staging at all times |
 | Tests must stay green | 1332/1332 is the current baseline; no regression allowed |
-| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240044`. (`20240035`–`20240036` applied to local and staging; not applied to production. `20240037` applied to local only. `20240038`–`20240040` applied to local and staging as part of earlier phases/goals; not applied to production. `20240041`–`20240043` are Goal 5 bridge review queue/audit migrations — applied to local and staging; not applied to production.) |
+| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240045`. (`20240035`–`20240036` applied to local and staging; not applied to production. `20240037` applied to local only. `20240038`–`20240040` applied to local and staging as part of earlier phases/goals; not applied to production. `20240041`–`20240043` are Goal 5 bridge review queue/audit migrations — applied to local and staging; not applied to production. `20240044` adds `policy_review_submitted` to `bridge_audit_events.event_type` CHECK — applied to local and staging 2026-06-08; not applied to production.) |
 | No environment-crossing assumptions | Local seed data, staging users, and remote dev state are not shared; never assume data from one env exists in another |
 | No debug routes left behind | Temporary diagnostic routes must be removed within the same work session; do not merge to master without cleanup |
 | Any new phase requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
@@ -153,6 +156,8 @@ Clean. `master` up to date with `origin/master`.
 
 2026-05-30 — Phase 3M locked. Implementation commit `e33b130`. Lock tag `phase-3m-campaign-work-queue-v1 → e33b130` created and pushed to origin. Migration `20240037` (`email_drafts.campaign_assignment_id` FK column + partial index) applied to local only; not applied to staging or production. 90/90 Phase 3M source-reading tests passed. No LLM path introduced. No send path introduced. `EMAIL_SENDING_ENABLED` remains disabled. `CAMPAIGN_SENDING_ENABLED` remains disabled. `generatedByAi` remains false on all campaign-asset-render drafts. Campaign queue is database-only/read-only. Staging migration state at Phase 3M lock: 001–036. Production migration state: 001–034 (previously reported). No production deploy.
 
-2026-06-08 — Goal 5 Slice 10 locked. Bridge review queue + audit ledger repository/service implementation (7 new module files, 2 new test files, 3 updated guard tests, updated `types/database.ts`). Codex reviewed: PASS WITH NOTES. Slice 10 focused tests: 42/42 PASS. Related Goal 4/5 tests: 111/111 PASS. TypeScript: 7 pre-existing test-file errors only (phase3h-send-safety-hardening.test.ts, quality-review-agent.test.ts); zero new Slice 10 errors. Local migration state: 001–043. Next available migration: 20240044. `EMAIL_SENDING_ENABLED` remains disabled. `CAMPAIGN_SENDING_ENABLED` remains disabled. No bridge execution. No executable model routing. No sending. No automation. No production touch. Lock tag: `goal-5-slice-10-bridge-review-queue-audit-v1`.
+2026-06-08 — Goal 5 Slice 11 locked. Policy-Check Service implementation (dry-run only, outcome-recording). 3 new files, 8 modified files; 48/48 Slice 11 tests PASS; 152/152 related Goal 4/5 tests PASS. TypeScript: 7 pre-existing test-file errors only. Local and staging migration state: 001–044 (migration 20240044 applied — `policy_review_submitted` audit event type). Production remains at 001–034 (hard stop). Next available migration: 20240045. `EMAIL_SENDING_ENABLED` remains disabled. `CAMPAIGN_SENDING_ENABLED` remains disabled. No bridge execution. No sending. No automation. Lock tag: `goal-5-slice-11-policy-check-service-v1 → fb3b2b2e355f20e07490fa2ac1f6628d10a229fa`.
+
+2026-06-08 — Goal 5 Slice 10 locked. Bridge review queue + audit ledger repository/service implementation (7 new module files, 2 new test files, 3 updated guard tests, updated `types/database.ts`). Codex reviewed: PASS WITH NOTES. Slice 10 focused tests: 42/42 PASS. Related Goal 4/5 tests: 111/111 PASS. TypeScript: 7 pre-existing test-file errors only (phase3h-send-safety-hardening.test.ts, quality-review-agent.test.ts); zero new Slice 10 errors. Local migration state: 001–043. `EMAIL_SENDING_ENABLED` remains disabled. `CAMPAIGN_SENDING_ENABLED` remains disabled. No bridge execution. No executable model routing. No sending. No automation. No production touch. Lock tag: `goal-5-slice-10-bridge-review-queue-audit-v1 → 73f7c7b`.
 
 2026-06-08 — Goal 5 bridge review queue / audit ledger schema and grant hardening applied and verified on local and staging (`smbausuyetlgxflyhmfg`). Goal 5 bridge review queue/audit migrations 20240041–20240043 applied to local and staging. Intervening migrations 20240038–20240040 were applied previously as part of earlier phases/goals. Not applied to production (hard stop). HEAD: `6319c06`. Staging migration state: 001–043. Local migration state: 001–043. Evidence report committed and pushed: `docs/roadmap/goal-5-staging-bridge-review-queue-audit-schema-grant-hardening-evidence-report.md`. `EMAIL_SENDING_ENABLED` remains disabled. `CAMPAIGN_SENDING_ENABLED` remains disabled. No bridge execution. No sending. No production touch.

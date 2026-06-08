@@ -8,6 +8,8 @@
 
 | Tag | Milestone |
 |-----|-----------|
+| `goal-5-slice-11-policy-check-service-v1` | Goal 5 Slice 11 Policy-Check Service Implementation — `fb3b2b2`; dry-run only outcome-recording service; 6 functions (submitForPolicyReview, markPolicyCheckPassed/Warning/Blocked/RequiresCodex/RequiresHuman); shared state machine extended; shared actor authorization extended; review-queue.mapper.ts extracted; migration 20240044 prerequisite (policy_review_submitted audit event); 48 tests; Codex PASS WITH NOTES |
+| `goal-5-slice-10-bridge-review-queue-audit-v1` | Goal 5 Slice 10 Bridge Review Queue & Audit Ledger Services — `73f7c7b`; 7 new module files (task-packet.repo.ts, audit-ledger.repo.ts, audit-ledger.service.ts, codex-review.repo.ts, review-queue.repo.ts, reviewer-authorization.ts, review-queue.service.ts); 2 test files; 3 updated guard tests; updated types/database.ts; 42 tests; Codex PASS WITH NOTES |
 | `phase-3m-campaign-work-queue-v1` | Phase 3M Campaign Work Queue & Assignment-to-Draft Linkage — `email_drafts.campaign_assignment_id` FK column (migration `20240037`, local only); `getCampaignWorkQueue` database-only read service; `createDraftFromAssignmentAction` with full boundary validation (tenant, workspace, status, blocking-draft, pinned-asset tenant/workspace/status/type); `getBlockingDraftForLead` repo function (blocks draft/pending_approval/approved); `CreateDraftFromAssignmentCard` on lead detail; `CampaignAssignmentCard` extended with linked-draft indicator; Campaign Queue page at `/settings/campaign-queue` with visible error state; sidebar nav `ListTodo` icon; non-fatal `completeCampaignAssignment` wiring in `email-send.service.ts`; 1 new `ActivityEventType` (`CAMPAIGN_DRAFT_CREATED_FROM_ASSIGNMENT`); 90 source-reading tests (TC-3M-001–090) including token/cost guardrail, workspace-boundary, and Codex-review-fix coverage; no LLM path; no Resend path; `generatedByAi` remains false; migration `20240037` not applied to staging or production; no production deploy |
 | `phase-3l-campaign-assignment-model-v1` | Phase 3L Campaign Assignment Model — new `campaign_assignments` table (17 columns, 2 unique partial indexes, 2 check constraints, RLS, service-role policies); migration `20240036`; full assignment lifecycle (proposed/assigned/paused/completed/retired/rejected); 5 service functions + 4 server actions; `CampaignAssignmentCard` on lead detail; `AssignedLeadsPanel` on campaign asset detail; 7 new `ActivityEventType` constants; 65 new source-reading tests; 1332/1332 total; staging UI smoke PASSED; staging DB verification PASSED; no production deploy; migration `20240036` not applied to production |
 | `phase-3k-unified-draft-send-path-v1` | Phase 3K Unified Draft / Send Path — campaign asset render-to-draft path; `source_type` + `source_asset_id` provenance on `email_drafts` (migration `20240035`); `CreateDraftFromAssetCard`; `SubmitForReviewButton`; `CampaignAssetReviewPanel` converted to client component; legacy campaign type mapping; 91 new source-reading tests; 1267/1267 total; staging UI smoke PASSED; DB verification 29/29; no production deploy; migration `20240035` not applied to production |
@@ -43,6 +45,15 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `fb3b2b2` | Goal 5 Slice 11: add policy-check service | Goal 5 |
+| `7a54ebd` | Docs: add Goal 5 migration 20240044 staging evidence report | Goal 5 Docs |
+| `07d8d76` | Docs: add Goal 5 migration 20240044 staging apply plan | Goal 5 Docs |
+| `c0a2062` | Goal 5: add policy review submitted audit event migration | Goal 5 |
+| `5051fce` | Docs: add Goal 5 migration 20240044 design | Goal 5 Docs |
+| `94fe104` | Docs: add Goal 5 Slice 11 policy-check service design | Goal 5 Docs |
+| `73f7c7b` | Goal 5 Slice 10: add bridge review queue audit services | Goal 5 |
+| `b4ce62c` | Docs: add Goal 5 Slice 10 bridge service design | Goal 5 Docs |
+| `b0b017b` | Docs: update Goal 5 AI context after staging verification | Goal 5 Docs |
 | `6319c06` | Docs: add Goal 5 staging bridge schema evidence report | Goal 5 Docs |
 | `95906b4` | Goal 5 Slice 9: add bridge MAINTAIN revoke migration and tests | Goal 5 |
 | `32270d8` | Goal 5 Slice 8: add bridge grant-hardening migration and tests | Goal 5 |
@@ -159,6 +170,58 @@
 | `b50665d` | Add statement analysis PDF proposal package | Phase 4 |
 
 ## What Each Group Contains
+
+### Goal 5 Slice 11: Policy-Check Service Implementation (`fb3b2b2`)
+
+**Lock tag:** `goal-5-slice-11-policy-check-service-v1`
+**Codex final review:** PASS WITH NOTES — no required fixes
+**Tests:** 48/48 Slice 11 PASS; 152/152 related Goal 4/5 PASS
+**TypeScript:** 7 known pre-existing errors only (phase3h-send-safety-hardening.test.ts ×3, quality-review-agent.test.ts ×4); zero new errors
+**Migration state:** local/staging through 20240044; production through 20240034 (hard stop); next migration 20240045
+**Safety:** dry-run only; no execution authorization; no sending; no automation/jobs; no model calls; no bridge execution; no staging/production commands during commit/push/lock
+
+**New files:**
+- `modules/verian-agent-bridge/policy-check/policy-check.service.ts` — 6 exported functions: `submitForPolicyReview`, `markPolicyCheckPassed`, `markPolicyCheckWarning`, `markPolicyCheckBlocked`, `markPolicyCheckRequiresCodex`, `markPolicyCheckRequiresHuman`. Each follows: actor check → assertActorCanTransitionState → fetch queue item → assertValidStateTransition → fetch task packet → updateReviewQueueItemStatus → appendAuditEvent → return mapped queue item. No `runPolicyCheck`, no model calls, no fetch, no sending, no automation.
+- `modules/verian-agent-bridge/review-queue/review-queue.mapper.ts` — extracted shared mapper: exports `QueueItemNotFoundError` and `mapRowAndPacketToQueueItem`. Circular-import safe (imports from types only).
+- `tests/goal5-slice-11-policy-check-service.test.ts` — 48 source-reading tests (TC-G5-S11-001–048) across 7 describe blocks: type/action coverage, shared state machine, shared actor authorization, repository extension, service safety, directory inventory, mapper.
+
+**Modified files:**
+- `modules/verian-agent-bridge/review-queue/types.ts` — extended `VerianBridgeReviewQueueAction` with 6 new policy-check action values
+- `modules/verian-agent-bridge/audit-ledger/types.ts` — added `'policy_review_submitted'` to audit event union (requires migration 20240044)
+- `modules/verian-agent-bridge/review-queue/reviewer-authorization.ts` — extended `assertValidStateTransition` permitted map (draft_packet → submit/archive; pending_policy_review → 5 outcomes + archive); added `policyActions` group in `assertActorCanTransitionState` (system + michael only; agent + codex disallowed)
+- `modules/verian-agent-bridge/review-queue/review-queue.repo.ts` — added `policyCheckStatus?: string` to `ReviewQueueStatusUpdate`; added `current_policy_check_status` update path in `updateReviewQueueItemStatus`
+- `modules/verian-agent-bridge/review-queue/review-queue.service.ts` — removed local `QueueItemNotFoundError` + `mapRowAndPacketToQueueItem`; added import + re-export from mapper
+- `tests/goal4-agent-bridge-dry-run.test.ts` — added `'policy-check'` to `expectedBridgeFiles` Set
+- `tests/goal4-agent-bridge-safety.test.ts` — added `'policy-check'` to bridge directory `toEqual` list
+- `tests/goal5-agent-bridge-review-queue-audit-types.test.ts` — added `'review-queue.mapper.ts'` to review-queue directory `toEqual` list
+
+**Key design decisions:**
+- `policy_check_requires_codex` and `policy_check_requires_human` are queue actions only — they map to existing DB audit event values (`codex_review_required`, `human_approval_requested`) rather than new DB values
+- `executionAuthorized: false` is the literal on approval; approval does NOT authorize execution
+- `policyCheckStatus` is `string` (not `string | null`) — DB column is non-nullable; no use case for clearing it
+- Shared state machine in `reviewer-authorization.ts` is the single authoritative source — no parallel state machines in individual service files
+
+---
+
+### Goal 5 Slice 10: Bridge Review Queue & Audit Ledger Services (`73f7c7b`)
+
+**Lock tag:** `goal-5-slice-10-bridge-review-queue-audit-v1`
+**Codex final review:** PASS WITH NOTES
+**Tests:** 42/42 Slice 10 PASS; 111/111 related Goal 4/5 PASS
+**TypeScript:** 7 known pre-existing errors only; zero new errors
+
+**New module files (7):**
+- `modules/verian-agent-bridge/task-packets/task-packet.repo.ts`
+- `modules/verian-agent-bridge/audit-ledger/audit-ledger.repo.ts`
+- `modules/verian-agent-bridge/audit-ledger/audit-ledger.service.ts`
+- `modules/verian-agent-bridge/codex-reviews/codex-review.repo.ts`
+- `modules/verian-agent-bridge/review-queue/review-queue.repo.ts`
+- `modules/verian-agent-bridge/review-queue/reviewer-authorization.ts`
+- `modules/verian-agent-bridge/review-queue/review-queue.service.ts`
+
+All files use `createSupabaseServiceClient()` — service-role-only writes. No bridge execution. No model calls. No sending.
+
+---
 
 ### Goal 5: Verian Agent Bridge / Orchestration Layer — Schema and Grant Hardening (`6319c06`)
 
@@ -540,6 +603,8 @@ No migration created. Databases remain through `20240034`. `EMAIL_SENDING_ENABLE
 
 | Date | Tests | Build | Notes |
 |------|-------|-------|-------|
+| 2026-06-08 | 48/48 + 152/152 | PASSED | Goal 5 Slice 11 Policy-Check Service — 48 source-reading tests (TC-G5-S11-001–048). Migration 20240044 applied to local and staging (`smbausuyetlgxflyhmfg`) 2026-06-08. TypeScript: 7 pre-existing test-file errors only; zero new errors. `EMAIL_SENDING_ENABLED` remains disabled. No bridge execution. No sending. No automation. No production touch. Implementation commit: `fb3b2b2`. Lock tag `goal-5-slice-11-policy-check-service-v1 → fb3b2b2e355f20e07490fa2ac1f6628d10a229fa` created and pushed. |
+| 2026-06-08 | 42/42 + 111/111 | PASSED | Goal 5 Slice 10 Bridge Review Queue & Audit Ledger Services — 42 source-reading tests (TC-G5-S10-001–042). Local migration state: 001–043. TypeScript: 7 pre-existing test-file errors only; zero new errors. `EMAIL_SENDING_ENABLED` remains disabled. No bridge execution. No sending. No production touch. Implementation commit: `73f7c7b`. Lock tag `goal-5-slice-10-bridge-review-queue-audit-v1 → 73f7c7b` created and pushed. |
 | 2026-05-30 | 1332/1332 passed | PASSED | Phase 3L Campaign Assignment Model — 65 new source-reading tests (TC-3L-001 through TC-3L-065). Migration `20240036` applied to local and staging (`smbausuyetlgxflyhmfg`); not applied to production. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. Staging UI smoke PASSED; staging DB verification PASSED: assignment `9aad7bcc` (campaign_type=proposal_follow_up, source=manual, status=assigned), activity event `70521e41` (campaign_assigned), `campaign_email_sends` = 0. Implementation commit: `7adbd25`. Lock tag `phase-3l-campaign-assignment-model-v1 → 7adbd25` created and pushed. |
 | 2026-05-29 | 1267/1267 passed | PASSED | Phase 3K Unified Draft / Send Path — 91 new source-reading tests (TC-3K-001 through TC-3K-075; TC-3J-047 through TC-3J-062). Migration `20240035` applied to local and staging (`smbausuyetlgxflyhmfg`); not applied to production. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. Staging UI smoke PASSED; staging DB verification PASSED 29/29. Implementation commits: `38d0d86` through `bf98582`. |
 | 2026-05-28 | 1176/1176 passed | PASSED | Phase 3J Campaign Email Asset Library — 46 new source-reading tests (TC-3J-001 through TC-3J-046). No migration created; databases remain through `20240034`. `EMAIL_SENDING_ENABLED` remains disabled. No production deploy. Staging auto-deploy `dpl_7rKQPkaMNYpZ8zVfc72nTQP6G8La` 2026-05-28; authenticated staging smoke test PASSED. Implementation commit: `30068a6`. |
@@ -572,7 +637,7 @@ No migration created. Databases remain through `20240034`. `EMAIL_SENDING_ENABLE
 
 ## Current HEAD
 
-`6319c06` — Docs: add Goal 5 staging bridge schema evidence report
+`fb3b2b2` — Goal 5 Slice 11: add policy-check service
 
 ### Phase 3G: Agent Operations Readiness & Control Map (`a4f488a`)
 - `docs/roadmap/phase-3g-agent-operations-readiness-design.md` — **new** — full control map: agent inventory (13 active agents, 4 planned), decision lifecycle audit (12 steps), human approval gates, email engine redesign boundary, campaign assignment model design, Resend readiness checklist, observability gaps, safety model, roadmap 3H→3M, recommended pause milestone
@@ -627,5 +692,13 @@ No migration created. Databases remain through `20240034`. `EMAIL_SENDING_ENABLE
 | `20240034` | Phase 3I — creates `agent_decisions`, `ai_usage_events`, `ai_budget_policies`, `ai_budget_events`, `campaign_email_assets`, `campaign_email_sends` tables; RLS + grants on all 6 tables; applied to local, staging (`smbausuyetlgxflyhmfg`), and production (`kxrplupzbsmujjznzhpy`) 2026-05-28 |
 | `20240035` | Phase 3K — `ALTER TABLE email_drafts ADD COLUMN IF NOT EXISTS source_type text`, `ADD COLUMN IF NOT EXISTS source_asset_id uuid REFERENCES campaign_email_assets(id) ON DELETE SET NULL`; two partial indexes (`idx_email_drafts_source_type`, `idx_email_drafts_source_asset_id`); applied to local and staging (`smbausuyetlgxflyhmfg`) 2026-05-29; **not applied to production** |
 | `20240036` | Phase 3L — creates `campaign_assignments` table (17 columns, 2 unique partial indexes `uq_active_assignment_lead_type` + `uq_active_assignment_contact_type`, 2 check constraints `chk_target_non_null` + `chk_confidence_range`); RLS + grants; `update_updated_at()` trigger; applied to local and staging (`smbausuyetlgxflyhmfg`) 2026-05-30; **not applied to production** |
+| `20240037` | Phase 3M — `ALTER TABLE email_drafts ADD COLUMN IF NOT EXISTS campaign_assignment_id uuid REFERENCES campaign_assignments(id) ON DELETE SET NULL`; partial index `idx_email_drafts_campaign_assignment_id`; applied to **local only**; not applied to staging or production |
+| `20240038` | Applied to local and staging as part of earlier phases/goals; **not applied to production** |
+| `20240039` | Applied to local and staging as part of earlier phases/goals; **not applied to production** |
+| `20240040` | Applied to local and staging as part of earlier phases/goals; **not applied to production** |
+| `20240041` | Goal 5 — `20240041_bridge_review_queue_audit_ledger.sql` — creates 4 bridge tables: `bridge_task_packets`, `bridge_review_queue_items`, `bridge_audit_events`, `bridge_codex_reviews`; all with `dry_run_only = true` CHECK constraint; RLS; 8 policies; GRANT SELECT TO authenticated; GRANT ALL TO service_role; applied to local and staging (`smbausuyetlgxflyhmfg`); **not applied to production** |
+| `20240042` | Goal 5 — `20240042_bridge_review_queue_audit_grant_hardening.sql` — revokes over-broad Supabase default privileges; idempotent GRANT SELECT TO authenticated; GRANT ALL TO service_role; applied to local and staging; **not applied to production** |
+| `20240043` | Goal 5 — `20240043_bridge_review_queue_audit_revoke_maintain.sql` — removes residual PostgreSQL 17 MAINTAIN privilege; applied to local and staging; **not applied to production** |
+| `20240044` | Goal 5 — `20240044_bridge_audit_event_policy_review_submitted.sql` — adds `policy_review_submitted` to `bridge_audit_events.event_type` CHECK constraint (12 → 13 values); required by Slice 11 TypeScript audit event union; applied to local and staging (`smbausuyetlgxflyhmfg`) 2026-06-08; **not applied to production** |
 
 Note: No new migration was added for the Human Review / Approval Bridge, the Send / Email Draft Bridge, or Event Tracking. All three use existing tables and columns only. Phase 3B provenance travels via `email_drafts.ai_generation_metadata` (jsonb) at draft creation, then is copied into `email_sends.metadata` (jsonb) at send time. Event Tracking activity events are appended to the existing `activity_events` table. The Learning Agent adds migration `20240025` for `learning_snapshots` — its only write target.
