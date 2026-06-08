@@ -43,6 +43,17 @@
 
 | SHA | Message | Group |
 |-----|---------|-------|
+| `6319c06` | Docs: add Goal 5 staging bridge schema evidence report | Goal 5 Docs |
+| `95906b4` | Goal 5 Slice 9: add bridge MAINTAIN revoke migration and tests | Goal 5 |
+| `32270d8` | Goal 5 Slice 8: add bridge grant-hardening migration and tests | Goal 5 |
+| `870c7e3` | Goal 5 Slice 7: harden bridge audit migration pre-apply | Goal 5 |
+| `d06326f` | Goal 5 Slice 6: add bridge review queue audit migration | Goal 5 |
+| `7adeb79` | Docs: strengthen Goal 5 audit ledger migration design | Goal 5 Docs |
+| `f5f5f0f` | Docs: add Goal 5 audit ledger migration design | Goal 5 Docs |
+| `f9459f6` | Goal 5 Slice 3: add review queue audit type boundary tests | Goal 5 |
+| `99035ec` | Goal 5 Slice 2: add review queue audit ledger types | Goal 5 |
+| `f5c4a6e` | Docs: add Goal 5 review queue audit ledger design | Goal 5 Docs |
+| `19dd70a` | Docs: add Goal 4 Verian Agent Bridge productivity report | Goal 4 Docs |
 | `e33b130` | Phase 3M: implement campaign work queue | Phase 3M |
 | `46de0a4` | Docs: add Phase 3M implementation plan | Phase 3M Docs |
 | `f21f101` | Docs: add Phase 3M campaign work queue design | Phase 3M Docs |
@@ -148,6 +159,40 @@
 | `b50665d` | Add statement analysis PDF proposal package | Phase 4 |
 
 ## What Each Group Contains
+
+### Goal 5: Verian Agent Bridge / Orchestration Layer — Schema and Grant Hardening (`6319c06`)
+
+**Migrations applied and verified on local and staging (`smbausuyetlgxflyhmfg`):**
+
+| Migration | Purpose | Applied |
+|---|---|---|
+| `20240041_bridge_review_queue_audit_ledger.sql` | Creates 4 bridge tables: `bridge_task_packets`, `bridge_review_queue_items`, `bridge_audit_events`, `bridge_codex_reviews`; all with `dry_run_only boolean NOT NULL DEFAULT true CHECK (dry_run_only = true)`; tenant_id + workspace_id FKs `ON DELETE RESTRICT`; 5 inter-bridge FKs `ON DELETE RESTRICT`; RLS enabled; 8 policies (SELECT + service_role ALL per table); `GRANT SELECT TO authenticated`; `GRANT ALL TO service_role` | Local + staging |
+| `20240042_bridge_review_queue_audit_grant_hardening.sql` | Revokes over-broad Supabase default privileges: `REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER FROM authenticated, anon`; `REVOKE SELECT FROM anon`; idempotent `GRANT SELECT TO authenticated`; `GRANT ALL TO service_role` | Local + staging |
+| `20240043_bridge_review_queue_audit_revoke_maintain.sql` | Removes residual PostgreSQL 17 MAINTAIN privilege (`m` flag in `pg_class.relacl`): `REVOKE MAINTAIN FROM authenticated, anon`; idempotent `GRANT SELECT TO authenticated`; `GRANT ALL TO service_role` | Local + staging |
+
+**Not applied to production (`kxrplupzbsmujjznzhpy`) — production is a hard stop.**
+
+**Final verified grant/ACL posture (local and staging, all 4 bridge tables):**
+
+| Role | information_schema grants | pg_class.relacl |
+|---|---|---|
+| `anon` | No rows | No ACL entry |
+| `authenticated` | SELECT only | `r/postgres` |
+| `service_role` | Full (INSERT, UPDATE, DELETE, SELECT, TRUNCATE, REFERENCES, TRIGGER) | `arwdDxtm/postgres` |
+
+**Schema safety posture:**
+- RLS enabled on all 4 tables ✓
+- 13 FKs total — all `ON DELETE RESTRICT`, no `ON DELETE CASCADE` ✓
+- `dry_run_only = true` enforced by CHECK constraint on all 4 tables ✓
+- No `execution_authorized` column ✓
+- No sending, automation, cron, webhook, job queue, HTTP, or executable model-routing behavior ✓
+- `EMAIL_SENDING_ENABLED` and `CAMPAIGN_SENDING_ENABLED` remain disabled ✓
+
+**Evidence report:** `docs/roadmap/goal-5-staging-bridge-review-queue-audit-schema-grant-hardening-evidence-report.md`
+
+**Tests:** Source-reading tests for 20240042 (TC-G5-S8-001–018) and 20240043 (TC-G5-S9-001–018) — 36 tests, all passing.
+
+---
 
 ### Phase 3M: Campaign Work Queue & Assignment-to-Draft Linkage (`e33b130`)
 
@@ -527,7 +572,7 @@ No migration created. Databases remain through `20240034`. `EMAIL_SENDING_ENABLE
 
 ## Current HEAD
 
-`7adbd25` — Phase 3L: implement campaign assignment model
+`6319c06` — Docs: add Goal 5 staging bridge schema evidence report
 
 ### Phase 3G: Agent Operations Readiness & Control Map (`a4f488a`)
 - `docs/roadmap/phase-3g-agent-operations-readiness-design.md` — **new** — full control map: agent inventory (13 active agents, 4 planned), decision lifecycle audit (12 steps), human approval gates, email engine redesign boundary, campaign assignment model design, Resend readiness checklist, observability gaps, safety model, roadmap 3H→3M, recommended pause milestone

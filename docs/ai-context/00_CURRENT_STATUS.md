@@ -33,6 +33,7 @@
 | Phase 3K — Unified Draft / Send Path | Locked. Committed through `bf98582`, tagged `phase-3k-unified-draft-send-path-v1`. Migration `20240035` applied to local and staging (`smbausuyetlgxflyhmfg`). Production migration `20240035` not applied. Staging UI smoke PASSED. Staging DB verification PASSED 29/29. |
 | Phase 3L — Campaign Assignment Model | Locked. Committed `7adbd25`, tagged `phase-3l-campaign-assignment-model-v1`. Migration `20240036` applied to local and staging (`smbausuyetlgxflyhmfg`). Production migration `20240036` not applied. Staging UI smoke PASSED. Staging DB verification PASSED. |
 | Phase 3M — Campaign Work Queue & Assignment-to-Draft Linkage | Locked. Committed `e33b130`, tagged `phase-3m-campaign-work-queue-v1`. Migration `20240037` applied to local only. Staging migration `20240037` not applied. Production migration `20240037` not applied. 90/90 tests. No LLM path. No send path. |
+| Goal 5 — Verian Agent Bridge / Orchestration Layer | In progress. Bridge review queue / audit ledger schema and grant hardening (migrations 20240041–20240043) applied and verified on local and staging (`smbausuyetlgxflyhmfg`). Intervening migrations 20240038–20240040 were applied previously as part of earlier phases/goals. Production not applied (hard stop). Bridge service/repository layer pending. Evidence: `docs/roadmap/goal-5-staging-bridge-review-queue-audit-schema-grant-hardening-evidence-report.md`. HEAD: `6319c06`. |
 
 ## Staging Foundation v1 — Locked
 
@@ -45,9 +46,9 @@
 
 | Environment | Supabase ref | Migrations applied | Auth/Access |
 |-------------|-------------|-------------------|-------------|
-| Local | Docker / `127.0.0.1:54321` | 001–037 | Local seed user `dev@verian.local` |
-| Production | `kxrplupzbsmujjznzhpy` | 001–034 | Standard access — `https://verian-bios.vercel.app` |
-| Staging | `smbausuyetlgxflyhmfg` | 001–036 | `staging@verian.internal` / platform_admin |
+| Local | Docker / `127.0.0.1:54321` | 001–043 | Local seed user `dev@verian.local` |
+| Production | `kxrplupzbsmujjznzhpy` | 001–034 (previously reported; not queried in Goal 5 staging workflow) | Standard access — `https://verian-bios.vercel.app` |
+| Staging | `smbausuyetlgxflyhmfg` | 001–043 | `staging@verian.internal` / platform_admin |
 
 ### Verified Access Paths
 
@@ -120,7 +121,7 @@ Clean. `master` up to date with `origin/master`.
 
 ## HEAD Commit
 
-`e33b130` — Phase 3M: implement campaign work queue
+`6319c06` — Docs: add Goal 5 staging bridge schema evidence report
 
 ## Lock Tags
 
@@ -135,13 +136,13 @@ Clean. `master` up to date with `origin/master`.
 
 | Guardrail | Reason |
 |-----------|--------|
-| Production Supabase (`kxrplupzbsmujjznzhpy`) is current through migration `20240034` | Migrations `20240035` and `20240036` applied to local and staging only — not applied to production. Next available production migration is `20240035`. |
+| Production Supabase (`kxrplupzbsmujjznzhpy`) is current through migration `20240034` (previously reported; not queried in Goal 5 staging workflow — production is a hard stop) | Migrations `20240035` through `20240043` applied to local and/or staging — not applied to production. Next available production migration is `20240035`. |
 | Production Vercel (`verian-bios`) no longer auto-deploys from `origin/master` | Track A complete — Git disconnected. Production deploys must be explicit via `vercel --prod` or Vercel dashboard |
 | Do not reconnect production Vercel Git without explicit user approval | Reconnecting restores auto-deploy on every master push |
 | Staging (`verian-bios-staging`) auto-deploys from master — unchanged | Staging is the continuous integration target; every push to master deploys staging |
 | Staging must remain deployable | All app code must stay compatible with staging at all times |
 | Tests must stay green | 1332/1332 is the current baseline; no regression allowed |
-| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240038`. (`20240035` and `20240036` committed — applied to local and staging; not applied to production. `20240037` committed — applied to local only; not applied to staging or production.) |
+| Migrations must remain ordered and auditable | Every future migration gets the next sequential number; no gaps, no reuse, no retroactive changes. Next available: `20240044`. (`20240035`–`20240036` applied to local and staging; not applied to production. `20240037` applied to local only. `20240038`–`20240040` applied to local and staging as part of earlier phases/goals; not applied to production. `20240041`–`20240043` are Goal 5 bridge review queue/audit migrations — applied to local and staging; not applied to production.) |
 | No environment-crossing assumptions | Local seed data, staging users, and remote dev state are not shared; never assume data from one env exists in another |
 | No debug routes left behind | Temporary diagnostic routes must be removed within the same work session; do not merge to master without cleanup |
 | Any new phase requires approved design before any code | Follow the standard sequence: Design & Test Cases → approval → Implementation Plan → approval → code |
@@ -149,4 +150,6 @@ Clean. `master` up to date with `origin/master`.
 
 ## Last Updated
 
-2026-05-30 — Phase 3M locked. Implementation commit `e33b130`. Lock tag `phase-3m-campaign-work-queue-v1 → e33b130` created and pushed to origin. Migration `20240037` (`email_drafts.campaign_assignment_id` FK column + partial index) applied to local only; not applied to staging or production. 90/90 Phase 3M source-reading tests passed. No LLM path introduced. No send path introduced. `EMAIL_SENDING_ENABLED` remains disabled. `CAMPAIGN_SENDING_ENABLED` remains disabled. `generatedByAi` remains false on all campaign-asset-render drafts. Campaign queue is database-only/read-only. Staging migration state: 001–036. Production migration state: 001–034. No production deploy.
+2026-05-30 — Phase 3M locked. Implementation commit `e33b130`. Lock tag `phase-3m-campaign-work-queue-v1 → e33b130` created and pushed to origin. Migration `20240037` (`email_drafts.campaign_assignment_id` FK column + partial index) applied to local only; not applied to staging or production. 90/90 Phase 3M source-reading tests passed. No LLM path introduced. No send path introduced. `EMAIL_SENDING_ENABLED` remains disabled. `CAMPAIGN_SENDING_ENABLED` remains disabled. `generatedByAi` remains false on all campaign-asset-render drafts. Campaign queue is database-only/read-only. Staging migration state at Phase 3M lock: 001–036. Production migration state: 001–034 (previously reported). No production deploy.
+
+2026-06-08 — Goal 5 bridge review queue / audit ledger schema and grant hardening applied and verified on local and staging (`smbausuyetlgxflyhmfg`). Goal 5 bridge review queue/audit migrations 20240041–20240043 applied to local and staging. Intervening migrations 20240038–20240040 were applied previously as part of earlier phases/goals. Not applied to production (hard stop). HEAD: `6319c06`. Staging migration state: 001–043. Local migration state: 001–043. Evidence report committed and pushed: `docs/roadmap/goal-5-staging-bridge-review-queue-audit-schema-grant-hardening-evidence-report.md`. `EMAIL_SENDING_ENABLED` remains disabled. `CAMPAIGN_SENDING_ENABLED` remains disabled. No bridge execution. No sending. No production touch.
