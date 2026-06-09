@@ -88,6 +88,23 @@ export async function listCampaignSequencesForWorkspace(
   return data ?? []
 }
 
+export async function listManualSequencesForWorkspace(
+  tenantId: string,
+  workspaceId: string,
+): Promise<CampaignSequenceRow[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('campaign_sequences')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .eq('authoring_mode', 'manual')
+    .order('name', { ascending: true })
+
+  if (error) throw new Error(`listManualSequencesForWorkspace: ${error.message}`)
+  return data ?? []
+}
+
 export async function updateCampaignSequence(
   id: string,
   tenantId: string,

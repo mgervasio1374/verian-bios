@@ -30,6 +30,8 @@ import { CreateDraftFromAssignmentCard } from './CreateDraftFromAssignmentCard'
 import { DraftSourceBadge } from '@/components/messaging/DraftSourceBadge'
 import { CampaignAssignmentCard } from './CampaignAssignmentCard'
 import * as assignmentRepo from '@/modules/messaging/repositories/campaign-assignment.repo'
+import * as sequenceRepo from '@/modules/campaign-sequence/repositories/campaign-sequence.repo'
+import * as campaignTypeRepo from '@/modules/campaign-sequence/repositories/campaign-type.repo'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string; id: string }>
@@ -58,6 +60,18 @@ export default async function LeadDetailPage({ params }: PageProps) {
   const activeAssets = allAssets.filter(a => a.status === 'approved' || a.status === 'active')
 
   const campaignAssignments = await assignmentRepo.getCampaignAssignmentsForLead(ctx.workspaceId, id).catch(() => [])
+
+  // Manual Campaign Mode Slice 10: load manual sequences + types to build the assignment sequence picker
+  const [manualSequences, campaignTypes] = await Promise.all([
+    sequenceRepo.listManualSequencesForWorkspace(ctx.tenantId, ctx.workspaceId).catch(() => []),
+    campaignTypeRepo.listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId }).catch(() => []),
+  ])
+  const typeSlugById = new Map(campaignTypes.map(t => [t.id, t.slug]))
+  const availableSequences = manualSequences.map(s => ({
+    id:               s.id,
+    name:             s.name,
+    campaignTypeSlug: typeSlugById.get(s.campaign_type_id) ?? '',
+  }))
 
   // Phase 3M: load linked drafts for active assignments
   const activeAssignments = campaignAssignments.filter(a => a.assignment_status === 'assigned')
@@ -293,6 +307,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
             campaign_type: a.campaign_type,
           }))}
           linkedDraftsByAssignmentId={linkedDraftsByAssignmentId}
+          availableSequences={availableSequences}
         />
 
       </div>

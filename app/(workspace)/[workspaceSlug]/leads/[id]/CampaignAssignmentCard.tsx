@@ -12,6 +12,7 @@ import {
   rejectProposedAssignmentAction,
   retireCampaignAssignmentAction,
 } from '@/modules/messaging/actions/campaign-assignment.actions'
+import { sequencesForType } from '@/modules/campaign-sequence/sequence-picker'
 
 interface ActiveAsset {
   id:            string
@@ -24,12 +25,19 @@ interface LinkedDraft {
   status: string
 }
 
+interface SequenceOption {
+  id:               string
+  name:             string
+  campaignTypeSlug: string
+}
+
 interface CampaignAssignmentCardProps {
   leadId:                     string
   workspaceSlug:              string
   assignments:                CampaignAssignment[]
   activeAssets:               ActiveAsset[]
   linkedDraftsByAssignmentId?: Record<string, LinkedDraft[]>
+  availableSequences?:        SequenceOption[]
 }
 
 const CAMPAIGN_OPTIONS = Object.values(CAMPAIGN_TYPE).map(value => ({
@@ -60,12 +68,14 @@ export function CampaignAssignmentCard({
   assignments,
   activeAssets,
   linkedDraftsByAssignmentId = {},
+  availableSequences = [],
 }: CampaignAssignmentCardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [showForm, setShowForm] = useState(false)
   const [selectedType, setSelectedType] = useState<string>(CAMPAIGN_TYPE.INITIAL_CONTACT)
   const [selectedAssetId, setSelectedAssetId] = useState('')
+  const [selectedSequenceId, setSelectedSequenceId] = useState('')
   const [reason, setReason] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
   const [showHistory, setShowHistory] = useState(false)
@@ -80,7 +90,9 @@ export function CampaignAssignmentCard({
     a.assignment_status === 'rejected'
   )
 
-  const assetsForSelectedType = activeAssets.filter(a => a.campaign_type === selectedType)
+  const assetsForSelectedType        = activeAssets.filter(a => a.campaign_type === selectedType)
+  const sequencesForSelectedType     = sequencesForType(availableSequences, selectedType)
+  const hasSequenceSelected          = selectedSequenceId !== ''
 
   // Check if a duplicate would result for the selected type
   const hasDuplicateForSelectedType = activeAssignments.some(
@@ -115,12 +127,14 @@ export function CampaignAssignmentCard({
         leadId,
         selectedType,
         selectedAssetId || undefined,
-        reason || undefined
+        reason || undefined,
+        selectedSequenceId || undefined
       )
       if (result.success) {
         setShowForm(false)
         setReason('')
         setSelectedAssetId('')
+        setSelectedSequenceId('')
         router.refresh()
       } else {
         setFormError(result.error)
@@ -156,6 +170,7 @@ export function CampaignAssignmentCard({
                 onChange={e => {
                   setSelectedType(e.target.value)
                   setSelectedAssetId('')
+                  setSelectedSequenceId('')
                 }}
                 className="w-full text-sm border rounded px-2 py-1 bg-background"
               >
@@ -165,7 +180,26 @@ export function CampaignAssignmentCard({
               </select>
             </div>
 
-            {assetsForSelectedType.length > 0 && (
+            {sequencesForSelectedType.length > 0 && (
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Campaign Sequence (optional)</label>
+                <select
+                  value={selectedSequenceId}
+                  onChange={e => setSelectedSequenceId(e.target.value)}
+                  className="w-full text-sm border rounded px-2 py-1 bg-background"
+                >
+                  <option value="">No sequence (single send)</option>
+                  {sequencesForSelectedType.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  Select a sequence to enable the multi-step automated cadence; leave blank for a single assignment as before.
+                </p>
+              </div>
+            )}
+
+            {assetsForSelectedType.length > 0 && !hasSequenceSelected && (
               <div className="space-y-1">
                 <label className="text-xs font-medium">Campaign Asset (optional)</label>
                 <select
