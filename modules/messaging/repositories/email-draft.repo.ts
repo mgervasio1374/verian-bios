@@ -40,6 +40,20 @@ export async function getDefaultSenderIdentity(
   return data ?? null
 }
 
+export async function listSenderIdentities(
+  tenantId: string,
+): Promise<SenderIdentityRow[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data } = await supabase
+    .from('sender_identities')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('is_verified', true)
+    .is('deleted_at', null)
+    .order('name', { ascending: true })
+  return data ?? []
+}
+
 // ---- Single record lookup ----
 
 export async function getDraftById(

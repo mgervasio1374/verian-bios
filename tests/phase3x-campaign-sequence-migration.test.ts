@@ -240,6 +240,6 @@ describe('TC-3X-4C safety boundaries', () => {
     expect(() => read('modules/messaging/repositories/campaign-sequence.repo.ts')).toThrow()
     expect(() => read('modules/messaging/services/campaign-sequence.service.ts')).toThrow()
     expect(() => read('modules/messaging/actions/campaign-sequence.actions.ts')).toThrow()
-    expect(() => read('app/(workspace)/[workspaceSlug]/settings/campaign-sequences/page.tsx')).toThrow()
+    // page.tsx now exists — created by Slice 9 (UI authoring), not Slice 4C ✓
   })
 })

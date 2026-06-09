@@ -28,6 +28,7 @@ import {
   ClipboardList,
   ListChecks,
   UserCog,
+  Layers,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -78,8 +79,9 @@ export function Sidebar({ workspaceSlug, tenantName }: SidebarProps) {
       items: [
         { label: 'Message Workspace', href: `${base}/message-workspace`,        icon: <MessageSquare className="h-4 w-4" /> },
         { label: 'Artifacts',         href: `${base}/artifacts`,                icon: <FolderOpen className="h-4 w-4" /> },
-        { label: 'Campaign Assets',   href: `${base}/settings/campaign-assets`, icon: <BookOpen className="h-4 w-4" /> },
-        { label: 'Campaign Queue',    href: `${base}/settings/campaign-queue`,  icon: <ListTodo className="h-4 w-4" /> },
+        { label: 'Campaign Assets',    href: `${base}/settings/campaign-assets`,    icon: <BookOpen className="h-4 w-4" /> },
+        { label: 'Campaign Sequences', href: `${base}/settings/campaign-sequences`, icon: <Layers className="h-4 w-4" /> },
+        { label: 'Campaign Queue',    href: `${base}/settings/campaign-queue`,     icon: <ListTodo className="h-4 w-4" /> },
       ],
     },
     {

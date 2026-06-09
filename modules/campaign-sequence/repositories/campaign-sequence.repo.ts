@@ -72,6 +72,22 @@ export async function getDefaultCampaignSequenceForType(
   return data
 }
 
+export async function listCampaignSequencesForWorkspace(
+  tenantId: string,
+  workspaceId: string,
+): Promise<CampaignSequenceRow[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('campaign_sequences')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw new Error(`listCampaignSequencesForWorkspace: ${error.message}`)
+  return data ?? []
+}
+
 export async function updateCampaignSequence(
   id: string,
   tenantId: string,
