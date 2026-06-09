@@ -79,6 +79,28 @@ export async function listCampaignScheduleItemsForSequence(
   return data ?? []
 }
 
+export async function listDueScheduleItems(
+  tenantId: string,
+  workspaceId: string,
+  now: string,
+  limit: number,
+): Promise<CampaignScheduleItemRow[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('campaign_schedule_items')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .in('status', ['planned', 'draft_needed'])
+    .is('email_draft_id', null)
+    .lte('scheduled_for', now)
+    .order('scheduled_for', { ascending: true })
+    .limit(limit)
+
+  if (error) throw new Error(`listDueScheduleItems: ${error.message}`)
+  return data ?? []
+}
+
 export async function insertCampaignScheduleItems(
   rows: CampaignScheduleItemInsert[],
 ): Promise<CampaignScheduleItemRow[]> {

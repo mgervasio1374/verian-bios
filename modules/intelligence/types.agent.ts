@@ -89,6 +89,9 @@ export const SystemControlKey = {
   FOLLOW_UP_ACCOUNTABILITY_ENABLED:        'follow_up_accountability_enabled',
   FOLLOW_UP_AUTO_TASK_CREATION_ENABLED:    'follow_up_auto_task_creation_enabled',
   FOLLOW_UP_ESCALATIONS_ENABLED:           'follow_up_escalations_enabled',
+
+  // Manual Campaign Mode — disabled by default until per-sequence sender is wired
+  CAMPAIGN_SCHEDULER_ENABLED:              'campaign_scheduler_enabled',
 } as const
 export type SystemControlKey = typeof SystemControlKey[keyof typeof SystemControlKey]
 
@@ -243,6 +246,7 @@ export const ActivityEventType = {
   CAMPAIGN_ASSIGNMENT_APPROVED:    'campaign_assignment_approved',
   CAMPAIGN_ASSIGNMENT_REJECTED:    'campaign_assignment_rejected',
   CAMPAIGN_ASSIGNMENT_PAUSED:      'campaign_assignment_paused',
+  CAMPAIGN_ASSIGNMENT_RESUMED:     'campaign_assignment_resumed',
   CAMPAIGN_ASSIGNMENT_RETIRED:     'campaign_assignment_retired',
   CAMPAIGN_ASSIGNMENT_COMPLETED:   'campaign_assignment_completed',
 

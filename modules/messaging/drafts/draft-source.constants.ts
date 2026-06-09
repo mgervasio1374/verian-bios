@@ -7,6 +7,7 @@ export const DRAFT_SOURCE_TYPE = {
   AI_CAMPAIGN_ASSET_REVISION: 'ai_campaign_asset_revision',
   FUTURE_CAMPAIGN_STEP:       'future_campaign_step',
   FUTURE_FOLLOW_UP:           'future_follow_up',
+  CAMPAIGN_SCHEDULE_ITEM:     'campaign_schedule_item',
 } as const
 
 export type DraftSourceType = typeof DRAFT_SOURCE_TYPE[keyof typeof DRAFT_SOURCE_TYPE]

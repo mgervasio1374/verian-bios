@@ -6,6 +6,7 @@ import { onStatementReceived } from './functions/on-statement-received'
 import { reconcileSendBridgeStuckDrafts } from './functions/reconcile-send-bridge-stuck-drafts'
 import { scheduledLearningAgentRun } from './functions/scheduled-learning-agent-run'
 import { processImportBatch } from './functions/process-import-batch'
+import { processCampaignSchedule } from './functions/process-campaign-schedule'
 
 export const inngestFunctions = [
   dispatchOutbox,
@@ -17,4 +18,5 @@ export const inngestFunctions = [
   reconcileSendBridgeStuckDrafts,  // Phase 3B.1: SEB stuck-draft detection/reconciliation
   scheduledLearningAgentRun,       // Phase 3B.1: daily advisory Learning Agent run
   processImportBatch,              // Phase 3B.2: background large-file import processing
+  processCampaignSchedule,         // Manual Campaign Mode Slice 3: promote due schedule items to drafts
 ]

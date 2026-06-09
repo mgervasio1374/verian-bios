@@ -9,6 +9,7 @@ import {
 import type { UpdateScheduleItemStatusOpts } from '@/modules/campaign-sequence/repositories/campaign-schedule-item.repo'
 import { listCampaignSequenceStepsForSequence } from '@/modules/campaign-sequence/repositories/campaign-sequence-step.repo'
 import { getAssignmentById } from '@/modules/messaging/repositories/campaign-assignment.repo'
+import { ASSIGNMENT_STATUS } from '@/modules/messaging/types/campaign-assignment.types'
 import type {
   CampaignScheduleItemRow,
   CampaignScheduleItemInsert,
@@ -115,6 +116,25 @@ export function materializePlan(
     scheduled_for:             computeScheduledFor(startAt, step.day_offset as number).toISOString(),
     status:                    'planned',
   }))
+}
+
+export function isScheduleItemDue(item: CampaignScheduleItemRow, now: Date): boolean {
+  if (!item.scheduled_for) return false
+  return (
+    (item.status === 'planned' || item.status === 'draft_needed') &&
+    new Date(item.scheduled_for) <= now
+  )
+}
+
+export function isItemEligibleForPromotion(
+  item: CampaignScheduleItemRow,
+  assignmentStatus: string,
+): boolean {
+  return (
+    (item.status === 'planned' || item.status === 'draft_needed') &&
+    !item.email_draft_id &&
+    assignmentStatus === ASSIGNMENT_STATUS.ASSIGNED
+  )
 }
 
 // ---------------------------------------------------------------------------
