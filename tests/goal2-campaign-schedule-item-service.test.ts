@@ -123,12 +123,14 @@ describe('TC-G2-S9-003 function exports', () => {
     expect(src).toContain('export async function fetchCampaignScheduleItemsForSequence')
   })
 
-  it('does not export a create function', () => {
-    expect(src).not.toContain('export async function createCampaignScheduleItem')
+  // Manual Campaign Mode Slice 2 made this a write service, superseding the old
+  // "does not export create/update" guards that were written when the service was read-only.
+  it('exports materializeScheduleItemsForAssignment (added by Manual Campaign Mode Slice 2)', () => {
+    expect(src).toContain('export async function materializeScheduleItemsForAssignment')
   })
 
-  it('does not export an update function', () => {
-    expect(src).not.toContain('export async function updateCampaignScheduleItem')
+  it('exports updateScheduleItemStatus (added by Manual Campaign Mode Slice 2)', () => {
+    expect(src).toContain('export async function updateScheduleItemStatus')
   })
 
   it('does not export a delete function', () => {
@@ -265,11 +267,15 @@ describe('TC-G2-S9-007 no UI or migration files touched', () => {
     expect(migSrc).toContain('CREATE TABLE campaign_sequences')
   })
 
-  it('campaign schedule item repository is unchanged', () => {
+  it('campaign schedule item repository retains original read functions and gained Slice 2 write functions', () => {
     const repoSrc = read('modules/campaign-sequence/repositories/campaign-schedule-item.repo.ts')
+    // Original read functions (Goal 2) — must still be present
     expect(repoSrc).toContain('export async function getCampaignScheduleItemById')
     expect(repoSrc).toContain('export async function listCampaignScheduleItems')
     expect(repoSrc).toContain('export async function listCampaignScheduleItemsForAssignment')
     expect(repoSrc).toContain('export async function listCampaignScheduleItemsForSequence')
+    // Write functions added by Manual Campaign Mode Slice 2
+    expect(repoSrc).toContain('export async function insertCampaignScheduleItems')
+    expect(repoSrc).toContain('export async function updateCampaignScheduleItemStatus')
   })
 })

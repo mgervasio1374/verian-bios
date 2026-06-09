@@ -87,12 +87,15 @@ describe('TC-G2-S5-003 function exports', () => {
     expect(src).toContain('export async function listCampaignScheduleItemsForSequence')
   })
 
-  it('does not export an insert function', () => {
-    expect(src).not.toContain('export async function insertCampaignScheduleItem')
+  // Manual Campaign Mode Slice 2 added write functions to this repo.
+  // These tests now assert those functions ARE exported (supersedes the old
+  // "does not export" guards that were written when the repo was read-only).
+  it('exports insertCampaignScheduleItems (added by Manual Campaign Mode Slice 2)', () => {
+    expect(src).toContain('export async function insertCampaignScheduleItems')
   })
 
-  it('does not export an update function', () => {
-    expect(src).not.toContain('export async function updateCampaignScheduleItem')
+  it('exports updateCampaignScheduleItemStatus (added by Manual Campaign Mode Slice 2)', () => {
+    expect(src).toContain('export async function updateCampaignScheduleItemStatus')
   })
 
   it('does not export a delete function', () => {
@@ -261,14 +264,10 @@ describe('TC-G2-S5-008 listCampaignScheduleItemsForSequence scoping', () => {
 // TC-G2-S5-009  No write operations
 // ---------------------------------------------------------------------------
 
-describe('TC-G2-S5-009 no write operations', () => {
-  it('does not use .insert(', () => {
-    expect(src).not.toContain('.insert(')
-  })
-
-  it('does not use .update(', () => {
-    expect(src).not.toContain('.update(')
-  })
+describe('TC-G2-S5-009 write operation scope', () => {
+  // Manual Campaign Mode Slice 2 intentionally added .insert( and .update( to this repo.
+  // The original "does not use .insert/.update" guards are now superseded.
+  // This block now verifies scope: only insert/update are present — not delete or upsert.
 
   it('does not use .delete(', () => {
     expect(src).not.toContain('.delete(')
@@ -276,6 +275,20 @@ describe('TC-G2-S5-009 no write operations', () => {
 
   it('does not use .upsert(', () => {
     expect(src).not.toContain('.upsert(')
+  })
+
+  it('insert is scoped to campaign_schedule_items only', () => {
+    const insertIdx = src.indexOf('insertCampaignScheduleItems')
+    expect(insertIdx).toBeGreaterThan(-1)
+    const insertBody = src.slice(insertIdx, insertIdx + 300)
+    expect(insertBody).toContain("from('campaign_schedule_items')")
+  })
+
+  it('update is scoped by id, tenant_id, and workspace_id', () => {
+    const updateBody = src.slice(src.indexOf('updateCampaignScheduleItemStatus'))
+    expect(updateBody).toContain(".eq('id', id)")
+    expect(updateBody).toContain(".eq('tenant_id', tenantId)")
+    expect(updateBody).toContain(".eq('workspace_id', workspaceId)")
   })
 })
 

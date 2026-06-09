@@ -282,6 +282,41 @@ export async function pauseCampaignAssignment(
   return { ok: true }
 }
 
+// ---- resumeCampaignAssignment ----
+
+export async function resumeCampaignAssignment(
+  assignmentId: string
+): Promise<{ ok: boolean; reason?: string }> {
+  const existing = await assignmentRepo.getAssignmentById(assignmentId)
+  if (!existing) return { ok: false, reason: 'Assignment not found.' }
+  if (existing.assignment_status !== ASSIGNMENT_STATUS.PAUSED) {
+    return { ok: false, reason: `Cannot resume assignment with status '${existing.assignment_status}'.` }
+  }
+
+  await assignmentRepo.updateAssignmentStatus(assignmentId, {
+    assignment_status: ASSIGNMENT_STATUS.ASSIGNED,
+  })
+
+  await activityEventService.recordActivity({
+    tenantId:    existing.tenant_id,
+    workspaceId: existing.workspace_id,
+    eventType:   ActivityEventType.CAMPAIGN_ASSIGNMENT_RESUMED,
+    eventSource: 'campaign_assignment',
+    entityType:  'campaign_assignment',
+    entityId:    assignmentId,
+    leadId:      existing.lead_id ?? undefined,
+    eventSummary: `Campaign assignment resumed: ${existing.campaign_type}`,
+    metadata: {
+      assignment_id:   assignmentId,
+      campaign_type:   existing.campaign_type,
+      previous_status: ASSIGNMENT_STATUS.PAUSED,
+      new_status:      ASSIGNMENT_STATUS.ASSIGNED,
+    },
+  }).catch(() => null)
+
+  return { ok: true }
+}
+
 // ---- completeCampaignAssignment ----
 
 export async function completeCampaignAssignment(
