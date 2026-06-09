@@ -12,6 +12,7 @@ import * as etAttribution from '@/modules/messaging/event-tracking/event-trackin
 import * as etAudit from '@/modules/messaging/event-tracking/event-tracking.audit'
 import * as systemControlRepo from '@/modules/intelligence/repositories/system-control.repo'
 import * as campaignAssignmentService from '@/modules/messaging/services/campaign-assignment.service'
+import { countPendingScheduleItemsForAssignment } from '@/modules/campaign-sequence/repositories/campaign-schedule-item.repo'
 import { SystemControlKey } from '@/modules/intelligence/types.agent'
 
 // ---- Result type ----
@@ -318,13 +319,23 @@ export async function sendApprovedDraft(
       },
     }).catch(() => {})
 
-    // Phase 3M: non-fatally complete the linked assignment after a successful send.
-    // Only fires when the draft carries a campaign_assignment_id.
-    // Does not call Resend, does not call sendApprovedDraft, does not write campaign_email_sends.
+    // Phase 3M / MCM Slice 5: conditional assignment completion.
+    // For assignments with schedule items, complete only when no non-terminal items remain
+    // (excluding this draft, whose schedule item is still 'approved' at call time).
+    // Assignments with zero schedule items have pendingCount=0 and complete immediately,
+    // preserving original Phase 3M behavior.
     if (draft.campaign_assignment_id) {
-      campaignAssignmentService
-        .completeCampaignAssignment(draft.campaign_assignment_id)
-        .catch(() => null)
+      ;(async () => {
+        const pendingCount = await countPendingScheduleItemsForAssignment(
+          draft.campaign_assignment_id!,
+          ctx.tenantId,
+          ctx.workspaceId,
+          draftId,
+        )
+        if (pendingCount === 0) {
+          await campaignAssignmentService.completeCampaignAssignment(draft.campaign_assignment_id!)
+        }
+      })().catch(() => null)
     }
 
     return { ok: true, sendId: emailSend.id, resendMessageId }

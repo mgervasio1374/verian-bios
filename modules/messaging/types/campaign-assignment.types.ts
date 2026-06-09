@@ -43,6 +43,7 @@ export interface CampaignAssignment {
   lead_id:               string | null
   contact_id:            string | null
   campaign_asset_id:     string | null
+  campaign_sequence_id:  string | null
   campaign_type:         string
   assignment_status:     AssignmentStatus
   assignment_source:     AssignmentSource
@@ -64,6 +65,7 @@ export interface InsertCampaignAssignment {
   lead_id?:              string | null
   contact_id?:           string | null
   campaign_asset_id?:    string | null
+  campaign_sequence_id?: string | null
   campaign_type:         string
   assignment_status:     AssignmentStatus
   assignment_source:     AssignmentSource
@@ -90,6 +92,7 @@ export interface CreateAssignmentInput {
   leadId?:               string
   contactId?:            string
   campaignAssetId?:      string
+  campaignSequenceId?:   string
   campaignType:          string
   assignmentSource:      AssignmentSource
   assignedByUserId?:     string

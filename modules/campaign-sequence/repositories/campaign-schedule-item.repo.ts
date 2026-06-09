@@ -101,6 +101,156 @@ export async function listDueScheduleItems(
   return data ?? []
 }
 
+export async function listDraftReadyItems(
+  tenantId: string,
+  workspaceId: string,
+  limit: number,
+): Promise<CampaignScheduleItemRow[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('campaign_schedule_items')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .eq('status', 'draft_ready')
+    .not('email_draft_id', 'is', null)
+    .is('approval_request_id', null)
+    .order('scheduled_for', { ascending: true })
+    .limit(limit)
+
+  if (error) throw new Error(`listDraftReadyItems: ${error.message}`)
+  return data ?? []
+}
+
+export async function getFirstTouchItemForAssignment(
+  assignmentId: string,
+  tenantId: string,
+  workspaceId: string,
+): Promise<CampaignScheduleItemRow | null> {
+  const supabase = createSupabaseServiceClient()
+
+  // Get the sequence_id from any item in this assignment
+  const { data: sample } = await supabase
+    .from('campaign_schedule_items')
+    .select('campaign_sequence_id')
+    .eq('campaign_assignment_id', assignmentId)
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .limit(1)
+    .single()
+
+  if (!sample) return null
+
+  // Find the step with step_number = 1 for this sequence
+  const { data: firstStep } = await supabase
+    .from('campaign_sequence_steps')
+    .select('id')
+    .eq('campaign_sequence_id', sample.campaign_sequence_id)
+    .eq('step_number', 1)
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .single()
+
+  if (!firstStep) return null
+
+  // Find the schedule item for the first step in this assignment
+  const { data: item } = await supabase
+    .from('campaign_schedule_items')
+    .select('*')
+    .eq('campaign_assignment_id', assignmentId)
+    .eq('campaign_sequence_step_id', firstStep.id)
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .single()
+
+  return item ?? null
+}
+
+export async function listSendableScheduleItems(
+  tenantId: string,
+  workspaceId: string,
+  now: string,
+  limit: number,
+): Promise<CampaignScheduleItemRow[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('campaign_schedule_items')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .eq('status', 'approved')
+    .not('email_draft_id', 'is', null)
+    .lte('scheduled_for', now)
+    .order('scheduled_for', { ascending: true })
+    .limit(limit)
+
+  if (error) throw new Error(`listSendableScheduleItems: ${error.message}`)
+  return data ?? []
+}
+
+/**
+ * Count non-terminal schedule items for an assignment.
+ * excludeDraftId: items whose email_draft_id matches this are excluded — used to
+ * skip the current item (still 'approved' at call time) when determining if all
+ * other steps are done. NULL email_draft_id items are always counted.
+ */
+export async function countPendingScheduleItemsForAssignment(
+  assignmentId: string,
+  tenantId: string,
+  workspaceId: string,
+  excludeDraftId?: string,
+): Promise<number> {
+  // Non-terminal statuses — items in these states are still "pending" work
+  const pendingStatuses = [
+    'planned', 'draft_needed', 'draft_ready',
+    'awaiting_approval', 'approved', 'scheduled',
+  ] as const
+
+  const supabase = createSupabaseServiceClient()
+  let query = supabase
+    .from('campaign_schedule_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('campaign_assignment_id', assignmentId)
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .in('status', pendingStatuses)
+
+  if (excludeDraftId) {
+    // Include items where email_draft_id IS NULL (not yet promoted) OR != excludeDraftId.
+    // Without the IS NULL arm, neq() would incorrectly exclude null rows.
+    query = query.or(`email_draft_id.is.null,email_draft_id.neq.${excludeDraftId}`)
+  }
+
+  const { count, error } = await query
+  if (error) throw new Error(`countPendingScheduleItemsForAssignment: ${error.message}`)
+  return count ?? 0
+}
+
+export async function listPendingScheduleItemsForAssignment(
+  assignmentId: string,
+  tenantId: string,
+  workspaceId: string,
+): Promise<CampaignScheduleItemRow[]> {
+  // Non-terminal statuses — mirrors countPendingScheduleItemsForAssignment exactly
+  const pendingStatuses = [
+    'planned', 'draft_needed', 'draft_ready',
+    'awaiting_approval', 'approved', 'scheduled',
+  ] as const
+
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('campaign_schedule_items')
+    .select('*')
+    .eq('campaign_assignment_id', assignmentId)
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .in('status', pendingStatuses)
+    .order('scheduled_for', { ascending: true })
+
+  if (error) throw new Error(`listPendingScheduleItemsForAssignment: ${error.message}`)
+  return data ?? []
+}
+
 export async function insertCampaignScheduleItems(
   rows: CampaignScheduleItemInsert[],
 ): Promise<CampaignScheduleItemRow[]> {

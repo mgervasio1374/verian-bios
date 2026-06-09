@@ -12,12 +12,15 @@ import {
   rejectProposedAssignment,
   retireCampaignAssignment,
 } from '@/modules/messaging/services/campaign-assignment.service'
+import { getAssignmentById } from '@/modules/messaging/repositories/campaign-assignment.repo'
+import { stopAssignmentSchedule } from '@/modules/campaign-sequence/services/campaign-stop.service'
 
 export async function createManualAssignmentAction(
-  leadId:           string,
-  campaignType:     string,
-  campaignAssetId?: string,
-  assignmentReason?: string
+  leadId:              string,
+  campaignType:        string,
+  campaignAssetId?:    string,
+  assignmentReason?:   string,
+  campaignSequenceId?: string,
 ): Promise<ActionResult<{ assignmentId: string }>> {
   try {
     const supabase = await createSupabaseServerClient()
@@ -28,14 +31,15 @@ export async function createManualAssignmentAction(
     if (!campaignType) return { success: false, error: 'Campaign type is required.' }
 
     const result = await createCampaignAssignment({
-      tenantId:         ctx.tenantId,
-      workspaceId:      ctx.workspaceId,
+      tenantId:           ctx.tenantId,
+      workspaceId:        ctx.workspaceId,
       leadId,
       campaignType,
-      campaignAssetId:  campaignAssetId || undefined,
-      assignmentSource: ASSIGNMENT_SOURCE.MANUAL,
-      assignedByUserId: ctx.userId === 'system' ? undefined : ctx.userId,
-      assignmentReason: assignmentReason || undefined,
+      campaignAssetId:    campaignAssetId || undefined,
+      campaignSequenceId: campaignSequenceId || undefined,
+      assignmentSource:   ASSIGNMENT_SOURCE.MANUAL,
+      assignedByUserId:   ctx.userId === 'system' ? undefined : ctx.userId,
+      assignmentReason:   assignmentReason || undefined,
     })
 
     if (!result.ok) return { success: false, error: result.reason }
@@ -87,6 +91,39 @@ export async function rejectProposedAssignmentAction(
 
     revalidatePath('/[workspaceSlug]/leads/[id]', 'page')
     return { success: true, data: undefined }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
+export async function stopCampaignSequenceAction(
+  assignmentId: string
+): Promise<ActionResult<{ stopped: number }>> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx      = await buildRequestContext(supabase)
+    requirePermission(ctx, 'crm.leads.view')
+
+    if (!assignmentId) return { success: false, error: 'Assignment ID is required.' }
+
+    const assignment = await getAssignmentById(assignmentId)
+    if (!assignment) return { success: false, error: 'Assignment not found.' }
+
+    const { stopped } = await stopAssignmentSchedule(
+      assignmentId,
+      assignment.tenant_id,
+      assignment.workspace_id,
+      'manual',
+    )
+
+    // Best-effort retire — if assignment isn't assigned/paused, skip gracefully
+    const retireResult = await retireCampaignAssignment(assignmentId)
+    if (!retireResult.ok) {
+      console.warn('[stopCampaignSequenceAction] retire skipped:', retireResult.reason)
+    }
+
+    revalidatePath('/[workspaceSlug]/leads/[id]', 'page')
+    return { success: true, data: { stopped } }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }

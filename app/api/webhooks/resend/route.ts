@@ -8,6 +8,7 @@ import type { EmailSendAttributionFields } from '@/modules/messaging/event-track
 import * as etAudit from '@/modules/messaging/event-tracking/event-tracking.audit'
 import * as structuredErrorRepo from '@/modules/intelligence/structured-errors/structured-error.repo'
 import { WEBHOOK_FAILURE_TYPE, SE_SEVERITY } from '@/modules/intelligence/structured-errors/structured-error.types'
+import { stopAssignmentSchedule } from '@/modules/campaign-sequence/services/campaign-stop.service'
 
 // ---- Types ----
 
@@ -312,6 +313,15 @@ async function processResendEvent(
     }).catch((err) => {
       console.error('[resend-webhook] Failed to create EMAIL_PERMANENT_BOUNCE error:', err)
     })
+
+    // MCM Slice 8: stop pending schedule items for bounced address (best-effort, non-fatal)
+    const bounceDraftId     = emailSend.draft_id as string | null
+    const bounceWorkspaceId = emailSend.workspace_id as string | null
+    if (bounceDraftId && bounceWorkspaceId) {
+      stopCampaignScheduleForSend(bounceDraftId, emailSend.tenant_id, bounceWorkspaceId, 'bounced').catch(err => {
+        console.error('[resend-webhook] stop-schedule-on-bounce error:', err)
+      })
+    }
   }
 
   // Complaint: severity critical — requires immediate operator review.
@@ -332,6 +342,15 @@ async function processResendEvent(
     }).catch((err) => {
       console.error('[resend-webhook] Failed to create EMAIL_COMPLAINT_RECEIVED error:', err)
     })
+
+    // MCM Slice 8: stop pending schedule items for complained address (best-effort, non-fatal)
+    const complaintDraftId     = emailSend.draft_id as string | null
+    const complaintWorkspaceId = emailSend.workspace_id as string | null
+    if (complaintDraftId && complaintWorkspaceId) {
+      stopCampaignScheduleForSend(complaintDraftId, emailSend.tenant_id, complaintWorkspaceId, 'complained').catch(err => {
+        console.error('[resend-webhook] stop-schedule-on-complaint error:', err)
+      })
+    }
   }
 
   // Delivery delay: Resend may send multiple delay events for the same send (each with a
@@ -363,4 +382,27 @@ async function processResendEvent(
       })
     }
   }
+}
+
+// MCM Slice 8: resolve campaign_assignment_id from draft and stop pending schedule items.
+// Best-effort only — caller wraps in .catch() so failures never affect the webhook response.
+// Sends not tied to a campaign have no draft or no campaign_assignment_id → resolves to no-op.
+async function stopCampaignScheduleForSend(
+  draftId: string,
+  tenantId: string,
+  workspaceId: string,
+  mode: 'bounced' | 'complained',
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const { data } = await supabase
+    .from('email_drafts')
+    .select('campaign_assignment_id')
+    .eq('id', draftId)
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+
+  const assignmentId = (data?.campaign_assignment_id as string | null) ?? null
+  if (!assignmentId) return
+
+  await stopAssignmentSchedule(assignmentId, tenantId, workspaceId, mode)
 }

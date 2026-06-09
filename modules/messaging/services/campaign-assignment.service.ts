@@ -3,6 +3,8 @@ import * as assignmentRepo from '@/modules/messaging/repositories/campaign-assig
 import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asset.repo'
 import * as activityEventService from '@/modules/intelligence/services/activity-event.service'
 import { ActivityEventType } from '@/modules/intelligence/types.agent'
+import { getCampaignSequenceById } from '@/modules/campaign-sequence/repositories/campaign-sequence.repo'
+import { inngest } from '@/lib/inngest/client'
 import {
   ASSIGNMENT_STATUS,
   ASSIGNMENT_SOURCE,
@@ -13,6 +15,22 @@ import type {
   CreateAssignmentInput,
   CreateAssignmentResult,
 } from '@/modules/messaging/types/campaign-assignment.types'
+
+// ---- Activation event emitter (MCM Slice 7) ----
+// Emits when an assignment transitions INTO 'assigned' and has a sequence attached.
+// Non-fatal — failures must not block assignment creation/approval.
+
+async function emitAssignmentActivated(
+  assignmentId: string,
+  campaignSequenceId: string,
+  tenantId: string,
+  workspaceId: string,
+): Promise<void> {
+  await inngest.send({
+    name: 'campaign.assignment_activated',
+    data: { assignmentId, campaignSequenceId, tenantId, workspaceId },
+  })
+}
 
 // ---- Eligibility snapshot builder ----
 
@@ -61,6 +79,14 @@ export async function createCampaignAssignment(
     return { ok: false, reason: 'At least one of leadId or contactId is required.' }
   }
 
+  // Validate sequence if provided — must exist in the same tenant/workspace
+  if (input.campaignSequenceId) {
+    const sequence = await getCampaignSequenceById(input.campaignSequenceId, input.tenantId, input.workspaceId)
+    if (!sequence) {
+      return { ok: false, reason: 'Campaign sequence not found or does not belong to this workspace.' }
+    }
+  }
+
   // Verify asset if provided
   if (input.campaignAssetId) {
     const asset = await assetRepo.getAssetById(input.tenantId, input.campaignAssetId)
@@ -100,6 +126,7 @@ export async function createCampaignAssignment(
     lead_id:                input.leadId ?? null,
     contact_id:             input.contactId ?? null,
     campaign_asset_id:      input.campaignAssetId ?? null,
+    campaign_sequence_id:   input.campaignSequenceId ?? null,
     campaign_type:          input.campaignType,
     assignment_status,
     assignment_source:      input.assignmentSource,
@@ -131,6 +158,14 @@ export async function createCampaignAssignment(
       assignment_source: input.assignmentSource,
     },
   }).catch(() => null)
+
+  // MCM Slice 7: emit activation event if assignment goes directly to 'assigned' with a sequence.
+  // Non-fatal — emit failure must not block assignment creation.
+  if (assignment_status === ASSIGNMENT_STATUS.ASSIGNED && row.campaign_sequence_id) {
+    ;(async () => {
+      await emitAssignmentActivated(row.id, row.campaign_sequence_id!, input.tenantId, input.workspaceId)
+    })().catch(() => null)
+  }
 
   return { ok: true, assignmentId: row.id }
 }
@@ -169,6 +204,19 @@ export async function approveProposedAssignment(
       approved_by:     approvedByUserId,
     },
   }).catch(() => null)
+
+  // MCM Slice 7: emit activation event if the assignment has a sequence (proposed->assigned path).
+  // Non-fatal — emit failure must not block approval.
+  if (existing.campaign_sequence_id) {
+    ;(async () => {
+      await emitAssignmentActivated(
+        assignmentId,
+        existing.campaign_sequence_id!,
+        existing.tenant_id,
+        existing.workspace_id,
+      )
+    })().catch(() => null)
+  }
 
   return { ok: true }
 }

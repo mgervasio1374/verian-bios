@@ -92,6 +92,10 @@ export const SystemControlKey = {
 
   // Manual Campaign Mode — disabled by default until per-sequence sender is wired
   CAMPAIGN_SCHEDULER_ENABLED:              'campaign_scheduler_enabled',
+  // Manual Campaign Mode — approval routing; disabled by default
+  CAMPAIGN_APPROVAL_ROUTING_ENABLED:       'campaign_approval_routing_enabled',
+  // Manual Campaign Mode — send dispatch; disabled by default
+  CAMPAIGN_SEND_DISPATCH_ENABLED:          'campaign_send_dispatch_enabled',
 } as const
 export type SystemControlKey = typeof SystemControlKey[keyof typeof SystemControlKey]
 
