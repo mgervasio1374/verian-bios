@@ -74,6 +74,24 @@ export async function getActiveDuplicateAssignment(
   return data ? toAssignment(data as unknown as Record<string, unknown>) : null
 }
 
+export async function getActiveDuplicateAssignmentContact(
+  contactId:    string,
+  campaignType: string
+): Promise<CampaignAssignment | null> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('campaign_assignments')
+    .select('*')
+    .eq('contact_id', contactId)
+    .is('lead_id', null)
+    .eq('campaign_type', campaignType)
+    .in('assignment_status', ['proposed', 'assigned'])
+    .maybeSingle()
+
+  if (error) throw new Error('getActiveDuplicateAssignmentContact: ' + error.message)
+  return data ? toAssignment(data as unknown as Record<string, unknown>) : null
+}
+
 export async function getAssignmentById(
   assignmentId: string
 ): Promise<CampaignAssignment | null> {

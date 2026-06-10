@@ -101,9 +101,14 @@ export async function createCampaignAssignment(
     }
   }
 
-  // Duplicate check for lead-scoped assignments
+  // Duplicate check — scoped to lead_id (when present) or contact_id (when no lead)
   if (input.leadId) {
     const existing = await assignmentRepo.getActiveDuplicateAssignment(input.leadId, input.campaignType)
+    if (existing) {
+      return { ok: false, reason: 'duplicate', existingAssignmentId: existing.id }
+    }
+  } else if (input.contactId) {
+    const existing = await assignmentRepo.getActiveDuplicateAssignmentContact(input.contactId, input.campaignType)
     if (existing) {
       return { ok: false, reason: 'duplicate', existingAssignmentId: existing.id }
     }
