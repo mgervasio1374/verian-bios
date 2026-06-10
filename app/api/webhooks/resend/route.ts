@@ -303,7 +303,7 @@ async function processResendEvent(
   const isHardBounce = bounce?.type === 'Permanent' || (payload.data as Record<string, unknown>)?.bounce_type === 'hard'
 
   if (eventType === 'email.bounced' && isHardBounce) {
-    structuredErrorRepo.createStructuredError({
+    await structuredErrorRepo.createStructuredError({
       tenantId:      emailSend.tenant_id,
       workspaceId:   (emailSend.workspace_id as string | null) ?? null,
       failureType:   WEBHOOK_FAILURE_TYPE.EMAIL_PERMANENT_BOUNCE,
@@ -324,7 +324,7 @@ async function processResendEvent(
     const bounceDraftId     = emailSend.draft_id as string | null
     const bounceWorkspaceId = emailSend.workspace_id as string | null
     if (bounceDraftId && bounceWorkspaceId) {
-      stopCampaignScheduleForSend(bounceDraftId, emailSend.tenant_id, bounceWorkspaceId, 'bounced').catch(err => {
+      await stopCampaignScheduleForSend(bounceDraftId, emailSend.tenant_id, bounceWorkspaceId, 'bounced').catch(err => {
         console.error('[resend-webhook] stop-schedule-on-bounce error:', err)
       })
     }
@@ -336,7 +336,7 @@ async function processResendEvent(
   // Placed after auto-unsubscribe to preserve existing Phase 3A ordering.
   // Idempotency: same as bounce — 23505 guard above handles duplicate events.
   if (eventType === 'email.complained') {
-    structuredErrorRepo.createStructuredError({
+    await structuredErrorRepo.createStructuredError({
       tenantId:      emailSend.tenant_id,
       workspaceId:   (emailSend.workspace_id as string | null) ?? null,
       failureType:   WEBHOOK_FAILURE_TYPE.EMAIL_COMPLAINT_RECEIVED,
@@ -355,7 +355,7 @@ async function processResendEvent(
     const complaintDraftId     = emailSend.draft_id as string | null
     const complaintWorkspaceId = emailSend.workspace_id as string | null
     if (complaintDraftId && complaintWorkspaceId) {
-      stopCampaignScheduleForSend(complaintDraftId, emailSend.tenant_id, complaintWorkspaceId, 'complained').catch(err => {
+      await stopCampaignScheduleForSend(complaintDraftId, emailSend.tenant_id, complaintWorkspaceId, 'complained').catch(err => {
         console.error('[resend-webhook] stop-schedule-on-complaint error:', err)
       })
     }

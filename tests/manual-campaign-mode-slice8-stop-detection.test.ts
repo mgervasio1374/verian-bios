@@ -297,6 +297,44 @@ describe('TC-MM8-12: bounce payload shape regression guards (source-read)', () =
 })
 
 // ---------------------------------------------------------------------------
+// TC-MM8-13: Bounce/complaint stop calls are awaited (Issue 008 fix — not fire-and-forget)
+// ---------------------------------------------------------------------------
+// On Vercel, un-awaited work is cut off when the response is sent.
+// Both stopCampaignScheduleForSend calls must be awaited so schedule items
+// are blocked before processResendEvent returns and the 200 is sent.
+
+describe('TC-MM8-13: stop calls are awaited — not fire-and-forget (source-read)', () => {
+  const webhook = read('app/api/webhooks/resend/route.ts')
+
+  it('bounce stop call is awaited (await stopCampaignScheduleForSend ... bounced)', () => {
+    expect(webhook).toContain('await stopCampaignScheduleForSend(bounceDraftId')
+  })
+
+  it('complaint stop call is awaited (await stopCampaignScheduleForSend ... complained)', () => {
+    expect(webhook).toContain('await stopCampaignScheduleForSend(complaintDraftId')
+  })
+
+  it('bounce structured-error creator is awaited (both createStructuredError calls have await)', () => {
+    const firstIdx  = webhook.indexOf('await structuredErrorRepo.createStructuredError')
+    const secondIdx = webhook.indexOf('await structuredErrorRepo.createStructuredError', firstIdx + 1)
+    expect(firstIdx).toBeGreaterThan(-1)
+    expect(secondIdx).toBeGreaterThan(firstIdx)
+  })
+
+  it('bounce stop appears after bounce structured-error in source order', () => {
+    const bounceErrorIdx = webhook.indexOf('EMAIL_PERMANENT_BOUNCE')
+    const bounceStopIdx  = webhook.indexOf('await stopCampaignScheduleForSend(bounceDraftId')
+    expect(bounceStopIdx).toBeGreaterThan(bounceErrorIdx)
+  })
+
+  it('complaint stop appears after complaint structured-error in source order', () => {
+    const complaintErrorIdx = webhook.indexOf('EMAIL_COMPLAINT_RECEIVED')
+    const complaintStopIdx  = webhook.indexOf('await stopCampaignScheduleForSend(complaintDraftId')
+    expect(complaintStopIdx).toBeGreaterThan(complaintErrorIdx)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // TC-MM8-10: Resend webhook triggers schedule stop on complaint
 // ---------------------------------------------------------------------------
 
