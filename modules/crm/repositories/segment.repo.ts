@@ -155,6 +155,45 @@ export async function addCompanyToSegment(
   if (error) throw new Error(`addCompanyToSegment: ${error.message}`)
 }
 
+export async function listCompanyIdsForSegment(
+  segmentId: string,
+  tenantId: string,
+): Promise<string[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('company_segments')
+    .select('company_id')
+    .eq('segment_id', segmentId)
+    .eq('tenant_id', tenantId)
+
+  if (error) throw new Error(`listCompanyIdsForSegment: ${error.message}`)
+  return (data ?? []).map((row: { company_id: string }) => row.company_id)
+}
+
+// Bulk variant of addCompanyToSegment — one upsert for the whole batch,
+// idempotent on the (company_id, segment_id) composite PK so rows that are
+// already members are silently skipped.
+export async function addCompaniesToSegment(
+  companyIds: string[],
+  segmentId: string,
+  tenantId: string,
+): Promise<void> {
+  if (companyIds.length === 0) return
+  const supabase = createSupabaseServiceClient()
+  const { error } = await supabase
+    .from('company_segments')
+    .upsert(
+      companyIds.map(companyId => ({
+        company_id: companyId,
+        segment_id: segmentId,
+        tenant_id:  tenantId,
+      })),
+      { onConflict: 'company_id,segment_id', ignoreDuplicates: true },
+    )
+
+  if (error) throw new Error(`addCompaniesToSegment: ${error.message}`)
+}
+
 export async function removeCompanyFromSegment(
   companyId: string,
   segmentId: string,

@@ -28,6 +28,8 @@ const LOGO_MARK      = 'public/brand/logo-mark.svg'
 const SIDEBAR        = 'components/layout/Sidebar.tsx'
 const GLOBALS_CSS    = 'app/globals.css'
 const COMPANIES_LIST = 'app/(workspace)/[workspaceSlug]/companies/page.tsx'
+// MCM v2 Slice S2 moved the table rendering (incl. status badges) into a client component
+const COMPANIES_TABLE = 'app/(workspace)/[workspaceSlug]/companies/CompaniesTable.tsx'
 const COMPANY_DETAIL = 'app/(workspace)/[workspaceSlug]/companies/[id]/page.tsx'
 const EDIT_DIALOG    = 'app/(workspace)/[workspaceSlug]/companies/[id]/CompanyEditDialog.tsx'
 
@@ -113,18 +115,18 @@ describe('TC-3W-S3-003: globals.css sidebar tokens updated to deep navy', () => 
 // ---------------------------------------------------------------------------
 
 describe('TC-3W-S3-004: Companies list has color-differentiated status badge logic', () => {
-  it('companies page uses getStatusBadgeClass helper', () => {
-    const src = readSrc(COMPANIES_LIST)
+  it('companies table uses getStatusBadgeClass helper', () => {
+    const src = readSrc(COMPANIES_TABLE)
     expect(src).toContain('getStatusBadgeClass')
   })
 
   it('getStatusBadgeClass returns teal class for active status', () => {
-    const src = readSrc(COMPANIES_LIST)
+    const src = readSrc(COMPANIES_TABLE)
     expect(src).toContain('teal')
   })
 
   it('getStatusBadgeClass returns blue class for prospect status', () => {
-    const src = readSrc(COMPANIES_LIST)
+    const src = readSrc(COMPANIES_TABLE)
     expect(src).toContain('blue')
     expect(src).toContain("'prospect'")
   })
@@ -178,8 +180,9 @@ describe('TC-3W-S3-007: No send, approval, or system-control behavior in changed
 
   it('companies page and detail page do not introduce send or approval imports', () => {
     const list   = readSrc(COMPANIES_LIST)
+    const table  = readSrc(COMPANIES_TABLE)
     const detail = readSrc(COMPANY_DETAIL)
-    for (const src of [list, detail]) {
+    for (const src of [list, table, detail]) {
       expect(src).not.toContain('sendFollowUp')
       expect(src).not.toContain('approveRequest')
       expect(src).not.toContain('approveAndSend')

@@ -10,6 +10,7 @@ export interface ListCompaniesOptions {
   workspaceId: string
   search?: string
   status?: string
+  ids?: string[]
   limit?: number
   offset?: number
 }
@@ -27,6 +28,7 @@ export async function listCompanies(opts: ListCompaniesOptions): Promise<Company
 
   if (opts.status) query = query.eq('status', opts.status)
   if (opts.search) query = query.ilike('name', `%${opts.search}%`)
+  if (opts.ids) query = query.in('id', opts.ids)
 
   const { data, error } = await query
   if (error) throw new Error(`listCompanies: ${error.message}`)

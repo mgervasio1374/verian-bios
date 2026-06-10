@@ -98,6 +98,28 @@ export async function addCompanyToSegmentAction(
   }
 }
 
+export async function addCompaniesToSegmentAction(
+  segmentId: string,
+  companyIds: string[]
+): Promise<ActionResult<{ added: number }>> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx = await buildRequestContext(supabase)
+
+    if (companyIds.length === 0) {
+      return { success: false, error: 'Select at least one company.' }
+    }
+
+    await segmentService.addCompaniesToSegment(ctx, segmentId, companyIds)
+
+    revalidatePath('/[workspaceSlug]/companies', 'page')
+    revalidatePath(SETTINGS_PATH, 'page')
+    return { success: true, data: { added: companyIds.length } }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
 export async function removeCompanyFromSegmentAction(
   segmentId: string,
   companyId: string

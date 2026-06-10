@@ -62,6 +62,35 @@ export async function addCompanyToSegment(
   await segmentRepo.addCompanyToSegment(companyId, segmentId, ctx.tenantId)
 }
 
+const MAX_BULK_ADD_COMPANIES = 500
+
+export async function addCompaniesToSegment(
+  ctx: RequestContext,
+  segmentId: string,
+  companyIds: string[]
+) {
+  requirePermission(ctx, 'crm.companies.edit')
+
+  if (companyIds.length > MAX_BULK_ADD_COMPANIES) {
+    throw new Error(
+      `Cannot add more than ${MAX_BULK_ADD_COMPANIES} companies to a segment at once. Narrow the selection and try again.`
+    )
+  }
+
+  const segment = await segmentRepo.getSegmentById(segmentId, ctx.tenantId, ctx.workspaceId)
+  if (!segment) throw new NotFoundError('Segment')
+
+  await segmentRepo.addCompaniesToSegment(companyIds, segmentId, ctx.tenantId)
+}
+
+export async function listCompanyIdsForSegment(ctx: RequestContext, segmentId: string) {
+  requirePermission(ctx, 'crm.companies.view')
+  const segment = await segmentRepo.getSegmentById(segmentId, ctx.tenantId, ctx.workspaceId)
+  if (!segment) throw new NotFoundError('Segment')
+
+  return segmentRepo.listCompanyIdsForSegment(segmentId, ctx.tenantId)
+}
+
 export async function removeCompanyFromSegment(
   ctx: RequestContext,
   segmentId: string,
