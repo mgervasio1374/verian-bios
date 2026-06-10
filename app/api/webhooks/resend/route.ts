@@ -294,10 +294,15 @@ async function processResendEvent(
   // The outer try/catch in POST guarantees 200 OK regardless.
 
   // Permanent bounce: hard bounces indicate an invalid address — surface in System Intelligence.
-  // Soft bounces are transient; they do not generate a structured error.
+  // Soft bounces (Transient) are temporary delivery failures; they do not stop the sequence.
+  // Real Resend payload nests bounce info: data.bounce.type = 'Permanent'|'Transient'|'Undetermined'.
+  // Legacy flat shape (data.bounce_type = 'hard') retained as a defensive fallback.
   // Idempotency: email.bounced fires once per message; the 23505 guard above ensures
   // this block only runs for non-duplicate events, so one structured error per send.
-  if (eventType === 'email.bounced' && (payload.data as Record<string, unknown>)?.bounce_type === 'hard') {
+  const bounce = (payload.data as Record<string, unknown>)?.bounce as { type?: string; subType?: string } | undefined
+  const isHardBounce = bounce?.type === 'Permanent' || (payload.data as Record<string, unknown>)?.bounce_type === 'hard'
+
+  if (eventType === 'email.bounced' && isHardBounce) {
     structuredErrorRepo.createStructuredError({
       tenantId:      emailSend.tenant_id,
       workspaceId:   (emailSend.workspace_id as string | null) ?? null,
@@ -306,9 +311,10 @@ async function processResendEvent(
       module:        'resend_webhook',
       correlationId: emailSend.id,
       context: {
-        emailSendId: emailSend.id,
-        toEmail:     Array.isArray(payload.data?.to) ? (payload.data.to[0] as string) : null,
-        bounceType:  (payload.data as Record<string, unknown>)?.bounce_type as string ?? null,
+        emailSendId:   emailSend.id,
+        toEmail:       Array.isArray(payload.data?.to) ? (payload.data.to[0] as string) : null,
+        bounceType:    bounce?.type ?? ((payload.data as Record<string, unknown>)?.bounce_type as string ?? null),
+        bounceSubType: bounce?.subType ?? null,
       },
     }).catch((err) => {
       console.error('[resend-webhook] Failed to create EMAIL_PERMANENT_BOUNCE error:', err)
@@ -324,7 +330,9 @@ async function processResendEvent(
     }
   }
 
-  // Complaint: severity critical — requires immediate operator review.
+  // Complaint: fires on eventType === 'email.complained'. Trigger is eventType only —
+  // no nested bounce-style field is read here. Payload shape verified; no fix needed.
+  // Severity critical — requires immediate operator review.
   // Placed after auto-unsubscribe to preserve existing Phase 3A ordering.
   // Idempotency: same as bounce — 23505 guard above handles duplicate events.
   if (eventType === 'email.complained') {

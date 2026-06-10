@@ -233,21 +233,66 @@ describe('TC-MM8-09: Resend webhook triggers schedule stop on hard bounce (sourc
   })
 
   it('hard-bounce branch calls stopCampaignScheduleForSend with bounced mode', () => {
-    const bounceIdx = webhook.indexOf("bounce_type === 'hard'")
+    // Anchor on the isHardBounce guard (replaces the old flat bounce_type === hard check)
+    const bounceIdx  = webhook.indexOf("eventType === 'email.bounced' && isHardBounce")
     expect(bounceIdx).toBeGreaterThan(-1)
-    const bounceBlock = webhook.slice(bounceIdx, bounceIdx + 1200)
+    const bounceBlock = webhook.slice(bounceIdx, bounceIdx + 1600)
     expect(bounceBlock).toContain('stopCampaignScheduleForSend')
     expect(bounceBlock).toContain("'bounced'")
   })
 
   it('stop call in bounce branch is non-fatal (wrapped with .catch)', () => {
-    const bounceIdx = webhook.indexOf("bounce_type === 'hard'")
-    const bounceBlock = webhook.slice(bounceIdx, bounceIdx + 1200)
+    const bounceIdx  = webhook.indexOf("eventType === 'email.bounced' && isHardBounce")
+    const bounceBlock = webhook.slice(bounceIdx, bounceIdx + 1600)
     expect(bounceBlock).toContain('.catch(')
   })
 
   it('existing EMAIL_PERMANENT_BOUNCE structured error is still present', () => {
     expect(webhook).toContain('EMAIL_PERMANENT_BOUNCE')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// TC-MM8-12: Bounce payload shape regression guards (Issue 007 fix)
+// ---------------------------------------------------------------------------
+// Real Resend payload nests bounce info: data.bounce.type = 'Permanent'|'Transient'|'Undetermined'
+// (not flat data.bounce_type = 'hard' as originally coded).
+// These source-read guards prevent re-introduction of the wrong shape.
+// Note: full correctness requires runtime/integration testing — source-read only guards
+// against re-introducing this specific structural bug.
+
+describe('TC-MM8-12: bounce payload shape regression guards (source-read)', () => {
+  const webhook = read('app/api/webhooks/resend/route.ts')
+
+  it("hard bounce fires on Permanent type (real Resend payload: data.bounce.type = 'Permanent')", () => {
+    expect(webhook).toContain("bounce?.type === 'Permanent'")
+  })
+
+  it('handler derives bounce from data.bounce (real Resend nested shape)', () => {
+    expect(webhook).toContain('data.bounce')
+    expect(webhook).toContain('bounce?.type')
+  })
+
+  it("legacy flat-shape fallback is retained (data.bounce_type = 'hard')", () => {
+    // Defense-in-depth: old flat shape still accepted so any existing test/staging payloads work
+    expect(webhook).toContain("bounce_type === 'hard'")
+  })
+
+  it("soft bounce (Transient) does NOT appear in the isHardBounce trigger condition", () => {
+    // 'Transient' must never be part of the hard-bounce check — only 'Permanent' fires the stop
+    const isHardBounceIdx = webhook.indexOf('isHardBounce =')
+    expect(isHardBounceIdx).toBeGreaterThan(-1)
+    const triggerLine = webhook.slice(isHardBounceIdx, isHardBounceIdx + 200)
+    expect(triggerLine).not.toContain("'Transient'")
+  })
+
+  it('structured error context includes bounceSubType from nested payload', () => {
+    expect(webhook).toContain('bounceSubType')
+    expect(webhook).toContain('bounce?.subType')
+  })
+
+  it('isHardBounce guards the email.bounced + stop block', () => {
+    expect(webhook).toContain("eventType === 'email.bounced' && isHardBounce")
   })
 })
 
