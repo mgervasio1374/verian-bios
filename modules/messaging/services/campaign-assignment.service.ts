@@ -137,8 +137,9 @@ export async function createCampaignAssignment(
     assignment_source:      input.assignmentSource,
     assigned_by_user_id:    input.assignedByUserId ?? null,
     assigned_by_agent_name: input.assignedByAgentName ?? null,
-    assignment_reason:      input.assignmentReason ?? null,
-    confidence:             input.confidence ?? null,
+    assignment_reason:           input.assignmentReason ?? null,
+    confidence:                  input.confidence ?? null,
+    auto_approve_first_touch:    input.autoApproveFirstTouch ?? false,
     eligibility_snapshot,
   })
 

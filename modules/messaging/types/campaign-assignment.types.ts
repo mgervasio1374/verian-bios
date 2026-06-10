@@ -51,10 +51,11 @@ export interface CampaignAssignment {
   assigned_by_agent_name: string | null
   assignment_reason:     string | null
   confidence:            number | null
-  eligibility_snapshot:  Record<string, unknown>
-  created_at:            string
-  updated_at:            string
-  retired_at:            string | null
+  eligibility_snapshot:       Record<string, unknown>
+  auto_approve_first_touch:   boolean
+  created_at:                 string
+  updated_at:                 string
+  retired_at:                 string | null
 }
 
 // ---- Insert payload ----
@@ -73,7 +74,8 @@ export interface InsertCampaignAssignment {
   assigned_by_agent_name?: string | null
   assignment_reason?:    string | null
   confidence?:           number | null
-  eligibility_snapshot:  Record<string, unknown>
+  eligibility_snapshot:        Record<string, unknown>
+  auto_approve_first_touch?:   boolean
 }
 
 // ---- Update patch ----
@@ -97,8 +99,9 @@ export interface CreateAssignmentInput {
   assignmentSource:      AssignmentSource
   assignedByUserId?:     string
   assignedByAgentName?:  string
-  assignmentReason?:     string
-  confidence?:           number
+  assignmentReason?:          string
+  confidence?:                number
+  autoApproveFirstTouch?:     boolean
 }
 
 export type CreateAssignmentResult =

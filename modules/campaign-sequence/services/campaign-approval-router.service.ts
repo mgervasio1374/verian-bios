@@ -2,6 +2,7 @@ import * as approvalRepo from '@/modules/workflow/repositories/approval.repo'
 import * as emailDraftRepo from '@/modules/messaging/repositories/email-draft.repo'
 import { getCampaignSequenceStepById } from '@/modules/campaign-sequence/repositories/campaign-sequence-step.repo'
 import { getFirstTouchItemForAssignment } from '@/modules/campaign-sequence/repositories/campaign-schedule-item.repo'
+import { getAssignmentById } from '@/modules/messaging/repositories/campaign-assignment.repo'
 import { updateScheduleItemStatus } from '@/modules/campaign-sequence/services/campaign-schedule-item.service'
 import type { CampaignScheduleItemRow } from '@/modules/campaign-sequence/types'
 
@@ -36,8 +37,9 @@ export function isAssignmentGated(firstTouchStatus: string | null): boolean {
 export function classifyDraftReadyItem(
   stepNumber: number,
   gated: boolean,
+  autoApproveFirstTouch = false,
 ): 'requires_approval' | 'auto_approve' | 'hold' {
-  if (stepNumber === 1) return 'requires_approval'
+  if (stepNumber === 1) return autoApproveFirstTouch ? 'auto_approve' : 'requires_approval'
   return gated ? 'auto_approve' : 'hold'
 }
 
@@ -85,7 +87,14 @@ export async function routeDraftReadyItem(
       gated = isAssignmentGated(firstTouchItem?.status ?? null)
     }
 
-    const classification = classifyDraftReadyItem(step.step_number, gated)
+    // For step 1: check per-assignment flag to determine if first touch auto-approves
+    let autoApproveFirstTouch = false
+    if (step.step_number === 1 && item.campaign_assignment_id) {
+      const assignment = await getAssignmentById(item.campaign_assignment_id)
+      autoApproveFirstTouch = assignment?.auto_approve_first_touch ?? false
+    }
+
+    const classification = classifyDraftReadyItem(step.step_number, gated, autoApproveFirstTouch)
 
     if (classification === 'hold') {
       return { outcome: 'held' }
@@ -139,12 +148,13 @@ export async function routeDraftReadyItem(
       },
     })
 
+    const resolveReason = step.step_number === 1 ? 'bulk_preapproved_first_touch' : 'hybrid_auto_send_gated'
     await approvalRepo.resolveApprovalRequest(
       approval.id,
       tenantId,
       null,
       'approved',
-      { auto_approved: true, reason: 'hybrid_auto_send_gated' },
+      { auto_approved: true, reason: resolveReason },
     )
 
     await emailDraftRepo.linkApprovalToEmailDraft(item.email_draft_id, approval.id)
