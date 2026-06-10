@@ -60,7 +60,7 @@ Status: `open` · `fix-drafted` · `fixed-staging` · `resolved` · `noted`.
 - **Class:** `missing-operator-ui` / `action-not-surfaced`.
 
 ## ISSUE-007 — Bounce/complaint auto-stop never fires: wrong Resend payload shape
-- **Date:** 2026-06-10 · **Severity:** major (bounce-suppression dead) · **Status:** open (fix spec'd below)
+- **Date:** 2026-06-10 · **Severity:** major (bounce-suppression dead) · **Status:** ✅ RESOLVED (commit `dce6cf3`, verified live 2026-06-10 — clean real-bounce re-test auto-blocked step 2)
 - **Area:** `app/api/webhooks/resend/route.ts` → `processResendEvent` (hard-bounce detection)
 - **Symptom:** a real hard bounce (sent to `bounced@resend.dev`, msg `62fcef87…`) → `email_send.status` correctly → `bounced`, but the campaign's pending step 2 was **NOT** blocked (stayed `planned`), and **no** `EMAIL_PERMANENT_BOUNCE` structured error was created.
 - **Root cause:** handler checks `payload.data.bounce_type === 'hard'` (route.ts:300, and again in the structured-error context line ~311). Resend's real payload has **no `bounce_type`** — it nests: `data.bounce = { type: 'Permanent', subType: 'General', message, diagnosticCode }`. So the guard is always false → `stopCampaignScheduleForSend` is never called.
@@ -70,6 +70,15 @@ Status: `open` · `fix-drafted` · `fixed-staging` · `resolved` · `noted`.
 - **Also check:** the complaint path (`email.complained`, line ~330) keys off `eventType` only (no bounce_type) so likely OK — but confirm Resend's complaint payload shape with a real `complained@resend.dev` test before trusting complaint auto-stop.
 - **Tests:** the slice-8 unit test used the assumed `{bounce_type:'hard'}` shape → green while prod fails. Replace the fixture with the real Resend shape (`data.bounce.type='Permanent'`) + add a captured-payload regression fixture.
 - **Class:** `external-payload-shape-mismatch` / `source-read-blind-spot` (**P1**).
+
+## ISSUE-008 — Bounce/complaint auto-stop is fire-and-forget → unreliable on serverless
+- **Date:** 2026-06-10 · **Severity:** major (bounce-stop flaky) · **Status:** ✅ RESOLVED (commit `99be74d`, verified live 2026-06-10 — step 2 auto-blocked on the FIRST real bounce, deterministically)
+- **Area:** `app/api/webhooks/resend/route.ts` → `processResendEvent` (bounce + complaint side effects)
+- **Symptom:** with the ISSUE-007 fix deployed, a real hard bounce (msg `17f70aa2`, assignment `ab8280cb`) created the `EMAIL_PERMANENT_BOUNCE` structured error **but did NOT block the pending step 2**. A second delivery of the same bounce (synthetic POST, same `correlation_id 902dca71…`) **did** block it. Same code, same data → non-deterministic.
+- **Root cause:** `stopCampaignScheduleForSend(...).catch(...)` (line 327 bounce, 358 complaint) is **not awaited**. `processResendEvent` is awaited by the POST handler, but the stop call inside fires-and-forgets. On Vercel the function freezes after the `200` response; the slower stop (draft lookup → pending list → per-item update) gets cut off, while the single-insert structured error usually finishes. ISSUE-007 (payload shape) was necessary but **not sufficient** — detection now works, completion is flaky.
+- **Fix:** `await` the stop inside `processResendEvent` (keep the `.catch` so it stays non-fatal): `await stopCampaignScheduleForSend(...).catch(err => …)` at both line 327 and 358. Consider awaiting the structured-error creators too (or `Promise.allSettled` the side-effect promises) so all post-event work completes before the handler returns. The POST handler already wraps `processResendEvent` in try/catch → 200 is still guaranteed.
+- **Tests:** add an assertion that the bounce/complaint stop is `await`ed (source-read: `await stopCampaignScheduleForSend`), so this can't regress to fire-and-forget.
+- **Class:** `serverless-fire-and-forget` / `unawaited-side-effect`.
 
 ## Patterns / themes (to distill later)
 

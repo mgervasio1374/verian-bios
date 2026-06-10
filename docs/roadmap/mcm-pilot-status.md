@@ -4,11 +4,15 @@ _Single source of truth for "where are we / what's next" on the Manual Campaign 
 Update the **NEXT ACTION** and **STATUS** lines as you go._
 
 ## NEXT ACTION (do this first)
-✅ **Phase D FIRST SEND DONE** (2026-06-10 02:12 UTC). Both steps of assignment `5aeac081-…` sent for real to `mgervasio@321swipe.com` (from `321 Swipe <noreply@321swipe.com>`), Resend accepted (`email_sends.status='sent'`, real `resend_message_id`s `5d9076f1…` / `79234054…`), assignment auto-`completed`. Full self-serve loop proven live on staging.
-**Remaining Phase D drills:**
+🎉 **PHASE D COMPLETE (2026-06-10)** — all four drills passed: first-send ✅, manual-stop ✅, bounce-stop ✅ (after ISSUE-007 + ISSUE-008 fixes), kill-switch ✅. The MCM send engine is proven live on staging end-to-end.
+**NEXT = Phase E (onboard Bruce)**, but first close the one remaining go-live blocker: **ISSUE-006** — no operator "Stop sequence" UI (only "Retire", which doesn't stop pending items). Recommend a small follow-up slice adding a "Stop sequence" button wired to `stopCampaignSequenceAction` before Bruce self-serves.
+Also weigh the **operability note** (below) for Bruce's expectations: approval→send is async (lags a cron tick or two).
+
+---
+**Phase D drill log (all ✅):**
 1. ✅ **manual-stop drill DONE (2026-06-10):** fresh assignment `e34449aa` (lead d4e24f9f "Mikes Test Co", Smoke Test seq) materialized 2 `planned` items → manual stop → both `stopped_manual` (`stopped_reason='manual_stop'`, `stopped_at` set), assignment `retired`. No drafts ever created → zero send risk. Executed via DB (no stop-UI — see ISSUE-006). Transitions confirmed valid (SCHEDULE_ITEM_TRANSITIONS: planned→stopped_manual OK).
 2. ✅ **Resend webhook WIRED** (2026-06-10) → `…/api/webhooks/resend`, all email.* events; `RESEND_WEBHOOK_SECRET` unset on staging so signatures not enforced (accepts as-is). Real bounce produced `email_events` + flipped `email_send.status`→`bounced`. Webhook delivery confirmed working.
-3. 🛑 **bounce-stop drill RAN → caught ISSUE-007 (real bug).** Sent step 1 to `bounced@resend.dev` (assignment `d98d272e`); `email_send`→`bounced` BUT step 2 did NOT auto-block. Root cause: handler checks `data.bounce_type==='hard'` but Resend sends nested `data.bounce.type='Permanent'` → auto-stop never fires. Downstream proven good via manual block (step 2→`blocked`/`recipient_bounced`). **Needs code hotfix + redeploy, then re-run bounce drill on a fresh assignment.** See ISSUE-007.
+3. ✅ **bounce-stop drill PASSED (2026-06-10).** Two bugs caught & fixed along the way: ISSUE-007 (`data.bounce_type` vs nested `data.bounce.type='Permanent'` → hotfix `dce6cf3`) and ISSUE-008 (stop was fire-and-forget → flaky on Vercel → awaited in `99be74d`). Final clean re-test (assignment `141fb257`, deploy green first): sent step 1 to `bounced@resend.dev` → **first real Resend bounce auto-blocked step 2** (`blocked`/`recipient_bounced`) + `EMAIL_PERMANENT_BOUNCE` structured error (`Permanent`/`General`) — no synthetic POST, no manual SQL. Both fixes verified live.
 4. ✅ **kill-switch drill DONE (2026-06-10):** assignment `bc2ed7aa`, step 1 armed (`approved`+due). Gates `is_enabled=false` → Sends rerun **deferred** (item stayed `approved`, zero `email_sends`). Gates back ON → Sends rerun **sent + delivered** to `mgervasio@321swipe.com`. Both directions proven. (Leftover step 2 stopped_manual, assignment retired — cleaned up.)
 Then **Phase E** (onboard Bruce).
 **Go-live blockers found:** ISSUE-006 (no operator "Stop sequence" UI — only "Retire", which doesn't stop items) · **ISSUE-007** (bounce auto-stop broken — wrong Resend payload shape).
