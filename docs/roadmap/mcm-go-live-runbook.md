@@ -125,3 +125,14 @@ ON CONFLICT (tenant_id, key) DO UPDATE SET value = 'true'::jsonb, is_enabled = t
 ## 6. Production is a separate, larger release ⛔
 
 Production (`kxrplupzbsmujjznzhpy`) is at `20240034`. Going live there means applying **`20240035`–`20240046`** (12 migrations, mostly non-MCM Phase-3 work), each with its own apply-plan + evidence review. Keep the Bruce pilot **on staging** until production is planned as its own release. The same ref is also `.env.remote-dev` — treat any apply against `kxrplupzbsmujjznzhpy` as a production change.
+
+---
+
+## 7. Operational pitfalls (learned in the pilot)
+
+Running issue log: **`docs/roadmap/mcm-staging-pilot-issues.md`** — add an entry for every bug/gap found.
+
+- **Smoke-test every cron's FIRST real run in the Inngest dashboard.** The repos use the untyped Supabase client and the tests are source-read, so schema mismatches (wrong/missing column) compile clean and pass CI but crash at runtime. After deploy, open Inngest → Runs and confirm `process-campaign-schedule`, `-approvals`, `-sends`, and `on-campaign-assignment-activated` each run **green** before trusting the pipeline. (First instance: `enumerate-active-tenants` referenced a non-existent `workspaces.deleted_at` — every campaign cron died silently.)
+- **Seed per-workspace data before authoring.** Each workspace needs ≥1 **campaign type** (no admin UI — seed via SQL; slug must equal the assets' `campaign_type` and be a standard `CAMPAIGN_TYPE`), a verified **sender identity**, and **≥1 active/approved asset** per intended step type. Empty dropdowns = missing seed data, not a bug.
+- **Migrate-then-deploy for production.** Deploying MCM code before its migrations are applied breaks assignment creation (insert references `campaign_sequence_id`). On staging the gap was closed by applying Phase B promptly; for prod, apply the migrations first.
+- **Inngest: separate environment, manual sync.** The app id is hardcoded `verian-bios`; sync staging into a **non-prod** Inngest environment (set `INNGEST_EVENT_KEY` + `INNGEST_SIGNING_KEY` + `INNGEST_ENV` on the staging deploy) or you'll clobber the prod app's endpoint. No re-sync needed after a code-only redeploy (same functions/triggers).
