@@ -192,20 +192,24 @@ describe('TC-S2-05: CompaniesTable client component (source-read)', () => {
 })
 
 // ---------------------------------------------------------------------------
-// TC-S2-06: scope guard — no campaign code in the new component (S3 territory)
+// TC-S2-06: scope guard — campaign surface in CompaniesTable is limited to the
+// S3 bulk-assign action (no sequence/send/draft module imports)
 // ---------------------------------------------------------------------------
 
-describe('TC-S2-06: scope guard — no campaign imports in CompaniesTable (source-read)', () => {
+describe('TC-S2-06: scope guard — campaign imports in CompaniesTable limited to bulkAssignCampaignAction (source-read)', () => {
   const table = read(TABLE)
 
-  it('does not import campaign modules or actions', () => {
-    expect(table).not.toContain('campaign-sequence')
-    expect(table).not.toContain('campaign-assignment')
-    expect(table).not.toMatch(/import[^\n]*campaign/i)
+  it('the only campaign import is bulkAssignCampaignAction from campaign-assignment.actions', () => {
+    const campaignImports = (table.match(/import[^\n]*campaign[^\n]*/gi) ?? [])
+    expect(campaignImports).toHaveLength(1)
+    expect(campaignImports[0]).toContain('bulkAssignCampaignAction')
+    expect(campaignImports[0]).toContain('campaign-assignment.actions')
   })
 
-  it('does not reference campaign assignment actions', () => {
-    expect(table).not.toContain('assignCampaign')
-    expect(table).not.toContain('CampaignAssignment')
+  it('does not import sequence, send, or draft modules', () => {
+    expect(table).not.toContain('campaign-sequence/')
+    expect(table).not.toContain('email-draft')
+    expect(table).not.toContain('send-bridge')
+    expect(table).not.toContain('sendFollowUp')
   })
 })

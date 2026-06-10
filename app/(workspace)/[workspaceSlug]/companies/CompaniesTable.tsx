@@ -6,10 +6,17 @@ import { useRouter } from 'next/navigation'
 import { Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { addCompaniesToSegmentAction } from '@/modules/crm/actions/segment.actions'
+import { bulkAssignCampaignAction } from '@/modules/messaging/actions/campaign-assignment.actions'
 import type { SegmentWithCount } from '@/modules/crm/repositories/segment.repo'
 import type { Database } from '@/types/database'
 
 type CompanyRow = Database['public']['Tables']['companies']['Row']
+
+interface SequenceOption {
+  id:               string
+  name:             string
+  campaignTypeSlug: string
+}
 
 function getStatusBadgeClass(status: string | null): string {
   switch (status) {
@@ -23,12 +30,13 @@ function getStatusBadgeClass(status: string | null): string {
 interface Props {
   companies:       CompanyRow[]
   segments:        SegmentWithCount[]
+  sequences:       SequenceOption[]
   workspaceSlug:   string
   activeSegmentId: string
   search:          string
 }
 
-export function CompaniesTable({ companies, segments, workspaceSlug, activeSegmentId, search }: Props) {
+export function CompaniesTable({ companies, segments, sequences, workspaceSlug, activeSegmentId, search }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
 
@@ -36,6 +44,10 @@ export function CompaniesTable({ companies, segments, workspaceSlug, activeSegme
   const [targetSegmentId, setTargetSegmentId] = useState('')
   const [error,           setError]           = useState<string | null>(null)
   const [successMessage,  setSuccessMessage]  = useState<string | null>(null)
+
+  const [showAssignPanel,  setShowAssignPanel]  = useState(false)
+  const [assignSequenceId, setAssignSequenceId] = useState('')
+  const [preApproved,      setPreApproved]      = useState(false)
 
   const allSelected = companies.length > 0 && companies.every(c => selectedIds.has(c.id))
   const hasFilter   = Boolean(activeSegmentId || search)
@@ -88,6 +100,50 @@ export function CompaniesTable({ companies, segments, workspaceSlug, activeSegme
       const segmentName = segments.find(s => s.id === targetSegmentId)?.name ?? 'segment'
       setSuccessMessage(`Added ${result.data.added} ${result.data.added === 1 ? 'company' : 'companies'} to ${segmentName}`)
       setSelectedIds(new Set())
+      router.refresh()
+    })
+  }
+
+  function handleBulkAssign() {
+    setError(null)
+    setSuccessMessage(null)
+
+    const sequence = sequences.find(s => s.id === assignSequenceId)
+    if (!sequence) {
+      setError('Pick a campaign sequence to assign.')
+      return
+    }
+
+    const count = selectedIds.size
+    const confirmed = window.confirm(
+      `Assign campaign to the contacts of ${count} ${count === 1 ? 'company' : 'companies'}?\n\n` +
+      `Sequence: ${sequence.name}\n` +
+      `Pre-approved first touch: ${preApproved ? 'yes' : 'no'}`
+    )
+    if (!confirmed) return
+
+    const ids = Array.from(selectedIds)
+    startTransition(async () => {
+      const result = await bulkAssignCampaignAction(ids, assignSequenceId, preApproved)
+      if (!result.success) {
+        setError(result.error)
+        return
+      }
+      const t = result.data
+      const skipped = [
+        t.skippedDuplicate     > 0 ? `${t.skippedDuplicate} duplicates` : null,
+        t.skippedNoEmail       > 0 ? `${t.skippedNoEmail} without email` : null,
+        t.skippedDoNotContact  > 0 ? `${t.skippedDoNotContact} do-not-contact` : null,
+        t.companiesWithNoContacts > 0 ? `${t.companiesWithNoContacts} companies without contacts` : null,
+        t.failed               > 0 ? `${t.failed} failed` : null,
+      ].filter(Boolean).join(', ')
+      setSuccessMessage(
+        `Created ${t.created} assignment${t.created === 1 ? '' : 's'}.${skipped ? ` Skipped: ${skipped}.` : ''}`
+      )
+      setSelectedIds(new Set())
+      setShowAssignPanel(false)
+      setAssignSequenceId('')
+      setPreApproved(false)
       router.refresh()
     })
   }
@@ -149,8 +205,78 @@ export function CompaniesTable({ companies, segments, workspaceSlug, activeSegme
             >
               {pending ? 'Adding…' : 'Add to segment'}
             </button>
+            <button
+              type="button"
+              onClick={() => setShowAssignPanel(prev => !prev)}
+              disabled={pending}
+              className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+            >
+              Assign campaign
+            </button>
           </div>
         </div>
+      )}
+
+      {/* Assign-campaign panel (MCM v2 Slice S3) */}
+      {selectedIds.size > 0 && showAssignPanel && (
+        sequences.length === 0 ? (
+          <div className="rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+            No manual campaign sequences exist yet.{' '}
+            <Link href={`/${workspaceSlug}/settings/campaign-sequences`} className="text-primary hover:underline">
+              Create one in Campaign Sequences
+            </Link>{' '}
+            first.
+          </div>
+        ) : (
+          <div className="rounded-md border bg-muted/20 p-4 space-y-3">
+            <p className="text-xs font-semibold">Assign campaign to selected companies&apos; contacts</p>
+
+            <label className="flex flex-col gap-1 text-xs">
+              <span className="font-medium">Campaign sequence</span>
+              <select
+                value={assignSequenceId}
+                onChange={e => setAssignSequenceId(e.target.value)}
+                disabled={pending}
+                className="rounded border px-2 py-1.5 text-sm bg-background max-w-md"
+              >
+                <option value="">Choose sequence…</option>
+                {sequences.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.campaignTypeSlug})
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex items-start gap-2 text-xs max-w-md">
+              <input
+                type="checkbox"
+                checked={preApproved}
+                onChange={e => setPreApproved(e.target.checked)}
+                disabled={pending}
+                className="mt-0.5"
+              />
+              <span>
+                <span className="font-medium">Pre-approved — skip first-touch approval</span>
+                <span className="block text-muted-foreground mt-0.5">
+                  All steps send automatically on schedule once sending is enabled. Leave unchecked
+                  to review each contact&apos;s first email in the inbox.
+                </span>
+              </span>
+            </label>
+
+            <button
+              type="button"
+              onClick={handleBulkAssign}
+              disabled={pending || !assignSequenceId}
+              className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {pending
+                ? 'Assigning…'
+                : `Assign to contacts of ${selectedIds.size} ${selectedIds.size === 1 ? 'company' : 'companies'}`}
+            </button>
+          </div>
+        )
       )}
 
       {companies.length === 0 ? (

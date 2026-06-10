@@ -11,7 +11,9 @@ import {
   approveProposedAssignment,
   rejectProposedAssignment,
   retireCampaignAssignment,
+  bulkAssignCampaignToCompanies,
 } from '@/modules/messaging/services/campaign-assignment.service'
+import type { BulkAssignTally } from '@/modules/messaging/services/campaign-assignment.service'
 import { getAssignmentById } from '@/modules/messaging/repositories/campaign-assignment.repo'
 import { stopAssignmentSchedule } from '@/modules/campaign-sequence/services/campaign-stop.service'
 
@@ -46,6 +48,37 @@ export async function createManualAssignmentAction(
 
     revalidatePath('/[workspaceSlug]/leads/[id]', 'page')
     return { success: true, data: { assignmentId: result.assignmentId } }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
+export async function bulkAssignCampaignAction(
+  companyIds:            string[],
+  campaignSequenceId:    string,
+  autoApproveFirstTouch: boolean,
+  assignmentReason?:     string,
+): Promise<ActionResult<BulkAssignTally>> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx      = await buildRequestContext(supabase)
+    requirePermission(ctx, 'crm.leads.view')
+
+    if (companyIds.length === 0) return { success: false, error: 'Select at least one company.' }
+    if (!campaignSequenceId) return { success: false, error: 'Campaign sequence is required.' }
+
+    const tally = await bulkAssignCampaignToCompanies({
+      tenantId:           ctx.tenantId,
+      workspaceId:        ctx.workspaceId,
+      companyIds,
+      campaignSequenceId,
+      autoApproveFirstTouch,
+      assignedByUserId:   ctx.userId === 'system' ? undefined : ctx.userId,
+      assignmentReason:   assignmentReason || undefined,
+    })
+
+    revalidatePath('/[workspaceSlug]/companies', 'page')
+    return { success: true, data: tally }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }

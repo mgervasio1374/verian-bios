@@ -4,6 +4,8 @@ import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asse
 import * as activityEventService from '@/modules/intelligence/services/activity-event.service'
 import { ActivityEventType } from '@/modules/intelligence/types.agent'
 import { getCampaignSequenceById } from '@/modules/campaign-sequence/repositories/campaign-sequence.repo'
+import { getCampaignTypeById } from '@/modules/campaign-sequence/repositories/campaign-type.repo'
+import { listContacts } from '@/modules/crm/repositories/contact.repo'
 import { inngest } from '@/lib/inngest/client'
 import {
   ASSIGNMENT_STATUS,
@@ -166,14 +168,122 @@ export async function createCampaignAssignment(
   }).catch(() => null)
 
   // MCM Slice 7: emit activation event if assignment goes directly to 'assigned' with a sequence.
-  // Non-fatal — emit failure must not block assignment creation.
+  // Non-fatal, but awaited — fire-and-forget emits can be dropped when the Vercel
+  // function freezes after the action returns (same failure mode as Issue 008).
   if (assignment_status === ASSIGNMENT_STATUS.ASSIGNED && row.campaign_sequence_id) {
-    ;(async () => {
-      await emitAssignmentActivated(row.id, row.campaign_sequence_id!, input.tenantId, input.workspaceId)
-    })().catch(() => null)
+    await emitAssignmentActivated(row.id, row.campaign_sequence_id!, input.tenantId, input.workspaceId).catch(() => null)
   }
 
   return { ok: true, assignmentId: row.id }
+}
+
+// ---- bulkAssignCampaignToCompanies (MCM v2 Slice S3) ----
+// Vendor-show flow: fan the selected companies out to all their contacts and
+// create one contact-scoped assignment per contact (contactId set, no leadId).
+
+const MAX_BULK_ASSIGN_COMPANIES = 100
+
+export interface BulkAssignInput {
+  tenantId:              string
+  workspaceId:           string
+  companyIds:            string[]
+  campaignSequenceId:    string
+  autoApproveFirstTouch: boolean
+  assignedByUserId?:     string
+  assignmentReason?:     string
+}
+
+export interface BulkAssignTally {
+  created:                 number
+  skippedDuplicate:        number
+  skippedNoEmail:          number
+  skippedDoNotContact:     number
+  companiesWithNoContacts: number
+  failed:                  number
+}
+
+export async function bulkAssignCampaignToCompanies(
+  input: BulkAssignInput
+): Promise<BulkAssignTally> {
+  if (input.companyIds.length === 0) {
+    throw new Error('Select at least one company.')
+  }
+  if (input.companyIds.length > MAX_BULK_ASSIGN_COMPANIES) {
+    throw new Error(`Assign at most ${MAX_BULK_ASSIGN_COMPANIES} companies at a time.`)
+  }
+
+  // Resolve the sequence and its campaign type server-side — the type slug
+  // passed to assignment creation must never come from the client.
+  const sequence = await getCampaignSequenceById(input.campaignSequenceId, input.tenantId, input.workspaceId)
+  if (!sequence) {
+    throw new Error('Campaign sequence not found or does not belong to this workspace.')
+  }
+
+  const campaignType = await getCampaignTypeById(sequence.campaign_type_id, input.tenantId, input.workspaceId)
+  if (!campaignType?.slug) {
+    throw new Error('Could not resolve the campaign type for this sequence.')
+  }
+
+  const tally: BulkAssignTally = {
+    created:                 0,
+    skippedDuplicate:        0,
+    skippedNoEmail:          0,
+    skippedDoNotContact:     0,
+    companiesWithNoContacts: 0,
+    failed:                  0,
+  }
+
+  for (const companyId of input.companyIds) {
+    const contacts = await listContacts({
+      tenantId:    input.tenantId,
+      workspaceId: input.workspaceId,
+      companyId,
+      limit:       200,
+    }).catch(() => [])
+
+    if (contacts.length === 0) {
+      tally.companiesWithNoContacts++
+      continue
+    }
+
+    for (const contact of contacts) {
+      if (!contact.email) {
+        tally.skippedNoEmail++
+        continue
+      }
+      if (contact.do_not_contact) {
+        tally.skippedDoNotContact++
+        continue
+      }
+
+      // Per-contact try/catch — one bad contact must not abort the batch.
+      try {
+        const result = await createCampaignAssignment({
+          tenantId:              input.tenantId,
+          workspaceId:           input.workspaceId,
+          contactId:             contact.id,
+          campaignType:          campaignType.slug,
+          campaignSequenceId:    input.campaignSequenceId,
+          assignmentSource:      ASSIGNMENT_SOURCE.MANUAL,
+          assignedByUserId:      input.assignedByUserId,
+          assignmentReason:      input.assignmentReason,
+          autoApproveFirstTouch: input.autoApproveFirstTouch,
+        })
+
+        if (result.ok) {
+          tally.created++
+        } else if (result.reason === 'duplicate') {
+          tally.skippedDuplicate++
+        } else {
+          tally.failed++
+        }
+      } catch {
+        tally.failed++
+      }
+    }
+  }
+
+  return tally
 }
 
 // ---- approveProposedAssignment ----
@@ -212,16 +322,15 @@ export async function approveProposedAssignment(
   }).catch(() => null)
 
   // MCM Slice 7: emit activation event if the assignment has a sequence (proposed->assigned path).
-  // Non-fatal — emit failure must not block approval.
+  // Non-fatal, but awaited — fire-and-forget emits can be dropped when the Vercel
+  // function freezes after the action returns (same failure mode as Issue 008).
   if (existing.campaign_sequence_id) {
-    ;(async () => {
-      await emitAssignmentActivated(
-        assignmentId,
-        existing.campaign_sequence_id!,
-        existing.tenant_id,
-        existing.workspace_id,
-      )
-    })().catch(() => null)
+    await emitAssignmentActivated(
+      assignmentId,
+      existing.campaign_sequence_id!,
+      existing.tenant_id,
+      existing.workspace_id,
+    ).catch(() => null)
   }
 
   return { ok: true }
