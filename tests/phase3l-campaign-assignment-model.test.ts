@@ -283,9 +283,10 @@ describe('TC-3L UI Approve/Reject buttons', () => {
     expect(card).toContain('rejectProposedAssignmentAction')
   })
 
-  it('TC-3L-050: card renders Retire button for assigned/paused assignments', () => {
-    expect(card).toContain('Retire')
-    expect(card).toContain('retireCampaignAssignmentAction')
+  it('TC-3L-050: card renders Stop sequence button for assigned/paused assignments (replaces Retire footgun)', () => {
+    expect(card).toContain('Stop sequence')
+    expect(card).toContain('stopCampaignSequenceAction')
+    expect(card).not.toContain('retireCampaignAssignmentAction')
   })
 })
 

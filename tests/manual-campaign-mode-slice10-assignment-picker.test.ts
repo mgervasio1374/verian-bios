@@ -115,8 +115,9 @@ describe('TC-MM10-02: CampaignAssignmentCard sequence picker wiring (source-read
   })
 
   it('resets selectedSequenceId to empty string on successful submit', () => {
-    const successIdx = card.indexOf("result.success")
-    const successBlock = card.slice(successIdx, successIdx + 300)
+    // Anchor on setShowForm(false) — unique to the submit success block (not in handleStop)
+    const successIdx = card.indexOf("setShowForm(false)")
+    const successBlock = card.slice(successIdx, successIdx + 150)
     expect(successBlock).toContain("setSelectedSequenceId('')")
   })
 

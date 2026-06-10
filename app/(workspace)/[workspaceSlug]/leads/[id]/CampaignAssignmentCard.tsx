@@ -10,7 +10,7 @@ import {
   createManualAssignmentAction,
   approveProposedAssignmentAction,
   rejectProposedAssignmentAction,
-  retireCampaignAssignmentAction,
+  stopCampaignSequenceAction,
 } from '@/modules/messaging/actions/campaign-assignment.actions'
 import { sequencesForType } from '@/modules/campaign-sequence/sequence-picker'
 
@@ -64,7 +64,6 @@ function StatusBadge({ status }: { status: string }) {
 
 export function CampaignAssignmentCard({
   leadId,
-  workspaceSlug,
   assignments,
   activeAssets,
   linkedDraftsByAssignmentId = {},
@@ -78,6 +77,7 @@ export function CampaignAssignmentCard({
   const [selectedSequenceId, setSelectedSequenceId] = useState('')
   const [reason, setReason] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
+  const [actionMsg, setActionMsg] = useState<string | null>(null)
   const [showHistory, setShowHistory] = useState(false)
 
   const activeAssignments = assignments.filter(a =>
@@ -113,9 +113,13 @@ export function CampaignAssignmentCard({
     })
   }
 
-  function handleRetire(assignmentId: string) {
+  function handleStop(assignmentId: string) {
+    if (!window.confirm('Stop this campaign sequence? Pending steps will be blocked and the assignment retired. This cannot be undone.')) return
+    setActionMsg(null)
     startTransition(async () => {
-      await retireCampaignAssignmentAction(assignmentId, workspaceSlug)
+      const result = await stopCampaignSequenceAction(assignmentId)
+      if (!result.success) setActionMsg(result.error ?? 'Stop failed.')
+      else setActionMsg(`Stopped ${result.data?.stopped ?? 0} pending step(s).`)
       router.refresh()
     })
   }
@@ -307,14 +311,17 @@ export function CampaignAssignmentCard({
               )}
               {(a.assignment_status === 'assigned' || a.assignment_status === 'paused') && (
                 <button
-                  onClick={() => handleRetire(a.id)}
+                  onClick={() => handleStop(a.id)}
                   disabled={isPending}
                   className="text-xs px-2 py-1 border rounded hover:bg-muted disabled:opacity-50"
                 >
-                  Retire
+                  Stop sequence
                 </button>
               )}
             </div>
+            {actionMsg && (
+              <p className="text-xs text-muted-foreground">{actionMsg}</p>
+            )}
           </div>
         )})}
 
