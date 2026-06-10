@@ -55,7 +55,6 @@ export const processCampaignSchedule = inngest.createFunction(
       const { data, error } = await supabase
         .from('workspaces')
         .select('tenant_id, id')
-        .is('deleted_at', null)
         .order('tenant_id', { ascending: true })
         .order('id', { ascending: true })
 

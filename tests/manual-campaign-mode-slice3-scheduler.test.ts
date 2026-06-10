@@ -377,3 +377,48 @@ describe('TC-MM3-07: idempotency and listDueScheduleItems email_draft_id filter'
     expect(idempotencyIdx).toBeLessThan(assetCheckIdx)
   })
 })
+
+// ---------------------------------------------------------------------------
+// TC-MM3-08: enumerate-active-tenants must NOT filter on workspaces.deleted_at
+// ---------------------------------------------------------------------------
+// Regression guard: workspaces has no deleted_at column. Adding it back would crash
+// all cron runs (untyped client hides the error at compile/test time; only surfaces at runtime).
+// Note: the full correctness of enumerate-active-tenants requires runtime/integration testing —
+// source-read only guards against re-introducing this specific structural bug.
+
+describe('TC-MM3-08: enumerate-active-tenants does not reference workspaces.deleted_at (source-read)', () => {
+  const scheduleSrc  = read('inngest/functions/process-campaign-schedule.ts')
+  const approvalsSrc = read('inngest/functions/process-campaign-approvals.ts')
+  const sendsSrc     = read('inngest/functions/process-campaign-sends.ts')
+  const learningSrc  = read('inngest/functions/scheduled-learning-agent-run.ts')
+
+  it('process-campaign-schedule enumerate step has no deleted_at filter', () => {
+    expect(scheduleSrc).not.toContain('deleted_at')
+  })
+
+  it('process-campaign-approvals enumerate step has no deleted_at filter', () => {
+    expect(approvalsSrc).not.toContain('deleted_at')
+  })
+
+  it('process-campaign-sends enumerate step has no deleted_at filter', () => {
+    expect(sendsSrc).not.toContain('deleted_at')
+  })
+
+  it('scheduled-learning-agent-run enumerate step has no deleted_at filter', () => {
+    expect(learningSrc).not.toContain('deleted_at')
+  })
+
+  it('all four enumerate steps still select tenant_id and id from workspaces', () => {
+    for (const [name, src] of [
+      ['process-campaign-schedule',   scheduleSrc],
+      ['process-campaign-approvals',  approvalsSrc],
+      ['process-campaign-sends',      sendsSrc],
+      ['scheduled-learning-agent-run', learningSrc],
+    ] as [string, string][]) {
+      const stepIdx = src.indexOf("'enumerate-active-tenants'")
+      const stepBody = src.slice(stepIdx, stepIdx + 400)
+      expect(stepBody, `${name}: select clause`).toContain("'tenant_id, id'")
+      expect(stepBody, `${name}: order by tenant_id`).toContain("'tenant_id'")
+    }
+  })
+})
