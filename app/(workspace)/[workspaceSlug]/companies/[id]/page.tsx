@@ -14,6 +14,7 @@ import { ScoreCompanyButton } from './ScoreCompanyButton'
 import { GenerateRecommendationButton } from './GenerateRecommendationButton'
 import { CompanyEditDialog } from './CompanyEditDialog'
 import { DeleteCompanyButton } from './DeleteCompanyButton'
+import { UploadDocumentForm } from './UploadDocumentForm'
 import { AddContactDialog } from '../../contacts/AddContactDialog'
 import { EditContactDialog } from '../../contacts/EditContactDialog'
 import { formatPhone } from '@/lib/format'
@@ -260,9 +261,12 @@ export default async function CompanyDetailPage({ params }: PageProps) {
       {/* Document Vault */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold">Documents</CardTitle>
-            <span className="text-xs text-muted-foreground">{documents.length} file{documents.length !== 1 ? 's' : ''}</span>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-sm font-semibold">Documents</CardTitle>
+              <span className="text-xs text-muted-foreground">{documents.length} file{documents.length !== 1 ? 's' : ''}</span>
+            </div>
+            <UploadDocumentForm companyId={id} />
           </div>
         </CardHeader>
         <CardContent>
