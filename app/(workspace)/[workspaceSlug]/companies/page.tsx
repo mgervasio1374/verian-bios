@@ -53,7 +53,7 @@ export default async function CompaniesPage({ params, searchParams }: PageProps)
           <h1 className="text-2xl font-bold">Companies</h1>
           <p className="text-muted-foreground text-sm">{companies.length} records</p>
         </div>
-        <AddCompanyDialog />
+        <AddCompanyDialog workspaceSlug={workspaceSlug} />
       </div>
 
       <CompaniesTable

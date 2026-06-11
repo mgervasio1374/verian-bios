@@ -24,7 +24,14 @@ const EMPTY_FORM = {
   firstName: '', lastName: '', email: '', phone: '', title: '', companyId: '',
 }
 
-export function AddContactDialog({ companies = [] }: { companies?: Company[] }) {
+interface Props {
+  companies?: Company[]
+  // When set, the contact is created for this company: the company select is
+  // replaced by static text (used on the company detail page).
+  fixedCompany?: Company
+}
+
+export function AddContactDialog({ companies = [], fixedCompany }: Props) {
   const router  = useRouter()
   const [open, setOpen]     = useState(false)
   const [error, setError]   = useState<string | null>(null)
@@ -48,7 +55,7 @@ export function AddContactDialog({ companies = [] }: { companies?: Company[] }) 
     startTransition(async () => {
       const result = await createContactFromDialogAction({
         ...form,
-        companyId: form.companyId || undefined,
+        companyId: fixedCompany?.id ?? (form.companyId || undefined),
       })
       setLoading(false)
       if (result.success) {
@@ -128,7 +135,14 @@ export function AddContactDialog({ companies = [] }: { companies?: Company[] }) 
             />
           </div>
 
-          {companies.length > 0 && (
+          {fixedCompany && (
+            <div className="space-y-1.5">
+              <Label>Company</Label>
+              <p className="text-sm px-3 py-2 rounded-md border border-input bg-muted/40">{fixedCompany.name}</p>
+            </div>
+          )}
+
+          {!fixedCompany && companies.length > 0 && (
             <div className="space-y-1.5">
               <Label htmlFor="ct-company">Company <span className="text-muted-foreground text-xs font-normal">(optional)</span></Label>
               <select

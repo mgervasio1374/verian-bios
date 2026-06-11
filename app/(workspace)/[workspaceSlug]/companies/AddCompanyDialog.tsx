@@ -20,11 +20,36 @@ const INDUSTRY_OPTIONS = [
   'Beauty & Salon', 'Hospitality', 'Professional Services', 'E-commerce', 'Other',
 ]
 
+const STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: 'active',   label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+  { value: 'prospect', label: 'Prospect' },
+  { value: 'churned',  label: 'Churned' },
+]
+
 const EMPTY_FORM = {
-  name: '', website: '', phone: '', industry: '', city: '', state: '',
+  name:           '',
+  industry:       '',
+  website:        '',
+  domain:         '',
+  phone:          '',
+  status:         'active',
+  address_line1:  '',
+  address_line2:  '',
+  city:           '',
+  state:          '',
+  zip:            '',
+  country:        'US',
+  employee_count: '',
+  annual_revenue: '',
+  source:         '',
 }
 
-export function AddCompanyDialog() {
+interface Props {
+  workspaceSlug: string
+}
+
+export function AddCompanyDialog({ workspaceSlug }: Props) {
   const router  = useRouter()
   const [open, setOpen]     = useState(false)
   const [error, setError]   = useState<string | null>(null)
@@ -51,7 +76,8 @@ export function AddCompanyDialog() {
       if (result.success) {
         setOpen(false)
         setForm(EMPTY_FORM)
-        router.refresh()
+        // Land on the new company's profile — Add Contact and full details live there
+        router.push(`/${workspaceSlug}/companies/${result.data.id}`)
       } else {
         setError(result.error)
       }
@@ -63,12 +89,13 @@ export function AddCompanyDialog() {
       <DialogTrigger render={<Button size="sm" />}>
         <Plus className="h-4 w-4 mr-1" /> Add Company
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Company</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-1">
+          {/* Name */}
           <div className="space-y-1.5">
             <Label htmlFor="ac-name">
               Company Name <span className="text-red-500">*</span>
@@ -82,44 +109,106 @@ export function AddCompanyDialog() {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="ac-industry">Industry</Label>
-            <select
-              id="ac-industry"
-              value={form.industry}
-              onChange={e => set('industry', e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm
-                         focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              {INDUSTRY_OPTIONS.map(o => (
-                <option key={o} value={o}>{o || '— Select industry —'}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="ac-website">Website</Label>
-            <Input
-              id="ac-website"
-              type="text"
-              value={form.website}
-              onChange={e => set('website', e.target.value)}
-              placeholder="www.example.com"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="ac-phone">Phone</Label>
-            <Input
-              id="ac-phone"
-              type="tel"
-              value={form.phone}
-              onChange={e => set('phone', e.target.value)}
-              placeholder="(555) 000-0000"
-            />
-          </div>
-
+          {/* Industry + Status */}
           <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="ac-industry">Industry</Label>
+              <select
+                id="ac-industry"
+                value={form.industry}
+                onChange={e => set('industry', e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm
+                           focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                {INDUSTRY_OPTIONS.map(o => (
+                  <option key={o} value={o}>{o || '— Select industry —'}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ac-status">Status</Label>
+              <select
+                id="ac-status"
+                value={form.status}
+                onChange={e => set('status', e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm
+                           focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                {STATUS_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Website + Domain */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="ac-website">Website</Label>
+              <Input
+                id="ac-website"
+                type="text"
+                value={form.website}
+                onChange={e => set('website', e.target.value)}
+                placeholder="www.example.com"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ac-domain">Domain</Label>
+              <Input
+                id="ac-domain"
+                type="text"
+                value={form.domain}
+                onChange={e => set('domain', e.target.value)}
+                placeholder="example.com"
+              />
+            </div>
+          </div>
+
+          {/* Phone + Source */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="ac-phone">Phone</Label>
+              <Input
+                id="ac-phone"
+                type="tel"
+                value={form.phone}
+                onChange={e => set('phone', e.target.value)}
+                placeholder="(555) 000-0000"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ac-source">Source</Label>
+              <Input
+                id="ac-source"
+                value={form.source}
+                onChange={e => set('source', e.target.value)}
+                placeholder="e.g. Referral"
+              />
+            </div>
+          </div>
+
+          {/* Address */}
+          <div className="space-y-1.5">
+            <Label htmlFor="ac-addr1">Address Line 1</Label>
+            <Input
+              id="ac-addr1"
+              value={form.address_line1}
+              onChange={e => set('address_line1', e.target.value)}
+              placeholder="123 Main St"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ac-addr2">Address Line 2</Label>
+            <Input
+              id="ac-addr2"
+              value={form.address_line2}
+              onChange={e => set('address_line2', e.target.value)}
+              placeholder="Suite 400"
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="ac-city">City</Label>
               <Input
@@ -137,6 +226,42 @@ export function AddCompanyDialog() {
                 onChange={e => set('state', e.target.value)}
                 placeholder="IL"
                 maxLength={2}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ac-zip">ZIP</Label>
+              <Input
+                id="ac-zip"
+                value={form.zip}
+                onChange={e => set('zip', e.target.value)}
+                placeholder="60601"
+              />
+            </div>
+          </div>
+
+          {/* Employees + Revenue */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="ac-emp">Employees</Label>
+              <Input
+                id="ac-emp"
+                type="number"
+                min="1"
+                value={form.employee_count}
+                onChange={e => set('employee_count', e.target.value)}
+                placeholder="50"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ac-rev">Annual Revenue ($)</Label>
+              <Input
+                id="ac-rev"
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.annual_revenue}
+                onChange={e => set('annual_revenue', e.target.value)}
+                placeholder="1000000"
               />
             </div>
           </div>

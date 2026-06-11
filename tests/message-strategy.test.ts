@@ -78,7 +78,13 @@ function fixtureToStrategyInput(raw: Record<string, unknown>): StrategyInput {
       industry_segment:       (lead['industry_segment'] as string | null) ?? (company?.['industry'] as string | null) ?? null,
       business_type:          (lead['business_type'] as string | null) ?? null,
       prior_touch_count:      (lead['prior_touch_count'] as number | null) ?? 0,
-      last_contacted_at:      (lead['last_contacted_at'] as string | null) ?? null,
+      // Fixtures whose scenario depends on recency relative to "now" (e.g. the
+      // 30-day no-response/re-engagement boundary) must use last_contacted_days_ago
+      // instead of an absolute timestamp — absolute dates rot as real time passes.
+      last_contacted_at:      (lead['last_contacted_at'] as string | null)
+        ?? (typeof lead['last_contacted_days_ago'] === 'number'
+          ? new Date(Date.now() - (lead['last_contacted_days_ago'] as number) * 86_400_000).toISOString()
+          : null),
       last_engagement_signal: (lead['last_engagement_signal'] as string | null) ?? 'none',
       opted_out:              (lead['opted_out'] as boolean | null) ?? false,
       assigned_rep_id:        (lead['assigned_rep_id'] as string | null) ?? null,

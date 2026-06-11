@@ -63,12 +63,21 @@ export async function updateCompanyAction(
 // ---- Typed action for dialog use ----
 
 export async function createCompanyFromDialogAction(input: {
-  name:     string
-  website:  string
-  phone:    string
-  industry: string
-  city:     string
-  state:    string
+  name:           string
+  domain:         string
+  website:        string
+  phone:          string
+  industry:       string
+  status:         string
+  address_line1:  string
+  address_line2:  string
+  city:           string
+  state:          string
+  zip:            string
+  country:        string
+  employee_count: string
+  annual_revenue: string
+  source:         string
 }): Promise<ActionResult<{ id: string }>> {
   try {
     const supabase = await createSupabaseServerClient()
@@ -76,15 +85,29 @@ export async function createCompanyFromDialogAction(input: {
 
     if (!input.name.trim()) return { success: false, error: 'Company name is required.' }
 
-    const company = await companyService.createCompany(ctx, {
-      name:     input.name.trim(),
-      website:  normalizeWebsite(input.website),
-      phone:    input.phone.trim()   || null,
-      industry: input.industry.trim() || null,
-      city:     input.city.trim()    || null,
-      state:    input.state.trim()   || null,
-      status:   'active',
+    const parsed = createCompanySchema.safeParse({
+      name:          input.name.trim(),
+      domain:        input.domain.trim()        || null,
+      website:       normalizeWebsite(input.website),
+      phone:         input.phone.trim()         || null,
+      industry:      input.industry.trim()      || null,
+      status:        input.status               || 'active',
+      address_line1: input.address_line1.trim() || null,
+      address_line2: input.address_line2.trim() || null,
+      city:          input.city.trim()          || null,
+      state:         input.state.trim()         || null,
+      zip:           input.zip.trim()           || null,
+      country:       input.country.trim()       || 'US',
+      employee_count: input.employee_count.trim() || null,
+      annual_revenue: input.annual_revenue.trim() || null,
+      source:        input.source.trim()        || null,
     })
+
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Validation error' }
+    }
+
+    const company = await companyService.createCompany(ctx, parsed.data)
 
     revalidatePath('/[workspaceSlug]/companies', 'page')
     return { success: true, data: { id: company.id } }

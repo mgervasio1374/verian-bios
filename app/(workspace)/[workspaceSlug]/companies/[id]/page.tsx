@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { ScoreCompanyButton } from './ScoreCompanyButton'
 import { GenerateRecommendationButton } from './GenerateRecommendationButton'
 import { CompanyEditDialog } from './CompanyEditDialog'
+import { AddContactDialog } from '../../contacts/AddContactDialog'
 import { DOCUMENT_TYPE_LABELS, DOCUMENT_SOURCE_LABELS } from '@/modules/artifacts/types'
 
 interface PageProps {
@@ -108,7 +109,10 @@ export default async function CompanyDetailPage({ params }: PageProps) {
         {/* Contacts */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-semibold">Contacts ({contacts.length})</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold">Contacts ({contacts.length})</CardTitle>
+              <AddContactDialog fixedCompany={{ id: company.id, name: company.name }} />
+            </div>
           </CardHeader>
           <CardContent>
             {contacts.length === 0 ? (
