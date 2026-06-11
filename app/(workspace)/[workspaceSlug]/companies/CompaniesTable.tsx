@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { addCompaniesToSegmentAction } from '@/modules/crm/actions/segment.actions'
 import { bulkAssignCampaignAction } from '@/modules/messaging/actions/campaign-assignment.actions'
+import { INDUSTRY_OPTIONS, COMPANY_STATUS_OPTIONS } from '@/modules/crm/constants'
 import type { SegmentWithCount } from '@/modules/crm/repositories/segment.repo'
 import type { Database } from '@/types/database'
 
@@ -27,18 +28,46 @@ function getStatusBadgeClass(status: string | null): string {
   }
 }
 
+// Sortable columns map header labels to whitelisted repo columns (Location sorts by city).
+const SORTABLE_COLUMNS: { label: string; column: string }[] = [
+  { label: 'Name',     column: 'name' },
+  { label: 'Industry', column: 'industry' },
+  { label: 'Location', column: 'city' },
+  { label: 'Status',   column: 'status' },
+  { label: 'Source',   column: 'source' },
+]
+
 interface Props {
   companies:       CompanyRow[]
   segments:        SegmentWithCount[]
   sequences:       SequenceOption[]
+  inCampaignIds:   string[]
   workspaceSlug:   string
   activeSegmentId: string
+  activeStatus:    string
+  activeIndustry:  string
+  activeSort:      string
+  activeDir:       'asc' | 'desc'
   search:          string
 }
 
-export function CompaniesTable({ companies, segments, sequences, workspaceSlug, activeSegmentId, search }: Props) {
+export function CompaniesTable({
+  companies,
+  segments,
+  sequences,
+  inCampaignIds,
+  workspaceSlug,
+  activeSegmentId,
+  activeStatus,
+  activeIndustry,
+  activeSort,
+  activeDir,
+  search,
+}: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
+
+  const inCampaign = useMemo(() => new Set(inCampaignIds), [inCampaignIds])
 
   const [selectedIds,     setSelectedIds]     = useState<Set<string>>(new Set())
   const [targetSegmentId, setTargetSegmentId] = useState('')
@@ -50,7 +79,7 @@ export function CompaniesTable({ companies, segments, sequences, workspaceSlug, 
   const [preApproved,      setPreApproved]      = useState(false)
 
   const allSelected = companies.length > 0 && companies.every(c => selectedIds.has(c.id))
-  const hasFilter   = Boolean(activeSegmentId || search)
+  const hasFilter   = Boolean(activeSegmentId || search || activeStatus || activeIndustry)
 
   function toggleSelectAll() {
     if (allSelected) {
@@ -72,13 +101,38 @@ export function CompaniesTable({ companies, segments, sequences, workspaceSlug, 
     })
   }
 
-  function handleSegmentFilterChange(segmentId: string) {
-    setSelectedIds(new Set())
+  // Server-driven navigation preserving all other params
+  function navigate(overrides: Record<string, string>) {
+    const merged: Record<string, string> = {
+      search,
+      segment:  activeSegmentId,
+      status:   activeStatus,
+      industry: activeIndustry,
+      sort:     activeSort,
+      dir:      activeSort ? activeDir : '',
+      ...overrides,
+    }
     const params = new URLSearchParams()
-    if (search) params.set('search', search)
-    if (segmentId) params.set('segment', segmentId)
+    for (const [key, value] of Object.entries(merged)) {
+      if (value) params.set(key, value)
+    }
     const qs = params.toString()
     router.push(`/${workspaceSlug}/companies${qs ? `?${qs}` : ''}`)
+  }
+
+  function handleFilterChange(key: 'segment' | 'status' | 'industry', value: string) {
+    setSelectedIds(new Set()) // filters change the visible rows — stale selection would be misleading
+    navigate({ [key]: value })
+  }
+
+  function handleSort(column: string) {
+    const nextDir = activeSort === column && activeDir === 'asc' ? 'desc' : 'asc'
+    navigate({ sort: column, dir: nextDir })
+  }
+
+  function sortIndicator(column: string): string {
+    if (activeSort !== column) return ''
+    return activeDir === 'asc' ? ' ▲' : ' ▼'
   }
 
   function handleAddToSegment() {
@@ -150,24 +204,59 @@ export function CompaniesTable({ companies, segments, sequences, workspaceSlug, 
 
   return (
     <div className="space-y-3">
-      {/* Segment filter */}
-      <div className="flex items-center gap-2">
-        <label className="text-xs font-medium text-muted-foreground" htmlFor="segment-filter">
-          Segment
-        </label>
-        <select
-          id="segment-filter"
-          value={activeSegmentId}
-          onChange={e => handleSegmentFilterChange(e.target.value)}
-          className="rounded border px-2 py-1.5 text-sm bg-background"
-        >
-          <option value="">All companies</option>
-          {segments.map(s => (
-            <option key={s.id} value={s.id}>
-              {s.name} ({s.member_count})
-            </option>
-          ))}
-        </select>
+      {/* Filter row */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-muted-foreground" htmlFor="segment-filter">
+            Segment
+          </label>
+          <select
+            id="segment-filter"
+            value={activeSegmentId}
+            onChange={e => handleFilterChange('segment', e.target.value)}
+            className="rounded border px-2 py-1.5 text-sm bg-background"
+          >
+            <option value="">All companies</option>
+            {segments.map(s => (
+              <option key={s.id} value={s.id}>
+                {s.name} ({s.member_count})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-muted-foreground" htmlFor="status-filter">
+            Status
+          </label>
+          <select
+            id="status-filter"
+            value={activeStatus}
+            onChange={e => handleFilterChange('status', e.target.value)}
+            className="rounded border px-2 py-1.5 text-sm bg-background"
+          >
+            <option value="">All</option>
+            {COMPANY_STATUS_OPTIONS.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-muted-foreground" htmlFor="industry-filter">
+            Industry
+          </label>
+          <select
+            id="industry-filter"
+            value={activeIndustry}
+            onChange={e => handleFilterChange('industry', e.target.value)}
+            className="rounded border px-2 py-1.5 text-sm bg-background"
+          >
+            {INDUSTRY_OPTIONS.map(o => (
+              <option key={o} value={o}>{o || 'All'}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {successMessage && (
@@ -304,11 +393,19 @@ export function CompaniesTable({ companies, segments, sequences, workspaceSlug, 
                     aria-label="Select all companies"
                   />
                 </th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Industry</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Location</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Source</th>
+                {SORTABLE_COLUMNS.map(col => (
+                  <th key={col.column} className="px-4 py-3 text-left font-medium text-muted-foreground">
+                    <button
+                      type="button"
+                      onClick={() => handleSort(col.column)}
+                      className="hover:text-foreground"
+                    >
+                      {col.label}{sortIndicator(col.column)}
+                    </button>
+                  </th>
+                ))}
+                {/* Marketing is computed post-query — not sortable */}
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Marketing</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -343,6 +440,15 @@ export function CompaniesTable({ companies, segments, sequences, workspaceSlug, 
                     </span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground capitalize">{c.source ?? '—'}</td>
+                  <td className="px-4 py-3">
+                    {inCampaign.has(c.id) ? (
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">
+                        In campaign
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

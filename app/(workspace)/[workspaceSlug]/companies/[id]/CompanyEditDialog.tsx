@@ -15,21 +15,10 @@ import {
 } from '@/components/ui/dialog'
 import { updateCompanyFromDialogAction } from '@/modules/crm/actions/company.actions'
 import { normalizePhone } from '@/lib/format'
+import { INDUSTRY_OPTIONS, COMPANY_STATUS_OPTIONS as STATUS_OPTIONS } from '@/modules/crm/constants'
 import type { Database } from '@/types/database'
 
 type CompanyRow = Database['public']['Tables']['companies']['Row']
-
-const INDUSTRY_OPTIONS = [
-  '', 'Restaurant', 'Retail', 'Home Services', 'Healthcare', 'Automotive',
-  'Beauty & Salon', 'Hospitality', 'Professional Services', 'E-commerce', 'Other',
-]
-
-const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: 'active',   label: 'Active' },
-  { value: 'inactive', label: 'Inactive' },
-  { value: 'prospect', label: 'Prospect' },
-  { value: 'churned',  label: 'Churned' },
-]
 
 function companyToForm(c: CompanyRow) {
   return {

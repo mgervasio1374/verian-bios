@@ -145,3 +145,59 @@ export async function updateAssignmentStatus(
   if (error) throw new Error('updateAssignmentStatus: ' + error.message)
   return toAssignment(data as unknown as Record<string, unknown>)
 }
+
+// MCM v2 Slice U3 — marketing-status rollup for the Companies list.
+// A company is "in a campaign" when at least one proposed/assigned assignment
+// resolves to it, via contacts (contact-scoped campaigns) OR leads
+// (legacy lead-scoped campaigns). Called per page of <= 50 companies.
+export async function getCompaniesInActiveCampaigns(
+  tenantId:    string,
+  workspaceId: string,
+  companyIds:  string[],
+): Promise<Set<string>> {
+  if (companyIds.length === 0) return new Set()
+  const supabase = createSupabaseServiceClient()
+
+  const { data: assignments, error } = await supabase
+    .from('campaign_assignments')
+    .select('contact_id, lead_id')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .in('assignment_status', ['proposed', 'assigned'])
+
+  if (error) throw new Error('getCompaniesInActiveCampaigns: ' + error.message)
+
+  const rows       = (assignments ?? []) as { contact_id: string | null; lead_id: string | null }[]
+  const contactIds = [...new Set(rows.map(r => r.contact_id).filter((id): id is string => Boolean(id)))]
+  const leadIds    = [...new Set(rows.map(r => r.lead_id).filter((id): id is string => Boolean(id)))]
+
+  const companiesInCampaigns = new Set<string>()
+
+  if (contactIds.length > 0) {
+    const { data: contacts, error: contactError } = await supabase
+      .from('contacts')
+      .select('company_id')
+      .in('id', contactIds)
+      .not('company_id', 'is', null)
+
+    if (contactError) throw new Error('getCompaniesInActiveCampaigns contacts: ' + contactError.message)
+    for (const row of (contacts ?? []) as { company_id: string | null }[]) {
+      if (row.company_id) companiesInCampaigns.add(row.company_id)
+    }
+  }
+
+  if (leadIds.length > 0) {
+    const { data: leads, error: leadError } = await supabase
+      .from('leads')
+      .select('company_id')
+      .in('id', leadIds)
+      .not('company_id', 'is', null)
+
+    if (leadError) throw new Error('getCompaniesInActiveCampaigns leads: ' + leadError.message)
+    for (const row of (leads ?? []) as { company_id: string | null }[]) {
+      if (row.company_id) companiesInCampaigns.add(row.company_id)
+    }
+  }
+
+  return new Set(companyIds.filter(id => companiesInCampaigns.has(id)))
+}

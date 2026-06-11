@@ -5,28 +5,43 @@ type CompanyRow = Database['public']['Tables']['companies']['Row']
 type CompanyInsert = Database['public']['Tables']['companies']['Insert']
 type CompanyUpdate = Database['public']['Tables']['companies']['Update']
 
+// Sorting whitelist — never interpolate unvalidated input into .order()
+const COMPANY_ORDERABLE_COLUMNS = ['name', 'industry', 'city', 'status', 'source', 'created_at'] as const
+
 export interface ListCompaniesOptions {
   tenantId: string
   workspaceId: string
   search?: string
   status?: string
+  industry?: string
   ids?: string[]
+  orderBy?: string
+  orderDir?: 'asc' | 'desc'
   limit?: number
   offset?: number
 }
 
 export async function listCompanies(opts: ListCompaniesOptions): Promise<CompanyRow[]> {
   const supabase = createSupabaseServiceClient()
+
+  const orderBy = (COMPANY_ORDERABLE_COLUMNS as readonly string[]).includes(opts.orderBy ?? '')
+    ? (opts.orderBy as string)
+    : 'created_at'
+  const ascending = orderBy === 'created_at' && !opts.orderBy
+    ? false // default stays created_at desc
+    : opts.orderDir !== 'desc'
+
   let query = supabase
     .from('companies')
     .select('*')
     .eq('tenant_id', opts.tenantId)
     .eq('workspace_id', opts.workspaceId)
     .is('deleted_at', null)
-    .order('created_at', { ascending: false })
+    .order(orderBy, { ascending })
     .range(opts.offset ?? 0, (opts.offset ?? 0) + (opts.limit ?? 50) - 1)
 
   if (opts.status) query = query.eq('status', opts.status)
+  if (opts.industry) query = query.eq('industry', opts.industry)
   if (opts.search) query = query.ilike('name', `%${opts.search}%`)
   if (opts.ids) query = query.in('id', opts.ids)
 

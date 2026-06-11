@@ -11,7 +11,16 @@ type CompanyUpdate = Database['public']['Tables']['companies']['Update']
 
 export async function listCompanies(
   ctx: RequestContext,
-  opts: { search?: string; status?: string; ids?: string[]; limit?: number; offset?: number } = {}
+  opts: {
+    search?: string
+    status?: string
+    industry?: string
+    ids?: string[]
+    orderBy?: string
+    orderDir?: 'asc' | 'desc'
+    limit?: number
+    offset?: number
+  } = {}
 ) {
   requirePermission(ctx, 'crm.companies.view')
   return companyRepo.listCompanies({

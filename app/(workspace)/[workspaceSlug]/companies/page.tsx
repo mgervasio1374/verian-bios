@@ -5,6 +5,7 @@ import * as segmentService from '@/modules/crm/services/segment.service'
 import { listSegmentsForWorkspace } from '@/modules/crm/repositories/segment.repo'
 import { listManualSequencesForWorkspace } from '@/modules/campaign-sequence/repositories/campaign-sequence.repo'
 import { listCampaignTypes } from '@/modules/campaign-sequence/repositories/campaign-type.repo'
+import { getCompaniesInActiveCampaigns } from '@/modules/messaging/repositories/campaign-assignment.repo'
 import { AddCompanyDialog } from './AddCompanyDialog'
 import { CompaniesTable } from './CompaniesTable'
 
@@ -14,12 +15,20 @@ export const maxDuration = 60
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
-  searchParams: Promise<{ search?: string; page?: string; segment?: string }>
+  searchParams: Promise<{
+    search?: string
+    page?: string
+    segment?: string
+    status?: string
+    industry?: string
+    sort?: string
+    dir?: string
+  }>
 }
 
 export default async function CompaniesPage({ params, searchParams }: PageProps) {
   const { workspaceSlug } = await params
-  const { search, page, segment } = await searchParams
+  const { search, page, segment, status, industry, sort, dir } = await searchParams
   const offset = ((Number(page) || 1) - 1) * 50
 
   const supabase = await createSupabaseServerClient()
@@ -32,7 +41,16 @@ export default async function CompaniesPage({ params, searchParams }: PageProps)
         ids = await segmentService.listCompanyIdsForSegment(ctx, segment).catch(() => [])
         if (ids.length === 0) return []
       }
-      return companyService.listCompanies(ctx, { search, ids, limit: 50, offset })
+      return companyService.listCompanies(ctx, {
+        search,
+        ids,
+        status,
+        industry,
+        orderBy:  sort,
+        orderDir: dir === 'desc' ? 'desc' : dir === 'asc' ? 'asc' : undefined,
+        limit:    50,
+        offset,
+      })
     })().catch(() => []),
     listSegmentsForWorkspace(ctx.tenantId, ctx.workspaceId).catch(() => []),
     listManualSequencesForWorkspace(ctx.tenantId, ctx.workspaceId).catch(() => []),
@@ -45,6 +63,13 @@ export default async function CompaniesPage({ params, searchParams }: PageProps)
     name:             s.name,
     campaignTypeSlug: typeSlugById.get(s.campaign_type_id) ?? '',
   }))
+
+  // Marketing-status rollup for the displayed page (Set isn't serializable — pass an array)
+  const inCampaign = await getCompaniesInActiveCampaigns(
+    ctx.tenantId,
+    ctx.workspaceId,
+    companies.map(c => c.id),
+  ).catch(() => new Set<string>())
 
   return (
     <div className="space-y-6">
@@ -63,8 +88,13 @@ export default async function CompaniesPage({ params, searchParams }: PageProps)
         companies={companies}
         segments={segments}
         sequences={sequences}
+        inCampaignIds={[...inCampaign]}
         workspaceSlug={workspaceSlug}
         activeSegmentId={segment ?? ''}
+        activeStatus={status ?? ''}
+        activeIndustry={industry ?? ''}
+        activeSort={sort ?? ''}
+        activeDir={dir === 'desc' ? 'desc' : 'asc'}
         search={search ?? ''}
       />
     </div>

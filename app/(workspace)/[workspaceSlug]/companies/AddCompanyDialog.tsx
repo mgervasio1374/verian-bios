@@ -15,18 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { createCompanyFromDialogAction } from '@/modules/crm/actions/company.actions'
 import { normalizePhone } from '@/lib/format'
-
-const INDUSTRY_OPTIONS = [
-  '', 'Restaurant', 'Retail', 'Home Services', 'Healthcare', 'Automotive',
-  'Beauty & Salon', 'Hospitality', 'Professional Services', 'E-commerce', 'Other',
-]
-
-const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: 'active',   label: 'Active' },
-  { value: 'inactive', label: 'Inactive' },
-  { value: 'prospect', label: 'Prospect' },
-  { value: 'churned',  label: 'Churned' },
-]
+import { INDUSTRY_OPTIONS, COMPANY_STATUS_OPTIONS as STATUS_OPTIONS } from '@/modules/crm/constants'
 
 const EMPTY_FORM = {
   name:           '',

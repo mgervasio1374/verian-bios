@@ -122,9 +122,9 @@ describe('TC-S2-04: companies page wiring (source-read)', () => {
     expect(page).toContain('buildRequestContext')
   })
 
-  it('reads the segment searchParam alongside search', () => {
+  it('reads the segment searchParam alongside search (U3 added more params)', () => {
     expect(page).toContain('segment?: string')
-    expect(page).toContain('const { search, page, segment } = await searchParams')
+    expect(page).toContain('const { search, page, segment, status, industry, sort, dir } = await searchParams')
   })
 
   it('filters companies by segment membership ids (AND with search)', () => {
@@ -166,10 +166,12 @@ describe('TC-S2-05: CompaniesTable client component (source-read)', () => {
     expect(table).toContain('selectedIds.has(c.id)')
   })
 
-  it('segment filter navigates via router.push with the ?segment= param, preserving search', () => {
+  it('segment filter navigates via router.push, preserving the other params (U3 generalized navigate())', () => {
     expect(table).toContain('router.push')
-    expect(table).toContain("params.set('segment', segmentId)")
-    expect(table).toContain("params.set('search', search)")
+    expect(table).toContain("handleFilterChange('segment', e.target.value)")
+    // navigate() merges current params (search, segment, status, industry, sort) before overrides
+    expect(table).toContain('segment:  activeSegmentId')
+    expect(table).toContain('search,')
   })
 
   it('bulk toolbar is gated on selection count and calls addCompaniesToSegmentAction', () => {
@@ -183,9 +185,9 @@ describe('TC-S2-05: CompaniesTable client component (source-read)', () => {
     expect(table).toContain('router.refresh()')
   })
 
-  it('preserves the existing columns and row links', () => {
+  it('preserves the existing columns and row links (U3 made headers sortable buttons)', () => {
     for (const col of ['Name', 'Industry', 'Location', 'Status', 'Source']) {
-      expect(table).toContain(`>${col}</th>`)
+      expect(table).toContain(`label: '${col}'`)
     }
     expect(table).toContain('companies/${c.id}')
   })
