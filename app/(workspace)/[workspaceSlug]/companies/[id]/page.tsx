@@ -14,6 +14,8 @@ import { ScoreCompanyButton } from './ScoreCompanyButton'
 import { GenerateRecommendationButton } from './GenerateRecommendationButton'
 import { CompanyEditDialog } from './CompanyEditDialog'
 import { AddContactDialog } from '../../contacts/AddContactDialog'
+import { EditContactDialog } from '../../contacts/EditContactDialog'
+import { formatPhone } from '@/lib/format'
 import { DOCUMENT_TYPE_LABELS, DOCUMENT_SOURCE_LABELS } from '@/modules/artifacts/types'
 
 interface PageProps {
@@ -83,7 +85,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
             {company.phone && (
               <div className="flex items-center gap-2">
                 <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                <span>{company.phone}</span>
+                <span>{formatPhone(company.phone)}</span>
               </div>
             )}
             {(company.city || company.state) && (
@@ -120,15 +122,31 @@ export default async function CompanyDetailPage({ params }: PageProps) {
             ) : (
               <div className="space-y-2">
                 {contacts.map((c) => (
-                  <div key={c.id} className="text-sm">
-                    <p className="font-medium">
-                      {c.first_name} {c.last_name}
-                      {c.is_primary_contact && (
-                        <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">Primary</span>
-                      )}
-                    </p>
-                    {c.title && <p className="text-xs text-muted-foreground">{c.title}</p>}
-                    {c.email && <p className="text-xs text-muted-foreground">{c.email}</p>}
+                  <div key={c.id} className="text-sm flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-medium">
+                        {c.first_name} {c.last_name}
+                        {c.is_primary_contact && (
+                          <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">Primary</span>
+                        )}
+                      </p>
+                      {c.title && <p className="text-xs text-muted-foreground">{c.title}</p>}
+                      {c.email && <p className="text-xs text-muted-foreground">{c.email}</p>}
+                      {c.phone && <p className="text-xs text-muted-foreground">{formatPhone(c.phone)}</p>}
+                    </div>
+                    <EditContactDialog
+                      contact={{
+                        id:                 c.id,
+                        first_name:         c.first_name,
+                        last_name:          c.last_name,
+                        email:              c.email,
+                        phone:              c.phone,
+                        title:              c.title,
+                        company_id:         c.company_id,
+                        is_primary_contact: c.is_primary_contact,
+                      }}
+                      fixedCompany={{ id: company.id, name: company.name }}
+                    />
                   </div>
                 ))}
               </div>

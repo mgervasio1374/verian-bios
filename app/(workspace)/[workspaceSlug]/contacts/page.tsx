@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { Users } from 'lucide-react'
 import Link from 'next/link'
 import { AddContactDialog } from './AddContactDialog'
+import { EditContactDialog } from './EditContactDialog'
+import { formatPhone } from '@/lib/format'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -49,6 +51,7 @@ export default async function ContactsPage({ params, searchParams }: PageProps) 
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Email</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Phone</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground"></th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -74,11 +77,26 @@ export default async function ContactsPage({ params, searchParams }: PageProps) 
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{c.title ?? '—'}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.email ?? '—'}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{c.phone ?? '—'}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{c.phone ? formatPhone(c.phone) : '—'}</td>
                   <td className="px-4 py-3">
                     <Badge variant={c.do_not_contact ? 'destructive' : 'secondary'}>
                       {c.do_not_contact ? 'DNC' : c.status}
                     </Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    <EditContactDialog
+                      contact={{
+                        id:                 c.id,
+                        first_name:         c.first_name,
+                        last_name:          c.last_name,
+                        email:              c.email,
+                        phone:              c.phone,
+                        title:              c.title,
+                        company_id:         c.company_id,
+                        is_primary_contact: c.is_primary_contact,
+                      }}
+                      companies={companies.map(co => ({ id: co.id, name: co.name }))}
+                    />
                   </td>
                 </tr>
               ))}

@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { updateCompanyFromDialogAction } from '@/modules/crm/actions/company.actions'
+import { normalizePhone } from '@/lib/format'
 import type { Database } from '@/types/database'
 
 type CompanyRow = Database['public']['Tables']['companies']['Row']
@@ -76,7 +77,7 @@ export function CompanyEditDialog({ company }: Props) {
     setError(null)
     setLoading(true)
     startTransition(async () => {
-      const result = await updateCompanyFromDialogAction(company.id, form)
+      const result = await updateCompanyFromDialogAction(company.id, { ...form, phone: normalizePhone(form.phone) })
       setLoading(false)
       if (result.success) {
         setOpen(false)

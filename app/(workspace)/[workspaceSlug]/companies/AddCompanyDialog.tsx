@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { createCompanyFromDialogAction } from '@/modules/crm/actions/company.actions'
+import { normalizePhone } from '@/lib/format'
 
 const INDUSTRY_OPTIONS = [
   '', 'Restaurant', 'Retail', 'Home Services', 'Healthcare', 'Automotive',
@@ -71,7 +72,7 @@ export function AddCompanyDialog({ workspaceSlug }: Props) {
     setError(null)
     setLoading(true)
     startTransition(async () => {
-      const result = await createCompanyFromDialogAction(form)
+      const result = await createCompanyFromDialogAction({ ...form, phone: normalizePhone(form.phone) })
       setLoading(false)
       if (result.success) {
         setOpen(false)
