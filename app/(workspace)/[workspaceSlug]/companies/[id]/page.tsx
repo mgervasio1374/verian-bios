@@ -13,9 +13,25 @@ import { cn } from '@/lib/utils'
 import { ScoreCompanyButton } from './ScoreCompanyButton'
 import { GenerateRecommendationButton } from './GenerateRecommendationButton'
 import { CompanyEditDialog } from './CompanyEditDialog'
+import { DeleteCompanyButton } from './DeleteCompanyButton'
 import { AddContactDialog } from '../../contacts/AddContactDialog'
 import { EditContactDialog } from '../../contacts/EditContactDialog'
 import { formatPhone } from '@/lib/format'
+import { listAssignmentsForCompany } from '@/modules/messaging/repositories/campaign-assignment.repo'
+
+// Assignment status -> operator-facing label + badge style (Running = assigned)
+const ASSIGNMENT_STATUS_BADGES: Record<string, { label: string; className: string }> = {
+  proposed:  { label: 'Proposed',  className: 'bg-blue-50 text-blue-700 border border-blue-200' },
+  assigned:  { label: 'Running',   className: 'bg-teal-50 text-teal-700 border border-teal-200' },
+  paused:    { label: 'Paused',    className: 'bg-amber-50 text-amber-700 border border-amber-200' },
+  completed: { label: 'Completed', className: 'bg-gray-100 text-gray-700 border border-gray-200' },
+  retired:   { label: 'Stopped',   className: 'bg-gray-100 text-gray-600 border border-gray-200' },
+  rejected:  { label: 'Rejected',  className: 'bg-red-50 text-red-700 border border-red-200' },
+}
+
+function humanizeCampaignType(slug: string): string {
+  return slug.replace(/[_-]+/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase())
+}
 import { DOCUMENT_TYPE_LABELS, DOCUMENT_SOURCE_LABELS } from '@/modules/artifacts/types'
 
 interface PageProps {
@@ -36,6 +52,8 @@ export default async function CompanyDetailPage({ params }: PageProps) {
   ])
 
   if (!company) notFound()
+
+  const campaignRollup = await listAssignmentsForCompany(ctx.tenantId, ctx.workspaceId, id).catch(() => [])
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -64,7 +82,14 @@ export default async function CompanyDetailPage({ params }: PageProps) {
               </div>
             </div>
           </div>
-          <CompanyEditDialog company={company} />
+          <div className="flex items-center gap-2">
+            <CompanyEditDialog company={company} />
+            <DeleteCompanyButton
+              companyId={company.id}
+              companyName={company.name}
+              workspaceSlug={workspaceSlug}
+            />
+          </div>
         </div>
       </div>
 
@@ -154,6 +179,53 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Campaigns — assigned, running, completed + emails sent per campaign */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-semibold">Campaigns ({campaignRollup.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {campaignRollup.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No campaigns yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs text-muted-foreground border-b">
+                    <th className="text-left pb-2 pr-4">Campaign</th>
+                    <th className="text-left pb-2 pr-4">Sequence</th>
+                    <th className="text-left pb-2 pr-4">Status</th>
+                    <th className="text-left pb-2 pr-4">Assigned</th>
+                    <th className="text-left pb-2 pr-4">Emails Sent</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {campaignRollup.map(a => {
+                    const badge = ASSIGNMENT_STATUS_BADGES[a.assignment_status]
+                      ?? { label: a.assignment_status, className: 'bg-gray-100 text-gray-600 border border-gray-200' }
+                    return (
+                      <tr key={a.id} className="hover:bg-muted/30">
+                        <td className="py-2 pr-4 font-medium">{humanizeCampaignType(a.campaign_type)}</td>
+                        <td className="py-2 pr-4 text-muted-foreground">{a.sequence_name}</td>
+                        <td className="py-2 pr-4">
+                          <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', badge.className)}>
+                            {badge.label}
+                          </span>
+                        </td>
+                        <td className="py-2 pr-4 text-muted-foreground">
+                          {new Date(a.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="py-2 pr-4 text-muted-foreground">{a.emails_sent}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Intelligence: Company Score + Recommendation */}
       <div className="grid gap-4 md:grid-cols-2">

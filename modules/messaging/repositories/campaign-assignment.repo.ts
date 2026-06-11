@@ -201,3 +201,115 @@ export async function getCompaniesInActiveCampaigns(
 
   return new Set(companyIds.filter(id => companiesInCampaigns.has(id)))
 }
+
+// MCM v2 Slice U4 — per-company campaign rollup for the company detail page.
+// Assignments resolve to the company via its contacts (contact-scoped) or its
+// leads (legacy lead-scoped). emails_sent counts only dispatched sends.
+export interface CompanyAssignmentRollup {
+  id:                string
+  campaign_type:     string
+  sequence_name:     string
+  assignment_status: string
+  created_at:        string
+  emails_sent:       number
+}
+
+const DISPATCHED_SEND_STATUSES = ['sent', 'delivered', 'bounced', 'complained']
+
+export async function listAssignmentsForCompany(
+  tenantId:    string,
+  workspaceId: string,
+  companyId:   string,
+): Promise<CompanyAssignmentRollup[]> {
+  const supabase = createSupabaseServiceClient()
+
+  const [{ data: contacts }, { data: leads }] = await Promise.all([
+    supabase.from('contacts').select('id')
+      .eq('tenant_id', tenantId).eq('company_id', companyId),
+    supabase.from('leads').select('id')
+      .eq('tenant_id', tenantId).eq('company_id', companyId),
+  ])
+
+  const contactIds = ((contacts ?? []) as { id: string }[]).map(r => r.id)
+  const leadIds    = ((leads ?? [])    as { id: string }[]).map(r => r.id)
+  if (contactIds.length === 0 && leadIds.length === 0) return []
+
+  const baseQuery = () => supabase
+    .from('campaign_assignments')
+    .select('id, campaign_type, campaign_sequence_id, assignment_status, created_at')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+
+  const [contactScoped, leadScoped] = await Promise.all([
+    contactIds.length > 0 ? baseQuery().in('contact_id', contactIds) : Promise.resolve({ data: [], error: null }),
+    leadIds.length > 0    ? baseQuery().in('lead_id', leadIds)       : Promise.resolve({ data: [], error: null }),
+  ])
+
+  if (contactScoped.error) throw new Error('listAssignmentsForCompany contacts: ' + contactScoped.error.message)
+  if (leadScoped.error) throw new Error('listAssignmentsForCompany leads: ' + leadScoped.error.message)
+
+  type AssignmentRow = {
+    id: string
+    campaign_type: string
+    campaign_sequence_id: string | null
+    assignment_status: string
+    created_at: string
+  }
+
+  // Union + de-dupe (an assignment could match both paths)
+  const byId = new Map<string, AssignmentRow>()
+  for (const row of [...(contactScoped.data ?? []), ...(leadScoped.data ?? [])] as AssignmentRow[]) {
+    byId.set(row.id, row)
+  }
+  const assignments = [...byId.values()].sort((a, b) => b.created_at.localeCompare(a.created_at))
+  if (assignments.length === 0) return []
+
+  // Resolve sequence names
+  const sequenceIds = [...new Set(assignments.map(a => a.campaign_sequence_id).filter((id): id is string => Boolean(id)))]
+  const sequenceNameById = new Map<string, string>()
+  if (sequenceIds.length > 0) {
+    const { data: sequences } = await supabase
+      .from('campaign_sequences')
+      .select('id, name')
+      .in('id', sequenceIds)
+    for (const row of (sequences ?? []) as { id: string; name: string }[]) {
+      sequenceNameById.set(row.id, row.name)
+    }
+  }
+
+  // Emails sent per assignment: drafts linked to the assignment, then
+  // dispatched email_sends rows for those drafts, grouped back in memory.
+  const assignmentIds = assignments.map(a => a.id)
+  const { data: drafts } = await supabase
+    .from('email_drafts')
+    .select('id, campaign_assignment_id')
+    .in('campaign_assignment_id', assignmentIds)
+
+  const draftRows = (drafts ?? []) as { id: string; campaign_assignment_id: string }[]
+  const assignmentIdByDraftId = new Map(draftRows.map(d => [d.id, d.campaign_assignment_id]))
+
+  const sentCountByAssignmentId = new Map<string, number>()
+  if (draftRows.length > 0) {
+    const { data: sends } = await supabase
+      .from('email_sends')
+      .select('draft_id')
+      .in('draft_id', draftRows.map(d => d.id))
+      .in('status', DISPATCHED_SEND_STATUSES)
+
+    for (const row of (sends ?? []) as { draft_id: string | null }[]) {
+      const assignmentId = row.draft_id ? assignmentIdByDraftId.get(row.draft_id) : undefined
+      if (assignmentId) {
+        sentCountByAssignmentId.set(assignmentId, (sentCountByAssignmentId.get(assignmentId) ?? 0) + 1)
+      }
+    }
+  }
+
+  return assignments.map(a => ({
+    id:                a.id,
+    campaign_type:     a.campaign_type,
+    sequence_name:     a.campaign_sequence_id ? (sequenceNameById.get(a.campaign_sequence_id) ?? '—') : '—',
+    assignment_status: a.assignment_status,
+    created_at:        a.created_at,
+    emails_sent:       sentCountByAssignmentId.get(a.id) ?? 0,
+  }))
+}

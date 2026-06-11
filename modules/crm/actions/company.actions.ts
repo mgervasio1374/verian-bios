@@ -6,6 +6,8 @@ import { buildRequestContext } from '@/lib/auth/context'
 import * as companyService from '@/modules/crm/services/company.service'
 import * as segmentService from '@/modules/crm/services/segment.service'
 import * as leadService from '@/modules/crm/services/lead.service'
+import * as contactService from '@/modules/crm/services/contact.service'
+import { getCompaniesInActiveCampaigns } from '@/modules/messaging/repositories/campaign-assignment.repo'
 import { createCompanySchema, updateCompanySchema } from '@/schemas/company.schema'
 
 function normalizeWebsite(raw: string): string | null {
@@ -210,11 +212,32 @@ export async function updateCompanyFromDialogAction(
   }
 }
 
+// Soft-deletes only (lib/db/soft-delete via the services) — guarded so a
+// company with an active campaign cannot be deleted out from under it.
 export async function deleteCompanyAction(id: string): Promise<ActionResult> {
   try {
     const supabase = await createSupabaseServerClient()
     const ctx = await buildRequestContext(supabase)
+
+    if (!id) return { success: false, error: 'Company ID is required.' }
+
+    // Guard FIRST: active (proposed/assigned) campaigns block deletion
+    const inCampaign = await getCompaniesInActiveCampaigns(ctx.tenantId, ctx.workspaceId, [id])
+    if (inCampaign.has(id)) {
+      return {
+        success: false,
+        error: 'This company has an active campaign. Stop the campaign(s) first, then delete.',
+      }
+    }
+
+    // Soft-delete the company's contacts through the service layer (permission-checked)
+    const contacts = await contactService.listContacts(ctx, { companyId: id, limit: 500 })
+    for (const contact of contacts) {
+      await contactService.deleteContact(ctx, contact.id)
+    }
+
     await companyService.deleteCompany(ctx, id)
+
     revalidatePath('/[workspaceSlug]/companies', 'page')
     return { success: true, data: undefined }
   } catch (err) {
