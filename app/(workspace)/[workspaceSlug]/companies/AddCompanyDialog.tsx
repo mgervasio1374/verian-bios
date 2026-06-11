@@ -46,17 +46,25 @@ const EMPTY_FORM = {
   source:         '',
 }
 
-interface Props {
-  workspaceSlug: string
+interface SegmentOption {
+  id:   string
+  name: string
 }
 
-export function AddCompanyDialog({ workspaceSlug }: Props) {
+interface Props {
+  workspaceSlug: string
+  segments?:     SegmentOption[]
+}
+
+export function AddCompanyDialog({ workspaceSlug, segments = [] }: Props) {
   const router  = useRouter()
   const [open, setOpen]     = useState(false)
   const [error, setError]   = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [, startTransition] = useTransition()
   const [form, setForm]     = useState(EMPTY_FORM)
+  const [segmentId, setSegmentId]   = useState('')
+  const [createLead, setCreateLead] = useState(false)
 
   function set(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -64,7 +72,7 @@ export function AddCompanyDialog({ workspaceSlug }: Props) {
 
   function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen)
-    if (!nextOpen) { setError(null); setForm(EMPTY_FORM) }
+    if (!nextOpen) { setError(null); setForm(EMPTY_FORM); setSegmentId(''); setCreateLead(false) }
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -72,11 +80,18 @@ export function AddCompanyDialog({ workspaceSlug }: Props) {
     setError(null)
     setLoading(true)
     startTransition(async () => {
-      const result = await createCompanyFromDialogAction({ ...form, phone: normalizePhone(form.phone) })
+      const result = await createCompanyFromDialogAction({
+        ...form,
+        phone:      normalizePhone(form.phone),
+        segmentId:  segmentId || undefined,
+        createLead,
+      })
       setLoading(false)
       if (result.success) {
         setOpen(false)
         setForm(EMPTY_FORM)
+        setSegmentId('')
+        setCreateLead(false)
         // Land on the new company's profile — Add Contact and full details live there
         router.push(`/${workspaceSlug}/companies/${result.data.id}`)
       } else {
@@ -266,6 +281,40 @@ export function AddCompanyDialog({ workspaceSlug }: Props) {
               />
             </div>
           </div>
+
+          {/* Segment + optional lead */}
+          {segments.length > 0 && (
+            <div className="space-y-1.5">
+              <Label htmlFor="ac-segment">Segment</Label>
+              <select
+                id="ac-segment"
+                value={segmentId}
+                onChange={e => setSegmentId(e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm
+                           focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="">— No segment —</option>
+                {segments.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={createLead}
+              onChange={e => setCreateLead(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              Also create a lead for this company
+              <span className="block text-xs text-muted-foreground mt-0.5">
+                Leave unchecked for imports/reference companies — keep Leads a working list.
+              </span>
+            </span>
+          </label>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 

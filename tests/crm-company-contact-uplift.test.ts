@@ -52,9 +52,9 @@ describe('TC-CCU-01: createCompanyFromDialogAction full field set (source-read)'
     expect(body).toContain("if (!input.name.trim()) return { success: false, error: 'Company name is required.' }")
   })
 
-  it('returns the created company id', () => {
-    expect(body).toContain("ActionResult<{ id: string }>")
-    expect(body).toContain('data: { id: company.id }')
+  it('returns the created company id (U2 added optional warnings)', () => {
+    expect(body).toContain("ActionResult<{ id: string; warnings?: string[] }>")
+    expect(body).toContain('data: { id: company.id')
   })
 })
 
@@ -104,7 +104,8 @@ describe('TC-CCU-03: create flow pushes to the new company page (source-read)', 
 
   it('takes workspaceSlug as a prop, passed by the companies page', () => {
     expect(add).toContain('workspaceSlug: string')
-    expect(page).toContain('<AddCompanyDialog workspaceSlug={workspaceSlug} />')
+    expect(page).toContain('<AddCompanyDialog')
+    expect(page).toContain('workspaceSlug={workspaceSlug}')
   })
 })
 

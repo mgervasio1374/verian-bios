@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import * as companyService from '@/modules/crm/services/company.service'
+import * as segmentService from '@/modules/crm/services/segment.service'
+import * as leadService from '@/modules/crm/services/lead.service'
 import { createCompanySchema, updateCompanySchema } from '@/schemas/company.schema'
 
 function normalizeWebsite(raw: string): string | null {
@@ -78,7 +80,9 @@ export async function createCompanyFromDialogAction(input: {
   employee_count: string
   annual_revenue: string
   source:         string
-}): Promise<ActionResult<{ id: string }>> {
+  segmentId?:     string
+  createLead?:    boolean
+}): Promise<ActionResult<{ id: string; warnings?: string[] }>> {
   try {
     const supabase = await createSupabaseServerClient()
     const ctx      = await buildRequestContext(supabase)
@@ -109,8 +113,41 @@ export async function createCompanyFromDialogAction(input: {
 
     const company = await companyService.createCompany(ctx, parsed.data)
 
+    // Optional follow-on steps — non-fatal: the company exists at this point,
+    // so a failure here becomes a warning rather than failing the create.
+    const warnings: string[] = []
+
+    if (input.segmentId) {
+      try {
+        await segmentService.addCompanyToSegment(ctx, input.segmentId, company.id)
+      } catch (segErr) {
+        warnings.push(
+          `Company created, but adding it to the segment failed: ${segErr instanceof Error ? segErr.message : 'unknown error'}`
+        )
+      }
+    }
+
+    if (input.createLead) {
+      try {
+        await leadService.createLead(ctx, {
+          name:       parsed.data.name,
+          stage:      'new',
+          source:     parsed.data.source ?? 'manual',
+          priority:   'medium',
+          company_id: company.id,
+        })
+      } catch (leadErr) {
+        warnings.push(
+          `Company created, but creating the lead failed: ${leadErr instanceof Error ? leadErr.message : 'unknown error'}`
+        )
+      }
+    }
+
     revalidatePath('/[workspaceSlug]/companies', 'page')
-    return { success: true, data: { id: company.id } }
+    return {
+      success: true,
+      data: { id: company.id, warnings: warnings.length > 0 ? warnings : undefined },
+    }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }

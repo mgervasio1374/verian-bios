@@ -53,7 +53,10 @@ export default async function CompaniesPage({ params, searchParams }: PageProps)
           <h1 className="text-2xl font-bold">Companies</h1>
           <p className="text-muted-foreground text-sm">{companies.length} records</p>
         </div>
-        <AddCompanyDialog workspaceSlug={workspaceSlug} />
+        <AddCompanyDialog
+          workspaceSlug={workspaceSlug}
+          segments={segments.map(s => ({ id: s.id, name: s.name }))}
+        />
       </div>
 
       <CompaniesTable
