@@ -249,6 +249,31 @@ export async function bulkAssignCampaignToCompanies(
     throw new Error('Could not resolve the campaign type for this sequence.')
   }
 
+  // V6 review latch: pre-approved first touches must never combine with
+  // unreviewed copy. Load the sequence's steps + linked assets once (also
+  // reused by the V1 prompt-leak heuristic below).
+  const latchSteps = await listCampaignSequenceStepsForSequence(
+    input.campaignSequenceId, input.tenantId, input.workspaceId,
+  )
+  const linkedAssets: Array<{
+    step:  (typeof latchSteps)[number]
+    asset: NonNullable<Awaited<ReturnType<typeof assetRepo.getAssetById>>>
+  }> = []
+  for (const step of latchSteps) {
+    if (!step.campaign_email_asset_id) continue
+    const asset = await assetRepo.getAssetById(input.tenantId, step.campaign_email_asset_id)
+    if (asset) linkedAssets.push({ step, asset })
+  }
+
+  const unreviewedAssets = linkedAssets.filter(
+    ({ asset }) => asset.status !== 'active' && asset.status !== 'approved',
+  )
+  if (input.autoApproveFirstTouch && unreviewedAssets.length > 0) {
+    throw new Error(
+      "This sequence has assets that haven't been reviewed and activated. Activate them, or assign without pre-approval.",
+    )
+  }
+
   const tally: BulkAssignTally = {
     created:                 0,
     skippedDuplicate:        0,
@@ -258,26 +283,27 @@ export async function bulkAssignCampaignToCompanies(
     failed:                  0,
   }
 
+  const warnings: string[] = []
+  if (unreviewedAssets.length > 0) {
+    warnings.push(
+      `${unreviewedAssets.length} linked asset(s) haven't been reviewed and activated — their touches will require review.`,
+    )
+  }
+
   // Prompt-leak heuristic (warning only, never blocks): manual mode renders
   // asset content literally, so a prompt-shaped body would be emailed verbatim.
   try {
-    const steps = await listCampaignSequenceStepsForSequence(
-      input.campaignSequenceId, input.tenantId, input.workspaceId,
-    )
-    const warnings: string[] = []
-    for (const step of steps) {
-      if (!step.campaign_email_asset_id) continue
-      const asset = await assetRepo.getAssetById(input.tenantId, step.campaign_email_asset_id)
-      if (asset && looksLikeAiPrompt(asset.body_template_text ?? asset.body_template_html ?? '')) {
+    for (const { step, asset } of linkedAssets) {
+      if (looksLikeAiPrompt(asset.body_template_text ?? asset.body_template_html ?? '')) {
         warnings.push(
           `Step ${step.step_number} asset "${asset.asset_name}" looks like an AI prompt, not finished email copy — it will be sent literally.`,
         )
       }
     }
-    if (warnings.length > 0) tally.warnings = warnings
   } catch {
     // best-effort heuristic — never block the assignment on probe failure
   }
+  if (warnings.length > 0) tally.warnings = warnings
 
   for (const companyId of input.companyIds) {
     const contacts = await listContacts({

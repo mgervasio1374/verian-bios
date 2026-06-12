@@ -18,6 +18,7 @@ import {
   deleteStepsForSequence,
 } from '@/modules/campaign-sequence/repositories/campaign-sequence-step.repo'
 import { sequenceUsage } from '@/modules/campaign-sequence/services/sequence-usage.service'
+import { generateAiSequence } from '@/modules/messaging/services/campaign-asset-ai.service'
 import { validateManualSequenceDraft } from '@/modules/campaign-sequence/sequence-authoring.validation'
 import type { StepDraft } from '@/modules/campaign-sequence/sequence-authoring.validation'
 import type { CampaignSequenceInsert, CampaignSequenceUpdate } from '@/modules/campaign-sequence/types'
@@ -89,6 +90,56 @@ export async function createManualSequenceAction(
 
     revalidatePath('/[workspaceSlug]/settings/campaign-sequences', 'page')
     return { ok: true, sequenceId: sequence.id }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// MCM v2 Slice V6 — one-shot AI sequence generation (assets + sequence)
+// ---------------------------------------------------------------------------
+
+export interface GenerateAiSequenceActionInput {
+  name:              string
+  campaignTypeId:    string
+  touches:           number
+  brief:             string
+  senderIdentityId?: string | null
+}
+
+export async function generateAiSequenceAction(
+  input: GenerateAiSequenceActionInput,
+): Promise<{ ok: boolean; sequenceId?: string; assetIds?: string[]; assetsCreated?: number; blockReason?: string; error?: string }> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx      = await buildRequestContext(supabase)
+    requirePermission(ctx, 'crm.leads.view')
+
+    if (!input.name?.trim()) return { ok: false, error: 'Campaign name is required.' }
+    if (!input.campaignTypeId) return { ok: false, error: 'Campaign type is required.' }
+    if (!input.brief?.trim()) return { ok: false, error: 'Brief is required.' }
+
+    const result = await generateAiSequence({
+      tenantId:         ctx.tenantId,
+      workspaceId:      ctx.workspaceId,
+      campaignTypeId:   input.campaignTypeId,
+      name:             input.name.trim(),
+      touches:          input.touches,
+      brief:            input.brief.trim(),
+      senderIdentityId: input.senderIdentityId ?? null,
+    })
+
+    if (result.blocked) {
+      return {
+        ok:            false,
+        blockReason:   result.blockReason,
+        assetsCreated: result.assetIds.length,
+      }
+    }
+
+    revalidatePath('/[workspaceSlug]/settings/campaign-sequences', 'page')
+    revalidatePath('/[workspaceSlug]/settings/campaign-assets', 'page')
+    return { ok: true, sequenceId: result.sequenceId ?? undefined, assetIds: result.assetIds }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }

@@ -8,6 +8,10 @@ import { APPROVED_MERGE_FIELDS, ASSET_CREATION_ESTIMATED_TOKENS } from '@/module
 import { textToHtmlBody } from '@/modules/messaging/campaign-assets/template-html'
 import { extractMergeFields, validateAssetTemplate } from '@/modules/messaging/services/campaign-asset-validation.service'
 import { isLlmConfigured, chatComplete } from '@/lib/llm/client'
+import { getCampaignTypeById } from '@/modules/campaign-sequence/repositories/campaign-type.repo'
+import { insertCampaignSequence } from '@/modules/campaign-sequence/repositories/campaign-sequence.repo'
+import { insertCampaignSequenceStep } from '@/modules/campaign-sequence/repositories/campaign-sequence-step.repo'
+import type { CampaignSequenceInsert } from '@/modules/campaign-sequence/types'
 
 type CampaignEmailAssetRow = Database['public']['Tables']['campaign_email_assets']['Row']
 
@@ -362,4 +366,247 @@ export async function reviseAssetWithAi(
   }, true) // resetStatus = true → sets status back to 'draft'
 
   return { updated: true, blocked: false }
+}
+
+// ---------------------------------------------------------------------------
+// MCM v2 Slice V6 — one-shot AI sequence generation.
+// N touches generated sequentially with the previous emails in context (so
+// touch 3 references and builds on 1–2), assets named `${name}_${i}`, then a
+// manual sequence created linking them. Assets are created AS THE LOOP
+// PROGRESSES: a mid-run failure leaves usable partial assets findable by the
+// name prefix, and the sequence is NOT created on partial failure.
+// ---------------------------------------------------------------------------
+
+// Sensible default cadences by touch count (V5 schedule settings stay null —
+// the operator sets send time/timezone in the builder).
+export const DEFAULT_SEQUENCE_DAY_OFFSETS: Record<number, number[]> = {
+  2: [0, 6],
+  3: [0, 5, 10],
+  4: [0, 5, 10, 15],
+  5: [0, 4, 9, 14, 19],
+}
+
+export interface GenerateAiSequenceInput {
+  tenantId:          string
+  workspaceId:       string
+  campaignTypeId:    string
+  name:              string
+  touches:           number // 2–5
+  brief:             string
+  senderIdentityId?: string | null
+  dayOffsets?:       number[]
+}
+
+export interface GenerateAiSequenceResult {
+  sequenceId:        string | null
+  assetIds:          string[]
+  blocked:           boolean
+  blockReason?:      string
+  preflightWarning?: string
+}
+
+// Persists one generated touch: asset row, usage event (real tokens), agent
+// decision, FK backfill — the same audit shape as generateAiAssetDraft.
+async function persistGeneratedTouch(input: {
+  tenantId:         string
+  workspaceId:      string
+  campaignTypeSlug: string
+  assetName:        string
+  draft:            GeneratedDraftContent
+  promptTokens:     number
+  completionTokens: number
+  modelName:        string
+  inputSnapshot:    Record<string, unknown>
+}): Promise<CampaignEmailAssetRow> {
+  const asset = await assetRepo.createAsset({
+    tenantId:              input.tenantId,
+    workspaceId:           input.workspaceId,
+    campaignType:          input.campaignTypeSlug,
+    assetName:             input.assetName,
+    subjectTemplate:       input.draft.subjectTemplate,
+    bodyTemplateHtml:      input.draft.bodyTemplateHtml,
+    bodyTemplateText:      input.draft.bodyTemplateText,
+    personalizationFields: input.draft.personalizationFields,
+    requiredFields:        input.draft.requiredFields,
+    fallbackValues:        input.draft.fallbackValues,
+    llmGenerated:          true,
+    aiUsageEventId:        null,
+    decisionId:            null,
+  })
+
+  const totalTokens      = input.promptTokens + input.completionTokens
+  const estimatedCostUsd = estimateCostUsd(input.modelName, input.promptTokens, input.completionTokens)
+
+  const usageEvent = await usageRepo.recordUsage({
+    tenantId:          input.tenantId,
+    workspaceId:       input.workspaceId,
+    agentName:         'campaign_asset_creator',
+    featureName:       'asset_generation',
+    modelName:         input.modelName,
+    promptTokens:      input.promptTokens,
+    completionTokens:  input.completionTokens,
+    totalTokens,
+    estimatedCostUsd,
+    campaignAssetId:   asset.id,
+    success:           true,
+  })
+
+  const decision = await decisionRepo.createDecision({
+    tenantId:       input.tenantId,
+    workspaceId:    input.workspaceId,
+    agentName:      'campaign_asset_creator',
+    decisionType:   'campaign_asset_created',
+    decisionStatus: 'completed',
+    entityType:     'campaign_asset',
+    entityId:       asset.id,
+    aiUsageEventId: usageEvent.id,
+    inputSnapshot:  input.inputSnapshot,
+    outputSummary:  { asset_name: input.assetName, subject_preview: input.draft.subjectTemplate.slice(0, 80) },
+  })
+
+  await assetRepo.updateAssetContent(input.tenantId, asset.id, {
+    subjectTemplate:       input.draft.subjectTemplate,
+    bodyTemplateHtml:      input.draft.bodyTemplateHtml,
+    bodyTemplateText:      input.draft.bodyTemplateText,
+    personalizationFields: input.draft.personalizationFields,
+    requiredFields:        input.draft.requiredFields,
+    fallbackValues:        input.draft.fallbackValues,
+    llmGenerated:          true,
+    aiUsageEventId:        usageEvent.id,
+    decisionId:            decision.id,
+  })
+
+  return asset
+}
+
+function touchRoleLine(touch: number, total: number): string {
+  if (touch === 1)     return `This email is touch 1 of ${total} — the first outreach.`
+  if (touch === total) return `This email is touch ${total} of ${total} — the final note before the event.`
+  return `This email is touch ${touch} of ${total} — a follow-up that advances the story.`
+}
+
+export async function generateAiSequence(
+  input: GenerateAiSequenceInput
+): Promise<GenerateAiSequenceResult> {
+  // Fail loud, never stub
+  if (!isLlmConfigured()) {
+    return { sequenceId: null, assetIds: [], blocked: true, blockReason: 'llm_not_configured' }
+  }
+
+  if (!Number.isInteger(input.touches) || input.touches < 2 || input.touches > 5) {
+    return { sequenceId: null, assetIds: [], blocked: true, blockReason: 'invalid_touch_count' }
+  }
+
+  const configuredModel = process.env.LLM_MODEL_NAME!
+
+  // ONE preflight scaled by touch count
+  const preflight = await preflightCheck({
+    tenantId:        input.tenantId,
+    workspaceId:     input.workspaceId,
+    agentName:       'campaign_asset_creator',
+    estimatedTokens: ASSET_CREATION_ESTIMATED_TOKENS * input.touches,
+    modelName:       configuredModel,
+  })
+
+  if (!preflight.allowed) {
+    return { sequenceId: null, assetIds: [], blocked: true, blockReason: preflight.reason ?? 'budget_exhausted' }
+  }
+
+  const campaignType = await getCampaignTypeById(input.campaignTypeId, input.tenantId, input.workspaceId)
+  if (!campaignType?.slug) {
+    return { sequenceId: null, assetIds: [], blocked: true, blockReason: 'campaign_type_not_found' }
+  }
+
+  const previousTouches: { subject: string; bodyText: string }[] = []
+  const assetIds: string[] = []
+
+  for (let touch = 1; touch <= input.touches; touch++) {
+    const promptParts = [
+      `Campaign type: ${campaignType.slug.replace(/_/g, ' ')}`,
+      `Campaign: ${input.name}`,
+      `Operator brief: ${input.brief}`,
+      `${touchRoleLine(touch, input.touches)} Assume no reply yet; keep it short and warm.`,
+    ]
+
+    if (previousTouches.length > 0) {
+      promptParts.push('Previously generated emails in this sequence:')
+      previousTouches.forEach((prev, idx) => {
+        promptParts.push(`Touch ${idx + 1} subject: ${prev.subject}\nTouch ${idx + 1} body:\n${prev.bodyText}`)
+      })
+      promptParts.push('Do not repeat earlier emails; reference and progress from them.')
+    }
+
+    const generation = await generateDraftContent(promptParts.join('\n\n'))
+    if (!generation.ok) {
+      // Partial failure: the sequence is NOT created. Already-created assets
+      // remain (named `${name}_1..`) for manual completion.
+      return {
+        sequenceId:  null,
+        assetIds,
+        blocked:     true,
+        blockReason: `${generation.blockReason} (touch ${touch} of ${input.touches}; ${assetIds.length} asset(s) already created with prefix ${input.name}_)`,
+      }
+    }
+
+    const asset = await persistGeneratedTouch({
+      tenantId:         input.tenantId,
+      workspaceId:      input.workspaceId,
+      campaignTypeSlug: campaignType.slug,
+      assetName:        `${input.name}_${touch}`,
+      draft:            generation.content,
+      promptTokens:     generation.promptTokens,
+      completionTokens: generation.completionTokens,
+      modelName:        generation.modelName || configuredModel,
+      inputSnapshot: {
+        campaign_type: campaignType.slug,
+        prompt_brief:  input.brief,
+        sequence_name: input.name,
+        touch_number:  touch,
+        touch_count:   input.touches,
+      },
+    })
+
+    previousTouches.push({
+      subject:  generation.content.subjectTemplate,
+      bodyText: generation.content.bodyTemplateText,
+    })
+    assetIds.push(asset.id)
+  }
+
+  // All touches succeeded — create the sequence through the same repo path
+  // createManualSequenceAction uses underneath.
+  const dayOffsets = input.dayOffsets ?? DEFAULT_SEQUENCE_DAY_OFFSETS[input.touches]
+
+  const sequencePayload: Record<string, unknown> = {
+    tenant_id:          input.tenantId,
+    workspace_id:       input.workspaceId,
+    campaign_type_id:   input.campaignTypeId,
+    name:               input.name,
+    authoring_mode:     'manual',
+    sender_identity_id: input.senderIdentityId ?? null,
+    send_time:          null,
+    timezone:           null,
+    skip_weekends:      false,
+  }
+  const sequence = await insertCampaignSequence(sequencePayload as unknown as CampaignSequenceInsert)
+
+  for (let index = 0; index < assetIds.length; index++) {
+    await insertCampaignSequenceStep({
+      tenant_id:               input.tenantId,
+      workspace_id:            input.workspaceId,
+      campaign_sequence_id:    sequence.id,
+      step_number:             index + 1,
+      day_offset:              dayOffsets[index] ?? index * 5,
+      campaign_email_asset_id: assetIds[index],
+      is_recurring:            false,
+      recurring_interval_days: null,
+    })
+  }
+
+  return {
+    sequenceId:       sequence.id,
+    assetIds,
+    blocked:          false,
+    preflightWarning: preflight.warning,
+  }
 }
