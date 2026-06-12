@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { textToHtmlBody } from '@/modules/messaging/campaign-assets/template-html'
-import { parseRetryAfterSeconds } from '@/lib/llm/client'
+import { parseRetryAfterSeconds, parseModelChain } from '@/lib/llm/client'
 
 const read = (rel: string) => readFileSync(join(process.cwd(), rel), 'utf8')
 
@@ -224,9 +224,9 @@ describe('TC-V3-06: parseRetryAfterSeconds (behavioral)', () => {
 describe('TC-V3-06: chatComplete retry behavior (source-read)', () => {
   const client = read(CLIENT)
 
-  it('retry loop is bounded at 3 total attempts', () => {
-    expect(client).toContain('const MAX_ATTEMPTS = 3')
-    expect(client).toContain('for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++)')
+  it('retry loop is bounded (V3.2: 2 attempts per model, chain replaces the third)', () => {
+    expect(client).toContain('const MAX_ATTEMPTS_PER_MODEL = 2')
+    expect(client).toContain('for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_MODEL; attempt++)')
   })
 
   it('only 429/5xx are retryable; other 4xx throw immediately', () => {
@@ -249,9 +249,9 @@ describe('TC-V3-06: chatComplete retry behavior (source-read)', () => {
     expect(client).toContain('const MAX_RETRY_WAIT_SECONDS = 8')
   })
 
-  it('exhausted retries append the busy-pool suffix to the same error type', () => {
-    expect(client).toContain('function withRetrySuffix(error: LlmHttpError): LlmHttpError')
-    expect(client).toContain('retries — the free-model pool may be busy; try again in a moment.)')
+  it('exhausted retries append the busy suffix to the same error type (V3.2: chain message)', () => {
+    expect(client).toContain('function withChainExhaustedSuffix(error: LlmHttpError, modelCount: number): LlmHttpError')
+    expect(client).toContain('all busy or unavailable; try again in a moment.)')
   })
 
   it('each attempt keeps its own 30s AbortController', () => {
@@ -271,5 +271,73 @@ describe('TC-V3-06: chatComplete retry behavior (source-read)', () => {
     const button = read(BUTTON)
     expect(button).toContain("reason.includes('429')")
     expect(button).toContain('The free AI model is busy right now — it usually clears in a few seconds. Try again.')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// TC-V3-07: model fallback chain (Slice V3.2)
+// ---------------------------------------------------------------------------
+
+describe('TC-V3-07: parseModelChain (behavioral)', () => {
+  it('primary only when fallbacks are null/undefined/empty', () => {
+    expect(parseModelChain('qwen/qwen3:free', null)).toEqual(['qwen/qwen3:free'])
+    expect(parseModelChain('qwen/qwen3:free', undefined)).toEqual(['qwen/qwen3:free'])
+    expect(parseModelChain('qwen/qwen3:free', '')).toEqual(['qwen/qwen3:free'])
+  })
+
+  it('primary plus two fallbacks in order', () => {
+    expect(parseModelChain('a/one:free', 'b/two:free,c/three:free'))
+      .toEqual(['a/one:free', 'b/two:free', 'c/three:free'])
+  })
+
+  it('trims entries and drops empties', () => {
+    expect(parseModelChain('a/one', ' b/two , , c/three ,'))
+      .toEqual(['a/one', 'b/two', 'c/three'])
+  })
+
+  it('de-duplicates — a fallback equal to the primary is removed, primary stays first', () => {
+    expect(parseModelChain('a/one', 'b/two,a/one,b/two'))
+      .toEqual(['a/one', 'b/two'])
+  })
+})
+
+describe('TC-V3-07: chain-aware chatComplete (source-read)', () => {
+  const client = read(CLIENT)
+
+  it('builds the chain from LLM_MODEL_NAME + LLM_MODEL_FALLBACKS', () => {
+    expect(client).toContain('process.env.LLM_MODEL_FALLBACKS')
+    expect(client).toContain('parseModelChain(model, process.env.LLM_MODEL_FALLBACKS)')
+    expect(client).toContain('for (const chainModel of chain)')
+    expect(client).toContain('model: chainModel')
+  })
+
+  it('per-model attempts bounded at 2', () => {
+    expect(client).toContain('const MAX_ATTEMPTS_PER_MODEL = 2')
+  })
+
+  it('404/400 skip straight to the next model — distinct from the 429/5xx retry path', () => {
+    expect(client).toContain('if (response.status === 404 || response.status === 400) break')
+    // and the retryable path remains separate
+    expect(client).toContain('response.status === 429 || response.status >= 500')
+  })
+
+  it('401/403 throw immediately with no fallback', () => {
+    expect(client).toContain('if (response.status === 401 || response.status === 403) throw httpError')
+  })
+
+  it('has the 40s soft deadline guarding new attempts', () => {
+    expect(client).toContain('const OVERALL_SOFT_DEADLINE_MS = 40_000')
+    expect(client).toContain('Date.now() - startedAt > OVERALL_SOFT_DEADLINE_MS')
+  })
+
+  it('exhaustion message includes the model count', () => {
+    expect(client).toContain('tried ${modelCount} model(s)')
+    expect(client).toContain('withChainExhaustedSuffix(lastError, chain.length)')
+  })
+
+  it('isLlmConfigured is unchanged — fallbacks are optional', () => {
+    const idx  = client.indexOf('export function isLlmConfigured')
+    const body = client.slice(idx, idx + 300)
+    expect(body).not.toContain('LLM_MODEL_FALLBACKS')
   })
 })
