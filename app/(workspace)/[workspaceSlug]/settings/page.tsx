@@ -4,7 +4,8 @@ import { buildRequestContext } from '@/lib/auth/context'
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Settings, Bot, ArrowRight, ShieldAlert, Activity, UserCog } from 'lucide-react'
+import { Bot, ArrowRight, ShieldAlert, Activity, UserCog } from 'lucide-react'
+import { PageStatusBanner } from '@/components/PageStatusBanner'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -165,12 +166,10 @@ export default async function SettingsPage({ params }: PageProps) {
         </div>
       </Link>
 
-      <div className="rounded-lg border border-dashed p-4 text-center">
-        <Settings className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
-        <p className="text-sm text-muted-foreground">
-          Full config management UI coming in Phase 3.
-        </p>
-      </div>
+      <PageStatusBanner
+        variant="in-development"
+        purpose="Feature entitlements, pipeline stages, and prompt configurations are read-only today; editing arrives in a later release."
+      />
     </div>
   )
 }

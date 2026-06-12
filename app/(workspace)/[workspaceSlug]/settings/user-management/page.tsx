@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ArrowLeft, UserCog } from 'lucide-react'
+import { PageStatusBanner } from '@/components/PageStatusBanner'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -35,6 +36,8 @@ export default async function UserManagementPlanningPage({ params }: PageProps) 
           </p>
         </div>
       </div>
+
+      <PageStatusBanner purpose="Workspace members, roles, and invitations will be managed here." />
 
       <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Read-Only Planning Boundary</p>

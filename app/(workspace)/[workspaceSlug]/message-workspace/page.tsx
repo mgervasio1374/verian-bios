@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import { Brain } from 'lucide-react'
+import { PageStatusBanner } from '@/components/PageStatusBanner'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -35,41 +36,15 @@ export default async function MessageWorkspaceIndexPage({ params }: PageProps) {
         <div>
           <h1 className="text-xl font-semibold">Message Workspace</h1>
           <p className="text-sm text-muted-foreground">
-            Phase 3B — Message Strategy Agent. Select a lead to view or generate a strategy.
+            Select a lead to view or generate a message strategy.
           </p>
         </div>
       </div>
 
-      <div className="rounded-lg border bg-background p-4 space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Phase 3B Status</p>
-        <div className="text-xs text-muted-foreground space-y-1">
-          <p className="text-green-700 font-medium">✓ Message Strategy Agent — Foundation complete</p>
-          <p className="text-muted-foreground">○ Copywriting Agent — Not yet implemented</p>
-          <p className="text-muted-foreground">○ Quality Review Agent — Not yet implemented</p>
-          <p className="text-muted-foreground">○ Learning Agent — Not yet implemented</p>
-        </div>
-      </div>
-
-      <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Agent Activation Roadmap</p>
-        <div className="grid gap-3 sm:grid-cols-2 text-xs">
-          <div className="space-y-1">
-            <p className="font-semibold text-foreground">Implemented agents</p>
-            <p className="text-muted-foreground">
-              Message Strategy Agent can produce operator-reviewed strategy context for a selected lead.
-            </p>
-            <p className="text-muted-foreground">
-              Campaign asset and follow-up draft surfaces remain approval-driven; no live agent sends from this page.
-            </p>
-          </div>
-          <div className="space-y-1">
-            <p className="font-semibold text-foreground">Pending live-ops prerequisites</p>
-            <p className="text-muted-foreground">Campaign rules and sequence persistence need a future reviewed schema slice.</p>
-            <p className="text-muted-foreground">Approvals, scheduling visibility, and controlled send testing must be green before activation.</p>
-            <p className="text-muted-foreground">System controls must remain disabled until an explicit enablement slice approves them.</p>
-          </div>
-        </div>
-      </div>
+      <PageStatusBanner
+        variant="in-development"
+        purpose="Per-lead message strategy review lives here today; a unified drafting and review surface is being built around it."
+      />
 
       <div className="rounded-lg border bg-background">
         <div className="px-4 py-3 border-b bg-muted/20">

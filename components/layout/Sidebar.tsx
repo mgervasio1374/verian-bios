@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -32,6 +31,7 @@ import {
   Tags,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { BrandMark } from '@/components/layout/BrandMark'
 
 interface SidebarProps {
   workspaceSlug: string
@@ -109,8 +109,11 @@ export function Sidebar({ workspaceSlug, tenantName }: SidebarProps) {
   return (
     <aside className="flex h-screen w-60 flex-col border-r border-sidebar-border bg-sidebar">
       {/* Brand */}
-      <div className="flex h-20 flex-col items-start justify-center border-b border-sidebar-border px-5 gap-1">
-        <Image src="/brand/verian-logo.png" alt="Verian" width={240} height={72} className="h-12 w-auto object-contain" priority />
+      <div className="flex flex-col items-start justify-center border-b border-sidebar-border px-5 py-5 gap-1.5">
+        <div className="flex items-center gap-2.5">
+          <BrandMark size={28} />
+          <span className="text-white font-semibold text-[15px] tracking-[0.22em]">VERIAN</span>
+        </div>
         {tenantName && (
           <span className="text-[10px] text-sidebar-foreground/55 truncate max-w-[180px] leading-none">{tenantName}</span>
         )}
@@ -133,12 +136,18 @@ export function Sidebar({ workspaceSlug, tenantName }: SidebarProps) {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
+                      'relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
                       isActive
                         ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
                         : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
                     )}
                   >
+                    {isActive && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-primary"
+                      />
+                    )}
                     {item.icon}
                     {item.label}
                   </Link>

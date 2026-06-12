@@ -40,19 +40,21 @@ const CHANGED_UI_FILES = [
 ]
 
 describe('TC-3X-S3-001: Sidebar logo product correction', () => {
-  it('uses the official Verian logo asset', () => {
-    expect(readSrc(SIDEBAR)).toContain('/brand/verian-logo.png')
+  // MCM v2 W1: the white-background PNG lockup was replaced with the inline
+  // vector BrandMark + VERIAN wordmark; the original concerns (no tiny logo,
+  // no "Verian BIOS" text, no temp mark) still hold.
+  it('uses the vector BrandMark instead of the PNG lockup', () => {
+    const src = readSrc(SIDEBAR)
+    expect(src).toContain('BrandMark')
+    expect(src).not.toContain('/brand/verian-logo.png')
   })
 
   it('does not show adjacent Verian BIOS text', () => {
     expect(readSrc(SIDEBAR)).not.toContain('Verian BIOS')
   })
 
-  it('uses a larger logo class than the prior tiny treatment', () => {
-    const src = readSrc(SIDEBAR)
-    expect(src).toContain('className="h-12 w-auto object-contain"')
-    expect(src).not.toContain('className="h-7 w-auto object-contain"')
-    expect(src).not.toContain('className="h-10 w-auto object-contain"')
+  it('does not regress to the prior tiny logo treatment', () => {
+    expect(readSrc(SIDEBAR)).not.toContain('className="h-7 w-auto object-contain"')
   })
 
   it('does not reference the temporary logo mark in the sidebar', () => {
@@ -67,32 +69,15 @@ describe('TC-3X-S3-002: Campaign asset creation sequence configuration preview',
     expect(src).toContain('<CampaignAssetEditor workspaceSlug={workspaceSlug} />')
   })
 
-  it('campaign asset editor exposes sequence configuration labels', () => {
+  // MCM v2 W1: the static "Sequence Configuration Preview" block was removed —
+  // sequence persistence shipped (slice 9) and the builder lives on the
+  // campaign-sequences page, so the "design surface only" copy was stale.
+  it('campaign asset editor no longer carries the static sequence preview', () => {
     const src = readSrc(CAMPAIGN_ASSET_EDITOR)
-    for (const label of [
-      'Sequence Configuration Preview',
-      'Sequence Name',
-      'Number of Touches',
-      'Day Offsets',
-      'Stop Condition',
-      'System Response Trigger',
-      'Approval Required',
-    ]) {
-      expect(src).toContain(label)
-    }
-  })
-
-  it('campaign asset editor exposes the requested cadence labels', () => {
-    const src = readSrc(CAMPAIGN_ASSET_EDITOR)
-    for (const label of ['Day 1', 'Day 3', 'Day 7', 'Day 14', 'Day 31', 'Day 91', 'Every 90 days until response']) {
-      expect(src).toContain(label)
-    }
-  })
-
-  it('sequence preview is explicitly non-persisted future schema work', () => {
-    const src = readSrc(CAMPAIGN_ASSET_EDITOR)
-    expect(src).toContain('Design surface only')
-    expect(src).toContain('future schema-approved slice')
+    expect(src).not.toContain('Sequence Configuration Preview')
+    expect(src).not.toContain('Design surface only')
+    expect(src).not.toContain('future schema-approved slice')
+    expect(src).not.toContain('Every 90 days until response')
   })
 
   it('campaign asset list still links New Asset to the existing safe editor route', () => {
@@ -101,27 +86,20 @@ describe('TC-3X-S3-002: Campaign asset creation sequence configuration preview',
 })
 
 describe('TC-3X-S3-003: Message Workspace agent activation clarity', () => {
-  it('contains an Agent Activation Roadmap section', () => {
-    expect(readSrc(MESSAGE_WORKSPACE_PAGE)).toContain('Agent Activation Roadmap')
+  // MCM v2 W1: the static "Phase 3B Status" / "Agent Activation Roadmap"
+  // blocks were removed — they claimed agents were unimplemented and sending
+  // was gated on future schema work, both contradicted by shipped slices.
+  // The page now carries the honest PageStatusBanner instead.
+  it('no longer contains the stale agent roadmap blocks', () => {
+    const src = readSrc(MESSAGE_WORKSPACE_PAGE)
+    expect(src).not.toContain('Agent Activation Roadmap')
+    expect(src).not.toContain('Phase 3B Status')
+    expect(src).not.toContain('Not yet implemented')
+    expect(src).not.toContain('future reviewed schema slice')
   })
 
-  it('identifies implemented and pending agent status without live execution', () => {
-    const src = readSrc(MESSAGE_WORKSPACE_PAGE)
-    expect(src).toContain('Implemented agents')
-    expect(src).toContain('Pending live-ops prerequisites')
-    expect(src).toContain('Message Strategy Agent')
-    expect(src).toContain('Copywriting Agent')
-    expect(src).toContain('Quality Review Agent')
-    expect(src).toContain('Learning Agent')
-  })
-
-  it('lists prerequisites before activation', () => {
-    const src = readSrc(MESSAGE_WORKSPACE_PAGE)
-    expect(src).toContain('Campaign rules')
-    expect(src).toContain('Approvals')
-    expect(src).toContain('scheduling visibility')
-    expect(src).toContain('controlled send testing')
-    expect(src).toContain('System controls must remain disabled')
+  it('uses the PageStatusBanner for honest page state', () => {
+    expect(readSrc(MESSAGE_WORKSPACE_PAGE)).toContain('PageStatusBanner')
   })
 })
 

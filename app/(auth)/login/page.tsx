@@ -14,7 +14,7 @@ export default async function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex items-center justify-center">
-            <Image src="/brand/verian-logo.png" alt="Verian" width={200} height={60} className="h-12 w-auto object-contain" />
+            <Image src="/brand/verian-logo.png" alt="Verian" width={213} height={64} className="h-16 w-auto object-contain" priority />
           </div>
           <h1 className="text-2xl font-bold">Verian BIOS</h1>
           <p className="text-muted-foreground text-sm mt-1">Business Intelligence Operating System</p>

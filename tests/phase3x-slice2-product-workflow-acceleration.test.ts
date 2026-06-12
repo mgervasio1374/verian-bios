@@ -39,25 +39,24 @@ const CAMPAIGN_ASSETS = 'app/(workspace)/[workspaceSlug]/settings/campaign-asset
 // TC-3X-S2-001/002: Sidebar logo sizing and Verian BIOS text removal
 // ---------------------------------------------------------------------------
 describe('TC-3X-S2-001/002: Sidebar logo is larger and "Verian BIOS" text is removed', () => {
+  // MCM v2 W1: the PNG lockup was replaced with the vector BrandMark + VERIAN
+  // wordmark; the original concern (no tiny logo, no "Verian BIOS" text) holds.
   it('Sidebar logo does NOT use h-7 class (was too small)', () => {
     expect(readSrc(SIDEBAR)).not.toContain('className="h-7 w-auto object-contain"')
   })
 
-  it('Sidebar logo uses h-9 or larger class', () => {
+  it('Sidebar renders the BrandMark with the VERIAN wordmark', () => {
     const src = readSrc(SIDEBAR)
-    expect(src).toMatch(/className="h-(?:9|10|11|12|14|16) w-auto object-contain"/)
+    expect(src).toContain('BrandMark')
+    expect(src).toContain('VERIAN')
   })
 
   it('Sidebar does NOT contain "Verian BIOS" text', () => {
     expect(readSrc(SIDEBAR)).not.toContain('Verian BIOS')
   })
 
-  it('Sidebar still references /brand/verian-logo.png', () => {
-    expect(readSrc(SIDEBAR)).toContain('/brand/verian-logo.png')
-  })
-
-  it('Sidebar still imports next/image', () => {
-    expect(readSrc(SIDEBAR)).toContain("import Image from 'next/image'")
+  it('Sidebar no longer references the PNG lockup', () => {
+    expect(readSrc(SIDEBAR)).not.toContain('/brand/verian-logo.png')
   })
 })
 
@@ -186,32 +185,18 @@ describe('TC-3X-S2-006/007/008: Operations production schedule labels and safety
 // TC-3X-S2-009/010: Campaign Assets sequence/cadence surface
 // ---------------------------------------------------------------------------
 describe('TC-3X-S2-009/010: Campaign Assets sequence and cadence terminology', () => {
-  it('campaign-assets page contains "Campaign Sequence Planning" section', () => {
-    expect(readSrc(CAMPAIGN_ASSETS)).toContain('Campaign Sequence Planning')
+  // MCM v2 W1: the static "Campaign Sequence Planning" block (and its
+  // hypothetical cadence table) was removed — real sequences ship via the
+  // builder on campaign-sequences and the copy contradicted live sending.
+  it('campaign-assets page no longer contains the static planning block', () => {
+    const src = readSrc(CAMPAIGN_ASSETS)
+    expect(src).not.toContain('Campaign Sequence Planning')
+    expect(src).not.toContain('Default Cadence')
+    expect(src).not.toContain('25-email test protocol')
   })
 
-  it('campaign-assets page contains "Default Cadence" label', () => {
-    expect(readSrc(CAMPAIGN_ASSETS)).toContain('Default Cadence')
-  })
-
-  it('campaign-assets page contains Day 1 touch offset', () => {
-    expect(readSrc(CAMPAIGN_ASSETS)).toContain('Day 1')
-  })
-
-  it('campaign-assets page contains Day 91 touch offset', () => {
-    expect(readSrc(CAMPAIGN_ASSETS)).toContain('Day 91')
-  })
-
-  it('campaign-assets page contains "Every 90 days" continuation rule', () => {
-    expect(readSrc(CAMPAIGN_ASSETS)).toContain('Every 90 days')
-  })
-
-  it('campaign-assets page contains Stop Condition concept', () => {
-    expect(readSrc(CAMPAIGN_ASSETS)).toContain('Stop Condition')
-  })
-
-  it('campaign-assets page contains Approval Required concept', () => {
-    expect(readSrc(CAMPAIGN_ASSETS)).toContain('Approval Required')
+  it('campaign-assets page keeps the Campaign Terminology reference', () => {
+    expect(readSrc(CAMPAIGN_ASSETS)).toContain('Campaign Terminology')
   })
 
   it('campaign-assets page does NOT reference EMAIL_SENDING_ENABLED', () => {

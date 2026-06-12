@@ -64,10 +64,13 @@ describe('TC-3W-S3-002: Sidebar uses sidebar tokens, logo, section labels, and c
     expect(src).toContain('bg-sidebar')
   })
 
-  it('Sidebar imports and renders official logo via next/image', () => {
+  // MCM v2 W1: the white-background PNG lockup was replaced with the inline
+  // vector BrandMark + VERIAN wordmark so the brand renders on the navy sidebar.
+  it('Sidebar renders the vector BrandMark with the VERIAN wordmark', () => {
     const src = readSrc(SIDEBAR)
-    expect(src).toContain("import Image from 'next/image'")
-    expect(src).toContain('/brand/verian-logo.png')
+    expect(src).toContain('BrandMark')
+    expect(src).toContain('VERIAN')
+    expect(src).not.toContain('/brand/verian-logo.png')
   })
 
   it('Sidebar contains WORKFLOW, OUTREACH, INTELLIGENCE, ADMIN section labels', () => {
