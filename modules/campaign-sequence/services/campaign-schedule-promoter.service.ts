@@ -4,6 +4,7 @@ import * as companyRepo from '@/modules/crm/repositories/company.repo'
 import * as leadRepo from '@/modules/crm/repositories/lead.repo'
 import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asset.repo'
 import { getCampaignSequenceStepById } from '@/modules/campaign-sequence/repositories/campaign-sequence-step.repo'
+import { getCampaignSequenceById } from '@/modules/campaign-sequence/repositories/campaign-sequence.repo'
 import { renderCampaignAsset } from '@/modules/messaging/services/campaign-personalization.service'
 import { updateScheduleItemStatus } from '@/modules/campaign-sequence/services/campaign-schedule-item.service'
 import { DRAFT_SOURCE_TYPE } from '@/modules/messaging/drafts/draft-source.constants'
@@ -81,15 +82,26 @@ export async function promoteScheduleItemToDraft(
       ? await companyRepo.getCompanyByTenant(item.company_id, tenantId).catch(() => null)
       : null
 
-    // Load default sender identity (non-fatal)
-    // TODO: use campaign_sequences.sender_identity_id once migration 20240045 is applied to the DB
-    const senderIdentity = await emailDraftRepo.getDefaultSenderIdentity(tenantId).catch(() => null)
+    // V4: resolve the SEQUENCE's sender identity (migration 20240045), falling
+    // back to the tenant default. A retired/pending identity also falls back
+    // (getSenderIdentityById requires status 'active').
+    const sequence = await getCampaignSequenceById(item.campaign_sequence_id, tenantId, workspaceId)
+      .catch(() => null)
+    const sequenceSenderIdentityId =
+      ((sequence as unknown as Record<string, unknown> | null)?.['sender_identity_id'] as string | null) ?? null
+
+    const senderIdentity =
+      (sequenceSenderIdentityId
+        ? await emailDraftRepo.getSenderIdentityById(sequenceSenderIdentityId, tenantId).catch(() => null)
+        : null)
+      ?? (await emailDraftRepo.getDefaultSenderIdentity(tenantId).catch(() => null))
 
     // Build personalization fields for the renderer
     const fields = {
       first_name:   contact.first_name ?? null,
       company_name: (company?.name ?? null) as string | null,
       sender_name:  senderIdentity?.name ?? null,
+      sender_email: senderIdentity?.email ?? null,
     }
 
     // Render subject/body from the campaign email asset — pure TypeScript, no LLM, no email API calls

@@ -325,9 +325,12 @@ describe('TC-MM3-06: promoter wiring (source-read)', () => {
     expect(promoterSrc).toContain("'campaign_scheduler'")
   })
 
-  it('promoter has TODO note about sender_identity_id pending 20240045 migration', () => {
-    expect(promoterSrc).toContain('20240045')
+  it('promoter honors the sequence sender_identity_id (V4 replaced the 20240045 TODO)', () => {
+    expect(promoterSrc).not.toContain('TODO: use campaign_sequences.sender_identity_id')
     expect(promoterSrc).toContain('sender_identity_id')
+    expect(promoterSrc).toContain('getSenderIdentityById')
+    // default identity remains the fallback
+    expect(promoterSrc).toContain('getDefaultSenderIdentity')
   })
 })
 

@@ -40,6 +40,26 @@ export async function getDefaultSenderIdentity(
   return data ?? null
 }
 
+// V4: resolve a specific sender identity (e.g. the sequence's). Requires
+// status 'active' — a retired/pending identity makes callers fall back to
+// the tenant default.
+export async function getSenderIdentityById(
+  id: string,
+  tenantId: string
+): Promise<SenderIdentityRow | null> {
+  const supabase = createSupabaseServiceClient()
+  const { data } = await supabase
+    .from('sender_identities')
+    .select('*')
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+    .eq('status', 'active')
+    .is('deleted_at', null)
+    .limit(1)
+    .single()
+  return data ?? null
+}
+
 export async function listSenderIdentities(
   tenantId: string,
 ): Promise<SenderIdentityRow[]> {

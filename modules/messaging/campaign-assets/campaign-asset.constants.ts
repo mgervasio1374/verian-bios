@@ -18,6 +18,7 @@ export const APPROVED_MERGE_FIELDS: Record<string, { fallback: string }> = {
   estimated_savings:   { fallback: '' },
   service_category:    { fallback: '' },
   sender_name:         { fallback: 'The Verian Team' },
+  sender_email:        { fallback: '' },
   cta_text:            { fallback: 'Learn More' },
   cta_url:             { fallback: '' },
   pain_point_tag:      { fallback: '' },

@@ -148,7 +148,20 @@ export async function sendApprovedDraft(
   }
 
   // ---- 8. Sender identity ----
-  const senderIdentity = await emailDraftRepo.getDefaultSenderIdentity(ctx.tenantId)
+  // V4: prefer the draft's stored identity (the promoter resolves it from the
+  // sequence at draft creation); it must be active (enforced by the repo fn)
+  // AND verified. Anything else falls back to the tenant default — an
+  // unverified resolved identity must never block the send.
+  const draftSenderIdentityId =
+    ((draft as unknown as Record<string, unknown>)['sender_identity_id'] as string | null) ?? null
+
+  let senderIdentity = draftSenderIdentityId
+    ? await emailDraftRepo.getSenderIdentityById(draftSenderIdentityId, ctx.tenantId).catch(() => null)
+    : null
+  if (senderIdentity && !senderIdentity.is_verified) senderIdentity = null
+  if (!senderIdentity) {
+    senderIdentity = await emailDraftRepo.getDefaultSenderIdentity(ctx.tenantId)
+  }
 
   const fromAddress = senderIdentity
     ? `${senderIdentity.name} <${senderIdentity.email}>`
@@ -248,6 +261,8 @@ export async function sendApprovedDraft(
       subject: draft.subject,
       html:    draft.body_html ?? `<p>${draft.body_text ?? ''}</p>`,
       text:    draft.body_text ?? undefined,
+      // V4: replies go to the resolved sender (reply_to override or its email)
+      replyTo: senderIdentity ? (senderIdentity.reply_to ?? senderIdentity.email) : undefined,
     })
 
     if (resendError || !resendData) {

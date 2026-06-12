@@ -70,6 +70,7 @@ export async function createDraftFromAsset(
     estimated_savings: null as string | null,
     service_category:  null as string | null,
     sender_name:       senderIdentity?.name ?? null,
+    sender_email:      senderIdentity?.email ?? null, // V4: signatures can follow the sender
   }
 
   // 9. Render campaign asset — pure TypeScript, no LLM, no Resend, no DB write
