@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { AssetTemplateContent } from '@/modules/messaging/campaign-assets/campaign-asset.types'
 import { CAMPAIGN_TYPE, APPROVED_MERGE_FIELDS } from '@/modules/messaging/campaign-assets/campaign-asset.constants'
 import { validateAssetTemplate, extractMergeFields } from '@/modules/messaging/services/campaign-asset-validation.service'
+import { textToHtmlBody } from '@/modules/messaging/campaign-assets/template-html'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { createHumanAssetAction, updateAssetContentAction } from './actions'
 
@@ -41,6 +42,17 @@ export function CampaignAssetEditor({ workspaceSlug, assetId, initial }: Props) 
   const [subject,       setSubject]       = useState(initial?.subjectTemplate ?? '')
   const [bodyHtml,      setBodyHtml]      = useState(initial?.bodyTemplateHtml ?? '')
   const [bodyText,      setBodyText]      = useState(initial?.bodyTemplateText ?? '')
+  // V3 plain-text-first: HTML is derived from the text body unless the
+  // operator opens the advanced toggle and edits HTML directly. On edit,
+  // stored HTML differing from derived-from-text opens the toggle so nothing
+  // is silently overwritten.
+  const [customHtml,    setCustomHtml]    = useState(() =>
+    Boolean(
+      initial &&
+      initial.bodyTemplateHtml.trim() !== '' &&
+      initial.bodyTemplateHtml !== textToHtmlBody(initial.bodyTemplateText)
+    )
+  )
   const [reqFields,     setReqFields]     = useState(initial?.requiredFields.join(', ') ?? '')
   const [fallbacksRaw,  setFallbacksRaw]  = useState(
     Object.entries(initial?.fallbackValues ?? {}).map(([k, v]) => `${k}=${v}`).join('\n')
@@ -49,9 +61,11 @@ export function CampaignAssetEditor({ workspaceSlug, assetId, initial }: Props) 
   const [serverError,       setServerError]       = useState<string | null>(null)
 
   function buildContent(): AssetTemplateContent & { assetName: string; campaignType: string } {
+    const effectiveHtml = customHtml ? bodyHtml : textToHtmlBody(bodyText)
+
     const personalizationFields = [
       ...extractMergeFields(subject),
-      ...extractMergeFields(bodyHtml),
+      ...extractMergeFields(effectiveHtml),
       ...extractMergeFields(bodyText),
     ].filter((v, i, a) => a.indexOf(v) === i)
 
@@ -77,7 +91,7 @@ export function CampaignAssetEditor({ workspaceSlug, assetId, initial }: Props) 
       assetName,
       campaignType,
       subjectTemplate:       subject,
-      bodyTemplateHtml:      bodyHtml,
+      bodyTemplateHtml:      effectiveHtml,
       bodyTemplateText:      bodyText,
       personalizationFields,
       requiredFields,
@@ -186,26 +200,52 @@ export function CampaignAssetEditor({ workspaceSlug, assetId, initial }: Props) 
         </label>
 
         <label className="flex flex-col gap-1 text-xs">
-          <span className="font-medium">Body HTML</span>
-          <textarea
-            value={bodyHtml}
-            onChange={(e) => setBodyHtml(e.target.value)}
-            rows={6}
-            className="rounded border px-2 py-1.5 text-xs font-mono"
-            placeholder="<p>Hi {{first_name}},</p>"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="font-medium">Body Text</span>
+          <span className="font-medium">Email body</span>
           <textarea
             value={bodyText}
             onChange={(e) => setBodyText(e.target.value)}
-            rows={4}
+            rows={8}
             className="rounded border px-2 py-1.5 text-xs font-mono"
-            placeholder="Hi {{first_name}},"
+            placeholder={'Hi {{first_name}},\n\nWrite the email here — blank lines start new paragraphs.'}
           />
+          {!customHtml && (
+            <span className="text-muted-foreground">
+              HTML is generated automatically from this text on save.
+            </span>
+          )}
         </label>
+
+        <div className="space-y-1.5">
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={customHtml}
+              onChange={(e) => {
+                const next = e.target.checked
+                setCustomHtml(next)
+                // Seed the HTML field from the text body when opening the toggle
+                if (next && !bodyHtml.trim()) setBodyHtml(textToHtmlBody(bodyText))
+              }}
+            />
+            <span className="font-medium">Advanced: custom HTML</span>
+          </label>
+
+          {customHtml && (
+            <label className="flex flex-col gap-1 text-xs">
+              <span className="font-medium">Body HTML</span>
+              <textarea
+                value={bodyHtml}
+                onChange={(e) => setBodyHtml(e.target.value)}
+                rows={6}
+                className="rounded border px-2 py-1.5 text-xs font-mono"
+                placeholder="<p>Hi {{first_name}},</p>"
+              />
+              <span className="text-muted-foreground">
+                Your HTML is saved as-is — it is not derived from the text body.
+              </span>
+            </label>
+          )}
+        </div>
 
         <label className="flex flex-col gap-1 text-xs">
           <span className="font-medium">Required Fields (comma-separated)</span>

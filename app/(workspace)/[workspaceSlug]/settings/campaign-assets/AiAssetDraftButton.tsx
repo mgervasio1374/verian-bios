@@ -36,7 +36,16 @@ export function AiAssetDraftButton({ workspaceSlug }: Props) {
       const result = await generateAiDraftAction(workspaceSlug, { campaignType, promptBrief })
 
       if (result.blocked) {
-        setError(result.error ?? 'AI generation blocked.')
+        const reason = result.blockReason ?? ''
+        const message =
+          reason === 'llm_not_configured'
+            ? "AI drafting isn't configured. Set LLM_API_BASE_URL / LLM_API_KEY / LLM_MODEL_NAME."
+            : reason === 'llm_bad_output'
+              ? 'The model returned unusable output. Try rephrasing the brief.'
+              : reason.startsWith('llm_error')
+                ? `AI request failed — ${reason.replace(/^llm_error:\s*/, '')}`
+                : result.error ?? 'AI generation blocked.'
+        setError(message)
         return
       }
 
@@ -89,6 +98,9 @@ export function AiAssetDraftButton({ workspaceSlug }: Props) {
             className="rounded border px-2 py-1.5 text-xs"
             placeholder="Describe the tone, key message, and target audience for this asset…"
           />
+          <span className="text-muted-foreground">
+            Describe the email: audience, offer, tone, call to action.
+          </span>
         </label>
 
         <button
@@ -96,7 +108,7 @@ export function AiAssetDraftButton({ workspaceSlug }: Props) {
           disabled={pending}
           className="rounded bg-primary px-4 py-2 text-sm text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
-          {pending ? 'Generating…' : 'Generate AI Draft'}
+          {pending ? 'Generating…' : 'Generate with AI'}
         </button>
 
         <p className="text-xs text-muted-foreground">
