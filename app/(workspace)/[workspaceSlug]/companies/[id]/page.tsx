@@ -17,6 +17,7 @@ import { DeleteCompanyButton } from './DeleteCompanyButton'
 import { UploadDocumentForm } from './UploadDocumentForm'
 import { CompanySegmentsRow } from './CompanySegmentsRow'
 import { StopCampaignButton } from './StopCampaignButton'
+import { PauseCampaignButton, ResumeCampaignButton } from './PauseResumeCampaignButtons'
 import { listSegmentsForWorkspace, listSegmentsForCompany } from '@/modules/crm/repositories/segment.repo'
 import { AddContactDialog } from '../../contacts/AddContactDialog'
 import { EditContactDialog } from '../../contacts/EditContactDialog'
@@ -235,9 +236,17 @@ export default async function CompanyDetailPage({ params }: PageProps) {
                         </td>
                         <td className="py-2 pr-4 text-muted-foreground">{a.emails_sent}</td>
                         <td className="py-2 pr-4">
-                          {(a.assignment_status === 'proposed' || a.assignment_status === 'assigned') && (
-                            <StopCampaignButton assignmentId={a.id} />
-                          )}
+                          <div className="flex items-center gap-3">
+                            {a.assignment_status === 'assigned' && (
+                              <PauseCampaignButton assignmentId={a.id} />
+                            )}
+                            {a.assignment_status === 'paused' && (
+                              <ResumeCampaignButton assignmentId={a.id} />
+                            )}
+                            {(a.assignment_status === 'proposed' || a.assignment_status === 'assigned' || a.assignment_status === 'paused') && (
+                              <StopCampaignButton assignmentId={a.id} />
+                            )}
+                          </div>
                         </td>
                       </tr>
                     )

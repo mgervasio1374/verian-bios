@@ -29,10 +29,12 @@ async function emitAssignmentActivated(
   campaignSequenceId: string,
   tenantId: string,
   workspaceId: string,
+  startsAt: string | null,
 ): Promise<void> {
   await inngest.send({
     name: 'campaign.assignment_activated',
-    data: { assignmentId, campaignSequenceId, tenantId, workspaceId },
+    // V2: startsAt anchors schedule materialization; null = start now.
+    data: { assignmentId, campaignSequenceId, tenantId, workspaceId, startsAt },
   })
 }
 
@@ -144,6 +146,7 @@ export async function createCampaignAssignment(
     assignment_reason:           input.assignmentReason ?? null,
     confidence:                  input.confidence ?? null,
     auto_approve_first_touch:    input.autoApproveFirstTouch ?? false,
+    starts_at:                   input.startsAt ?? null,
     eligibility_snapshot,
   })
 
@@ -173,7 +176,7 @@ export async function createCampaignAssignment(
   // Non-fatal, but awaited — fire-and-forget emits can be dropped when the Vercel
   // function freezes after the action returns (same failure mode as Issue 008).
   if (assignment_status === ASSIGNMENT_STATUS.ASSIGNED && row.campaign_sequence_id) {
-    await emitAssignmentActivated(row.id, row.campaign_sequence_id!, input.tenantId, input.workspaceId).catch(() => null)
+    await emitAssignmentActivated(row.id, row.campaign_sequence_id!, input.tenantId, input.workspaceId, row.starts_at ?? null).catch(() => null)
   }
 
   return { ok: true, assignmentId: row.id }
@@ -193,6 +196,7 @@ export interface BulkAssignInput {
   autoApproveFirstTouch: boolean
   assignedByUserId?:     string
   assignmentReason?:     string
+  startsAt?:             string // ISO; omitted = start immediately
 }
 
 export interface BulkAssignTally {
@@ -214,6 +218,23 @@ export async function bulkAssignCampaignToCompanies(
   }
   if (input.companyIds.length > MAX_BULK_ASSIGN_COMPANIES) {
     throw new Error(`Assign at most ${MAX_BULK_ASSIGN_COMPANIES} companies at a time.`)
+  }
+
+  // V2: optional future start date — today (UTC) through 365 days out.
+  if (input.startsAt !== undefined) {
+    const startDate = new Date(input.startsAt)
+    if (isNaN(startDate.getTime())) {
+      throw new Error('Invalid start date.')
+    }
+    const todayUtc = new Date().toISOString().slice(0, 10)
+    const startUtc = startDate.toISOString().slice(0, 10)
+    if (startUtc < todayUtc) {
+      throw new Error("Start date can't be in the past.")
+    }
+    const maxDate = new Date(Date.now() + 365 * 86_400_000).toISOString().slice(0, 10)
+    if (startUtc > maxDate) {
+      throw new Error("Start date can't be more than a year out.")
+    }
   }
 
   // Resolve the sequence and its campaign type server-side — the type slug
@@ -293,6 +314,7 @@ export async function bulkAssignCampaignToCompanies(
           assignedByUserId:      input.assignedByUserId,
           assignmentReason:      input.assignmentReason,
           autoApproveFirstTouch: input.autoApproveFirstTouch,
+          startsAt:              input.startsAt,
         })
 
         if (result.ok) {
@@ -355,6 +377,7 @@ export async function approveProposedAssignment(
       existing.campaign_sequence_id!,
       existing.tenant_id,
       existing.workspace_id,
+      existing.starts_at ?? null,
     ).catch(() => null)
   }
 

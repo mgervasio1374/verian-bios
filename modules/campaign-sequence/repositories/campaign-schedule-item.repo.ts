@@ -86,11 +86,15 @@ export async function listDueScheduleItems(
   limit: number,
 ): Promise<CampaignScheduleItemRow[]> {
   const supabase = createSupabaseServiceClient()
+  // V2: paused/retired assignments must not progress — inner join on the
+  // parent assignment (campaign_assignment_id is NOT NULL, so safe) and only
+  // process items whose assignment is still 'assigned'.
   const { data, error } = await supabase
     .from('campaign_schedule_items')
-    .select('*')
+    .select('*, campaign_assignments!inner(assignment_status)')
     .eq('tenant_id', tenantId)
     .eq('workspace_id', workspaceId)
+    .eq('campaign_assignments.assignment_status', 'assigned')
     .in('status', ['planned', 'draft_needed'])
     .is('email_draft_id', null)
     .lte('scheduled_for', now)
@@ -98,7 +102,16 @@ export async function listDueScheduleItems(
     .limit(limit)
 
   if (error) throw new Error(`listDueScheduleItems: ${error.message}`)
-  return data ?? []
+  return stripJoinedAssignment(data ?? [])
+}
+
+// Strips the embedded join used for the V2 parent-status filter so returned
+// rows keep the plain schedule-item shape.
+function stripJoinedAssignment(rows: Record<string, unknown>[]): CampaignScheduleItemRow[] {
+  return rows.map(row => {
+    const { campaign_assignments: _joined, ...rest } = row
+    return rest as unknown as CampaignScheduleItemRow
+  })
 }
 
 export async function listDraftReadyItems(
@@ -107,11 +120,13 @@ export async function listDraftReadyItems(
   limit: number,
 ): Promise<CampaignScheduleItemRow[]> {
   const supabase = createSupabaseServiceClient()
+  // V2: paused/retired assignments must not progress
   const { data, error } = await supabase
     .from('campaign_schedule_items')
-    .select('*')
+    .select('*, campaign_assignments!inner(assignment_status)')
     .eq('tenant_id', tenantId)
     .eq('workspace_id', workspaceId)
+    .eq('campaign_assignments.assignment_status', 'assigned')
     .eq('status', 'draft_ready')
     .not('email_draft_id', 'is', null)
     .is('approval_request_id', null)
@@ -119,7 +134,7 @@ export async function listDraftReadyItems(
     .limit(limit)
 
   if (error) throw new Error(`listDraftReadyItems: ${error.message}`)
-  return data ?? []
+  return stripJoinedAssignment(data ?? [])
 }
 
 export async function getFirstTouchItemForAssignment(
@@ -173,11 +188,15 @@ export async function listSendableScheduleItems(
   limit: number,
 ): Promise<CampaignScheduleItemRow[]> {
   const supabase = createSupabaseServiceClient()
+  // V2: paused/retired assignments must not progress.
+  // NOTE: resume does NOT re-anchor dates — items that came due while paused
+  // are picked up on the next cron run after the assignment returns to 'assigned'.
   const { data, error } = await supabase
     .from('campaign_schedule_items')
-    .select('*')
+    .select('*, campaign_assignments!inner(assignment_status)')
     .eq('tenant_id', tenantId)
     .eq('workspace_id', workspaceId)
+    .eq('campaign_assignments.assignment_status', 'assigned')
     .eq('status', 'approved')
     .not('email_draft_id', 'is', null)
     .lte('scheduled_for', now)
@@ -185,7 +204,7 @@ export async function listSendableScheduleItems(
     .limit(limit)
 
   if (error) throw new Error(`listSendableScheduleItems: ${error.message}`)
-  return data ?? []
+  return stripJoinedAssignment(data ?? [])
 }
 
 /**

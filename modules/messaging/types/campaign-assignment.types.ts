@@ -53,6 +53,7 @@ export interface CampaignAssignment {
   confidence:            number | null
   eligibility_snapshot:       Record<string, unknown>
   auto_approve_first_touch:   boolean
+  starts_at:                  string | null // V2: null = start immediately
   created_at:                 string
   updated_at:                 string
   retired_at:                 string | null
@@ -76,6 +77,7 @@ export interface InsertCampaignAssignment {
   confidence?:           number | null
   eligibility_snapshot:        Record<string, unknown>
   auto_approve_first_touch?:   boolean
+  starts_at?:                  string | null
 }
 
 // ---- Update patch ----
@@ -102,6 +104,7 @@ export interface CreateAssignmentInput {
   assignmentReason?:          string
   confidence?:                number
   autoApproveFirstTouch?:     boolean
+  startsAt?:                  string // ISO; omitted = start immediately
 }
 
 export type CreateAssignmentResult =

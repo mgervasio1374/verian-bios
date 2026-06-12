@@ -27,9 +27,9 @@ describe('TC-S3-01: campaign.assignment_activated emits are awaited (source-read
     expect(service).not.toContain('})().catch(() => null)')
   })
 
-  it('create path awaits emitAssignmentActivated (non-fatal catch preserved)', () => {
+  it('create path awaits emitAssignmentActivated (non-fatal catch preserved; V2 added startsAt arg)', () => {
     expect(service).toContain(
-      'await emitAssignmentActivated(row.id, row.campaign_sequence_id!, input.tenantId, input.workspaceId).catch(() => null)'
+      'await emitAssignmentActivated(row.id, row.campaign_sequence_id!, input.tenantId, input.workspaceId, row.starts_at ?? null).catch(() => null)'
     )
   })
 
@@ -242,8 +242,8 @@ describe('TC-S3-07: CompaniesTable assign-campaign UI (source-read)', () => {
     expect(body).toContain('preApproved')
   })
 
-  it('calls bulkAssignCampaignAction and renders the tally inline', () => {
-    expect(table).toContain('bulkAssignCampaignAction(ids, assignSequenceId, preApproved)')
+  it('calls bulkAssignCampaignAction and renders the tally inline (V2 added startsAt)', () => {
+    expect(table).toContain('bulkAssignCampaignAction(ids, assignSequenceId, preApproved, undefined, startsAt)')
     expect(table).toContain('Created ${t.created} assignment')
     expect(table).toContain('skippedDuplicate')
     expect(table).toContain('skippedNoEmail')

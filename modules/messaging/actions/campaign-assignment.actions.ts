@@ -11,6 +11,8 @@ import {
   approveProposedAssignment,
   rejectProposedAssignment,
   retireCampaignAssignment,
+  pauseCampaignAssignment,
+  resumeCampaignAssignment,
   bulkAssignCampaignToCompanies,
 } from '@/modules/messaging/services/campaign-assignment.service'
 import type { BulkAssignTally } from '@/modules/messaging/services/campaign-assignment.service'
@@ -58,6 +60,7 @@ export async function bulkAssignCampaignAction(
   campaignSequenceId:    string,
   autoApproveFirstTouch: boolean,
   assignmentReason?:     string,
+  startsAt?:             string, // ISO; omitted = start immediately
 ): Promise<ActionResult<BulkAssignTally>> {
   try {
     const supabase = await createSupabaseServerClient()
@@ -75,6 +78,7 @@ export async function bulkAssignCampaignAction(
       autoApproveFirstTouch,
       assignedByUserId:   ctx.userId === 'system' ? undefined : ctx.userId,
       assignmentReason:   assignmentReason || undefined,
+      startsAt:           startsAt || undefined,
     })
 
     revalidatePath('/[workspaceSlug]/companies', 'page')
@@ -157,6 +161,49 @@ export async function stopCampaignSequenceAction(
 
     revalidatePath('/[workspaceSlug]/leads/[id]', 'page')
     return { success: true, data: { stopped } }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
+// V2: pause freezes processing at any pipeline stage (the cron item queries
+// skip non-'assigned' assignments). Resume does NOT re-anchor dates — touches
+// that came due while paused go out on the next cron run after resuming.
+export async function pauseCampaignAssignmentAction(
+  assignmentId: string
+): Promise<ActionResult> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx      = await buildRequestContext(supabase)
+    requirePermission(ctx, 'crm.leads.view')
+
+    if (!assignmentId) return { success: false, error: 'Assignment ID is required.' }
+
+    const result = await pauseCampaignAssignment(assignmentId)
+    if (!result.ok) return { success: false, error: result.reason ?? 'Pause failed.' }
+
+    revalidatePath('/[workspaceSlug]/companies/[id]', 'page')
+    return { success: true, data: undefined }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
+export async function resumeCampaignAssignmentAction(
+  assignmentId: string
+): Promise<ActionResult> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx      = await buildRequestContext(supabase)
+    requirePermission(ctx, 'crm.leads.view')
+
+    if (!assignmentId) return { success: false, error: 'Assignment ID is required.' }
+
+    const result = await resumeCampaignAssignment(assignmentId)
+    if (!result.ok) return { success: false, error: result.reason ?? 'Resume failed.' }
+
+    revalidatePath('/[workspaceSlug]/companies/[id]', 'page')
+    return { success: true, data: undefined }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }

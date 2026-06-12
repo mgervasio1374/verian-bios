@@ -78,6 +78,8 @@ export function CompaniesTable({
   const [showAssignPanel,  setShowAssignPanel]  = useState(false)
   const [assignSequenceId, setAssignSequenceId] = useState('')
   const [preApproved,      setPreApproved]      = useState(false)
+  const [startMode,        setStartMode]        = useState<'now' | 'date'>('now')
+  const [startDate,        setStartDate]        = useState('')
 
   const allSelected = companies.length > 0 && companies.every(c => selectedIds.has(c.id))
   const hasFilter   = Boolean(activeSegmentId || search || activeStatus || activeIndustry)
@@ -169,17 +171,24 @@ export function CompaniesTable({
       return
     }
 
+    if (startMode === 'date' && !startDate) {
+      setError('Pick a start date or switch to "Start immediately".')
+      return
+    }
+    const startsAt = startMode === 'date' ? startDate : undefined
+
     const count = selectedIds.size
     const confirmed = window.confirm(
       `Assign campaign to the contacts of ${count} ${count === 1 ? 'company' : 'companies'}?\n\n` +
       `Sequence: ${sequence.name}\n` +
-      `Pre-approved first touch: ${preApproved ? 'yes' : 'no'}`
+      `Pre-approved first touch: ${preApproved ? 'yes' : 'no'}\n` +
+      `Start: ${startsAt ? `on ${startsAt}` : 'immediately'}`
     )
     if (!confirmed) return
 
     const ids = Array.from(selectedIds)
     startTransition(async () => {
-      const result = await bulkAssignCampaignAction(ids, assignSequenceId, preApproved)
+      const result = await bulkAssignCampaignAction(ids, assignSequenceId, preApproved, undefined, startsAt)
       if (!result.success) {
         setError(result.error)
         return
@@ -200,6 +209,8 @@ export function CompaniesTable({
       setShowAssignPanel(false)
       setAssignSequenceId('')
       setPreApproved(false)
+      setStartMode('now')
+      setStartDate('')
       router.refresh()
     })
   }
@@ -345,6 +356,41 @@ export function CompaniesTable({
                 email copy — it will be sent literally. Review the asset before assigning.
               </div>
             )}
+
+            {/* V2: start control */}
+            <div className="space-y-1 text-xs max-w-md">
+              <span className="font-medium">Start</span>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="assign-start"
+                  checked={startMode === 'now'}
+                  onChange={() => setStartMode('now')}
+                  disabled={pending}
+                />
+                Start immediately
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="assign-start"
+                  checked={startMode === 'date'}
+                  onChange={() => setStartMode('date')}
+                  disabled={pending}
+                />
+                Start on date
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={e => { setStartMode('date'); setStartDate(e.target.value) }}
+                  disabled={pending}
+                  className="rounded border px-2 py-1 text-xs bg-background"
+                />
+              </label>
+              <span className="block text-muted-foreground">
+                Touches are scheduled from this date using each step&apos;s day offset.
+              </span>
+            </div>
 
             <label className="flex items-start gap-2 text-xs max-w-md">
               <input

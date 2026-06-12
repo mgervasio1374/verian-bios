@@ -6,6 +6,8 @@ interface AssignmentActivatedPayload {
   campaignSequenceId: string
   tenantId:           string
   workspaceId:        string
+  // V2: anchors the schedule; optional so old in-flight events still process
+  startsAt?:          string | null
 }
 
 /**
@@ -33,6 +35,10 @@ export const onCampaignAssignmentActivated = inngest.createFunction(
 
     logger.info('Processing campaign.assignment_activated', { assignmentId: data.assignmentId })
 
+    // V2: future-dated start — touch dates are startAt + step day_offset.
+    // Tolerant of old in-flight events without the field (falls back to now).
+    const startAt = data.startsAt ? new Date(data.startsAt) : new Date()
+
     const result = await step.run('materialize-schedule-items', async () => {
       try {
         const items = await materializeScheduleItemsForAssignment(
@@ -40,7 +46,7 @@ export const onCampaignAssignmentActivated = inngest.createFunction(
           data.campaignSequenceId,
           data.tenantId,
           data.workspaceId,
-          new Date(),
+          startAt,
         )
         logger.info(`Materialized ${items.length} schedule item(s)`, { assignmentId: data.assignmentId })
         return { materialized: items.length }

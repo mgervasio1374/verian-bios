@@ -272,8 +272,8 @@ describe('TC-V1-08: company Campaigns card Stop (source-read)', () => {
     expect(button).toContain('ONLY stop surface for contact-scoped')
   })
 
-  it('renders only for proposed/assigned rows on the Campaigns card', () => {
-    expect(page).toContain("(a.assignment_status === 'proposed' || a.assignment_status === 'assigned') && (")
+  it('renders only for active-ish rows on the Campaigns card (V2 added paused)', () => {
+    expect(page).toContain("(a.assignment_status === 'proposed' || a.assignment_status === 'assigned' || a.assignment_status === 'paused') && (")
     expect(page).toContain('<StopCampaignButton assignmentId={a.id} />')
   })
 })
