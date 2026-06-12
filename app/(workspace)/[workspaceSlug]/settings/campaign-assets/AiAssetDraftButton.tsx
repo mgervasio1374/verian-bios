@@ -42,9 +42,11 @@ export function AiAssetDraftButton({ workspaceSlug }: Props) {
             ? "AI drafting isn't configured. Set LLM_API_BASE_URL / LLM_API_KEY / LLM_MODEL_NAME."
             : reason === 'llm_bad_output'
               ? 'The model returned unusable output. Try rephrasing the brief.'
-              : reason.startsWith('llm_error')
-                ? `AI request failed — ${reason.replace(/^llm_error:\s*/, '')}`
-                : result.error ?? 'AI generation blocked.'
+              : reason.includes('429')
+                ? 'The free AI model is busy right now — it usually clears in a few seconds. Try again.'
+                : reason.startsWith('llm_error')
+                  ? `AI request failed — ${reason.replace(/^llm_error:\s*/, '')}`
+                  : result.error ?? 'AI generation blocked.'
         setError(message)
         return
       }

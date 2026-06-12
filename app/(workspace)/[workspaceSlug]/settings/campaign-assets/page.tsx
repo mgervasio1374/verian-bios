@@ -5,6 +5,10 @@ import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asse
 import { CampaignAssetList } from './CampaignAssetList'
 import { AiAssetDraftButton } from './AiAssetDraftButton'
 
+// V3.1: AI generation retries transient 429/5xx (up to ~3x30s worst case);
+// server actions inherit this segment config, so give them headroom.
+export const maxDuration = 60
+
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
 }

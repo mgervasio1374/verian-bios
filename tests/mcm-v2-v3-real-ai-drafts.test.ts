@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { textToHtmlBody } from '@/modules/messaging/campaign-assets/template-html'
+import { parseRetryAfterSeconds } from '@/lib/llm/client'
 
 const read = (rel: string) => readFileSync(join(process.cwd(), rel), 'utf8')
 
@@ -195,5 +196,80 @@ describe('TC-V3-05: CampaignAssetEditor plain-text-first (source-read)', () => {
 
   it('opens with the toggle on when stored HTML differs from derived-from-text', () => {
     expect(editor).toContain('initial.bodyTemplateHtml !== textToHtmlBody(initial.bodyTemplateText)')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// TC-V3-06: backoff-retry on 429/5xx with Retry-After (Slice V3.1)
+// ---------------------------------------------------------------------------
+
+describe('TC-V3-06: parseRetryAfterSeconds (behavioral)', () => {
+  it('parses numeric seconds', () => {
+    expect(parseRetryAfterSeconds('4')).toBe(4)
+  })
+
+  it('keeps fractional seconds as-is (pinned: no flooring)', () => {
+    expect(parseRetryAfterSeconds('3.754')).toBe(3.754)
+  })
+
+  it('returns null for HTTP-date forms, garbage, and null', () => {
+    expect(parseRetryAfterSeconds('Wed, 21 Oct 2026 07:28:00 GMT')).toBeNull()
+    expect(parseRetryAfterSeconds('soon')).toBeNull()
+    expect(parseRetryAfterSeconds('-5')).toBeNull()
+    expect(parseRetryAfterSeconds('')).toBeNull()
+    expect(parseRetryAfterSeconds(null)).toBeNull()
+  })
+})
+
+describe('TC-V3-06: chatComplete retry behavior (source-read)', () => {
+  const client = read(CLIENT)
+
+  it('retry loop is bounded at 3 total attempts', () => {
+    expect(client).toContain('const MAX_ATTEMPTS = 3')
+    expect(client).toContain('for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++)')
+  })
+
+  it('only 429/5xx are retryable; other 4xx throw immediately', () => {
+    expect(client).toContain('response.status === 429 || response.status >= 500')
+    expect(client).toContain('if (!isRetryable) throw httpError')
+  })
+
+  it('timeouts (AbortError) are retryable like 5xx', () => {
+    const idx  = client.indexOf("err.name === 'AbortError'")
+    expect(idx).toBeGreaterThan(-1)
+    const body = client.slice(idx, idx + 500)
+    expect(body).toContain('attempt < MAX_ATTEMPTS')
+    expect(body).toContain('continue')
+  })
+
+  it('honors Retry-After (numeric seconds) with the 8s cap and 3s default', () => {
+    expect(client).toContain("parseRetryAfterSeconds(response.headers.get('retry-after'))")
+    expect(client).toContain('Math.min(retryAfter ?? DEFAULT_RETRY_WAIT_SECONDS, MAX_RETRY_WAIT_SECONDS)')
+    expect(client).toContain('const DEFAULT_RETRY_WAIT_SECONDS = 3')
+    expect(client).toContain('const MAX_RETRY_WAIT_SECONDS = 8')
+  })
+
+  it('exhausted retries append the busy-pool suffix to the same error type', () => {
+    expect(client).toContain('function withRetrySuffix(error: LlmHttpError): LlmHttpError')
+    expect(client).toContain('retries — the free-model pool may be busy; try again in a moment.)')
+  })
+
+  it('each attempt keeps its own 30s AbortController', () => {
+    const loopIdx = client.indexOf('for (let attempt = 1')
+    const loop    = client.slice(loopIdx, loopIdx + 600)
+    expect(loop).toContain('new AbortController()')
+  })
+
+  it('both asset pages export maxDuration = 60 for the retry headroom', () => {
+    expect(read('app/(workspace)/[workspaceSlug]/settings/campaign-assets/page.tsx'))
+      .toContain('export const maxDuration = 60')
+    expect(read('app/(workspace)/[workspaceSlug]/settings/campaign-assets/[assetId]/page.tsx'))
+      .toContain('export const maxDuration = 60')
+  })
+
+  it('the button maps 429 errors to the friendly busy message', () => {
+    const button = read(BUTTON)
+    expect(button).toContain("reason.includes('429')")
+    expect(button).toContain('The free AI model is busy right now — it usually clears in a few seconds. Try again.')
   })
 })

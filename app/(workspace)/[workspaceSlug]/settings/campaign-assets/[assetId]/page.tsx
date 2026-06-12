@@ -14,6 +14,10 @@ import { SubmitForReviewButton } from '../SubmitForReviewButton'
 import { DeleteAssetButton } from '../DeleteAssetButton'
 import { assetUsage } from '@/modules/campaign-sequence/services/sequence-usage.service'
 
+// V3.1: AI revision retries transient 429/5xx (up to ~3x30s worst case);
+// server actions inherit this segment config, so give them headroom.
+export const maxDuration = 60
+
 interface PageProps {
   params:      Promise<{ workspaceSlug: string; assetId: string }>
   searchParams: Promise<{ edit?: string }>
