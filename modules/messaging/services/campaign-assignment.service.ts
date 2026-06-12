@@ -5,6 +5,8 @@ import * as activityEventService from '@/modules/intelligence/services/activity-
 import { ActivityEventType } from '@/modules/intelligence/types.agent'
 import { getCampaignSequenceById } from '@/modules/campaign-sequence/repositories/campaign-sequence.repo'
 import { getCampaignTypeById } from '@/modules/campaign-sequence/repositories/campaign-type.repo'
+import { listCampaignSequenceStepsForSequence } from '@/modules/campaign-sequence/repositories/campaign-sequence-step.repo'
+import { looksLikeAiPrompt } from '@/modules/campaign-sequence/prompt-leak-guard'
 import { listContacts } from '@/modules/crm/repositories/contact.repo'
 import { inngest } from '@/lib/inngest/client'
 import {
@@ -200,6 +202,8 @@ export interface BulkAssignTally {
   skippedDoNotContact:     number
   companiesWithNoContacts: number
   failed:                  number
+  // V1 prompt-leak heuristic — warnings only, the assignment still proceeds
+  warnings?:               string[]
 }
 
 export async function bulkAssignCampaignToCompanies(
@@ -231,6 +235,27 @@ export async function bulkAssignCampaignToCompanies(
     skippedDoNotContact:     0,
     companiesWithNoContacts: 0,
     failed:                  0,
+  }
+
+  // Prompt-leak heuristic (warning only, never blocks): manual mode renders
+  // asset content literally, so a prompt-shaped body would be emailed verbatim.
+  try {
+    const steps = await listCampaignSequenceStepsForSequence(
+      input.campaignSequenceId, input.tenantId, input.workspaceId,
+    )
+    const warnings: string[] = []
+    for (const step of steps) {
+      if (!step.campaign_email_asset_id) continue
+      const asset = await assetRepo.getAssetById(input.tenantId, step.campaign_email_asset_id)
+      if (asset && looksLikeAiPrompt(asset.body_template_text ?? asset.body_template_html ?? '')) {
+        warnings.push(
+          `Step ${step.step_number} asset "${asset.asset_name}" looks like an AI prompt, not finished email copy — it will be sent literally.`,
+        )
+      }
+    }
+    if (warnings.length > 0) tally.warnings = warnings
+  } catch {
+    // best-effort heuristic — never block the assignment on probe failure
   }
 
   for (const companyId of input.companyIds) {

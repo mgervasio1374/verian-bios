@@ -17,6 +17,7 @@ interface SequenceOption {
   id:               string
   name:             string
   campaignTypeSlug: string
+  promptRisk?:      boolean // V1 prompt-leak heuristic (warning only)
 }
 
 function getStatusBadgeClass(status: string | null): string {
@@ -191,8 +192,9 @@ export function CompaniesTable({
         t.companiesWithNoContacts > 0 ? `${t.companiesWithNoContacts} companies without contacts` : null,
         t.failed               > 0 ? `${t.failed} failed` : null,
       ].filter(Boolean).join(', ')
+      const warningSuffix = t.warnings?.length ? ` ⚠ ${t.warnings.join(' ')}` : ''
       setSuccessMessage(
-        `Created ${t.created} assignment${t.created === 1 ? '' : 's'}.${skipped ? ` Skipped: ${skipped}.` : ''}`
+        `Created ${t.created} assignment${t.created === 1 ? '' : 's'}.${skipped ? ` Skipped: ${skipped}.` : ''}${warningSuffix}`
       )
       setSelectedIds(new Set())
       setShowAssignPanel(false)
@@ -336,6 +338,13 @@ export function CompaniesTable({
                 ))}
               </select>
             </label>
+
+            {sequences.find(s => s.id === assignSequenceId)?.promptRisk && (
+              <div className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 max-w-md">
+                This sequence references an asset that looks like an AI prompt, not finished
+                email copy — it will be sent literally. Review the asset before assigning.
+              </div>
+            )}
 
             <label className="flex items-start gap-2 text-xs max-w-md">
               <input

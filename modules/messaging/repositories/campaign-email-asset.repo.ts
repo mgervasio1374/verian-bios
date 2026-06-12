@@ -211,3 +211,20 @@ export async function updatePerformanceSummary(
 
   if (error) throw new Error('updatePerformanceSummary: ' + error.message)
 }
+
+// MCM v2 Slice V1 — hard delete, only legal when nothing references the asset
+// (no sequence step, no email_drafts.source_asset_id). Callers must check
+// assetUsage first; otherwise Retire remains the destructor.
+export async function deleteAsset(
+  tenantId: string,
+  assetId:  string,
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const { error } = await supabase
+    .from('campaign_email_assets')
+    .delete()
+    .eq('tenant_id', tenantId)
+    .eq('id', assetId)
+
+  if (error) throw new Error('deleteAsset: ' + error.message)
+}

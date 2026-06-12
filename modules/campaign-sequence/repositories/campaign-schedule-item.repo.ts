@@ -301,3 +301,21 @@ export async function updateCampaignScheduleItemStatus(
   if (error) throw new Error(`updateCampaignScheduleItemStatus: ${error.message}`)
   return data
 }
+
+// MCM v2 Slice V1 — historical-usage probe for sequence edit/delete rules.
+export async function hasScheduleItemsForSequence(
+  sequenceId:  string,
+  tenantId:    string,
+  workspaceId: string,
+): Promise<boolean> {
+  const supabase = createSupabaseServiceClient()
+  const { count, error } = await supabase
+    .from('campaign_schedule_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .eq('campaign_sequence_id', sequenceId)
+
+  if (error) throw new Error(`hasScheduleItemsForSequence: ${error.message}`)
+  return (count ?? 0) > 0
+}

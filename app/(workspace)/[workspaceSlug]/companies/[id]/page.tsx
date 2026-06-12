@@ -16,6 +16,7 @@ import { CompanyEditDialog } from './CompanyEditDialog'
 import { DeleteCompanyButton } from './DeleteCompanyButton'
 import { UploadDocumentForm } from './UploadDocumentForm'
 import { CompanySegmentsRow } from './CompanySegmentsRow'
+import { StopCampaignButton } from './StopCampaignButton'
 import { listSegmentsForWorkspace, listSegmentsForCompany } from '@/modules/crm/repositories/segment.repo'
 import { AddContactDialog } from '../../contacts/AddContactDialog'
 import { EditContactDialog } from '../../contacts/EditContactDialog'
@@ -213,6 +214,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
                     <th className="text-left pb-2 pr-4">Status</th>
                     <th className="text-left pb-2 pr-4">Assigned</th>
                     <th className="text-left pb-2 pr-4">Emails Sent</th>
+                    <th className="text-left pb-2 pr-4"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -232,6 +234,11 @@ export default async function CompanyDetailPage({ params }: PageProps) {
                           {new Date(a.created_at).toLocaleDateString()}
                         </td>
                         <td className="py-2 pr-4 text-muted-foreground">{a.emails_sent}</td>
+                        <td className="py-2 pr-4">
+                          {(a.assignment_status === 'proposed' || a.assignment_status === 'assigned') && (
+                            <StopCampaignButton assignmentId={a.id} />
+                          )}
+                        </td>
                       </tr>
                     )
                   })}

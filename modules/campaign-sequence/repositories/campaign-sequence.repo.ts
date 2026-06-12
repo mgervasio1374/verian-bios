@@ -99,10 +99,29 @@ export async function listManualSequencesForWorkspace(
     .eq('tenant_id', tenantId)
     .eq('workspace_id', workspaceId)
     .eq('authoring_mode', 'manual')
+    .neq('status', 'retired') // archived sequences are hidden from all pickers
     .order('name', { ascending: true })
 
   if (error) throw new Error(`listManualSequencesForWorkspace: ${error.message}`)
   return data ?? []
+}
+
+// Hard delete — only legal for never-used sequences (steps must be deleted
+// first: campaign_sequence_steps FK is ON DELETE RESTRICT).
+export async function deleteCampaignSequence(
+  id: string,
+  tenantId: string,
+  workspaceId: string,
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const { error } = await supabase
+    .from('campaign_sequences')
+    .delete()
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+
+  if (error) throw new Error(`deleteCampaignSequence: ${error.message}`)
 }
 
 export async function updateCampaignSequence(

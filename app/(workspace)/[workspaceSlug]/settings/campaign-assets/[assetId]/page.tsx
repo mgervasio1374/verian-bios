@@ -11,6 +11,8 @@ import { CampaignAssetEditor } from '../CampaignAssetEditor'
 import { CampaignAssetReviewPanel } from '../CampaignAssetReviewPanel'
 import { CloneAssetButton } from '../CloneAssetButton'
 import { SubmitForReviewButton } from '../SubmitForReviewButton'
+import { DeleteAssetButton } from '../DeleteAssetButton'
+import { assetUsage } from '@/modules/campaign-sequence/services/sequence-usage.service'
 
 interface PageProps {
   params:      Promise<{ workspaceSlug: string; assetId: string }>
@@ -39,7 +41,15 @@ export default async function CampaignAssetDetailPage({ params, searchParams }: 
   const sourceDrafts      = await emailDraftRepo.getDraftsBySourceAsset(ctx.tenantId, assetId, 10).catch(() => [])
   const assignedLeads     = await assignmentRepo.getCampaignAssignmentsForAsset(ctx.workspaceId, assetId).catch(() => [])
 
-  if (edit === '1' && asset.status === 'draft') {
+  // V1 usage rules: editable unless an ACTIVE assignment's sequence references
+  // this asset (any status — operator-owned copy in manual mode); hard delete
+  // only when nothing references it at all.
+  const usage = await assetUsage(assetId, ctx.tenantId, ctx.workspaceId)
+    .catch(() => ({ activeAssignments: 1, referencedBySteps: true, referencedByDrafts: true }))
+  const editable  = usage.activeAssignments === 0
+  const deletable = editable && !usage.referencedBySteps && !usage.referencedByDrafts
+
+  if (edit === '1' && editable) {
     const initial = {
       assetName:             asset.asset_name,
       campaignType:          asset.campaign_type,
@@ -60,17 +70,38 @@ export default async function CampaignAssetDetailPage({ params, searchParams }: 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         {asset.status === 'draft' ? (
           <SubmitForReviewButton workspaceSlug={workspaceSlug} assetId={assetId} />
         ) : (
           <div />
         )}
-        <CloneAssetButton
-          workspaceSlug={workspaceSlug}
-          sourceId={assetId}
-          sourceName={asset.asset_name}
-        />
+        <div className="flex items-center gap-2">
+          {editable ? (
+            <Link
+              href={`/${workspaceSlug}/settings/campaign-assets/${assetId}?edit=1`}
+              className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted"
+            >
+              Edit Content
+            </Link>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              Locked — used by an active campaign. Stop the campaign first to edit.
+            </span>
+          )}
+          <CloneAssetButton
+            workspaceSlug={workspaceSlug}
+            sourceId={assetId}
+            sourceName={asset.asset_name}
+          />
+          {deletable && (
+            <DeleteAssetButton
+              workspaceSlug={workspaceSlug}
+              assetId={assetId}
+              assetName={asset.asset_name}
+            />
+          )}
+        </div>
       </div>
 
       {(asset.status === 'under_review' || asset.status === 'approved' || asset.status === 'active') && (

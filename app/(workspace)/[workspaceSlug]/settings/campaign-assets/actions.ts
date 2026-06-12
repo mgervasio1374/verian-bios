@@ -9,6 +9,7 @@ import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asse
 import * as assetService from '@/modules/messaging/services/campaign-asset.service'
 import * as aiService from '@/modules/messaging/services/campaign-asset-ai.service'
 import { createDraftFromAsset } from '@/modules/messaging/services/campaign-asset-draft.service'
+import { assetUsage } from '@/modules/campaign-sequence/services/sequence-usage.service'
 
 async function getCtx() {
   const supabase = await createSupabaseServerClient()
@@ -31,9 +32,43 @@ export async function updateAssetContentAction(
   content:       AssetTemplateContent & { assetName?: string; campaignType?: string }
 ) {
   const ctx = await getCtx()
+
+  // V1 usage lock: an asset referenced by a sequence with an ACTIVE assignment
+  // cannot be edited. Otherwise edits are allowed regardless of asset status
+  // (operator-owned copy in manual mode — status stays unchanged).
+  const usage = await assetUsage(assetId, ctx.tenantId, ctx.workspaceId)
+  if (usage.activeAssignments > 0) {
+    throw new Error('This asset is used by an active campaign. Stop the campaign first.')
+  }
+
   await assetRepo.updateAssetContent(ctx.tenantId, assetId, content)
   revalidatePath(`/${workspaceSlug}/settings/campaign-assets`)
   revalidatePath(`/${workspaceSlug}/settings/campaign-assets/${assetId}`)
+}
+
+// V1: hard delete only when nothing references the asset at all (no sequence
+// step, no email_drafts source linkage); otherwise Retire stays the destructor.
+export async function deleteAssetAction(
+  workspaceSlug: string,
+  assetId:       string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const ctx   = await getCtx()
+    const usage = await assetUsage(assetId, ctx.tenantId, ctx.workspaceId)
+
+    if (usage.activeAssignments > 0) {
+      return { ok: false, error: 'This asset is used by an active campaign. Stop the campaign first.' }
+    }
+    if (usage.referencedBySteps || usage.referencedByDrafts) {
+      return { ok: false, error: "This asset is referenced by sequences or drafts and can't be deleted. Retire it instead." }
+    }
+
+    await assetRepo.deleteAsset(ctx.tenantId, assetId)
+    revalidatePath(`/${workspaceSlug}/settings/campaign-assets`)
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
 }
 
 export async function submitForReviewAction(

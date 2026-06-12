@@ -6,6 +6,7 @@ import { listSegmentsForWorkspace } from '@/modules/crm/repositories/segment.rep
 import { listManualSequencesForWorkspace } from '@/modules/campaign-sequence/repositories/campaign-sequence.repo'
 import { listCampaignTypes } from '@/modules/campaign-sequence/repositories/campaign-type.repo'
 import { getCompaniesInActiveCampaigns } from '@/modules/messaging/repositories/campaign-assignment.repo'
+import { sequencesWithPromptRisk } from '@/modules/campaign-sequence/services/sequence-usage.service'
 import { AddCompanyDialog } from './AddCompanyDialog'
 import { CompaniesTable } from './CompaniesTable'
 
@@ -58,10 +59,14 @@ export default async function CompaniesPage({ params, searchParams }: PageProps)
   ])
 
   const typeSlugById = new Map(campaignTypes.map(t => [t.id, t.slug]))
+  // V1 prompt-leak heuristic: flag sequences referencing prompt-shaped assets
+  const promptRiskIds = await sequencesWithPromptRisk(ctx.tenantId, ctx.workspaceId)
+    .catch(() => new Set<string>())
   const sequences = manualSequences.map(s => ({
     id:               s.id,
     name:             s.name,
     campaignTypeSlug: typeSlugById.get(s.campaign_type_id) ?? '',
+    promptRisk:       promptRiskIds.has(s.id),
   }))
 
   // Marketing-status rollup for the displayed page (Set isn't serializable — pass an array)

@@ -313,3 +313,69 @@ export async function listAssignmentsForCompany(
     emails_sent:       sentCountByAssignmentId.get(a.id) ?? 0,
   }))
 }
+
+// MCM v2 Slice V1 — sequence usage probes (drive edit/delete locking)
+
+export async function countActiveAssignmentsForSequence(
+  sequenceId:  string,
+  tenantId:    string,
+  workspaceId: string,
+): Promise<number> {
+  const supabase = createSupabaseServiceClient()
+  const { count, error } = await supabase
+    .from('campaign_assignments')
+    .select('id', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .eq('campaign_sequence_id', sequenceId)
+    .in('assignment_status', ['proposed', 'assigned'])
+
+  if (error) throw new Error('countActiveAssignmentsForSequence: ' + error.message)
+  return count ?? 0
+}
+
+export async function countActiveAssignmentsForSequences(
+  sequenceIds: string[],
+  tenantId:    string,
+  workspaceId: string,
+): Promise<number> {
+  if (sequenceIds.length === 0) return 0
+  const supabase = createSupabaseServiceClient()
+  const { count, error } = await supabase
+    .from('campaign_assignments')
+    .select('id', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .in('campaign_sequence_id', sequenceIds)
+    .in('assignment_status', ['proposed', 'assigned'])
+
+  if (error) throw new Error('countActiveAssignmentsForSequences: ' + error.message)
+  return count ?? 0
+}
+
+// One workspace-wide fetch grouped per sequence — used by the sequence list page.
+export async function getAssignmentCountsBySequence(
+  tenantId:    string,
+  workspaceId: string,
+): Promise<Map<string, { active: number; total: number }>> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('campaign_assignments')
+    .select('campaign_sequence_id, assignment_status')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .not('campaign_sequence_id', 'is', null)
+
+  if (error) throw new Error('getAssignmentCountsBySequence: ' + error.message)
+
+  const counts = new Map<string, { active: number; total: number }>()
+  for (const row of (data ?? []) as { campaign_sequence_id: string; assignment_status: string }[]) {
+    const entry = counts.get(row.campaign_sequence_id) ?? { active: 0, total: 0 }
+    entry.total += 1
+    if (row.assignment_status === 'proposed' || row.assignment_status === 'assigned') {
+      entry.active += 1
+    }
+    counts.set(row.campaign_sequence_id, entry)
+  }
+  return counts
+}

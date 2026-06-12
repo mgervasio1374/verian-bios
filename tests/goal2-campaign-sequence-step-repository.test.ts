@@ -90,9 +90,14 @@ describe('TC-G2-S4-003 function exports', () => {
     expect(src).toContain('export async function updateCampaignSequenceStep')
   })
 
-  it('does not export a delete function', () => {
-    expect(src).not.toContain('deleteCampaignSequenceStep')
-    expect(src).not.toContain('export async function delete')
+  it('delete exists (added MCM v2 V1) and is tenant/workspace-scoped', () => {
+    // Originally this repo had no delete; V1 added usage-guarded deletion
+    // (never-used sequences only — enforced in the authoring actions).
+    const fnIdx = src.indexOf('export async function deleteCampaignSequenceStep')
+    expect(fnIdx).toBeGreaterThan(-1)
+    const body = src.slice(fnIdx, fnIdx + 600)
+    expect(body).toContain("eq('tenant_id', tenantId)")
+    expect(body).toContain("eq('workspace_id', workspaceId)")
   })
 })
 

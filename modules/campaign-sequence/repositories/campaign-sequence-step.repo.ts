@@ -74,3 +74,52 @@ export async function updateCampaignSequenceStep(
   if (error) throw new Error(`updateCampaignSequenceStep: ${error.message}`)
   return row
 }
+
+// MCM v2 Slice V1 — step deletion (never-used sequences only) + asset usage probe
+
+export async function deleteCampaignSequenceStep(
+  id: string,
+  tenantId: string,
+  workspaceId: string,
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const { error } = await supabase
+    .from('campaign_sequence_steps')
+    .delete()
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+
+  if (error) throw new Error(`deleteCampaignSequenceStep: ${error.message}`)
+}
+
+export async function deleteStepsForSequence(
+  campaignSequenceId: string,
+  tenantId: string,
+  workspaceId: string,
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const { error } = await supabase
+    .from('campaign_sequence_steps')
+    .delete()
+    .eq('campaign_sequence_id', campaignSequenceId)
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+
+  if (error) throw new Error(`deleteStepsForSequence: ${error.message}`)
+}
+
+export async function listStepsReferencingAsset(
+  assetId: string,
+  tenantId: string,
+): Promise<{ id: string; campaign_sequence_id: string }[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('campaign_sequence_steps')
+    .select('id, campaign_sequence_id')
+    .eq('tenant_id', tenantId)
+    .eq('campaign_email_asset_id', assetId)
+
+  if (error) throw new Error(`listStepsReferencingAsset: ${error.message}`)
+  return (data ?? []) as { id: string; campaign_sequence_id: string }[]
+}

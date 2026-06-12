@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { createManualSequenceAction } from '@/modules/campaign-sequence/actions/sequence-authoring.actions'
+import { createManualSequenceAction, updateManualSequenceAction } from '@/modules/campaign-sequence/actions/sequence-authoring.actions'
+import { looksLikeAiPrompt } from '@/modules/campaign-sequence/prompt-leak-guard'
 import type { CampaignTypeRow } from '@/modules/campaign-sequence/types'
 import type { Database } from '@/types/database'
 
@@ -10,8 +11,19 @@ type SenderIdentityRow   = Database['public']['Tables']['sender_identities']['Ro
 type CampaignEmailAsset  = Database['public']['Tables']['campaign_email_assets']['Row']
 
 interface StepState {
+  id?:                    string // set for existing steps in edit mode
   day_offset:             number | ''
   campaignEmailAssetId:   string
+}
+
+// V1 edit mode: pre-fills the builder from an existing sequence. Step removal
+// is only offered when the sequence has never been used (allowStepRemoval).
+export interface SequenceEditState {
+  sequenceId:       string
+  name:             string
+  senderIdentityId: string | null
+  steps:            { id: string; day_offset: number; campaignEmailAssetId: string }[]
+  allowStepRemoval: boolean
 }
 
 interface Props {
@@ -19,20 +31,33 @@ interface Props {
   campaignTypes:    CampaignTypeRow[]
   senderIdentities: SenderIdentityRow[]
   assets:           CampaignEmailAsset[]
+  edit?:            SequenceEditState
+  onDone?:          () => void
 }
 
 const emptyStep = (): StepState => ({ day_offset: 0, campaignEmailAssetId: '' })
 
-export function SequenceBuilder({ campaignTypes, senderIdentities, assets }: Props) {
+export function SequenceBuilder({ campaignTypes, senderIdentities, assets, edit, onDone }: Props) {
   const [pending, startTransition] = useTransition()
 
-  const [name,             setName]             = useState('')
+  const [name,             setName]             = useState(edit?.name ?? '')
   const [campaignTypeId,   setCampaignTypeId]   = useState('')
-  const [senderIdentityId, setSenderIdentityId] = useState('')
-  const [steps,            setSteps]            = useState<StepState[]>([emptyStep()])
+  const [senderIdentityId, setSenderIdentityId] = useState(edit?.senderIdentityId ?? '')
+  const [steps,            setSteps]            = useState<StepState[]>(
+    edit ? edit.steps.map(s => ({ ...s })) : [emptyStep()],
+  )
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [serverError,      setServerError]      = useState<string | null>(null)
   const [successId,        setSuccessId]        = useState<string | null>(null)
+
+  // Prompt-leak heuristic (warning only, never blocks): manual mode sends
+  // asset content literally, so a prompt-shaped body would leak verbatim.
+  function assetPromptWarning(assetId: string): boolean {
+    if (!assetId) return false
+    const asset = assets.find(a => a.id === assetId)
+    if (!asset) return false
+    return looksLikeAiPrompt(asset.body_template_text ?? asset.body_template_html ?? '')
+  }
 
   const selectedTypeSlug = campaignTypes.find(t => t.id === campaignTypeId)?.slug ?? null
   const filteredAssets   = assets.filter(a => !selectedTypeSlug || a.campaign_type === selectedTypeSlug)
@@ -48,7 +73,17 @@ export function SequenceBuilder({ campaignTypes, senderIdentities, assets }: Pro
 
   function removeStep(idx: number) {
     if (steps.length <= 1) return
+    // In edit mode, existing steps are only removable for never-used sequences;
+    // unsaved (new) steps can always be removed client-side.
+    const step = steps[idx]
+    if (edit && step.id && !edit.allowStepRemoval) return
     setSteps(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  function canRemoveStep(step: StepState): boolean {
+    if (steps.length <= 1) return false
+    if (!edit) return true
+    return !step.id || edit.allowStepRemoval
   }
 
   function handleSave() {
@@ -58,6 +93,31 @@ export function SequenceBuilder({ campaignTypes, senderIdentities, assets }: Pro
 
     startTransition(async () => {
       try {
+        if (edit) {
+          const result = await updateManualSequenceAction(edit.sequenceId, {
+            name,
+            senderIdentityId: senderIdentityId || null,
+            steps: steps.map((s, i) => ({
+              id:                   s.id,
+              step_number:          i + 1,
+              day_offset:           typeof s.day_offset === 'number' ? s.day_offset : 0,
+              campaignEmailAssetId: s.campaignEmailAssetId,
+            })),
+          })
+
+          if (!result.ok) {
+            if (result.errors?.length) {
+              setValidationErrors(result.errors)
+            } else {
+              setServerError(result.error ?? 'Failed to update sequence.')
+            }
+            return
+          }
+
+          onDone?.()
+          return
+        }
+
         const result = await createManualSequenceAction({
           name,
           campaignTypeId,
@@ -93,7 +153,7 @@ export function SequenceBuilder({ campaignTypes, senderIdentities, assets }: Pro
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm">Create New Manual Sequence</CardTitle>
+        <CardTitle className="text-sm">{edit ? 'Edit Sequence' : 'Create New Manual Sequence'}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {successId && (
@@ -121,20 +181,22 @@ export function SequenceBuilder({ campaignTypes, senderIdentities, assets }: Pro
           />
         </label>
 
-        {/* Campaign Type */}
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="font-medium">Campaign Type</span>
-          <select
-            value={campaignTypeId}
-            onChange={e => setCampaignTypeId(e.target.value)}
-            className="rounded border px-2 py-1.5 text-sm"
-          >
-            <option value="">Select campaign type…</option>
-            {campaignTypes.map(t => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
-        </label>
+        {/* Campaign Type — fixed once created; hidden in edit mode */}
+        {!edit && (
+          <label className="flex flex-col gap-1 text-xs">
+            <span className="font-medium">Campaign Type</span>
+            <select
+              value={campaignTypeId}
+              onChange={e => setCampaignTypeId(e.target.value)}
+              className="rounded border px-2 py-1.5 text-sm"
+            >
+              <option value="">Select campaign type…</option>
+              {campaignTypes.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
 
         {/* Sender Identity */}
         <label className="flex flex-col gap-1 text-xs">
@@ -201,9 +263,14 @@ export function SequenceBuilder({ campaignTypes, senderIdentities, assets }: Pro
                     <option key={a.id} value={a.id}>{a.asset_name}</option>
                   ))}
                 </select>
+                {assetPromptWarning(step.campaignEmailAssetId) && (
+                  <span className="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] text-amber-800">
+                    This asset looks like an AI prompt, not finished email copy — it will be sent literally.
+                  </span>
+                )}
               </label>
 
-              {steps.length > 1 && (
+              {canRemoveStep(step) && (
                 <button
                   type="button"
                   onClick={() => removeStep(idx)}
@@ -222,8 +289,18 @@ export function SequenceBuilder({ campaignTypes, senderIdentities, assets }: Pro
             disabled={pending}
             className="rounded bg-primary px-4 py-2 text-sm text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
-            {pending ? 'Creating…' : 'Create Sequence'}
+            {pending ? 'Saving…' : edit ? 'Save Changes' : 'Create Sequence'}
           </button>
+          {edit && (
+            <button
+              type="button"
+              onClick={() => onDone?.()}
+              disabled={pending}
+              className="rounded border px-4 py-2 text-sm hover:bg-muted disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          )}
         </div>
       </CardContent>
     </Card>

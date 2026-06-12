@@ -4,11 +4,23 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import { requirePermission } from '@/lib/auth/permissions'
-import { insertCampaignSequence } from '@/modules/campaign-sequence/repositories/campaign-sequence.repo'
-import { insertCampaignSequenceStep } from '@/modules/campaign-sequence/repositories/campaign-sequence-step.repo'
+import {
+  insertCampaignSequence,
+  getCampaignSequenceById,
+  updateCampaignSequence,
+  deleteCampaignSequence,
+} from '@/modules/campaign-sequence/repositories/campaign-sequence.repo'
+import {
+  insertCampaignSequenceStep,
+  listCampaignSequenceStepsForSequence,
+  updateCampaignSequenceStep,
+  deleteCampaignSequenceStep,
+  deleteStepsForSequence,
+} from '@/modules/campaign-sequence/repositories/campaign-sequence-step.repo'
+import { sequenceUsage } from '@/modules/campaign-sequence/services/sequence-usage.service'
 import { validateManualSequenceDraft } from '@/modules/campaign-sequence/sequence-authoring.validation'
 import type { StepDraft } from '@/modules/campaign-sequence/sequence-authoring.validation'
-import type { CampaignSequenceInsert } from '@/modules/campaign-sequence/types'
+import type { CampaignSequenceInsert, CampaignSequenceUpdate } from '@/modules/campaign-sequence/types'
 
 // ---------------------------------------------------------------------------
 // Manual Campaign Mode — Slice 9: sequence authoring actions
@@ -70,6 +82,178 @@ export async function createManualSequenceAction(
 
     revalidatePath('/[workspaceSlug]/settings/campaign-sequences', 'page')
     return { ok: true, sequenceId: sequence.id }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// MCM v2 Slice V1 — edit/delete/archive with usage-aware locks.
+// Rule table:
+//   active assignment   -> edit/delete locked ("stop the campaign first")
+//   used historically   -> edit allowed except step removal; archive, no delete
+//   never used          -> full edit + hard delete (steps deleted first — RESTRICT FK)
+// ---------------------------------------------------------------------------
+
+const ACTIVE_LOCK_ERROR = 'This sequence has an active campaign. Stop it first.'
+
+export interface UpdateManualSequenceInput {
+  name: string
+  description?: string | null
+  senderIdentityId?: string | null
+  // Steps with an id update the existing row in place; steps without an id are
+  // added. Existing steps missing from the list are removals (never-used only).
+  steps: Array<{
+    id?: string
+    step_number: number
+    day_offset: number
+    campaignEmailAssetId: string
+    touch_label?: string | null
+  }>
+}
+
+export async function updateManualSequenceAction(
+  sequenceId: string,
+  input: UpdateManualSequenceInput,
+): Promise<{ ok: boolean; errors?: string[]; error?: string }> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx      = await buildRequestContext(supabase)
+    requirePermission(ctx, 'crm.leads.view')
+
+    if (!input.name?.trim()) return { ok: false, error: 'Sequence name is required.' }
+
+    const sequence = await getCampaignSequenceById(sequenceId, ctx.tenantId, ctx.workspaceId)
+    if (!sequence) return { ok: false, error: 'Sequence not found.' }
+
+    const usage = await sequenceUsage(sequenceId, ctx.tenantId, ctx.workspaceId)
+    if (usage.active > 0) return { ok: false, error: ACTIVE_LOCK_ERROR }
+
+    const errors = validateManualSequenceDraft({
+      steps: input.steps.map(s => ({
+        step_number:          s.step_number,
+        day_offset:           s.day_offset,
+        campaignEmailAssetId: s.campaignEmailAssetId,
+      })),
+    })
+    if (errors.length > 0) return { ok: false, errors }
+
+    const existingSteps = await listCampaignSequenceStepsForSequence(
+      sequenceId, ctx.tenantId, ctx.workspaceId,
+    )
+    const keptIds      = new Set(input.steps.filter(s => s.id).map(s => s.id as string))
+    const removedSteps = existingSteps.filter(s => !keptIds.has(s.id))
+
+    // Historical schedule items FK to step rows — removal only for never-used
+    if (usage.historical && removedSteps.length > 0) {
+      return {
+        ok: false,
+        error: "Steps can't be removed from a sequence with campaign history. Archive it and create a new sequence instead.",
+      }
+    }
+
+    const sequencePatch: Record<string, unknown> = {
+      name:               input.name.trim(),
+      description:        input.description !== undefined ? input.description : sequence.description,
+      sender_identity_id: input.senderIdentityId !== undefined ? input.senderIdentityId : undefined,
+    }
+    if (sequencePatch.sender_identity_id === undefined) delete sequencePatch.sender_identity_id
+    await updateCampaignSequence(
+      sequenceId, ctx.tenantId, ctx.workspaceId,
+      sequencePatch as unknown as CampaignSequenceUpdate,
+    )
+
+    // Deletions first (never-used only), then in-place updates in ascending
+    // step order, then additions — avoids unique (sequence, step_number) clashes.
+    for (const step of removedSteps) {
+      await deleteCampaignSequenceStep(step.id, ctx.tenantId, ctx.workspaceId)
+    }
+
+    const ordered = [...input.steps].sort((a, b) => a.step_number - b.step_number)
+    for (const step of ordered) {
+      if (step.id) {
+        await updateCampaignSequenceStep(step.id, ctx.tenantId, ctx.workspaceId, {
+          step_number:             step.step_number,
+          day_offset:              step.day_offset,
+          campaign_email_asset_id: step.campaignEmailAssetId,
+          touch_label:             step.touch_label ?? null,
+        })
+      } else {
+        await insertCampaignSequenceStep({
+          tenant_id:               ctx.tenantId,
+          workspace_id:            ctx.workspaceId,
+          campaign_sequence_id:    sequenceId,
+          step_number:             step.step_number,
+          day_offset:              step.day_offset,
+          campaign_email_asset_id: step.campaignEmailAssetId,
+          touch_label:             step.touch_label ?? null,
+          is_recurring:            false,
+          recurring_interval_days: null,
+        })
+      }
+    }
+
+    revalidatePath('/[workspaceSlug]/settings/campaign-sequences', 'page')
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
+export async function deleteManualSequenceAction(
+  sequenceId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx      = await buildRequestContext(supabase)
+    requirePermission(ctx, 'crm.leads.view')
+
+    const sequence = await getCampaignSequenceById(sequenceId, ctx.tenantId, ctx.workspaceId)
+    if (!sequence) return { ok: false, error: 'Sequence not found.' }
+
+    const usage = await sequenceUsage(sequenceId, ctx.tenantId, ctx.workspaceId)
+    if (usage.active > 0) return { ok: false, error: ACTIVE_LOCK_ERROR }
+    if (usage.historical) {
+      return {
+        ok: false,
+        error: "This sequence has campaign history and can't be deleted. Archive it instead.",
+      }
+    }
+
+    // Steps FK is ON DELETE RESTRICT — delete steps first, then the sequence
+    await deleteStepsForSequence(sequenceId, ctx.tenantId, ctx.workspaceId)
+    await deleteCampaignSequence(sequenceId, ctx.tenantId, ctx.workspaceId)
+
+    revalidatePath('/[workspaceSlug]/settings/campaign-sequences', 'page')
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
+export async function archiveSequenceAction(
+  sequenceId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx      = await buildRequestContext(supabase)
+    requirePermission(ctx, 'crm.leads.view')
+
+    const sequence = await getCampaignSequenceById(sequenceId, ctx.tenantId, ctx.workspaceId)
+    if (!sequence) return { ok: false, error: 'Sequence not found.' }
+
+    const usage = await sequenceUsage(sequenceId, ctx.tenantId, ctx.workspaceId)
+    if (usage.active > 0) return { ok: false, error: ACTIVE_LOCK_ERROR }
+
+    // Archive = status 'retired': hidden from the assignment picker, the
+    // bulk-assign panel, and the default sequence list view.
+    await updateCampaignSequence(sequenceId, ctx.tenantId, ctx.workspaceId, {
+      status:     'retired',
+      retired_at: new Date().toISOString(),
+    } as unknown as CampaignSequenceUpdate)
+
+    revalidatePath('/[workspaceSlug]/settings/campaign-sequences', 'page')
+    return { ok: true }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }
