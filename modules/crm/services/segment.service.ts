@@ -83,6 +83,11 @@ export async function addCompaniesToSegment(
   await segmentRepo.addCompaniesToSegment(companyIds, segmentId, ctx.tenantId)
 }
 
+export async function listSegmentsForCompany(ctx: RequestContext, companyId: string) {
+  requirePermission(ctx, 'crm.companies.view')
+  return segmentRepo.listSegmentsForCompany(companyId, ctx.tenantId)
+}
+
 export async function listCompanyIdsForSegment(ctx: RequestContext, segmentId: string) {
   requirePermission(ctx, 'crm.companies.view')
   const segment = await segmentRepo.getSegmentById(segmentId, ctx.tenantId, ctx.workspaceId)

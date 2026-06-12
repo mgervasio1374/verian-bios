@@ -15,6 +15,8 @@ import { GenerateRecommendationButton } from './GenerateRecommendationButton'
 import { CompanyEditDialog } from './CompanyEditDialog'
 import { DeleteCompanyButton } from './DeleteCompanyButton'
 import { UploadDocumentForm } from './UploadDocumentForm'
+import { CompanySegmentsRow } from './CompanySegmentsRow'
+import { listSegmentsForWorkspace, listSegmentsForCompany } from '@/modules/crm/repositories/segment.repo'
 import { AddContactDialog } from '../../contacts/AddContactDialog'
 import { EditContactDialog } from '../../contacts/EditContactDialog'
 import { formatPhone } from '@/lib/format'
@@ -54,7 +56,11 @@ export default async function CompanyDetailPage({ params }: PageProps) {
 
   if (!company) notFound()
 
-  const campaignRollup = await listAssignmentsForCompany(ctx.tenantId, ctx.workspaceId, id).catch(() => [])
+  const [campaignRollup, workspaceSegments, companySegments] = await Promise.all([
+    listAssignmentsForCompany(ctx.tenantId, ctx.workspaceId, id).catch(() => []),
+    listSegmentsForWorkspace(ctx.tenantId, ctx.workspaceId).catch(() => []),
+    listSegmentsForCompany(id, ctx.tenantId).catch(() => []),
+  ])
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -91,6 +97,14 @@ export default async function CompanyDetailPage({ params }: PageProps) {
               workspaceSlug={workspaceSlug}
             />
           </div>
+        </div>
+
+        <div className="mt-3">
+          <CompanySegmentsRow
+            companyId={company.id}
+            companySegments={companySegments}
+            workspaceSegments={workspaceSegments.map(s => ({ id: s.id, name: s.name }))}
+          />
         </div>
       </div>
 

@@ -155,6 +155,29 @@ export async function addCompanyToSegment(
   if (error) throw new Error(`addCompanyToSegment: ${error.message}`)
 }
 
+// Segments a single company belongs to (company_segments is many-to-many)
+export async function listSegmentsForCompany(
+  companyId: string,
+  tenantId: string,
+): Promise<{ id: string; name: string }[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('company_segments')
+    .select('segment_id, segments(name)')
+    .eq('company_id', companyId)
+    .eq('tenant_id', tenantId)
+
+  if (error) throw new Error(`listSegmentsForCompany: ${error.message}`)
+
+  type JoinedRow = { segment_id: string; segments: { name: string } | { name: string }[] | null }
+  return ((data ?? []) as JoinedRow[])
+    .map(row => {
+      const segment = Array.isArray(row.segments) ? row.segments[0] : row.segments
+      return { id: row.segment_id, name: segment?.name ?? '(unknown segment)' }
+    })
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
 export async function listCompanyIdsForSegment(
   segmentId: string,
   tenantId: string,

@@ -6,6 +6,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { buildRequestContext } from '@/lib/auth/context'
 import { enqueueEvent } from '@/modules/workflow/services/event-dispatch.service'
 import * as contactService from '@/modules/crm/services/contact.service'
+import { validatePhone } from '@/lib/format'
 import type { ActionResult } from './company.actions'
 
 export async function createContactFromDialogAction(input: {
@@ -33,6 +34,9 @@ export async function createContactFromDialogAction(input: {
       return { success: false, error: 'Enter a valid email address.' }
     }
 
+    const phoneCheck = validatePhone(input.phone)
+    if (!phoneCheck.ok) return { success: false, error: phoneCheck.error }
+
     const svc = createSupabaseServiceClient()
     const { data: contact, error: contErr } = await svc
       .from('contacts')
@@ -42,7 +46,7 @@ export async function createContactFromDialogAction(input: {
         first_name:  firstName || null,
         last_name:   lastName  || null,
         email,
-        phone:       input.phone.trim() || null,
+        phone:       phoneCheck.normalized || null,
         title:       input.title.trim() || null,
         company_id:  input.companyId || null,
         is_primary_contact: input.isPrimaryContact ?? false,
@@ -97,11 +101,14 @@ export async function updateContactFromDialogAction(
       return { success: false, error: 'Enter a valid email address.' }
     }
 
+    const phoneCheck = validatePhone(input.phone)
+    if (!phoneCheck.ok) return { success: false, error: phoneCheck.error }
+
     await contactService.updateContact(ctx, contactId, {
       first_name: firstName,
       last_name:  lastName,
       email,
-      phone:      input.phone.trim() || null,
+      phone:      phoneCheck.normalized || null,
       title:      input.title.trim() || null,
       company_id: input.companyId || null,
       is_primary_contact: input.isPrimaryContact ?? false,

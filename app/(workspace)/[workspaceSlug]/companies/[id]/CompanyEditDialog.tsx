@@ -14,7 +14,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { updateCompanyFromDialogAction } from '@/modules/crm/actions/company.actions'
-import { normalizePhone } from '@/lib/format'
+import { validatePhone } from '@/lib/format'
 import { INDUSTRY_OPTIONS, COMPANY_STATUS_OPTIONS as STATUS_OPTIONS } from '@/modules/crm/constants'
 import type { Database } from '@/types/database'
 
@@ -64,9 +64,16 @@ export function CompanyEditDialog({ company }: Props) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+
+    const phoneCheck = validatePhone(form.phone)
+    if (!phoneCheck.ok) {
+      setError(phoneCheck.error)
+      return
+    }
+
     setLoading(true)
     startTransition(async () => {
-      const result = await updateCompanyFromDialogAction(company.id, { ...form, phone: normalizePhone(form.phone) })
+      const result = await updateCompanyFromDialogAction(company.id, { ...form, phone: phoneCheck.normalized })
       setLoading(false)
       if (result.success) {
         setOpen(false)

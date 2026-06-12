@@ -9,6 +9,7 @@ import * as leadService from '@/modules/crm/services/lead.service'
 import * as contactService from '@/modules/crm/services/contact.service'
 import { getCompaniesInActiveCampaigns } from '@/modules/messaging/repositories/campaign-assignment.repo'
 import { createCompanySchema, updateCompanySchema } from '@/schemas/company.schema'
+import { validatePhone } from '@/lib/format'
 
 function normalizeWebsite(raw: string): string | null {
   const trimmed = raw.trim()
@@ -91,11 +92,14 @@ export async function createCompanyFromDialogAction(input: {
 
     if (!input.name.trim()) return { success: false, error: 'Company name is required.' }
 
+    const phoneCheck = validatePhone(input.phone)
+    if (!phoneCheck.ok) return { success: false, error: phoneCheck.error }
+
     const parsed = createCompanySchema.safeParse({
       name:          input.name.trim(),
       domain:        input.domain.trim()        || null,
       website:       normalizeWebsite(input.website),
-      phone:         input.phone.trim()         || null,
+      phone:         phoneCheck.normalized      || null,
       industry:      input.industry.trim()      || null,
       status:        input.status               || 'active',
       address_line1: input.address_line1.trim() || null,
@@ -181,11 +185,14 @@ export async function updateCompanyFromDialogAction(
 
     if (!input.name.trim()) return { success: false, error: 'Company name is required.' }
 
+    const phoneCheck = validatePhone(input.phone)
+    if (!phoneCheck.ok) return { success: false, error: phoneCheck.error }
+
     const parsed = updateCompanySchema.safeParse({
       name:          input.name.trim(),
       domain:        input.domain.trim()        || null,
       website:       normalizeWebsite(input.website),
-      phone:         input.phone.trim()         || null,
+      phone:         phoneCheck.normalized      || null,
       industry:      input.industry.trim()      || null,
       status:        input.status               || undefined,
       address_line1: input.address_line1.trim() || null,

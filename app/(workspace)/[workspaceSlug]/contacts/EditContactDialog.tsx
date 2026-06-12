@@ -14,7 +14,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { updateContactFromDialogAction } from '@/modules/crm/actions/contact.actions'
-import { normalizePhone } from '@/lib/format'
+import { validatePhone } from '@/lib/format'
 
 interface Company {
   id: string
@@ -76,11 +76,18 @@ export function EditContactDialog({ contact, companies = [], fixedCompany }: Pro
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+
+    const phoneCheck = validatePhone(form.phone)
+    if (!phoneCheck.ok) {
+      setError(phoneCheck.error)
+      return
+    }
+
     setLoading(true)
     startTransition(async () => {
       const result = await updateContactFromDialogAction(contact.id, {
         ...form,
-        phone:            normalizePhone(form.phone),
+        phone:            phoneCheck.normalized,
         companyId:        fixedCompany?.id ?? (form.companyId || undefined),
         isPrimaryContact: isPrimary,
       })

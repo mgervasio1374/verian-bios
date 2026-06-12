@@ -14,7 +14,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { createCompanyFromDialogAction } from '@/modules/crm/actions/company.actions'
-import { normalizePhone } from '@/lib/format'
+import { validatePhone } from '@/lib/format'
 import { INDUSTRY_OPTIONS, COMPANY_STATUS_OPTIONS as STATUS_OPTIONS } from '@/modules/crm/constants'
 
 const EMPTY_FORM = {
@@ -67,11 +67,18 @@ export function AddCompanyDialog({ workspaceSlug, segments = [] }: Props) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+
+    const phoneCheck = validatePhone(form.phone)
+    if (!phoneCheck.ok) {
+      setError(phoneCheck.error)
+      return
+    }
+
     setLoading(true)
     startTransition(async () => {
       const result = await createCompanyFromDialogAction({
         ...form,
-        phone:      normalizePhone(form.phone),
+        phone:      phoneCheck.normalized,
         segmentId:  segmentId || undefined,
         createLead,
       })

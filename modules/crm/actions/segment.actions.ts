@@ -92,6 +92,7 @@ export async function addCompanyToSegmentAction(
     await segmentService.addCompanyToSegment(ctx, segmentId, companyId)
 
     revalidatePath(SETTINGS_PATH, 'page')
+    revalidatePath('/[workspaceSlug]/companies/[id]', 'page')
     return { success: true, data: undefined }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
@@ -131,6 +132,7 @@ export async function removeCompanyFromSegmentAction(
     await segmentService.removeCompanyFromSegment(ctx, segmentId, companyId)
 
     revalidatePath(SETTINGS_PATH, 'page')
+    revalidatePath('/[workspaceSlug]/companies/[id]', 'page')
     return { success: true, data: undefined }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }

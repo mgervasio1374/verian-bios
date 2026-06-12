@@ -107,8 +107,8 @@ describe('TC-U1-04: EditContactDialog (source-read)', () => {
     expect(dialog).toContain('updateContactFromDialogAction(contact.id,')
   })
 
-  it('normalizes phone on submit', () => {
-    expect(dialog).toContain('phone:            normalizePhone(form.phone)')
+  it('normalizes phone on submit (U6 strict validation supplies the normalized value)', () => {
+    expect(dialog).toContain('phone:            phoneCheck.normalized')
   })
 
   it('supports fixedCompany pinning like AddContactDialog', () => {
@@ -157,14 +157,14 @@ describe('TC-U1-06: phone display/storage and edit surfacing (source-read)', () 
     expect(page).toContain('formatPhone(c.phone)')
   })
 
-  it('contact dialogs normalize phone for storage', () => {
-    expect(read(ADD_CONTACT)).toContain('normalizePhone(form.phone)')
-    expect(read(EDIT_CONTACT)).toContain('normalizePhone(form.phone)')
+  it('contact dialogs validate + normalize phone for storage (U6 strict validation)', () => {
+    expect(read(ADD_CONTACT)).toContain('validatePhone(form.phone)')
+    expect(read(EDIT_CONTACT)).toContain('validatePhone(form.phone)')
   })
 
-  it('company dialogs normalize phone for storage', () => {
-    expect(read(ADD_COMPANY)).toContain('normalizePhone(form.phone)')
-    expect(read(EDIT_COMPANY)).toContain('normalizePhone(form.phone)')
+  it('company dialogs validate + normalize phone for storage (U6 strict validation)', () => {
+    expect(read(ADD_COMPANY)).toContain('validatePhone(form.phone)')
+    expect(read(EDIT_COMPANY)).toContain('validatePhone(form.phone)')
   })
 
   it('contacts page rows render EditContactDialog with companies', () => {
