@@ -6,9 +6,8 @@ import { listCampaignTypes } from '@/modules/campaign-sequence/repositories/camp
 import { listAssetsForWorkspace } from '@/modules/messaging/repositories/campaign-email-asset.repo'
 import { listSenderIdentities } from '@/modules/messaging/repositories/email-draft.repo'
 import { sequenceUsageForWorkspace, usageState } from '@/modules/campaign-sequence/services/sequence-usage.service'
-import { SequenceBuilder } from './SequenceBuilder'
 import { SequenceList } from './SequenceList'
-import { GenerateAiSequenceCard } from './GenerateAiSequenceCard'
+import { AuthoringPanels } from './AuthoringPanels'
 import type { SequenceListRow } from './SequenceList'
 
 // V6: AI sequence generation runs up to 5 sequential LLM calls; server
@@ -78,9 +77,9 @@ export default async function CampaignSequencesPage({ params }: PageProps) {
         workspaceSlug={workspaceSlug}
       />
 
-      <GenerateAiSequenceCard campaignTypes={types} senderIdentities={senders} />
-
-      <SequenceBuilder
+      {/* W3: AI card + manual builder behind toggle buttons — one open at a
+          time. SequenceList keeps its own edit-mode SequenceBuilder instance. */}
+      <AuthoringPanels
         workspaceSlug={workspaceSlug}
         campaignTypes={types}
         senderIdentities={senders}

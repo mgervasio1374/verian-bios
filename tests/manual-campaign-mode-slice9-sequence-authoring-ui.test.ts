@@ -226,8 +226,12 @@ describe('TC-MM9-05: campaign-sequences page exists and renders builder + list (
     expect(page).toContain('export default async function')
   })
 
-  it('page renders SequenceBuilder', () => {
-    expect(page).toContain('SequenceBuilder')
+  // W3: the create-mode builder moved behind the AuthoringPanels toggle —
+  // the page renders AuthoringPanels, which renders SequenceBuilder.
+  it('page renders SequenceBuilder via AuthoringPanels', () => {
+    expect(page).toContain('<AuthoringPanels')
+    const panels = read('app/(workspace)/[workspaceSlug]/settings/campaign-sequences/AuthoringPanels.tsx')
+    expect(panels).toContain('<SequenceBuilder')
   })
 
   it('page renders SequenceList', () => {

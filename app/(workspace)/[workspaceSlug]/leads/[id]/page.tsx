@@ -12,6 +12,7 @@ import * as emailDraftVersionRepo from '@/modules/messaging/repositories/email-d
 import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asset.repo'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CollapsibleSection } from '@/components/CollapsibleSection'
 import { SendEmailButton } from '@/components/messaging/SendEmailButton'
 import { ArrowRight } from 'lucide-react'
 import { EmailQualityCard } from './EmailQualityCard'
@@ -242,6 +243,25 @@ export default async function LeadDetailPage({ params }: PageProps) {
           </Card>
         )}
 
+        {/* Campaign Assignment */}
+        <CampaignAssignmentCard
+          leadId={id}
+          workspaceSlug={workspaceSlug}
+          assignments={campaignAssignments}
+          activeAssets={activeAssets.map(a => ({
+            id:            a.id,
+            name:          a.asset_name,
+            campaign_type: a.campaign_type,
+          }))}
+          linkedDraftsByAssignmentId={linkedDraftsByAssignmentId}
+          availableSequences={availableSequences}
+        />
+
+        {/* ---- Create a draft — W3: the conditional draft paths read as one task ---- */}
+        {(!hasActiveDraft || activeAssignment || activeAssets.length > 0) && (
+        <div className="space-y-4">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Create a draft</h2>
+
         {/* Generate Outreach Draft — only when no active draft */}
         {!hasActiveDraft && (
           <Card>
@@ -296,19 +316,8 @@ export default async function LeadDetailPage({ params }: PageProps) {
             </CardContent>
           </Card>
         )}
-        {/* Campaign Assignment */}
-        <CampaignAssignmentCard
-          leadId={id}
-          workspaceSlug={workspaceSlug}
-          assignments={campaignAssignments}
-          activeAssets={activeAssets.map(a => ({
-            id:            a.id,
-            name:          a.asset_name,
-            campaign_type: a.campaign_type,
-          }))}
-          linkedDraftsByAssignmentId={linkedDraftsByAssignmentId}
-          availableSequences={availableSequences}
-        />
+        </div>
+        )}
 
       </div>
 
@@ -422,6 +431,13 @@ export default async function LeadDetailPage({ params }: PageProps) {
           </Card>
         )}
 
+        {/* W3: timeline, decisions, and errors collapsed behind one section */}
+        <CollapsibleSection
+          title="Activity & diagnostics"
+          description="Timeline, agent decisions, and errors for this lead."
+        >
+        <div className="space-y-4">
+
         {/* Workflow Errors — visible only when open errors exist for this lead */}
         {workflowErrors.length > 0 && (
           <Card>
@@ -463,6 +479,9 @@ export default async function LeadDetailPage({ params }: PageProps) {
 
         {/* Workflow Activity Timeline — always rendered */}
         <LeadActivityTimeline events={activityEvents} />
+
+        </div>
+        </CollapsibleSection>
 
       </div>
     </div>

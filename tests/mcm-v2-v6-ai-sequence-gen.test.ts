@@ -189,8 +189,11 @@ describe('TC-V6-06: action and UI (source-read)', () => {
     expect(card).toContain('remain for manual completion')
   })
 
-  it('page renders the card and exports maxDuration = 60', () => {
-    expect(page).toContain('<GenerateAiSequenceCard')
+  // W3: the card moved behind the AuthoringPanels toggle on the page.
+  it('page renders the card (via AuthoringPanels) and exports maxDuration = 60', () => {
+    expect(page).toContain('<AuthoringPanels')
+    const panels = read('app/(workspace)/[workspaceSlug]/settings/campaign-sequences/AuthoringPanels.tsx')
+    expect(panels).toContain('<GenerateAiSequenceCard')
     expect(page).toContain('export const maxDuration = 60')
   })
 })

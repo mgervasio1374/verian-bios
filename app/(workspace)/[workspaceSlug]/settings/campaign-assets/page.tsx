@@ -4,6 +4,7 @@ import { buildRequestContext } from '@/lib/auth/context'
 import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asset.repo'
 import { CampaignAssetList } from './CampaignAssetList'
 import { AiAssetDraftButton } from './AiAssetDraftButton'
+import { CollapsibleSection } from '@/components/CollapsibleSection'
 
 // V3.1: AI generation retries transient 429/5xx (up to ~3x30s worst case);
 // server actions inherit this segment config, so give them headroom.
@@ -36,7 +37,13 @@ export default async function CampaignAssetsPage({ params }: PageProps) {
         </Link>
       </div>
 
-      {/* Campaign terminology reference */}
+      <CampaignAssetList assets={assets} workspaceSlug={workspaceSlug} />
+
+      {/* Campaign terminology reference — collapsed by default (W3) */}
+      <CollapsibleSection
+        title="How campaigns work"
+        description="Terminology reference for campaign building blocks."
+      >
       <div className="rounded-lg border bg-muted/40 p-4 space-y-3">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Campaign Terminology</p>
         <div className="grid gap-2 sm:grid-cols-2 text-xs text-foreground">
@@ -70,10 +77,15 @@ export default async function CampaignAssetsPage({ params }: PageProps) {
           </div>
         </div>
       </div>
+      </CollapsibleSection>
 
-      <CampaignAssetList assets={assets} workspaceSlug={workspaceSlug} />
-
-      <AiAssetDraftButton workspaceSlug={workspaceSlug} />
+      {/* One-off AI asset drafting — collapsed by default (W3) */}
+      <CollapsibleSection
+        title="Generate a single asset with AI"
+        description="For one-off assets — multi-touch sequences are generated on the Campaign Sequences page."
+      >
+        <AiAssetDraftButton workspaceSlug={workspaceSlug} />
+      </CollapsibleSection>
     </div>
   )
 }
