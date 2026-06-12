@@ -7,6 +7,14 @@ import { Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { addCompaniesToSegmentAction } from '@/modules/crm/actions/segment.actions'
 import { bulkAssignCampaignAction } from '@/modules/messaging/actions/campaign-assignment.actions'
+// V5: pure timing helpers for the live touch-schedule preview (no DB, client-safe)
+import {
+  computeTouchSchedule,
+  dateInZoneISO,
+  addDaysISO,
+  shiftISODateBackOffWeekend,
+  DEFAULT_TIMEZONE,
+} from '@/modules/campaign-sequence/schedule-timing'
 import { INDUSTRY_OPTIONS, COMPANY_STATUS_OPTIONS } from '@/modules/crm/constants'
 import type { SegmentWithCount } from '@/modules/crm/repositories/segment.repo'
 import type { Database } from '@/types/database'
@@ -18,6 +26,17 @@ interface SequenceOption {
   name:             string
   campaignTypeSlug: string
   promptRisk?:      boolean // V1 prompt-leak heuristic (warning only)
+  // V5 schedule preview inputs
+  dayOffsets:       number[]
+  sendTime:         string | null
+  timeZone:         string | null
+  skipWeekends:     boolean
+}
+
+function formatISODate(dateISO: string): string {
+  return new Date(`${dateISO}T12:00:00Z`).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', timeZone: 'UTC',
+  })
 }
 
 function getStatusBadgeClass(status: string | null): string {
@@ -80,6 +99,34 @@ export function CompaniesTable({
   const [preApproved,      setPreApproved]      = useState(false)
   const [startMode,        setStartMode]        = useState<'now' | 'date'>('now')
   const [startDate,        setStartDate]        = useState('')
+  const [eventDate,        setEventDate]        = useState('') // panel-side math only — never stored
+
+  // V5: live touch-schedule preview + event-date guard (warning only)
+  const selectedSequence = sequences.find(s => s.id === assignSequenceId) ?? null
+  const previewZone      = selectedSequence?.timeZone || DEFAULT_TIMEZONE
+  const previewDayISOs   = useMemo(() => {
+    if (!selectedSequence || selectedSequence.dayOffsets.length === 0) return []
+    const startDateISO = startMode === 'date' && startDate
+      ? startDate
+      : dateInZoneISO(new Date(), previewZone)
+    return computeTouchSchedule({
+      startDateISO,
+      dayOffsets:   selectedSequence.dayOffsets,
+      sendTime:     selectedSequence.sendTime,
+      timeZone:     selectedSequence.timeZone,
+      skipWeekends: selectedSequence.skipWeekends,
+    }).map(d => dateInZoneISO(d, previewZone))
+  }, [selectedSequence, startMode, startDate, previewZone])
+
+  const finalTouchISO = previewDayISOs.length > 0 ? previewDayISOs[previewDayISOs.length - 1] : null
+  // Warn when the final touch lands inside the week before the event, or on/after it
+  const eventWarning = (() => {
+    if (!eventDate || !finalTouchISO || !selectedSequence) return null
+    if (finalTouchISO <= addDaysISO(eventDate, -7)) return null
+    const lastOffset = Math.max(...selectedSequence.dayOffsets)
+    const suggested  = shiftISODateBackOffWeekend(addDaysISO(eventDate, -7 - lastOffset))
+    return `Final touch lands ${formatISODate(finalTouchISO)} — inside the week before your ${formatISODate(eventDate)} event. Latest recommended start: ${formatISODate(suggested)}.`
+  })()
 
   const allSelected = companies.length > 0 && companies.every(c => selectedIds.has(c.id))
   const hasFilter   = Boolean(activeSegmentId || search || activeStatus || activeIndustry)
@@ -211,6 +258,7 @@ export function CompaniesTable({
       setPreApproved(false)
       setStartMode('now')
       setStartDate('')
+      setEventDate('')
       router.refresh()
     })
   }
@@ -391,6 +439,35 @@ export function CompaniesTable({
                 Touches are scheduled from this date using each step&apos;s day offset.
               </span>
             </div>
+
+            {/* V5: event-date guard + live schedule preview */}
+            <label className="flex flex-col gap-1 text-xs max-w-md">
+              <span className="font-medium">Event date (optional — e.g. the show)</span>
+              <input
+                type="date"
+                value={eventDate}
+                onChange={e => setEventDate(e.target.value)}
+                disabled={pending}
+                className="rounded border px-2 py-1 text-xs bg-background w-fit"
+              />
+            </label>
+
+            {previewDayISOs.length > 0 && (
+              <div className="rounded border bg-muted/20 px-3 py-2 text-xs max-w-md space-y-1">
+                <span className="font-medium">Touch schedule preview</span>
+                <ol className="list-decimal list-inside text-muted-foreground">
+                  {previewDayISOs.map((dayISO, i) => (
+                    <li key={i}>{formatISODate(dayISO)}</li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {eventWarning && (
+              <div className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 max-w-md">
+                ⚠ {eventWarning}
+              </div>
+            )}
 
             <label className="flex items-start gap-2 text-xs max-w-md">
               <input

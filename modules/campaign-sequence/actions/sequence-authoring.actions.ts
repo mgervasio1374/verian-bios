@@ -38,6 +38,10 @@ export interface CreateManualSequenceInput {
   campaignTypeId: string
   senderIdentityId?: string | null
   steps: StepDraft[]
+  // V5 delivery schedule (all optional — null reproduces default behavior)
+  sendTime?: string | null      // 'HH:MM' 24h
+  timeZone?: string | null      // IANA id
+  skipWeekends?: boolean
 }
 
 export async function createManualSequenceAction(
@@ -62,6 +66,9 @@ export async function createManualSequenceAction(
       name:               input.name.trim(),
       authoring_mode:     'manual',
       sender_identity_id: input.senderIdentityId ?? null,
+      send_time:          input.sendTime || null,
+      timezone:           input.timeZone || null,
+      skip_weekends:      input.skipWeekends ?? false,
     }
     const sequence = await insertCampaignSequence(
       insertPayload as unknown as CampaignSequenceInsert,
@@ -101,6 +108,10 @@ export interface UpdateManualSequenceInput {
   name: string
   description?: string | null
   senderIdentityId?: string | null
+  // V5 delivery schedule
+  sendTime?: string | null
+  timeZone?: string | null
+  skipWeekends?: boolean
   // Steps with an id update the existing row in place; steps without an id are
   // added. Existing steps missing from the list are removals (never-used only).
   steps: Array<{
@@ -156,8 +167,13 @@ export async function updateManualSequenceAction(
       name:               input.name.trim(),
       description:        input.description !== undefined ? input.description : sequence.description,
       sender_identity_id: input.senderIdentityId !== undefined ? input.senderIdentityId : undefined,
+      send_time:          input.sendTime !== undefined ? (input.sendTime || null) : undefined,
+      timezone:           input.timeZone !== undefined ? (input.timeZone || null) : undefined,
+      skip_weekends:      input.skipWeekends !== undefined ? input.skipWeekends : undefined,
     }
-    if (sequencePatch.sender_identity_id === undefined) delete sequencePatch.sender_identity_id
+    for (const key of ['sender_identity_id', 'send_time', 'timezone', 'skip_weekends']) {
+      if (sequencePatch[key] === undefined) delete sequencePatch[key]
+    }
     await updateCampaignSequence(
       sequenceId, ctx.tenantId, ctx.workspaceId,
       sequencePatch as unknown as CampaignSequenceUpdate,

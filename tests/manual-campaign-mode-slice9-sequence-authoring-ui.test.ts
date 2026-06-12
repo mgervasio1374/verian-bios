@@ -162,7 +162,8 @@ describe('TC-MM9-03: createManualSequenceAction wiring (source-read)', () => {
 
   it('calls validateManualSequenceDraft before the insert', () => {
     const fnIdx      = actions.indexOf('async function createManualSequenceAction')
-    const fnBody     = actions.slice(fnIdx, fnIdx + 1200)
+    // window widened 1200 -> 1800: V5 added delivery-schedule payload lines
+    const fnBody     = actions.slice(fnIdx, fnIdx + 1800)
     const validateIdx = fnBody.indexOf('validateManualSequenceDraft')
     const insertIdx   = fnBody.indexOf('insertCampaignSequence')
     expect(validateIdx).toBeGreaterThan(-1)

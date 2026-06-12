@@ -24,6 +24,10 @@ export interface SequenceEditState {
   senderIdentityId: string | null
   steps:            { id: string; day_offset: number; campaignEmailAssetId: string }[]
   allowStepRemoval: boolean
+  // V5 delivery schedule
+  sendTime:         string | null
+  timeZone:         string | null
+  skipWeekends:     boolean
 }
 
 interface Props {
@@ -37,6 +41,15 @@ interface Props {
 
 const emptyStep = (): StepState => ({ day_offset: 0, campaignEmailAssetId: '' })
 
+// Curated zones for the delivery-schedule select
+const TIMEZONE_OPTIONS = [
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'UTC',
+]
+
 export function SequenceBuilder({ campaignTypes, senderIdentities, assets, edit, onDone }: Props) {
   const [pending, startTransition] = useTransition()
 
@@ -49,6 +62,10 @@ export function SequenceBuilder({ campaignTypes, senderIdentities, assets, edit,
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [serverError,      setServerError]      = useState<string | null>(null)
   const [successId,        setSuccessId]        = useState<string | null>(null)
+  // V5 delivery schedule
+  const [sendTime,     setSendTime]     = useState(edit?.sendTime ?? '')
+  const [timeZone,     setTimeZone]     = useState(edit?.timeZone ?? '')
+  const [skipWeekends, setSkipWeekends] = useState(edit?.skipWeekends ?? false)
 
   // Prompt-leak heuristic (warning only, never blocks): manual mode sends
   // asset content literally, so a prompt-shaped body would leak verbatim.
@@ -97,6 +114,9 @@ export function SequenceBuilder({ campaignTypes, senderIdentities, assets, edit,
           const result = await updateManualSequenceAction(edit.sequenceId, {
             name,
             senderIdentityId: senderIdentityId || null,
+            sendTime:         sendTime || null,
+            timeZone:         timeZone || null,
+            skipWeekends,
             steps: steps.map((s, i) => ({
               id:                   s.id,
               step_number:          i + 1,
@@ -122,6 +142,9 @@ export function SequenceBuilder({ campaignTypes, senderIdentities, assets, edit,
           name,
           campaignTypeId,
           senderIdentityId: senderIdentityId || null,
+          sendTime:         sendTime || null,
+          timeZone:         timeZone || null,
+          skipWeekends,
           steps: steps.map((s, i) => ({
             step_number:          i + 1,
             day_offset:           typeof s.day_offset === 'number' ? s.day_offset : 0,
@@ -212,6 +235,43 @@ export function SequenceBuilder({ campaignTypes, senderIdentities, assets, edit,
             ))}
           </select>
         </label>
+
+        {/* V5: Delivery schedule */}
+        <div className="space-y-2 rounded border p-3 bg-muted/20">
+          <span className="text-xs font-semibold">Delivery schedule</span>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1 text-xs">
+              <span className="font-medium">Send time</span>
+              <input
+                type="time"
+                value={sendTime}
+                onChange={e => setSendTime(e.target.value)}
+                className="rounded border px-2 py-1.5 text-sm"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs">
+              <span className="font-medium">Timezone</span>
+              <select
+                value={timeZone}
+                onChange={e => setTimeZone(e.target.value)}
+                className="rounded border px-2 py-1.5 text-sm"
+              >
+                <option value="">Default (America/New_York)</option>
+                {TIMEZONE_OPTIONS.map(tz => (
+                  <option key={tz} value={tz}>{tz}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={skipWeekends}
+              onChange={e => setSkipWeekends(e.target.checked)}
+            />
+            Skip weekends (Sat/Sun touches move to Monday)
+          </label>
+        </div>
 
         {/* Steps */}
         <div className="space-y-2">

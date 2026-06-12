@@ -197,6 +197,10 @@ export function SequenceList({ rows, types, senderIdentities, assets, workspaceS
             steps:            editingRow.steps,
             // Historical schedule items FK to step rows — removal only when never used
             allowStepRemoval: editingRow.usage === 'unused',
+            // V5 delivery schedule (columns from migration 20240051, not in generated types)
+            sendTime:     ((editingRow.sequence as unknown as Record<string, unknown>).send_time as string | null) ?? null,
+            timeZone:     ((editingRow.sequence as unknown as Record<string, unknown>).timezone as string | null) ?? null,
+            skipWeekends: Boolean((editingRow.sequence as unknown as Record<string, unknown>).skip_weekends),
           } satisfies SequenceEditState}
           onDone={() => { setEditingId(null); router.refresh() }}
         />

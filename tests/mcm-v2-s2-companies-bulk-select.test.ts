@@ -208,10 +208,14 @@ describe('TC-S2-06: scope guard — campaign imports in CompaniesTable limited t
     expect(campaignImports[0]).toContain('campaign-assignment.actions')
   })
 
-  it('does not import sequence, send, or draft modules', () => {
-    expect(table).not.toContain('campaign-sequence/')
+  it('does not import sequence services, send, or draft modules (V5 allows the pure schedule-timing helper)', () => {
+    expect(table).not.toContain('campaign-sequence/services')
+    expect(table).not.toContain('campaign-sequence/repositories')
+    expect(table).not.toContain('campaign-sequence/actions')
     expect(table).not.toContain('email-draft')
     expect(table).not.toContain('send-bridge')
     expect(table).not.toContain('sendFollowUp')
+    // the only campaign-sequence import is the pure, client-safe timing helper
+    expect(table).toContain("from '@/modules/campaign-sequence/schedule-timing'")
   })
 })

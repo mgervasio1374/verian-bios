@@ -8,6 +8,8 @@ import {
 } from '@/modules/campaign-sequence/repositories/campaign-schedule-item.repo'
 import type { UpdateScheduleItemStatusOpts } from '@/modules/campaign-sequence/repositories/campaign-schedule-item.repo'
 import { listCampaignSequenceStepsForSequence } from '@/modules/campaign-sequence/repositories/campaign-sequence-step.repo'
+import { getCampaignSequenceById } from '@/modules/campaign-sequence/repositories/campaign-sequence.repo'
+import { computeTouchSchedule, dateInZoneISO, DEFAULT_TIMEZONE } from '@/modules/campaign-sequence/schedule-timing'
 import { getAssignmentById } from '@/modules/messaging/repositories/campaign-assignment.repo'
 import { ASSIGNMENT_STATUS } from '@/modules/messaging/types/campaign-assignment.types'
 import type {
@@ -52,6 +54,9 @@ export async function fetchCampaignScheduleItemsForSequence(
 // Pure helpers — no DB, fully unit-testable
 // ---------------------------------------------------------------------------
 
+// Superseded by computeTouchSchedule (V5 schedule-timing.ts) for live
+// materialization — kept as the raw-UTC-day fallback used when no per-touch
+// schedule is supplied to materializePlan, and pinned by slice-2/3 tests.
 export function computeScheduledFor(startAt: Date, dayOffset: number): Date {
   const result = new Date(startAt.getTime())
   result.setUTCDate(result.getUTCDate() + dayOffset)
@@ -97,6 +102,9 @@ export function materializePlan(
   assignment: AssignmentSnapshot,
   sequenceId: string,
   startAt: Date,
+  // V5: per-step instants from computeTouchSchedule (send time / timezone /
+  // weekend skip). Omitted -> the original raw-UTC-day behavior.
+  scheduledFor?: Date[],
 ): CampaignScheduleItemInsert[] {
   for (const step of steps) {
     if (step.is_recurring || step.recurring_interval_days !== null) {
@@ -104,7 +112,7 @@ export function materializePlan(
     }
   }
 
-  return steps.map(step => ({
+  return steps.map((step, index) => ({
     tenant_id:                 assignment.tenant_id,
     workspace_id:              assignment.workspace_id,
     campaign_assignment_id:    assignment.id,
@@ -113,7 +121,7 @@ export function materializePlan(
     lead_id:                   assignment.lead_id ?? null,
     contact_id:                assignment.contact_id ?? null,
     company_id:                assignment.company_id ?? null,
-    scheduled_for:             computeScheduledFor(startAt, step.day_offset as number).toISOString(),
+    scheduled_for:             (scheduledFor?.[index] ?? computeScheduledFor(startAt, step.day_offset as number)).toISOString(),
     status:                    'planned',
   }))
 }
@@ -162,7 +170,26 @@ export async function materializeScheduleItemsForAssignment(
   }
 
   const steps = await listCampaignSequenceStepsForSequence(sequenceId, tenantId, workspaceId)
-  const rows = materializePlan(steps, assignment, sequenceId, startAt)
+
+  // V5: schedule intelligence — anchor on the calendar date of startAt in the
+  // sequence's timezone and compute per-touch instants honoring send_time /
+  // timezone / skip_weekends (NULL settings -> 09:00 America/New_York).
+  const sequence  = await getCampaignSequenceById(sequenceId, tenantId, workspaceId).catch(() => null)
+  const seqRecord = sequence as unknown as Record<string, unknown> | null
+  const sendTime     = (seqRecord?.['send_time'] as string | null) ?? null
+  const timeZone     = (seqRecord?.['timezone'] as string | null) ?? null
+  const skipWeekends = Boolean(seqRecord?.['skip_weekends'])
+
+  const startDateISO = dateInZoneISO(startAt, timeZone ?? DEFAULT_TIMEZONE)
+  const schedule = computeTouchSchedule({
+    startDateISO,
+    dayOffsets: steps.map(s => s.day_offset as number),
+    sendTime,
+    timeZone,
+    skipWeekends,
+  })
+
+  const rows = materializePlan(steps, assignment, sequenceId, startAt, schedule)
   return insertCampaignScheduleItems(rows)
 }
 
