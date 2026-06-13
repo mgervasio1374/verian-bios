@@ -7,9 +7,28 @@ import type {
 
 export async function insertCampaignSequence(data: CampaignSequenceInsert): Promise<CampaignSequenceRow> {
   const supabase = createSupabaseServiceClient()
+
+  // Version is assigned here, centrally — callers (manual create, V6 AI
+  // generation) never set it, and the column defaults to 1, so a 2nd
+  // sequence of the same type would collide on uq_campaign_sequences_type_version
+  // (tenant_id, workspace_id, campaign_type_id, version). Compute max+1 from
+  // the existing sequences of this type and override any incoming version.
+  // is_default is intentionally left as the caller passed it (defaults false):
+  // forcing true would collide on uq_campaign_sequences_default (one default
+  // per type). The theoretical race between two concurrent creates picking the
+  // same version is acceptable — the unique index still guards it and at this
+  // app's volume a retry is unnecessary.
+  const fields = data as unknown as Record<string, unknown>
+  const existing = await listCampaignSequencesForType(
+    fields.campaign_type_id as string,
+    fields.tenant_id as string,
+    fields.workspace_id as string,
+  )
+  const nextVersion = (existing[0]?.version ?? 0) + 1
+
   const { data: row, error } = await supabase
     .from('campaign_sequences')
-    .insert(data)
+    .insert({ ...data, version: nextVersion })
     .select('*')
     .single()
 

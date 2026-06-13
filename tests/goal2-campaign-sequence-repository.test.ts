@@ -119,8 +119,11 @@ describe('TC-G2-S3-004 table reference', () => {
 // ---------------------------------------------------------------------------
 
 describe('TC-G2-S3-005 insertCampaignSequence query shape', () => {
-  it('uses .insert(data)', () => {
-    expect(src).toContain('.insert(data)')
+  // mcm-v2-fix-sequence-version: version is now assigned centrally here, so
+  // the insert augments the payload with the computed version instead of
+  // passing `data` verbatim.
+  it('inserts the payload with the centrally computed version', () => {
+    expect(src).toContain('.insert({ ...data, version: nextVersion })')
   })
 
   it('uses .select() after insert', () => {
