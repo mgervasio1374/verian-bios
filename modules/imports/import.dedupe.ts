@@ -127,14 +127,20 @@ export async function checkExternalIdDuplicate(
 }
 
 export async function checkWithinBatchDuplicate(
-  email:   string,
-  batchId: string,
+  email:            string,
+  batchId:          string,
+  currentRowNumber: number,
 ): Promise<DuplicateMatch | null> {
   const supabase = createSupabaseServiceClient()
+  // Only look at EARLIER rows in the batch (row_number < current). This both
+  // excludes the row being checked from matching itself — it is already
+  // persisted in import_rows — and keeps the FIRST occurrence of an email
+  // unique, flagging only 2nd-and-later repeats within the same batch.
   const { data } = await supabase
     .from('import_rows')
     .select('id')
     .eq('import_batch_id', batchId)
+    .lt('row_number', currentRowNumber)
     .contains('normalized_data', { email })
     .limit(1)
     .maybeSingle()
@@ -150,16 +156,17 @@ export async function checkWithinBatchDuplicate(
 }
 
 export async function checkRowForDuplicates(
-  normalized: NormalizedImportRow,
-  tenantId:   string,
-  batchId:    string,
+  normalized:       NormalizedImportRow,
+  tenantId:         string,
+  batchId:          string,
+  currentRowNumber: number,
 ): Promise<{ status: 'unique' | 'duplicate'; matches: DuplicateMatch[] }> {
   const matches: DuplicateMatch[] = []
   const checks: Promise<DuplicateMatch | null>[] = []
 
   if (normalized.email) {
     checks.push(checkEmailDuplicate(normalized.email, tenantId))
-    checks.push(checkWithinBatchDuplicate(normalized.email, batchId))
+    checks.push(checkWithinBatchDuplicate(normalized.email, batchId, currentRowNumber))
   }
   if (normalized.phone) {
     checks.push(checkPhoneDuplicate(normalized.phone, tenantId))

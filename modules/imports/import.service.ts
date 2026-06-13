@@ -207,7 +207,7 @@ export async function dedupeBatch(
     for (const row of rows) {
       if (row.validation_status !== 'valid') continue
       const normalized = row.normalized_data as unknown as import('./import.types').NormalizedImportRow
-      const { status, matches } = await checkRowForDuplicates(normalized, tenantId, batchId)
+      const { status, matches } = await checkRowForDuplicates(normalized, tenantId, batchId, row.row_number)
       await updateRowDedupe(row.id, status, matches)
       if (status === 'duplicate') duplicateRows++
       else uniqueRows++
