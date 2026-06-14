@@ -5,6 +5,7 @@ import { getPipelineStages } from '@/lib/config/resolve'
 import Link from 'next/link'
 import { Zap } from 'lucide-react'
 import { AddLeadDialog } from './AddLeadDialog'
+import { ImportedLeadsReview } from './ImportedLeadsReview'
 import type { Database } from '@/types/database'
 
 interface PageProps {
@@ -25,9 +26,10 @@ export default async function LeadsPage({ params }: PageProps) {
   const supabase = await createSupabaseServerClient()
   const ctx = await buildRequestContext(supabase)
 
-  const [leadsByStage, stages] = await Promise.all([
+  const [leadsByStage, stages, importedLeads] = await Promise.all([
     leadService.listLeadsByStage(ctx).catch(() => ({} as Record<string, LeadRow[]>)),
     getPipelineStages(ctx.tenantId, 'lead').catch(() => []),
+    leadService.listImportedUnreviewedLeads(ctx).catch(() => [] as LeadRow[]),
   ])
 
   const activeStages = stages.filter((s) => !s.is_terminal)
@@ -42,6 +44,17 @@ export default async function LeadsPage({ params }: PageProps) {
         </div>
         <AddLeadDialog />
       </div>
+
+      {/* #31: imported leads land outside the pipeline — surface them for triage */}
+      <ImportedLeadsReview
+        workspaceSlug={workspaceSlug}
+        leads={importedLeads.map((l) => ({
+          id:              l.id,
+          name:            l.name,
+          estimated_value: l.estimated_value,
+          created_at:      l.created_at,
+        }))}
+      />
 
       {totalLeads === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">

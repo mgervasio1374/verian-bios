@@ -180,6 +180,23 @@ export async function createLeadWithContactAction(input: {
   }
 }
 
+// PROD-BUG-003 (#31): release imported leads into the entry pipeline stage.
+// The target stage is recomputed server-side; the client only supplies ids.
+export async function releaseImportedLeadsAction(
+  leadIds: string[],
+): Promise<ActionResult<{ released: number }>> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx      = await buildRequestContext(supabase)
+
+    const result = await leadService.releaseImportedLeads(ctx, leadIds)
+    revalidatePath('/[workspaceSlug]/leads', 'page')
+    return { success: true, data: result }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
 export async function deleteLeadAction(id: string): Promise<ActionResult> {
   try {
     const supabase = await createSupabaseServerClient()

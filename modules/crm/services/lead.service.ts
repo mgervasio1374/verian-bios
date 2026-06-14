@@ -1,6 +1,7 @@
 import * as leadRepo from '@/modules/crm/repositories/lead.repo'
 import * as contactRepo from '@/modules/crm/repositories/contact.repo'
 import { enqueueEvent } from '@/modules/workflow/services/event-dispatch.service'
+import { getPipelineStages } from '@/lib/config/resolve'
 import { softDeleteRecord } from '@/lib/db/soft-delete'
 import { requirePermission } from '@/lib/auth/permissions'
 import { NotFoundError } from '@/lib/auth/errors'
@@ -130,4 +131,44 @@ export async function deleteLead(ctx: RequestContext, id: string) {
 export async function listLeadsByStage(ctx: RequestContext) {
   requirePermission(ctx, 'crm.leads.view')
   return leadRepo.listLeadsByStage(ctx.tenantId, ctx.workspaceId)
+}
+
+// PROD-BUG-003 (#31): imported leads land with status='imported_unreviewed' and
+// so render nowhere in the pipeline (which shows status='open'). Surface them
+// for triage, and release them into the entry pipeline stage on demand.
+
+export async function listImportedUnreviewedLeads(ctx: RequestContext) {
+  requirePermission(ctx, 'crm.leads.view')
+  return leadRepo.listLeadsByStatus(ctx.tenantId, ctx.workspaceId, 'imported_unreviewed')
+}
+
+export async function releaseImportedLeads(
+  ctx: RequestContext,
+  leadIds: string[],
+): Promise<{ released: number }> {
+  requirePermission(ctx, 'crm.leads.edit')
+
+  const ids = Array.from(new Set((leadIds ?? []).map(s => s?.trim()).filter(Boolean)))
+  if (ids.length === 0) return { released: 0 }
+
+  // Recompute the entry stage server-side — never trust a client-supplied stage.
+  // First non-terminal stage by position is the pipeline entry.
+  const stages = await getPipelineStages(ctx.tenantId, 'lead')
+  const entryStage = stages.filter(s => !s.is_terminal)[0]
+  if (!entryStage) throw new Error('No active pipeline stage is configured.')
+
+  let released = 0
+  for (const id of ids) {
+    const lead = await leadRepo.getLead(id, ctx.tenantId)
+    // Tenant-scoped via getLead; only release leads that are actually awaiting review.
+    if (!lead || lead.status !== 'imported_unreviewed') continue
+    await leadRepo.updateLead(id, ctx.tenantId, {
+      status:           'open',
+      stage:            entryStage.slug,
+      workflow_enabled: true,
+    })
+    released++
+  }
+
+  return { released }
 }

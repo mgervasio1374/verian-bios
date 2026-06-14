@@ -82,6 +82,28 @@ export async function updateLead(
   return row
 }
 
+// Leads with a given lifecycle status (newest first), tenant + workspace scoped.
+// Used to surface status='imported_unreviewed' leads, which are excluded from
+// the pipeline view (listLeadsByStage filters status='open').
+export async function listLeadsByStatus(
+  tenantId:    string,
+  workspaceId: string,
+  status:      string,
+): Promise<LeadRow[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('leads')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .eq('status', status)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+
+  if (error) throw new Error(`listLeadsByStatus: ${error.message}`)
+  return data ?? []
+}
+
 export async function listLeadsByStage(
   tenantId: string,
   workspaceId: string
