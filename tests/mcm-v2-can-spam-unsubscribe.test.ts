@@ -170,11 +170,15 @@ describe('TC-CS-04: /unsubscribe route', () => {
     process.env.UNSUBSCRIBE_TOKEN_SECRET = SECRET
   })
 
-  it('GET with a valid token → addUnsubscribe(tenant,email), 200', async () => {
+  it('GET with a valid token → 200 confirm page, NO write (prefetch-safe), shows POST form + email', async () => {
     const token = signUnsubscribeToken('tenant-9', 'Buyer@Shop.com')
     const res = await GET(new NextRequest(`https://app.test/unsubscribe?token=${encodeURIComponent(token)}`))
     expect(res.status).toBe(200)
-    expect(vi.mocked(suppressionRepo.addUnsubscribe)).toHaveBeenCalledWith('tenant-9', 'buyer@shop.com', 'unsubscribe_link')
+    // GET must never write — a prefetch/scanner must not unsubscribe anyone.
+    expect(vi.mocked(suppressionRepo.addUnsubscribe)).not.toHaveBeenCalled()
+    const html = await res.text()
+    expect(html).toMatch(/method="POST"/i)
+    expect(html).toContain('buyer@shop.com')
   })
 
   it('GET with an invalid token → 400, addUnsubscribe NOT called', async () => {
@@ -183,11 +187,12 @@ describe('TC-CS-04: /unsubscribe route', () => {
     expect(vi.mocked(suppressionRepo.addUnsubscribe)).not.toHaveBeenCalled()
   })
 
-  it('POST (one-click) with a valid token → write + 200', async () => {
-    const token = signUnsubscribeToken('tenant-9', 'buyer@shop.com')
+  it('POST (confirm / one-click) with a valid token → write once + 200', async () => {
+    const token = signUnsubscribeToken('tenant-9', 'Buyer@Shop.com')
     const res = await POST(new NextRequest(`https://app.test/unsubscribe?token=${encodeURIComponent(token)}`, { method: 'POST' }))
     expect(res.status).toBe(200)
     expect(vi.mocked(suppressionRepo.addUnsubscribe)).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(suppressionRepo.addUnsubscribe)).toHaveBeenCalledWith('tenant-9', 'buyer@shop.com', 'unsubscribe_link')
   })
 
   it('POST with an invalid token → 400, no write', async () => {

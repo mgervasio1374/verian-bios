@@ -31,6 +31,10 @@ function htmlResponse(status: number, title: string, body: string): NextResponse
   })
 }
 
+// GET is intentionally SIDE-EFFECT-FREE. Email link-prefetchers and corporate URL
+// scanners issue a GET on the link; writing here would silently unsubscribe a
+// willing recipient who never clicked. So GET only renders a confirmation page
+// with a POST form — the opt-out is committed only on the explicit POST below.
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const token = req.nextUrl.searchParams.get('token') ?? ''
   const verified = verifyUnsubscribeToken(token)
@@ -39,18 +43,18 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       'This unsubscribe link is not valid. If you continue to receive emails you did not request, please reply to one of them.')
   }
 
-  try {
-    await addUnsubscribe(verified.tenantId, verified.email, 'unsubscribe_link')
-  } catch {
-    return htmlResponse(500, 'Something went wrong',
-      'We could not process your request right now. Please try again shortly.')
-  }
-
-  return htmlResponse(200, 'You\'ve been unsubscribed',
-    `${escapeHtml(verified.email)} will no longer receive these emails.`)
+  const action = `/unsubscribe?token=${encodeURIComponent(token)}`
+  const body =
+    `Click below to stop receiving these emails at <strong>${escapeHtml(verified.email)}</strong>.</p>` +
+    `<form method="POST" action="${escapeHtml(action)}" style="margin-top:16px">` +
+    `<button type="submit" style="background:#2563eb;color:#fff;border:0;border-radius:6px;` +
+    `padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer">Confirm unsubscribe</button>` +
+    `</form><p style="display:none">`
+  return htmlResponse(200, 'Confirm unsubscribe', body)
 }
 
-// RFC 8058 one-click POST. Mail clients POST here directly; return 200 with no body.
+// The write happens here. Browsers reach this via the confirm form; RFC 8058
+// one-click clients POST directly and ignore the response body.
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const token = req.nextUrl.searchParams.get('token') ?? ''
   const verified = verifyUnsubscribeToken(token)
@@ -64,5 +68,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return new NextResponse(null, { status: 500 })
   }
 
-  return new NextResponse(null, { status: 200 })
+  return htmlResponse(200, 'You\'ve been unsubscribed',
+    `${escapeHtml(verified.email)} will no longer receive these emails.`)
 }
