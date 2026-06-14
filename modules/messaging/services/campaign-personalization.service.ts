@@ -1,3 +1,5 @@
+import { applyHouseStyle } from '@/modules/messaging/house-style'
+
 export interface PersonalizationFields {
   first_name?:           string | null
   company_name?:         string | null
@@ -67,10 +69,13 @@ export function renderCampaignAsset(
   const renderedBodyHtml = substitute(asset.bodyTemplateHtml, fields, fallbacks, requiredSet, missing, snapshot)
   const renderedBodyText = substitute(asset.bodyTemplateText, fields, fallbacks, requiredSet, missing, snapshot)
 
+  // Universal house-style chokepoint — the last step before returning, so every
+  // MCM draft is dash-free even if the asset template (legacy or AI-written)
+  // still contains an em dash.
   return {
-    renderedSubject,
-    renderedBodyHtml,
-    renderedBodyText,
+    renderedSubject:         applyHouseStyle(renderedSubject),
+    renderedBodyHtml:        applyHouseStyle(renderedBodyHtml, { html: true }),
+    renderedBodyText:        applyHouseStyle(renderedBodyText),
     missingRequiredFields:   Array.from(missing),
     personalizationSnapshot: snapshot,
   }

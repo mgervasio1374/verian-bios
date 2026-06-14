@@ -22,6 +22,7 @@ import { buildVersionPlan }         from './copywriting-agent.version-planner'
 import { generateSubjectLine }      from './copywriting-agent.subjects'
 import { generateBodyText }         from './copywriting-agent.body'
 import { generatePreviewText }      from './copywriting-agent.preview'
+import { applyHouseStyle }          from '@/modules/messaging/house-style'
 import { checkCompliance }          from './copywriting-agent.compliance'
 import { checkStructure }           from './copywriting-agent.validation'
 import {
@@ -152,7 +153,7 @@ async function loadLeadContext(
 
 // ---- Build a single version candidate ----
 
-function buildCandidate(
+export function buildCandidate(
   versionNumber: number,
   plan:          VersionPlan,
   strategy:      MessageStrategy,
@@ -167,9 +168,10 @@ function buildCandidate(
   const lengthTarget = angle.lengthOverride ?? strategy.length_target ?? 'short'
 
   // Generate content
-  const subjectLine = generateSubjectLine(angle, strategy, ctx)
+  const subjectLine = applyHouseStyle(generateSubjectLine(angle, strategy, ctx))
   const bodyResult  = generateBodyText(angle, strategy, ctx)
-  const previewText = generatePreviewText(subjectLine, bodyResult.bodyText)
+  bodyResult.bodyText = applyHouseStyle(bodyResult.bodyText)
+  const previewText = applyHouseStyle(generatePreviewText(subjectLine, bodyResult.bodyText))
 
   // Build skill version map
   const skillVersions: Record<string, number> = {}

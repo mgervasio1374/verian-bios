@@ -6,6 +6,7 @@ import * as decisionRepo from '@/modules/intelligence/repositories/agent-decisio
 import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asset.repo'
 import { APPROVED_MERGE_FIELDS, ASSET_CREATION_ESTIMATED_TOKENS } from '@/modules/messaging/campaign-assets/campaign-asset.constants'
 import { textToHtmlBody } from '@/modules/messaging/campaign-assets/template-html'
+import { applyHouseStyle } from '@/modules/messaging/house-style'
 import { extractMergeFields, validateAssetTemplate } from '@/modules/messaging/services/campaign-asset-validation.service'
 import { isLlmConfigured, chatComplete } from '@/lib/llm/client'
 import { getCampaignTypeById } from '@/modules/campaign-sequence/repositories/campaign-type.repo'
@@ -30,9 +31,10 @@ function buildSystemPrompt(): string {
     'You are an expert B2B email copywriter for a merchant-payments company.',
     "Write ONE email from the operator's brief.",
     'Requirements:',
-    '- 80–180 words, plain professional tone, no images.',
+    '- 80 to 180 words, plain professional tone, no images.',
     `- Personalization may use ONLY these merge tokens (verbatim): ${approvedTokens}.`,
     '- Do not invent other tokens or placeholders.',
+    '- Never use em dashes (—) or en dashes (–) as punctuation. Use commas, periods, or parentheses instead.',
     'Output STRICT JSON: {"subject": "...", "body_text": "..."} and nothing else.',
   ].join('\n')
 }
@@ -76,9 +78,11 @@ interface GeneratedDraftContent {
 }
 
 function postProcessDraft(subject: string, bodyText: string): GeneratedDraftContent | null {
-  const cleanSubject = scrubUnapprovedMergeFields(subject)
-  const cleanBody    = scrubUnapprovedMergeFields(bodyText)
-  const cleanHtml    = textToHtmlBody(cleanBody)
+  // Born-clean: scrub house-style (em/en dashes) off the LLM output before the
+  // template is persisted, so the render chokepoint scrub is never load-bearing.
+  const cleanSubject = applyHouseStyle(scrubUnapprovedMergeFields(subject))
+  const cleanBody    = applyHouseStyle(scrubUnapprovedMergeFields(bodyText))
+  const cleanHtml    = applyHouseStyle(textToHtmlBody(cleanBody), { html: true })
 
   const personalizationFields = [
     ...extractMergeFields(cleanSubject),
