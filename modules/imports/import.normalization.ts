@@ -82,6 +82,21 @@ export function normalizeName(raw: unknown): string | null {
   return str || null
 }
 
+// Map a free-text customer-status cell to the companies.customer_status enum.
+// customer/yes/true/y/1/existing → 'customer'; former/past/churned →
+// 'former_customer'; everything else (incl. blank) → 'prospect'.
+const CUSTOMER_TOKENS = new Set(['customer', 'yes', 'true', 'y', '1', 'existing'])
+const FORMER_TOKENS   = new Set(['former', 'past', 'churned', 'former_customer', 'former customer'])
+
+export function normalizeCustomerStatus(raw: unknown): 'prospect' | 'customer' | 'former_customer' {
+  if (raw == null) return 'prospect'
+  const str = String(raw).trim().toLowerCase()
+  if (str === '') return 'prospect'
+  if (FORMER_TOKENS.has(str)) return 'former_customer'
+  if (CUSTOMER_TOKENS.has(str)) return 'customer'
+  return 'prospect'
+}
+
 export function splitFullName(fullName: string): { firstName: string; lastName: string } {
   const trimmed = fullName.trim()
   if (!trimmed) return { firstName: '', lastName: '' }
@@ -129,6 +144,7 @@ export function normalizeRow(
     addressLine1:     normalizeName(get('address_line1')),
     externalId:       normalizeName(get('external_id')),
     notes:            normalizeName(get('notes')),
+    customerStatus:   normalizeCustomerStatus(get('customer_status')),
     rawData:          raw,
   }
 }

@@ -14,6 +14,7 @@ export interface ListCompaniesOptions {
   search?: string
   status?: string
   industry?: string
+  customerStatus?: 'prospect' | 'customer' | 'former_customer'
   ids?: string[]
   orderBy?: string
   orderDir?: 'asc' | 'desc'
@@ -42,6 +43,7 @@ export async function listCompanies(opts: ListCompaniesOptions): Promise<Company
 
   if (opts.status) query = query.eq('status', opts.status)
   if (opts.industry) query = query.eq('industry', opts.industry)
+  if (opts.customerStatus) query = query.eq('customer_status', opts.customerStatus)
   if (opts.search) query = query.ilike('name', `%${opts.search}%`)
   if (opts.ids) query = query.in('id', opts.ids)
 
@@ -112,6 +114,29 @@ export async function updateCompany(
 
   if (error) throw new Error(`updateCompany: ${error.message}`)
   return row
+}
+
+// Bulk-set customer_status for a set of companies (tenant/workspace-scoped).
+// Returns the number of rows updated.
+export async function updateCompaniesCustomerStatus(
+  ids:            string[],
+  customerStatus: 'prospect' | 'customer' | 'former_customer',
+  tenantId:       string,
+  workspaceId:    string,
+): Promise<number> {
+  if (ids.length === 0) return 0
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('companies')
+    .update({ customer_status: customerStatus } as unknown as CompanyUpdate)
+    .in('id', ids)
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .is('deleted_at', null)
+    .select('id')
+
+  if (error) throw new Error(`updateCompaniesCustomerStatus: ${error.message}`)
+  return data?.length ?? 0
 }
 
 export async function countCompanies(tenantId: string, workspaceId: string): Promise<number> {

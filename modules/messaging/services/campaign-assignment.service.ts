@@ -8,6 +8,7 @@ import { getCampaignTypeById } from '@/modules/campaign-sequence/repositories/ca
 import { listCampaignSequenceStepsForSequence } from '@/modules/campaign-sequence/repositories/campaign-sequence-step.repo'
 import { looksLikeAiPrompt } from '@/modules/campaign-sequence/prompt-leak-guard'
 import { listContacts } from '@/modules/crm/repositories/contact.repo'
+import { listCompanies } from '@/modules/crm/repositories/company.repo'
 import { inngest } from '@/lib/inngest/client'
 import {
   ASSIGNMENT_STATUS,
@@ -204,6 +205,7 @@ export interface BulkAssignTally {
   skippedDuplicate:        number
   skippedNoEmail:          number
   skippedDoNotContact:     number
+  skippedCustomers:        number
   companiesWithNoContacts: number
   failed:                  number
   // V1 prompt-leak heuristic — warnings only, the assignment still proceeds
@@ -279,9 +281,27 @@ export async function bulkAssignCampaignToCompanies(
     skippedDuplicate:        0,
     skippedNoEmail:          0,
     skippedDoNotContact:     0,
+    skippedCustomers:        0,
     companiesWithNoContacts: 0,
     failed:                  0,
   }
+
+  // Customer-status exclusion gate: cold campaigns must never email existing
+  // customers (deliverability + trust risk). Build a status map up front so the
+  // per-company skip is a cheap lookup. 'former_customer' stays eligible —
+  // former customers are valid win-back targets.
+  const companiesForStatus = await listCompanies({
+    tenantId:    input.tenantId,
+    workspaceId: input.workspaceId,
+    ids:         input.companyIds,
+    limit:       input.companyIds.length,
+  }).catch(() => [])
+  const customerStatusById = new Map(
+    companiesForStatus.map(c => [
+      c.id,
+      (c as unknown as Record<string, unknown>).customer_status as string | undefined,
+    ]),
+  )
 
   const warnings: string[] = []
   if (unreviewedAssets.length > 0) {
@@ -306,6 +326,12 @@ export async function bulkAssignCampaignToCompanies(
   if (warnings.length > 0) tally.warnings = warnings
 
   for (const companyId of input.companyIds) {
+    // Hard-skip existing customers — never cold-email them.
+    if (customerStatusById.get(companyId) === 'customer') {
+      tally.skippedCustomers++
+      continue
+    }
+
     const contacts = await listContacts({
       tenantId:    input.tenantId,
       workspaceId: input.workspaceId,

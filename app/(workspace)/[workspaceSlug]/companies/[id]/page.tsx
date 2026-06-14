@@ -88,6 +88,24 @@ export default async function CompanyDetailPage({ params }: PageProps) {
                 )}>
                   {company.status}
                 </span>
+                {(() => {
+                  const cs = (company as unknown as Record<string, unknown>).customer_status as string | undefined
+                  if (cs === 'customer') {
+                    return (
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                        Customer
+                      </span>
+                    )
+                  }
+                  if (cs === 'former_customer') {
+                    return (
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-500 border border-gray-200">
+                        Former customer
+                      </span>
+                    )
+                  }
+                  return null
+                })()}
               </div>
             </div>
           </div>

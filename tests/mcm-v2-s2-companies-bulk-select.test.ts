@@ -124,7 +124,7 @@ describe('TC-S2-04: companies page wiring (source-read)', () => {
 
   it('reads the segment searchParam alongside search (U3 added more params)', () => {
     expect(page).toContain('segment?: string')
-    expect(page).toContain('const { search, page, segment, status, industry, sort, dir } = await searchParams')
+    expect(page).toContain('const { search, page, segment, status, industry, customer, sort, dir } = await searchParams')
   })
 
   it('filters companies by segment membership ids (AND with search)', () => {

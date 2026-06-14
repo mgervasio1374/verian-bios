@@ -83,6 +83,7 @@ export async function createCompanyFromDialogAction(input: {
   employee_count: string
   annual_revenue: string
   source:         string
+  customer_status?: string
   segmentId?:     string
   createLead?:    boolean
 }): Promise<ActionResult<{ id: string; warnings?: string[] }>> {
@@ -111,6 +112,7 @@ export async function createCompanyFromDialogAction(input: {
       employee_count: input.employee_count.trim() || null,
       annual_revenue: input.annual_revenue.trim() || null,
       source:        input.source.trim()        || null,
+      customer_status: input.customer_status     || 'prospect',
     })
 
     if (!parsed.success) {
@@ -177,6 +179,7 @@ export async function updateCompanyFromDialogAction(
     employee_count: string
     annual_revenue: string
     source: string
+    customer_status?: string
   }
 ): Promise<ActionResult> {
   try {
@@ -204,6 +207,7 @@ export async function updateCompanyFromDialogAction(
       employee_count: input.employee_count.trim() || null,
       annual_revenue: input.annual_revenue.trim() || null,
       source:        input.source.trim()        || null,
+      customer_status: input.customer_status     || undefined,
     })
 
     if (!parsed.success) {
@@ -214,6 +218,31 @@ export async function updateCompanyFromDialogAction(
     revalidatePath('/[workspaceSlug]/companies', 'page')
     revalidatePath('/[workspaceSlug]/companies/[id]', 'page')
     return { success: true, data: undefined }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
+const CUSTOMER_STATUS_VALUES = ['prospect', 'customer', 'former_customer'] as const
+type CustomerStatus = (typeof CUSTOMER_STATUS_VALUES)[number]
+
+export async function updateCompaniesCustomerStatusAction(
+  companyIds: string[],
+  status:     string,
+): Promise<ActionResult<{ updated: number }>> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx      = await buildRequestContext(supabase)
+
+    if (companyIds.length === 0) return { success: false, error: 'Select at least one company.' }
+    if (!CUSTOMER_STATUS_VALUES.includes(status as CustomerStatus)) {
+      return { success: false, error: 'Invalid customer status.' }
+    }
+
+    const updated = await companyService.setCompaniesCustomerStatus(ctx, companyIds, status as CustomerStatus)
+
+    revalidatePath('/[workspaceSlug]/companies', 'page')
+    return { success: true, data: { updated } }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }

@@ -2338,6 +2338,7 @@ export type Database = {
           country: string
           created_at: string
           created_by: string | null
+          customer_status: string
           deleted_at: string | null
           deleted_by: string | null
           domain: string | null
@@ -2367,6 +2368,7 @@ export type Database = {
           country?: string
           created_at?: string
           created_by?: string | null
+          customer_status?: string
           deleted_at?: string | null
           deleted_by?: string | null
           domain?: string | null
@@ -2396,6 +2398,7 @@ export type Database = {
           country?: string
           created_at?: string
           created_by?: string | null
+          customer_status?: string
           deleted_at?: string | null
           deleted_by?: string | null
           domain?: string | null

@@ -104,6 +104,7 @@ export const IMPORT_CANONICAL_FIELDS = [
   'address_line1',
   'external_id',
   'notes',
+  'customer_status',
 ] as const
 export type ImportCanonicalField = typeof IMPORT_CANONICAL_FIELDS[number]
 
@@ -204,6 +205,13 @@ export const IMPORT_FIELD_ALIASES: Record<string, ImportCanonicalField> = {
   'note':                 'notes',
   'comments':             'notes',
   'description':          'notes',
+
+  // customer_status — cold-campaign exclusion flag
+  'customer status':      'customer_status',
+  'customer_status':      'customer_status',
+  'is customer':          'customer_status',
+  'current customer':     'customer_status',
+  'customer':             'customer_status',
 }
 
 // -------------------------------------------------------
@@ -230,6 +238,7 @@ export interface NormalizedImportRow {
   addressLine1:       string | null
   externalId:         string | null
   notes:              string | null
+  customerStatus:     'prospect' | 'customer' | 'former_customer'
   rawData:            Record<string, unknown>
 }
 

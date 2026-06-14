@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { createCompanyFromDialogAction } from '@/modules/crm/actions/company.actions'
 import { validatePhone } from '@/lib/format'
-import { INDUSTRY_OPTIONS, COMPANY_STATUS_OPTIONS as STATUS_OPTIONS } from '@/modules/crm/constants'
+import { INDUSTRY_OPTIONS, COMPANY_STATUS_OPTIONS as STATUS_OPTIONS, CUSTOMER_STATUS_OPTIONS } from '@/modules/crm/constants'
 
 const EMPTY_FORM = {
   name:           '',
@@ -24,6 +24,7 @@ const EMPTY_FORM = {
   domain:         '',
   phone:          '',
   status:         'active',
+  customer_status: 'prospect',
   address_line1:  '',
   address_line2:  '',
   city:           '',
@@ -151,6 +152,25 @@ export function AddCompanyDialog({ workspaceSlug, segments = [] }: Props) {
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Customer status — controls cold-outreach exclusion */}
+          <div className="space-y-1.5">
+            <Label htmlFor="ac-customer-status">Customer status</Label>
+            <select
+              id="ac-customer-status"
+              value={form.customer_status}
+              onChange={e => set('customer_status', e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm
+                         focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              {CUSTOMER_STATUS_OPTIONS.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Customers are automatically excluded from cold outreach.
+            </p>
           </div>
 
           {/* Website + Domain */}

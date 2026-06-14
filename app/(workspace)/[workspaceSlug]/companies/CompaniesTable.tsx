@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { addCompaniesToSegmentAction } from '@/modules/crm/actions/segment.actions'
+import { updateCompaniesCustomerStatusAction } from '@/modules/crm/actions/company.actions'
 import { bulkAssignCampaignAction } from '@/modules/messaging/actions/campaign-assignment.actions'
 // V5: pure timing helpers for the live touch-schedule preview (no DB, client-safe)
 import {
@@ -48,6 +49,19 @@ function getStatusBadgeClass(status: string | null): string {
   }
 }
 
+const CUSTOMER_FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: '',                label: 'All' },
+  { value: 'prospect',        label: 'Prospects' },
+  { value: 'customer',        label: 'Customers' },
+  { value: 'former_customer', label: 'Former' },
+]
+
+const CUSTOMER_SET_OPTIONS: { value: string; label: string }[] = [
+  { value: 'prospect',        label: 'Prospect' },
+  { value: 'customer',        label: 'Customer' },
+  { value: 'former_customer', label: 'Former customer' },
+]
+
 // Sortable columns map header labels to whitelisted repo columns (Location sorts by city).
 const SORTABLE_COLUMNS: { label: string; column: string }[] = [
   { label: 'Name',     column: 'name' },
@@ -66,6 +80,7 @@ interface Props {
   activeSegmentId: string
   activeStatus:    string
   activeIndustry:  string
+  activeCustomer:  string
   activeSort:      string
   activeDir:       'asc' | 'desc'
   search:          string
@@ -80,6 +95,7 @@ export function CompaniesTable({
   activeSegmentId,
   activeStatus,
   activeIndustry,
+  activeCustomer,
   activeSort,
   activeDir,
   search,
@@ -91,6 +107,7 @@ export function CompaniesTable({
 
   const [selectedIds,     setSelectedIds]     = useState<Set<string>>(new Set())
   const [targetSegmentId, setTargetSegmentId] = useState('')
+  const [customerStatusValue, setCustomerStatusValue] = useState('')
   const [error,           setError]           = useState<string | null>(null)
   const [successMessage,  setSuccessMessage]  = useState<string | null>(null)
 
@@ -129,7 +146,13 @@ export function CompaniesTable({
   })()
 
   const allSelected = companies.length > 0 && companies.every(c => selectedIds.has(c.id))
-  const hasFilter   = Boolean(activeSegmentId || search || activeStatus || activeIndustry)
+  const hasFilter   = Boolean(activeSegmentId || search || activeStatus || activeIndustry || activeCustomer)
+
+  // Selected companies that are existing customers — bulk-assign will skip them.
+  const selectedCustomerCount = companies.filter(
+    c => selectedIds.has(c.id) &&
+      (c as unknown as Record<string, unknown>).customer_status === 'customer',
+  ).length
 
   function toggleSelectAll() {
     if (allSelected) {
@@ -158,6 +181,7 @@ export function CompaniesTable({
       segment:  activeSegmentId,
       status:   activeStatus,
       industry: activeIndustry,
+      customer: activeCustomer,
       sort:     activeSort,
       dir:      activeSort ? activeDir : '',
       ...overrides,
@@ -170,7 +194,7 @@ export function CompaniesTable({
     router.push(`/${workspaceSlug}/companies${qs ? `?${qs}` : ''}`)
   }
 
-  function handleFilterChange(key: 'segment' | 'status' | 'industry', value: string) {
+  function handleFilterChange(key: 'segment' | 'status' | 'industry' | 'customer', value: string) {
     setSelectedIds(new Set()) // filters change the visible rows — stale selection would be misleading
     navigate({ [key]: value })
   }
@@ -208,6 +232,30 @@ export function CompaniesTable({
     })
   }
 
+  function handleSetCustomerStatus() {
+    setError(null)
+    setSuccessMessage(null)
+
+    if (!customerStatusValue) {
+      setError('Pick a customer status to set.')
+      return
+    }
+
+    const ids = Array.from(selectedIds)
+    startTransition(async () => {
+      const result = await updateCompaniesCustomerStatusAction(ids, customerStatusValue)
+      if (!result.success) {
+        setError(result.error)
+        return
+      }
+      const label = CUSTOMER_SET_OPTIONS.find(o => o.value === customerStatusValue)?.label ?? customerStatusValue
+      setSuccessMessage(`Set ${result.data.updated} ${result.data.updated === 1 ? 'company' : 'companies'} to ${label}.`)
+      setSelectedIds(new Set())
+      setCustomerStatusValue('')
+      router.refresh()
+    })
+  }
+
   function handleBulkAssign() {
     setError(null)
     setSuccessMessage(null)
@@ -225,11 +273,15 @@ export function CompaniesTable({
     const startsAt = startMode === 'date' ? startDate : undefined
 
     const count = selectedIds.size
+    const customerNote = selectedCustomerCount > 0
+      ? `\n\nNote: ${selectedCustomerCount} selected ${selectedCustomerCount === 1 ? 'company is an existing customer' : 'companies are existing customers'} and will be skipped.`
+      : ''
     const confirmed = window.confirm(
       `Assign campaign to the contacts of ${count} ${count === 1 ? 'company' : 'companies'}?\n\n` +
       `Sequence: ${sequence.name}\n` +
       `Pre-approved first touch: ${preApproved ? 'yes' : 'no'}\n` +
-      `Start: ${startsAt ? `on ${startsAt}` : 'immediately'}`
+      `Start: ${startsAt ? `on ${startsAt}` : 'immediately'}` +
+      customerNote
     )
     if (!confirmed) return
 
@@ -249,8 +301,11 @@ export function CompaniesTable({
         t.failed               > 0 ? `${t.failed} failed` : null,
       ].filter(Boolean).join(', ')
       const warningSuffix = t.warnings?.length ? ` ⚠ ${t.warnings.join(' ')}` : ''
+      const customerSuffix = t.skippedCustomers > 0
+        ? ` Skipped ${t.skippedCustomers} customer${t.skippedCustomers === 1 ? '' : 's'} — excluded from campaigns.`
+        : ''
       setSuccessMessage(
-        `Created ${t.created} assignment${t.created === 1 ? '' : 's'}.${skipped ? ` Skipped: ${skipped}.` : ''}${warningSuffix}`
+        `Created ${t.created} assignment${t.created === 1 ? '' : 's'}.${skipped ? ` Skipped: ${skipped}.` : ''}${customerSuffix}${warningSuffix}`
       )
       setSelectedIds(new Set())
       setShowAssignPanel(false)
@@ -318,6 +373,22 @@ export function CompaniesTable({
             ))}
           </select>
         </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-muted-foreground" htmlFor="customer-filter">
+            Customer
+          </label>
+          <select
+            id="customer-filter"
+            value={activeCustomer}
+            onChange={e => handleFilterChange('customer', e.target.value)}
+            className="rounded border px-2 py-1.5 text-sm bg-background"
+          >
+            {CUSTOMER_FILTER_OPTIONS.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {successMessage && (
@@ -362,6 +433,26 @@ export function CompaniesTable({
               className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
             >
               Assign campaign
+            </button>
+            <span className="h-5 w-px bg-border" aria-hidden="true" />
+            <select
+              value={customerStatusValue}
+              onChange={e => setCustomerStatusValue(e.target.value)}
+              className="rounded border px-2 py-1.5 text-xs bg-background"
+              aria-label="Customer status"
+            >
+              <option value="">Set customer status…</option>
+              {CUSTOMER_SET_OPTIONS.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleSetCustomerStatus}
+              disabled={pending || !customerStatusValue}
+              className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+            >
+              {pending ? 'Saving…' : 'Apply'}
             </button>
           </div>
         </div>
@@ -573,13 +664,36 @@ export function CompaniesTable({
                   </td>
                   <td className="px-4 py-3 text-muted-foreground capitalize">{c.source ?? '—'}</td>
                   <td className="px-4 py-3">
-                    {inCampaign.has(c.id) ? (
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">
-                        In campaign
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {(() => {
+                        const cs = (c as unknown as Record<string, unknown>).customer_status as string | undefined
+                        if (cs === 'customer') {
+                          return (
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                              Customer
+                            </span>
+                          )
+                        }
+                        if (cs === 'former_customer') {
+                          return (
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-500 border border-gray-200">
+                              Former
+                            </span>
+                          )
+                        }
+                        return null
+                      })()}
+                      {inCampaign.has(c.id) ? (
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">
+                          In campaign
+                        </span>
+                      ) : null}
+                      {!inCampaign.has(c.id) &&
+                        (c as unknown as Record<string, unknown>).customer_status !== 'customer' &&
+                        (c as unknown as Record<string, unknown>).customer_status !== 'former_customer' && (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

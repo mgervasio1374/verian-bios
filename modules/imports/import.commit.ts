@@ -59,7 +59,22 @@ export async function findOrCreateCompany(
     existing = data ?? null
   }
 
-  if (existing) return existing
+  if (existing) {
+    // Upgrade-only: a sparse import row must never downgrade an existing
+    // customer back to prospect. Only promote prospect → customer.
+    const existingStatus = (existing as unknown as Record<string, unknown>).customer_status as string | undefined
+    if (normalized.customerStatus === 'customer' && existingStatus === 'prospect') {
+      const { data: upgraded } = await supabase
+        .from('companies')
+        .update({ customer_status: 'customer' })
+        .eq('id', existing.id)
+        .eq('tenant_id', tenantId)
+        .select()
+        .single()
+      return upgraded ?? existing
+    }
+    return existing
+  }
 
   const { data, error } = await supabase
     .from('companies')
@@ -75,6 +90,7 @@ export async function findOrCreateCompany(
       zip:          normalized.zip ?? undefined,
       country:      normalized.country ?? 'US',
       address_line1: normalized.addressLine1 ?? undefined,
+      customer_status: normalized.customerStatus,
       source:       'import',
     })
     .select()

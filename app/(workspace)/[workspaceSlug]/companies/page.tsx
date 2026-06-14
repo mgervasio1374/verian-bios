@@ -23,14 +23,20 @@ interface PageProps {
     segment?: string
     status?: string
     industry?: string
+    customer?: string
     sort?: string
     dir?: string
   }>
 }
 
+const CUSTOMER_FILTER_VALUES = ['prospect', 'customer', 'former_customer'] as const
+
 export default async function CompaniesPage({ params, searchParams }: PageProps) {
   const { workspaceSlug } = await params
-  const { search, page, segment, status, industry, sort, dir } = await searchParams
+  const { search, page, segment, status, industry, customer, sort, dir } = await searchParams
+  const customerStatus = (CUSTOMER_FILTER_VALUES as readonly string[]).includes(customer ?? '')
+    ? (customer as 'prospect' | 'customer' | 'former_customer')
+    : undefined
   const offset = ((Number(page) || 1) - 1) * 50
 
   const supabase = await createSupabaseServerClient()
@@ -48,6 +54,7 @@ export default async function CompaniesPage({ params, searchParams }: PageProps)
         ids,
         status,
         industry,
+        customerStatus,
         orderBy:  sort,
         orderDir: dir === 'desc' ? 'desc' : dir === 'asc' ? 'asc' : undefined,
         limit:    50,
@@ -110,6 +117,7 @@ export default async function CompaniesPage({ params, searchParams }: PageProps)
         activeSegmentId={segment ?? ''}
         activeStatus={status ?? ''}
         activeIndustry={industry ?? ''}
+        activeCustomer={customer ?? ''}
         activeSort={sort ?? ''}
         activeDir={dir === 'desc' ? 'desc' : 'asc'}
         search={search ?? ''}

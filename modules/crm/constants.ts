@@ -11,3 +11,11 @@ export const COMPANY_STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: 'prospect', label: 'Prospect' },
   { value: 'churned',  label: 'Churned' },
 ]
+
+// Cold-campaign exclusion flag — independent of the lifecycle status above.
+// 'customer' is hard-skipped by bulk-assign; 'former_customer' stays eligible.
+export const CUSTOMER_STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: 'prospect',        label: 'Prospect' },
+  { value: 'customer',        label: 'Customer' },
+  { value: 'former_customer', label: 'Former customer' },
+]

@@ -15,6 +15,7 @@ export async function listCompanies(
     search?: string
     status?: string
     industry?: string
+    customerStatus?: 'prospect' | 'customer' | 'former_customer'
     ids?: string[]
     orderBy?: string
     orderDir?: 'asc' | 'desc'
@@ -28,6 +29,15 @@ export async function listCompanies(
     workspaceId: ctx.workspaceId,
     ...opts,
   })
+}
+
+export async function setCompaniesCustomerStatus(
+  ctx: RequestContext,
+  ids: string[],
+  customerStatus: 'prospect' | 'customer' | 'former_customer',
+): Promise<number> {
+  requirePermission(ctx, 'crm.companies.edit')
+  return companyRepo.updateCompaniesCustomerStatus(ids, customerStatus, ctx.tenantId, ctx.workspaceId)
 }
 
 export async function getCompany(ctx: RequestContext, id: string) {

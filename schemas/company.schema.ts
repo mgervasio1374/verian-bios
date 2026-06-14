@@ -9,6 +9,8 @@ export const createCompanySchema = z.object({
   employee_count: z.coerce.number().int().positive().optional().nullable(),
   annual_revenue: z.coerce.number().positive().optional().nullable(),
   status: z.enum(['active', 'inactive', 'prospect', 'churned']).optional(),
+  // Cold-campaign exclusion flag — independent of the status lifecycle above.
+  customer_status: z.enum(['prospect', 'customer', 'former_customer']).optional(),
   address_line1: z.string().optional().nullable(),
   address_line2: z.string().optional().nullable(),
   city: z.string().optional().nullable(),

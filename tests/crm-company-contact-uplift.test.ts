@@ -73,7 +73,8 @@ describe('TC-CCU-02: AddCompanyDialog matches the edit dialog field set (source-
 
   it('uses the same status options as the edit dialog (U3 centralized them in crm/constants)', () => {
     // Both dialogs import the single shared option lists, so they cannot diverge.
-    const sharedImport = "import { INDUSTRY_OPTIONS, COMPANY_STATUS_OPTIONS as STATUS_OPTIONS } from '@/modules/crm/constants'"
+    // (customer-flag slice added CUSTOMER_STATUS_OPTIONS to the same shared import.)
+    const sharedImport = "import { INDUSTRY_OPTIONS, COMPANY_STATUS_OPTIONS as STATUS_OPTIONS, CUSTOMER_STATUS_OPTIONS } from '@/modules/crm/constants'"
     expect(add).toContain(sharedImport)
     expect(edit).toContain(sharedImport)
   })

@@ -259,7 +259,7 @@ describe('Import Foundation — Validation (pure functions)', () => {
   it('validateRow: missing company_name → invalid', () => {
     const fx = loadFixture('TC-IM-031')
     const input = fx.input as { companyName: string | null; email: string | null; phone: string | null; website: string | null }
-    const normalized = { companyName: input.companyName, email: input.email, phone: input.phone, website: input.website, contactFirstName: null, contactLastName: null, industry: null, city: null, state: null, zip: null, country: null, addressLine1: null, externalId: null, notes: null, rawData: {} }
+    const normalized = { companyName: input.companyName, email: input.email, phone: input.phone, website: input.website, contactFirstName: null, contactLastName: null, industry: null, city: null, state: null, zip: null, country: null, addressLine1: null, externalId: null, notes: null, customerStatus: 'prospect' as const, rawData: {} }
     const result = validateRow(normalized)
     expect(result.status).toBe('invalid')
     expect(result.errors.some(e => e.code === 'MISSING_REQUIRED_FIELD' && e.field === 'company_name')).toBe(true)
@@ -268,7 +268,7 @@ describe('Import Foundation — Validation (pure functions)', () => {
   it('validateRow: missing all contact methods → invalid', () => {
     const fx = loadFixture('TC-IM-032')
     const input = fx.input as { companyName: string | null; email: string | null; phone: string | null; website: string | null }
-    const normalized = { companyName: input.companyName, email: input.email, phone: input.phone, website: input.website, contactFirstName: null, contactLastName: null, industry: null, city: null, state: null, zip: null, country: null, addressLine1: null, externalId: null, notes: null, rawData: {} }
+    const normalized = { companyName: input.companyName, email: input.email, phone: input.phone, website: input.website, contactFirstName: null, contactLastName: null, industry: null, city: null, state: null, zip: null, country: null, addressLine1: null, externalId: null, notes: null, customerStatus: 'prospect' as const, rawData: {} }
     const result = validateRow(normalized)
     expect(result.status).toBe('invalid')
     expect(result.errors.some(e => e.code === 'MISSING_CONTACT_METHOD')).toBe(true)
@@ -277,7 +277,7 @@ describe('Import Foundation — Validation (pure functions)', () => {
   it('validateRow: valid email passes', () => {
     const fx = loadFixture('TC-IM-033')
     const input = fx.input as { companyName: string | null; email: string | null; phone: string | null; website: string | null }
-    const normalized = { companyName: input.companyName, email: input.email, phone: input.phone, website: input.website, contactFirstName: null, contactLastName: null, industry: null, city: null, state: null, zip: null, country: null, addressLine1: null, externalId: null, notes: null, rawData: {} }
+    const normalized = { companyName: input.companyName, email: input.email, phone: input.phone, website: input.website, contactFirstName: null, contactLastName: null, industry: null, city: null, state: null, zip: null, country: null, addressLine1: null, externalId: null, notes: null, customerStatus: 'prospect' as const, rawData: {} }
     const result = validateRow(normalized)
     expect(result.status).toBe('valid')
     expect(result.errors.some(e => e.field === 'email' && e.severity === 'error')).toBe(false)
@@ -286,7 +286,7 @@ describe('Import Foundation — Validation (pure functions)', () => {
   it('validateRow: invalid email format → error', () => {
     const fx = loadFixture('TC-IM-034')
     const input = fx.input as { companyName: string | null; email: string | null; phone: string | null; website: string | null }
-    const normalized = { companyName: input.companyName, email: input.email, phone: input.phone, website: input.website, contactFirstName: null, contactLastName: null, industry: null, city: null, state: null, zip: null, country: null, addressLine1: null, externalId: null, notes: null, rawData: {} }
+    const normalized = { companyName: input.companyName, email: input.email, phone: input.phone, website: input.website, contactFirstName: null, contactLastName: null, industry: null, city: null, state: null, zip: null, country: null, addressLine1: null, externalId: null, notes: null, customerStatus: 'prospect' as const, rawData: {} }
     const result = validateRow(normalized)
     expect(result.status).toBe('invalid')
     expect(result.errors.some(e => e.code === 'INVALID_EMAIL_FORMAT')).toBe(true)
@@ -296,7 +296,7 @@ describe('Import Foundation — Validation (pure functions)', () => {
     // 7-digit phone normalizes to '5551234' (length 7, < 10 → PHONE_TOO_SHORT warning)
     const phone = normalizePhone('5551234')
     expect(phone).toBe('5551234')
-    const normalized = { companyName: 'Acme', email: null, phone, website: 'acme.com', contactFirstName: null, contactLastName: null, industry: null, city: null, state: null, zip: null, country: null, addressLine1: null, externalId: null, notes: null, rawData: {} }
+    const normalized = { companyName: 'Acme', email: null, phone, website: 'acme.com', contactFirstName: null, contactLastName: null, industry: null, city: null, state: null, zip: null, country: null, addressLine1: null, externalId: null, notes: null, customerStatus: 'prospect' as const, rawData: {} }
     const result = validateRow(normalized)
     expect(result.status).toBe('valid')
     expect(result.errors.some(e => e.severity === 'warning')).toBe(true)
@@ -305,7 +305,7 @@ describe('Import Foundation — Validation (pure functions)', () => {
   it('validateRow: multiple errors accumulated', () => {
     const fx = loadFixture('TC-IM-038')
     const input = fx.input as { companyName: string | null; email: string | null; phone: string | null; website: string | null }
-    const normalized = { companyName: input.companyName, email: input.email, phone: input.phone, website: input.website, contactFirstName: null, contactLastName: null, industry: null, city: null, state: null, zip: null, country: null, addressLine1: null, externalId: null, notes: null, rawData: {} }
+    const normalized = { companyName: input.companyName, email: input.email, phone: input.phone, website: input.website, contactFirstName: null, contactLastName: null, industry: null, city: null, state: null, zip: null, country: null, addressLine1: null, externalId: null, notes: null, customerStatus: 'prospect' as const, rawData: {} }
     const result = validateRow(normalized)
     expect(result.status).toBe('invalid')
     const expected = fx.expected as { errorCount: number }
@@ -315,7 +315,7 @@ describe('Import Foundation — Validation (pure functions)', () => {
   it('validateRow: warning row is valid', () => {
     const fx = loadFixture('TC-IM-039')
     const input = fx.input as { companyName: string | null; email: string | null; phone: string | null; website: string | null }
-    const normalized = { companyName: input.companyName, email: input.email, phone: normalizePhone(input.phone), website: input.website, contactFirstName: null, contactLastName: null, industry: null, city: null, state: null, zip: null, country: null, addressLine1: null, externalId: null, notes: null, rawData: {} }
+    const normalized = { companyName: input.companyName, email: input.email, phone: normalizePhone(input.phone), website: input.website, contactFirstName: null, contactLastName: null, industry: null, city: null, state: null, zip: null, country: null, addressLine1: null, externalId: null, notes: null, customerStatus: 'prospect' as const, rawData: {} }
     const result = validateRow(normalized)
     expect(result.status).toBe('valid')
   })
