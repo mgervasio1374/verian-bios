@@ -4,9 +4,8 @@ _Single source of truth for "where are we / what's next" on the Manual Campaign 
 Update the **NEXT ACTION** and **STATUS** lines as you go._
 
 ## NEXT ACTION (do this first)
-🎉 **PHASE D COMPLETE (2026-06-10)** — all four drills passed: first-send ✅, manual-stop ✅, bounce-stop ✅ (after ISSUE-007 + ISSUE-008 fixes), kill-switch ✅. The MCM send engine is proven live on staging end-to-end.
-**NEXT = Phase E (onboard Bruce)**, but first close the one remaining go-live blocker: **ISSUE-006** — no operator "Stop sequence" UI (only "Retire", which doesn't stop pending items). Recommend a small follow-up slice adding a "Stop sequence" button wired to `stopCampaignSequenceAction` before Bruce self-serves.
-Also weigh the **operability note** (below) for Bruce's expectations: approval→send is async (lags a cron tick or two).
+🎉 **PHASE D COMPLETE + ALL GO-LIVE BLOCKERS CLOSED (2026-06-10).** Four drills passed (first-send ✅, manual-stop ✅, bounce-stop ✅, kill-switch ✅) and all three pilot bugs are fixed AND verified live: ISSUE-006 (`8bc3f00`, Stop-sequence UI — verified via real click), ISSUE-007 (`dce6cf3`, bounce payload shape), ISSUE-008 (`99be74d`, awaited bounce stop). `origin/master = eb5c488`.
+**NEXT = PHASE E — onboard Bruce.** Set two expectations for him: (1) approval→send is async (lags a cron tick or two — see operability note below); (2) Resend open/click tracking is off by default (engagement metrics only, not a blocker — enable in Resend if he wants opens). No code blockers remain.
 
 ---
 **Phase D drill log (all ✅):**
@@ -25,6 +24,13 @@ Then **Phase E** (onboard Bruce).
 - **Phase C (dry-run) COMPLETE ✅:** both crons green; assignment `5aeac081-…` → step 1 `awaiting_approval` (draft + approval req, Pending in `/inbox`), step 2 correctly **held** at `draft_ready` (gated auto-approve not yet triggered). **Zero pilot sends** — `email_events`=0; the only 2 `email_sends` rows are pre-existing noise from 2026-05-27 (`failed`, recipient `jharmon@harbordiner.com`, draft `f17129e2…`, unrelated to this assignment).
 - ⚠️ **Send-check baseline:** `email_sends` already holds 2 old failed rows (pre-2026-05-27). Future "zero sends" checks must scope to the assignment/draft, not `count(*)` on the whole table.
 - **Phase D first send COMPLETE ✅ (2026-06-10):** gates flipped ON for the test tenant; `Process Campaign Sends` dispatched both steps → 2 real sends to `mgervasio@321swipe.com`, assignment auto-`completed`. `email_events` still empty → **Resend webhook → staging not yet confirmed** (blocks bounce-stop drill). Remaining: manual-stop + bounce-stop + kill-switch drills, then Phase E.
+
+## MCM v2 — PROPOSAL TRACK (shipped to staging 2026-06-14)
+Savings-analysis → hosted proposal → follow-up engine. All three slices shipped, committed, tagged, and **applied to staging** (`smbausuyetlgxflyhmfg`); production untouched (proposal migrations are the next prod release).
+- **#37 Hosted proposal page** ✅ — public `/p/{token}` page; migration `20240056` (share_token) already on staging.
+- **#38 Approve & Send + open-tracking** ✅ — `f090eb2`, tag `mcm-v2-proposal-approve-send-v1`; migration `20240057` (first_viewed_at) applied + verified. Draft→sent via Resend with the `/p` link, schedules the follow-up cadence; opening the link flips to `viewed`.
+- **#39 Follow-up open-state copy** ✅ — `2d396f8`, tag `mcm-v2-followup-open-state-copy-v1`; migration `20240058` applied + verified. Follow-up opening line branches on opened-vs-not (single template + `{{proposal_state_line}}` variable).
+- Staging now at **20240058** (prod still `20240051`). Evidence: `mcm-v2-proposal-slices-staging-apply-evidence-report.md`. Suite green besides pre-existing `TC-3K-030`.
 
 ## KEY FACTS
 - **Staging Supabase ref:** `smbausuyetlgxflyhmfg`. **Prod / hard-stop ref:** `kxrplupzbsmujjznzhpy` (also `.env.remote-dev`) — never apply there for the pilot. Prod is at `20240034` (12 migrations behind = separate release).

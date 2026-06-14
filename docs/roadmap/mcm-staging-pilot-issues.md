@@ -52,7 +52,7 @@ Status: `open` · `fix-drafted` · `fixed-staging` · `resolved` · `noted`.
 - **Class:** `operator-runbook`.
 
 ## ISSUE-006 — No operator UI to manually stop a sequence
-- **Date:** 2026-06-10 · **Severity:** major · **Status:** open
+- **Date:** 2026-06-10 · **Severity:** major · **Status:** ✅ RESOLVED (commit `8bc3f00`, verified live 2026-06-10 — UI "Stop sequence" click on assignment `b752cd36` set both items `stopped_manual` + retired the assignment, no SQL)
 - **Area:** lead/assignment view; `stopCampaignSequenceAction` (modules/messaging/actions/campaign-assignment.actions.ts)
 - **Symptom:** `stopCampaignSequenceAction` (stops all pending schedule items → `stopped_manual` + retires assignment) exists and is unit-tested, but is **not wired to any `.tsx`** — no button. The assignment card only has **"Retire"** (`retireCampaignAssignmentAction`), which retires the assignment but does **NOT** transition pending schedule items to `stopped_manual` — so a "Retire" alone could leave due/approved items dispatchable.
 - **Impact:** during the pilot, manual stop must be done via DB (done for the drill on assignment `e34449aa` — both items → `stopped_manual`, assignment → `retired`, verified). Before Bruce self-serves he needs a real "Stop campaign" control.
