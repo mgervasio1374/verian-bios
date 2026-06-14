@@ -14,13 +14,15 @@ import * as sysCtrlRepo from '@/modules/intelligence/repositories/system-control
 import * as agentDecisionRepo from '@/modules/intelligence/repositories/agent-decision.repo'
 import * as aiUsageRepo from '@/modules/intelligence/repositories/ai-usage-event.repo'
 import { preflightCheck } from '@/modules/intelligence/services/ai-budget-enforcer.service'
-import { ActivityEventType }  from '@/modules/intelligence/types.agent'
+import { ActivityEventType, SystemControlKey }  from '@/modules/intelligence/types.agent'
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 
 import { getSkillDefinition }       from './copywriting-agent.skill-definitions'
 import { buildVersionPlan }         from './copywriting-agent.version-planner'
 import { generateSubjectLine }      from './copywriting-agent.subjects'
 import { generateBodyText }         from './copywriting-agent.body'
+import type { BodyGenerationResult } from './copywriting-agent.body'
+import { generateBodyWithLlm }      from './copywriting-agent.llm'
 import { generatePreviewText }      from './copywriting-agent.preview'
 import { applyHouseStyle }          from '@/modules/messaging/house-style'
 import { checkCompliance }          from './copywriting-agent.compliance'
@@ -159,7 +161,8 @@ export function buildCandidate(
   strategy:      MessageStrategy,
   ctx:           CopywritingLeadContext,
   skills:        CopywritingSkillDefinition[],
-  repairNote:    string
+  repairNote:    string,
+  llmBody?:      BodyGenerationResult
 ): MessageVersionDraft {
   const angle = plan.angles[versionNumber - 1]
   if (!angle) throw new Error(`No angle for version number ${versionNumber}`)
@@ -167,9 +170,10 @@ export function buildCandidate(
   // Determine effective length target
   const lengthTarget = angle.lengthOverride ?? strategy.length_target ?? 'short'
 
-  // Generate content
+  // Generate content. When an LLM body is supplied (gated path) use it; otherwise
+  // fall back to deterministic generation. Either way the SAME validators run below.
   const subjectLine = applyHouseStyle(generateSubjectLine(angle, strategy, ctx))
-  const bodyResult  = generateBodyText(angle, strategy, ctx)
+  const bodyResult  = llmBody ?? generateBodyText(angle, strategy, ctx)
   bodyResult.bodyText = applyHouseStyle(bodyResult.bodyText)
   const previewText = applyHouseStyle(generatePreviewText(subjectLine, bodyResult.bodyText))
 
@@ -460,13 +464,35 @@ export async function generateMessageVersions(
   const retryState = createRetryState()
   const validDrafts: MessageVersionDraft[] = []
 
+  // Gated LLM body generation (default off → deterministic, unchanged). When on, each
+  // candidate's body comes from the LLM; it still passes the same validators below.
+  const llmEnabled = await sysCtrlRepo.getBooleanControl(
+    SystemControlKey.COPYWRITING_AGENT_LLM_ENABLED, tenantId, false,
+  )
+  let llmPromptTokens = 0
+  let llmCompletionTokens = 0
+  let llmModelUsed: string | null = null
+
   for (let vn = 1; vn <= plan.requiredVersionCount; vn++) {
     let draft: MessageVersionDraft | null = null
     let attemptsDone = 0
 
     while (attemptsDone <= MAX_RETRY_ATTEMPTS) {
+      // Try the LLM body when enabled; null result → deterministic fallback.
+      let llmBody: BodyGenerationResult | undefined
+      if (llmEnabled) {
+        const angle = plan.angles[vn - 1]
+        const out = angle ? await generateBodyWithLlm(angle, strategy, ctx) : null
+        if (out) {
+          llmBody = out.result
+          llmPromptTokens     += out.promptTokens
+          llmCompletionTokens += out.completionTokens
+          llmModelUsed         = out.modelName
+        }
+      }
+
       try {
-        draft = buildCandidate(vn, plan, strategy, ctx, loadedSkills, '')
+        draft = buildCandidate(vn, plan, strategy, ctx, loadedSkills, '', llmBody)
       } catch {
         draft = null
         break
@@ -664,16 +690,19 @@ export async function generateMessageVersions(
     },
   }).catch(() => null)
 
-  // ---- Record AI usage (rule-based v1: 0 tokens; update when LLM is wired in) ----
+  // ---- Record AI usage ----
+  // Real token counts + model when the gated LLM path generated the bodies; the
+  // deterministic path records a zero-token row (cost computed by recordUsage).
+  const usedLlm = llmModelUsed !== null
   aiUsageRepo.recordUsage({
     tenantId,
     agentName:    AGENT_NAME,
     featureName:  'version_copywriting',
-    modelName:    'claude-sonnet-4-6',
-    promptTokens: 0,
-    completionTokens: 0,
-    totalTokens:  0,
-    estimatedCostUsd: 0,
+    modelName:    usedLlm ? llmModelUsed! : 'claude-sonnet-4-6',
+    promptTokens: usedLlm ? llmPromptTokens : 0,
+    completionTokens: usedLlm ? llmCompletionTokens : 0,
+    totalTokens:  usedLlm ? llmPromptTokens + llmCompletionTokens : 0,
+    estimatedCostUsd: usedLlm ? undefined : 0,
     leadId:       strategy.lead_id ?? null,
     success:      true,
   }).catch((err) => console.error('[copywriting-agent] Failed to record AI usage event:', err))

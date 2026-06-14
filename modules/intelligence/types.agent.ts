@@ -80,6 +80,11 @@ export const SystemControlKey = {
   // quality-scored at promote time and a draft scoring >=85 (+ learning confidence)
   // auto-approves. Defaults false → the MCM path is unchanged until flipped.
   QUALITY_AUTO_APPROVE_ENABLED:        'quality_auto_approve_enabled',
+  // Agent sweep — wires the copywriting agent's body generation to a real LLM
+  // (OpenRouter gpt-4o-mini via the existing client). Defaults false → deterministic
+  // rule-based generation, unchanged. LLM output passes the SAME compliance/structural
+  // guardrails; deterministic fallback on any LLM failure.
+  COPYWRITING_AGENT_LLM_ENABLED:       'copywriting_agent_llm_enabled',
   AGENT_CONFIDENCE_THRESHOLD_MIN:      'agent.confidence_threshold.min',
   AGENT_STATEMENT_CLASSIFIER_ENABLED:  'agent.statement_classifier.enabled',
   AGENT_PROPOSAL_BUILDER_ENABLED:      'agent.proposal_builder.enabled',
