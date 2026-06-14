@@ -76,7 +76,9 @@ describe('TC-V6-03: assets created in-loop with the naming convention (source-re
   const service = read(AI_SERVICE)
 
   it('asset name follows ${name}_${i}', () => {
-    expect(service).toContain('assetName:        `${input.name}_${touch}`')
+    // async-generation slice: per-touch logic moved into the shared
+    // generateSequenceTouch helper, so the name builds from input.touch.
+    expect(service).toContain('assetName:        `${input.name}_${input.touch}`')
   })
 
   it('each touch is persisted as the loop progresses (partial assets survive)', () => {
@@ -184,9 +186,14 @@ describe('TC-V6-06: action and UI (source-read)', () => {
     expect(card).toContain('router.refresh()')
   })
 
-  it('partial-failure message reports how many assets were created', () => {
-    expect(card).toContain('result.assetsCreated')
-    expect(card).toContain('remain for manual completion')
+  it('generation is async: the card enqueues then polls job status and surfaces failures', () => {
+    // async-generation slice: the request returns a jobId immediately and the
+    // card polls getAiSequenceJobStatusAction, surfacing a failed job's error
+    // (which carries the partial-asset detail: "asset(s) already created…").
+    expect(card).toContain('getAiSequenceJobStatusAction')
+    expect(card).toContain('result.jobId')
+    expect(card).toContain("res.job.status === 'failed'")
+    expect(card).toContain('mapFailure(res.job.error')
   })
 
   // W3: the card moved behind the AuthoringPanels toggle on the page.

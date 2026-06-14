@@ -141,7 +141,8 @@ describe('TC-V1-03: sequence edit/delete rule table (source-read)', () => {
 
   it('actions reuse the existing permission (no invented permission)', () => {
     const matches = actions.match(/requirePermission\(ctx, 'crm\.leads\.view'\)/g) ?? []
-    expect(matches.length).toBe(5) // create + update + delete + archive + V6 generate
+    // create + update + delete + archive + AI generate enqueue + AI job status poll
+    expect(matches.length).toBe(6)
   })
 })
 

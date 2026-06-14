@@ -10,6 +10,7 @@ import { processCampaignSchedule } from './functions/process-campaign-schedule'
 import { processCampaignApprovals } from './functions/process-campaign-approvals'
 import { processCampaignSends } from './functions/process-campaign-sends'
 import { onCampaignAssignmentActivated } from './functions/on-campaign-assignment-activated'
+import { generateAiSequenceJob } from './functions/generate-ai-sequence'
 
 export const inngestFunctions = [
   dispatchOutbox,
@@ -25,4 +26,5 @@ export const inngestFunctions = [
   processCampaignApprovals,        // Manual Campaign Mode Slice 4: hybrid approval routing (first-touch queue, gated auto-approve)
   processCampaignSends,            // Manual Campaign Mode Slice 5: send dispatcher (approved -> sent via sendApprovedDraft)
   onCampaignAssignmentActivated,   // Manual Campaign Mode Slice 7: materialize schedule items on assignment activation
+  generateAiSequenceJob,           // MCM v2: background N-touch AI sequence generation
 ]

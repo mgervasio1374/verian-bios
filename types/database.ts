@@ -1753,6 +1753,48 @@ export type Database = {
           },
         ]
       }
+      campaign_ai_generation_jobs: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          input: Json
+          result: Json | null
+          status: string
+          tenant_id: string
+          touches_done: number
+          touches_total: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          input: Json
+          result?: Json | null
+          status?: string
+          tenant_id: string
+          touches_done?: number
+          touches_total: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          input?: Json
+          result?: Json | null
+          status?: string
+          tenant_id?: string
+          touches_done?: number
+          touches_total?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       campaign_email_assets: {
         Row: {
           id: string

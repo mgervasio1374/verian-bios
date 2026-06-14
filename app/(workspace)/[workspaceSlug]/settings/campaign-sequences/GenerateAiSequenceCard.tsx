@@ -1,15 +1,19 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { generateAiSequenceAction } from '@/modules/campaign-sequence/actions/sequence-authoring.actions'
+import {
+  generateAiSequenceAction,
+  getAiSequenceJobStatusAction,
+} from '@/modules/campaign-sequence/actions/sequence-authoring.actions'
 import type { CampaignTypeRow } from '@/modules/campaign-sequence/types'
 import type { Database } from '@/types/database'
 
 type SenderIdentityRow = Database['public']['Tables']['sender_identities']['Row']
 
 const TOUCH_OPTIONS = [2, 3, 4, 5]
+const POLL_INTERVAL_MS = 3000
 
 interface Props {
   campaignTypes:    CampaignTypeRow[]
@@ -18,7 +22,6 @@ interface Props {
 
 export function GenerateAiSequenceCard({ campaignTypes, senderIdentities }: Props) {
   const router = useRouter()
-  const [pending, startTransition] = useTransition()
 
   const [name,             setName]             = useState('')
   const [campaignTypeId,   setCampaignTypeId]   = useState('')
@@ -28,7 +31,61 @@ export function GenerateAiSequenceCard({ campaignTypes, senderIdentities }: Prop
   const [error,            setError]            = useState<string | null>(null)
   const [summary,          setSummary]          = useState<string | null>(null)
 
-  function handleGenerate() {
+  // Async job state: once enqueued we poll until succeeded/failed.
+  const [jobId,        setJobId]        = useState<string | null>(null)
+  const [submitting,   setSubmitting]   = useState(false)
+  const [touchesDone,  setTouchesDone]  = useState(0)
+  const [touchesTotal, setTouchesTotal] = useState(0)
+  const submittedName = useRef('')
+
+  const generating = jobId !== null
+
+  function mapFailure(reason: string): string {
+    if (reason.startsWith('llm_not_configured')) {
+      return "AI drafting isn't configured. Set LLM_API_BASE_URL / LLM_API_KEY / LLM_MODEL_NAME."
+    }
+    if (reason.startsWith('invalid_touch_count')) return 'Touch count must be between 2 and 5.'
+    return `Generation stopped: ${reason}`
+  }
+
+  // Poll the job while one is in flight.
+  useEffect(() => {
+    if (!jobId) return
+    let cancelled = false
+
+    const tick = async () => {
+      const res = await getAiSequenceJobStatusAction(jobId)
+      if (cancelled) return
+      if (!res.ok || !res.job) {
+        setError(res.error ?? 'Lost track of the generation job.')
+        setJobId(null)
+        return
+      }
+      setTouchesDone(res.job.touchesDone)
+      setTouchesTotal(res.job.touchesTotal)
+
+      if (res.job.status === 'succeeded') {
+        setJobId(null)
+        setSummary(
+          `Created '${submittedName.current}' with ${res.job.touchesTotal} draft assets ` +
+          `(${submittedName.current}_1…_${res.job.touchesTotal}). ` +
+          'Review and activate each asset before assigning.'
+        )
+        setName('')
+        setBrief('')
+        router.refresh() // the new sequence appears in the list above
+      } else if (res.job.status === 'failed') {
+        setJobId(null)
+        setError(mapFailure(res.job.error ?? 'unknown error'))
+      }
+    }
+
+    void tick()
+    const handle = setInterval(tick, POLL_INTERVAL_MS)
+    return () => { cancelled = true; clearInterval(handle) }
+  }, [jobId, router])
+
+  async function handleGenerate() {
     setError(null)
     setSummary(null)
 
@@ -36,41 +93,29 @@ export function GenerateAiSequenceCard({ campaignTypes, senderIdentities }: Prop
     if (!campaignTypeId)  { setError('Pick a campaign type.'); return }
     if (!brief.trim())    { setError('Describe the campaign in the brief.'); return }
 
-    startTransition(async () => {
-      const result = await generateAiSequenceAction({
-        name,
-        campaignTypeId,
-        touches,
-        brief,
-        senderIdentityId: senderIdentityId || null,
-      })
-
-      if (!result.ok) {
-        const reason  = result.blockReason ?? ''
-        const partial = result.assetsCreated
-          ? ` ${result.assetsCreated} asset(s) were created (${name.trim()}_1…) and remain for manual completion.`
-          : ''
-        const message =
-          reason === 'llm_not_configured'
-            ? "AI drafting isn't configured. Set LLM_API_BASE_URL / LLM_API_KEY / LLM_MODEL_NAME."
-            : reason === 'invalid_touch_count'
-              ? 'Touch count must be between 2 and 5.'
-              : reason
-                ? `Generation stopped: ${reason}.${partial}`
-                : result.error ?? 'Generation failed.'
-        setError(message)
-        return
-      }
-
-      setSummary(
-        `Created '${name.trim()}' with ${touches} draft assets (${name.trim()}_1…_${touches}). ` +
-        'Review and activate each asset before assigning.'
-      )
-      setName('')
-      setBrief('')
-      router.refresh()
+    setSubmitting(true)
+    const result = await generateAiSequenceAction({
+      name,
+      campaignTypeId,
+      touches,
+      brief,
+      senderIdentityId: senderIdentityId || null,
     })
+    setSubmitting(false)
+
+    if (!result.ok || !result.jobId) {
+      setError(result.error ?? 'Could not start generation.')
+      return
+    }
+
+    // Returned instantly — switch to the polling/generating state.
+    submittedName.current = name.trim()
+    setTouchesDone(0)
+    setTouchesTotal(touches)
+    setJobId(result.jobId)
   }
+
+  const pending = submitting || generating
 
   return (
     <Card>
@@ -160,6 +205,13 @@ export function GenerateAiSequenceCard({ campaignTypes, senderIdentities }: Prop
           </span>
         </label>
 
+        {generating && (
+          <div className="rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-800">
+            Generating your sequence… (~1–2 min). Touch {Math.min(touchesDone + 1, touchesTotal)} of {touchesTotal}
+            {touchesDone > 0 ? ` (${touchesDone} done)` : ''}. You can leave this open; it runs in the background.
+          </div>
+        )}
+
         <button
           onClick={handleGenerate}
           disabled={pending}
@@ -170,7 +222,8 @@ export function GenerateAiSequenceCard({ campaignTypes, senderIdentities }: Prop
 
         <p className="text-xs text-muted-foreground">
           Each touch is generated with the previous emails in context, so later touches build on
-          earlier ones. All assets start as <strong>Draft</strong> and require review before activation.
+          earlier ones. Generation runs in the background. All assets start as <strong>Draft</strong>
+          {' '}and require review before activation.
         </p>
       </CardContent>
     </Card>

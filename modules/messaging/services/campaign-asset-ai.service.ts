@@ -489,16 +489,89 @@ function touchRoleLine(touch: number, total: number): string {
   return `This email is touch ${touch} of ${total} — a follow-up that advances the story.`
 }
 
+// Thin orchestrator over the shared helpers below. The background Inngest
+// function (inngest/functions/generate-ai-sequence.ts) drives the SAME helpers
+// with one step.run per touch so each LLM round-trip is its own invocation.
+// No request path calls this anymore — kept for non-request callers/tests.
 export async function generateAiSequence(
   input: GenerateAiSequenceInput
 ): Promise<GenerateAiSequenceResult> {
+  const prep = await prepareSequenceGeneration({
+    tenantId:       input.tenantId,
+    workspaceId:    input.workspaceId,
+    campaignTypeId: input.campaignTypeId,
+    touches:        input.touches,
+  })
+  if (!prep.ok) {
+    return { sequenceId: null, assetIds: [], blocked: true, blockReason: prep.blockReason }
+  }
+
+  const previousTouches: { subject: string; bodyText: string }[] = []
+  const assetIds: string[] = []
+
+  for (let touch = 1; touch <= input.touches; touch++) {
+    const result = await generateSequenceTouch({
+      tenantId:         input.tenantId,
+      workspaceId:      input.workspaceId,
+      campaignTypeSlug: prep.campaignTypeSlug!,
+      name:             input.name,
+      brief:            input.brief,
+      touch,
+      total:            input.touches,
+      previousTouches,
+    })
+    if (!result.ok) {
+      // Partial failure: the sequence is NOT created. Already-created assets
+      // remain (named `${name}_1..`) for manual completion.
+      return {
+        sequenceId:  null,
+        assetIds,
+        blocked:     true,
+        blockReason: `${result.blockReason} (touch ${touch} of ${input.touches}; ${assetIds.length} asset(s) already created with prefix ${input.name}_)`,
+      }
+    }
+    previousTouches.push({ subject: result.subject, bodyText: result.bodyText })
+    assetIds.push(result.assetId)
+  }
+
+  const { sequenceId } = await assembleAiSequence({
+    tenantId:         input.tenantId,
+    workspaceId:      input.workspaceId,
+    campaignTypeId:   input.campaignTypeId,
+    name:             input.name,
+    senderIdentityId: input.senderIdentityId ?? null,
+    assetIds,
+    touches:          input.touches,
+    dayOffsets:       input.dayOffsets,
+  })
+
+  return { sequenceId, assetIds, blocked: false, preflightWarning: prep.preflightWarning }
+}
+
+// --- Shared helpers — single source for the sync wrapper and the Inngest job ---
+
+export interface PrepareSequenceGenerationResult {
+  ok:                boolean
+  campaignTypeSlug?: string
+  blockReason?:      string
+  preflightWarning?: string
+}
+
+// LLM-config check, touch validation, ONE preflight scaled by touch count, and
+// campaign-type resolution. Runs once up front, before any touch.
+export async function prepareSequenceGeneration(input: {
+  tenantId:       string
+  workspaceId:    string
+  campaignTypeId: string
+  touches:        number
+}): Promise<PrepareSequenceGenerationResult> {
   // Fail loud, never stub
   if (!isLlmConfigured()) {
-    return { sequenceId: null, assetIds: [], blocked: true, blockReason: 'llm_not_configured' }
+    return { ok: false, blockReason: 'llm_not_configured' }
   }
 
   if (!Number.isInteger(input.touches) || input.touches < 2 || input.touches > 5) {
-    return { sequenceId: null, assetIds: [], blocked: true, blockReason: 'invalid_touch_count' }
+    return { ok: false, blockReason: 'invalid_touch_count' }
   }
 
   const configuredModel = process.env.LLM_MODEL_NAME!
@@ -513,72 +586,93 @@ export async function generateAiSequence(
   })
 
   if (!preflight.allowed) {
-    return { sequenceId: null, assetIds: [], blocked: true, blockReason: preflight.reason ?? 'budget_exhausted' }
+    return { ok: false, blockReason: preflight.reason ?? 'budget_exhausted' }
   }
 
   const campaignType = await getCampaignTypeById(input.campaignTypeId, input.tenantId, input.workspaceId)
   if (!campaignType?.slug) {
-    return { sequenceId: null, assetIds: [], blocked: true, blockReason: 'campaign_type_not_found' }
+    return { ok: false, blockReason: 'campaign_type_not_found' }
   }
 
-  const previousTouches: { subject: string; bodyText: string }[] = []
-  const assetIds: string[] = []
+  return { ok: true, campaignTypeSlug: campaignType.slug, preflightWarning: preflight.warning }
+}
 
-  for (let touch = 1; touch <= input.touches; touch++) {
-    const promptParts = [
-      `Campaign type: ${campaignType.slug.replace(/_/g, ' ')}`,
-      `Campaign: ${input.name}`,
-      `Operator brief: ${input.brief}`,
-      `${touchRoleLine(touch, input.touches)} Assume no reply yet; keep it short and warm.`,
-    ]
+export type GenerateSequenceTouchResult =
+  | { ok: true; assetId: string; subject: string; bodyText: string }
+  | { ok: false; blockReason: string }
 
-    if (previousTouches.length > 0) {
-      promptParts.push('Previously generated emails in this sequence:')
-      previousTouches.forEach((prev, idx) => {
-        promptParts.push(`Touch ${idx + 1} subject: ${prev.subject}\nTouch ${idx + 1} body:\n${prev.bodyText}`)
-      })
-      promptParts.push('Do not repeat earlier emails; reference and progress from them.')
-    }
+// One touch: build the chained prompt (carrying the previous emails), call the
+// LLM, and persist the asset. The unit run inside each Inngest step.run.
+export async function generateSequenceTouch(input: {
+  tenantId:         string
+  workspaceId:      string
+  campaignTypeSlug: string
+  name:             string
+  brief:            string
+  touch:            number
+  total:            number
+  previousTouches:  { subject: string; bodyText: string }[]
+}): Promise<GenerateSequenceTouchResult> {
+  const configuredModel = process.env.LLM_MODEL_NAME!
 
-    const generation = await generateDraftContent(promptParts.join('\n\n'))
-    if (!generation.ok) {
-      // Partial failure: the sequence is NOT created. Already-created assets
-      // remain (named `${name}_1..`) for manual completion.
-      return {
-        sequenceId:  null,
-        assetIds,
-        blocked:     true,
-        blockReason: `${generation.blockReason} (touch ${touch} of ${input.touches}; ${assetIds.length} asset(s) already created with prefix ${input.name}_)`,
-      }
-    }
+  const promptParts = [
+    `Campaign type: ${input.campaignTypeSlug.replace(/_/g, ' ')}`,
+    `Campaign: ${input.name}`,
+    `Operator brief: ${input.brief}`,
+    `${touchRoleLine(input.touch, input.total)} Assume no reply yet; keep it short and warm.`,
+  ]
 
-    const asset = await persistGeneratedTouch({
-      tenantId:         input.tenantId,
-      workspaceId:      input.workspaceId,
-      campaignTypeSlug: campaignType.slug,
-      assetName:        `${input.name}_${touch}`,
-      draft:            generation.content,
-      promptTokens:     generation.promptTokens,
-      completionTokens: generation.completionTokens,
-      modelName:        generation.modelName || configuredModel,
-      inputSnapshot: {
-        campaign_type: campaignType.slug,
-        prompt_brief:  input.brief,
-        sequence_name: input.name,
-        touch_number:  touch,
-        touch_count:   input.touches,
-      },
+  if (input.previousTouches.length > 0) {
+    promptParts.push('Previously generated emails in this sequence:')
+    input.previousTouches.forEach((prev, idx) => {
+      promptParts.push(`Touch ${idx + 1} subject: ${prev.subject}\nTouch ${idx + 1} body:\n${prev.bodyText}`)
     })
-
-    previousTouches.push({
-      subject:  generation.content.subjectTemplate,
-      bodyText: generation.content.bodyTemplateText,
-    })
-    assetIds.push(asset.id)
+    promptParts.push('Do not repeat earlier emails; reference and progress from them.')
   }
 
-  // All touches succeeded — create the sequence through the same repo path
-  // createManualSequenceAction uses underneath.
+  const generation = await generateDraftContent(promptParts.join('\n\n'))
+  if (!generation.ok) {
+    return { ok: false, blockReason: generation.blockReason }
+  }
+
+  const asset = await persistGeneratedTouch({
+    tenantId:         input.tenantId,
+    workspaceId:      input.workspaceId,
+    campaignTypeSlug: input.campaignTypeSlug,
+    assetName:        `${input.name}_${input.touch}`,
+    draft:            generation.content,
+    promptTokens:     generation.promptTokens,
+    completionTokens: generation.completionTokens,
+    modelName:        generation.modelName || configuredModel,
+    inputSnapshot: {
+      campaign_type: input.campaignTypeSlug,
+      prompt_brief:  input.brief,
+      sequence_name: input.name,
+      touch_number:  input.touch,
+      touch_count:   input.total,
+    },
+  })
+
+  return {
+    ok:       true,
+    assetId:  asset.id,
+    subject:  generation.content.subjectTemplate,
+    bodyText: generation.content.bodyTemplateText,
+  }
+}
+
+// All touches succeeded — create the sequence + steps through the same repo
+// path createManualSequenceAction uses underneath. The shared assembly tail.
+export async function assembleAiSequence(input: {
+  tenantId:         string
+  workspaceId:      string
+  campaignTypeId:   string
+  name:             string
+  senderIdentityId: string | null
+  assetIds:         string[]
+  touches:          number
+  dayOffsets?:      number[]
+}): Promise<{ sequenceId: string }> {
   const dayOffsets = input.dayOffsets ?? DEFAULT_SEQUENCE_DAY_OFFSETS[input.touches]
 
   const sequencePayload: Record<string, unknown> = {
@@ -594,23 +688,18 @@ export async function generateAiSequence(
   }
   const sequence = await insertCampaignSequence(sequencePayload as unknown as CampaignSequenceInsert)
 
-  for (let index = 0; index < assetIds.length; index++) {
+  for (let index = 0; index < input.assetIds.length; index++) {
     await insertCampaignSequenceStep({
       tenant_id:               input.tenantId,
       workspace_id:            input.workspaceId,
       campaign_sequence_id:    sequence.id,
       step_number:             index + 1,
       day_offset:              dayOffsets[index] ?? index * 5,
-      campaign_email_asset_id: assetIds[index],
+      campaign_email_asset_id: input.assetIds[index],
       is_recurring:            false,
       recurring_interval_days: null,
     })
   }
 
-  return {
-    sequenceId:       sequence.id,
-    assetIds,
-    blocked:          false,
-    preflightWarning: preflight.warning,
-  }
+  return { sequenceId: sequence.id }
 }

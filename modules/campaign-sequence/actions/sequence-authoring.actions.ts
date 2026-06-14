@@ -18,7 +18,8 @@ import {
   deleteStepsForSequence,
 } from '@/modules/campaign-sequence/repositories/campaign-sequence-step.repo'
 import { sequenceUsage } from '@/modules/campaign-sequence/services/sequence-usage.service'
-import { generateAiSequence } from '@/modules/messaging/services/campaign-asset-ai.service'
+import { insertJob, getJobById } from '@/modules/campaign-sequence/repositories/campaign-ai-generation-job.repo'
+import { inngest } from '@/lib/inngest/client'
 import { validateManualSequenceDraft } from '@/modules/campaign-sequence/sequence-authoring.validation'
 import type { StepDraft } from '@/modules/campaign-sequence/sequence-authoring.validation'
 import type { CampaignSequenceInsert, CampaignSequenceUpdate } from '@/modules/campaign-sequence/types'
@@ -107,9 +108,13 @@ export interface GenerateAiSequenceActionInput {
   senderIdentityId?: string | null
 }
 
+// Enqueue only — the N-touch LLM loop runs in the background Inngest function
+// (campaign-sequence/ai-generate.requested) so the request returns instantly
+// and never blocks on the LLM (Vercel 60s maxDuration / 504 risk). The UI polls
+// getAiSequenceJobStatusAction for progress.
 export async function generateAiSequenceAction(
   input: GenerateAiSequenceActionInput,
-): Promise<{ ok: boolean; sequenceId?: string; assetIds?: string[]; assetsCreated?: number; blockReason?: string; error?: string }> {
+): Promise<{ ok: boolean; jobId?: string; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
     const ctx      = await buildRequestContext(supabase)
@@ -118,28 +123,66 @@ export async function generateAiSequenceAction(
     if (!input.name?.trim()) return { ok: false, error: 'Campaign name is required.' }
     if (!input.campaignTypeId) return { ok: false, error: 'Campaign type is required.' }
     if (!input.brief?.trim()) return { ok: false, error: 'Brief is required.' }
-
-    const result = await generateAiSequence({
-      tenantId:         ctx.tenantId,
-      workspaceId:      ctx.workspaceId,
-      campaignTypeId:   input.campaignTypeId,
-      name:             input.name.trim(),
-      touches:          input.touches,
-      brief:            input.brief.trim(),
-      senderIdentityId: input.senderIdentityId ?? null,
-    })
-
-    if (result.blocked) {
-      return {
-        ok:            false,
-        blockReason:   result.blockReason,
-        assetsCreated: result.assetIds.length,
-      }
+    if (!Number.isInteger(input.touches) || input.touches < 2 || input.touches > 5) {
+      return { ok: false, error: 'Touch count must be between 2 and 5.' }
     }
 
-    revalidatePath('/[workspaceSlug]/settings/campaign-sequences', 'page')
-    revalidatePath('/[workspaceSlug]/settings/campaign-assets', 'page')
-    return { ok: true, sequenceId: result.sequenceId ?? undefined, assetIds: result.assetIds }
+    const job = await insertJob({
+      tenantId:     ctx.tenantId,
+      workspaceId:  ctx.workspaceId,
+      touchesTotal: input.touches,
+      input: {
+        name:             input.name.trim(),
+        campaignTypeId:   input.campaignTypeId,
+        touches:          input.touches,
+        brief:            input.brief.trim(),
+        senderIdentityId: input.senderIdentityId ?? null,
+      },
+    })
+
+    await inngest.send({
+      name: 'campaign-sequence/ai-generate.requested',
+      data: { jobId: job.id, tenantId: ctx.tenantId, workspaceId: ctx.workspaceId },
+    })
+
+    return { ok: true, jobId: job.id }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
+export interface AiSequenceJobStatus {
+  status:       'pending' | 'running' | 'succeeded' | 'failed'
+  touchesDone:  number
+  touchesTotal: number
+  sequenceId?:  string
+  error?:       string
+}
+
+// Tenant-scoped progress read for the UI poller.
+export async function getAiSequenceJobStatusAction(
+  jobId: string,
+): Promise<{ ok: boolean; job?: AiSequenceJobStatus; error?: string }> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx      = await buildRequestContext(supabase)
+    requirePermission(ctx, 'crm.leads.view')
+
+    const job = await getJobById(jobId, ctx.tenantId)
+    if (!job) return { ok: false, error: 'Job not found.' }
+
+    const result = (job.result as { sequenceId?: string } | null) ?? null
+
+    return {
+      ok: true,
+      job: {
+        status:       job.status as AiSequenceJobStatus['status'],
+        touchesDone:  job.touches_done,
+        touchesTotal: job.touches_total,
+        sequenceId:   result?.sequenceId,
+        error:        job.error ?? undefined,
+      },
+    }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }
