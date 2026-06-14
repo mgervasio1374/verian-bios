@@ -4,6 +4,8 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { resend } from '@/lib/resend/client'
 import * as approvalRepo from '@/modules/workflow/repositories/approval.repo'
 import * as emailDraftRepo from '@/modules/messaging/repositories/email-draft.repo'
+import * as contactRepo from '@/modules/crm/repositories/contact.repo'
+import { checkSendEligibility } from '@/modules/messaging/services/send-eligibility.service'
 import { completeRecommendationsForApprovedAction } from '@/modules/intelligence/services/recommendation-completion.service'
 import type { ActionResult } from '@/modules/crm/actions/company.actions'
 import type { StatementAnalysis } from '@/lib/statement/analysis'
@@ -79,6 +81,19 @@ export async function approveAndSendAction(
       .single()
 
     if (!draft) return { success: false, error: 'Draft not found after approval.' }
+
+    // 4a. Suppression + do_not_contact enforcement — never send to a suppressed
+    // or do-not-contact recipient. DNC takes precedence (matches sendApprovedDraft).
+    const dncContactId = typeof payload.contact_id === 'string' ? payload.contact_id : null
+    const dncContact = dncContactId
+      ? await contactRepo.getContact(dncContactId, draft.tenant_id).catch(() => null)
+      : null
+    const eligibility = await checkSendEligibility(draft.tenant_id, draft.to_email, {
+      doNotContact: dncContact?.do_not_contact,
+    })
+    if (!eligibility.allowed) {
+      return { success: false, error: `Recipient cannot be emailed (${eligibility.reason.replace(/_/g, ' ')}). The proposal was not sent.` }
+    }
 
     // 5. Sender identity
     const senderIdentity = await emailDraftRepo.getDefaultSenderIdentity(draft.tenant_id)

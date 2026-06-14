@@ -28,6 +28,9 @@ vi.mock('@/modules/messaging/repositories/email-draft.repo', () => ({
 vi.mock('@/modules/intelligence/repositories/system-control.repo', () => ({
   getBooleanControl: vi.fn(async () => true),
 }))
+vi.mock('@/modules/messaging/repositories/suppression.repo', () => ({
+  checkEmailSuppression: vi.fn(async () => ({ blocked: false })),
+}))
 
 import { approveAndSendProposal } from '@/modules/proposals/services/proposal-approve-send.service'
 import { getPublicProposalByToken } from '@/modules/proposals/services/public-proposal.service'

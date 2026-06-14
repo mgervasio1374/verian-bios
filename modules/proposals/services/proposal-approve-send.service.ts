@@ -6,6 +6,7 @@ import * as emailDraftRepo from '@/modules/messaging/repositories/email-draft.re
 import * as systemControlRepo from '@/modules/intelligence/repositories/system-control.repo'
 import { SystemControlKey } from '@/modules/intelligence/types.agent'
 import { buildFollowUpCommitmentsFromRule, DEFAULT_SCHEDULE_RULE_KEY, getScheduleRule } from '@/modules/proposals/lib/schedule-rules'
+import { checkSendEligibility } from '@/modules/messaging/services/send-eligibility.service'
 import type { RequestContext } from '@/types/context'
 
 export interface ApproveAndSendInput {
@@ -22,6 +23,7 @@ export type ApproveAndSendResult =
       | 'no_contact_email'    // proposal has no contact / contact has no email
       | 'no_sender_identity'  // no verified sender configured (production)
       | 'invalid_rule'        // unknown schedule rule key
+      | 'recipient_not_eligible' // do_not_contact or suppressed (unsubscribed/email/domain)
       | 'send_failed'         // Resend rejected the send
     }
 
@@ -65,6 +67,12 @@ export async function approveAndSendProposal(
     : null
   const toEmail = contact?.email ?? null
   if (!toEmail) return { ok: false, error: 'no_contact_email' }
+
+  // 3a. Suppression + do_not_contact enforcement — no external send may reach a
+  // suppressed or do-not-contact recipient. DNC takes precedence (no suppression
+  // read), matching sendApprovedDraft's order. Blocks before any send/transition/schedule.
+  const eligibility = await checkSendEligibility(ctx.tenantId, toEmail, { doNotContact: contact?.do_not_contact })
+  if (!eligibility.allowed) return { ok: false, error: 'recipient_not_eligible' }
 
   // 4. Sender identity — reuse the tenant's verified sender (approve-actions pattern).
   const senderIdentity = await emailDraftRepo.getDefaultSenderIdentity(ctx.tenantId).catch(() => null)

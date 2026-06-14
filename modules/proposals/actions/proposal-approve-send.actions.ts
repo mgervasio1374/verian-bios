@@ -15,6 +15,7 @@ const ERROR_MESSAGES: Record<Extract<ApproveAndSendResult, { ok: false }>['error
   no_contact_email:   'No contact email on this proposal — add a contact before sending.',
   no_sender_identity: 'No verified sender identity is configured for this workspace.',
   invalid_rule:       'Unknown follow-up cadence.',
+  recipient_not_eligible: 'The merchant contact is unsubscribed, suppressed, or marked do-not-contact — the proposal was not sent.',
   send_failed:        'The email could not be sent. Please try again.',
 }
 
