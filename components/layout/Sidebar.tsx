@@ -27,6 +27,7 @@ import {
   ClipboardList,
   ListChecks,
   UserCog,
+  UserCircle,
   Layers,
   Tags,
 } from 'lucide-react'
@@ -98,6 +99,7 @@ export function Sidebar({ workspaceSlug, tenantName }: SidebarProps) {
     {
       label: 'ADMIN',
       items: [
+        { label: 'Account',         href: `${base}/settings/account`,         icon: <UserCircle className="h-4 w-4" /> },
         { label: 'User Management', href: `${base}/settings/user-management`, icon: <UserCog className="h-4 w-4" /> },
         { label: 'System Controls', href: `${base}/settings/system-controls`, icon: <ShieldAlert className="h-4 w-4" /> },
         { label: 'Imports',         href: `${base}/settings/imports`,         icon: <Upload className="h-4 w-4" /> },

@@ -103,7 +103,10 @@ export function CampaignAssetEditor({ workspaceSlug, assetId, initial }: Props) 
       try {
         if (assetId) {
           await updateAssetContentAction(workspaceSlug, assetId, content)
-          router.refresh()
+          // #24: editing is done — return to the library so the operator sees
+          // the saved asset in context (previously a refresh-in-place left them
+          // on the form with no confirmation of where they were).
+          router.push(`/${workspaceSlug}/settings/campaign-assets`)
         } else {
           const result = await createHumanAssetAction(workspaceSlug, content)
           router.push(`/${workspaceSlug}/settings/campaign-assets/${result.assetId}`)
@@ -112,6 +115,11 @@ export function CampaignAssetEditor({ workspaceSlug, assetId, initial }: Props) 
         setServerError(err instanceof Error ? err.message : 'Save failed')
       }
     })
+  }
+
+  function handleCancel() {
+    // Discard edits and return to the library without saving.
+    router.push(`/${workspaceSlug}/settings/campaign-assets`)
   }
 
   return (
@@ -239,6 +247,14 @@ export function CampaignAssetEditor({ workspaceSlug, assetId, initial }: Props) 
             className="rounded bg-primary px-4 py-2 text-sm text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             {pending ? 'Saving…' : assetId ? 'Save Changes' : 'Create Asset'}
+          </button>
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={pending}
+            className="rounded border px-4 py-2 text-sm hover:bg-muted disabled:opacity-50"
+          >
+            Cancel
           </button>
         </div>
       </CardContent>
