@@ -1,4 +1,5 @@
 import * as leadRepo from '@/modules/crm/repositories/lead.repo'
+import * as contactRepo from '@/modules/crm/repositories/contact.repo'
 import { enqueueEvent } from '@/modules/workflow/services/event-dispatch.service'
 import { softDeleteRecord } from '@/lib/db/soft-delete'
 import { requirePermission } from '@/lib/auth/permissions'
@@ -44,8 +45,23 @@ export async function createLead(
 
   const priority = data.priority ?? derivePriority(data.estimated_value)
 
+  // PROD-BUG-001 prevention: if no contact was supplied but the company has
+  // exactly one contact, link it. Conservative — skip when zero or ambiguous
+  // (>1), so we never guess the wrong recipient.
+  let contactId = data.contact_id ?? null
+  if (!contactId && data.company_id) {
+    const companyContacts = await contactRepo.listContacts({
+      tenantId:    ctx.tenantId,
+      workspaceId: ctx.workspaceId,
+      companyId:   data.company_id,
+      limit:       2,
+    }).catch(() => [])
+    if (companyContacts.length === 1) contactId = companyContacts[0].id
+  }
+
   const lead = await leadRepo.createLead({
     ...data,
+    contact_id: contactId,
     priority,
     tenant_id: ctx.tenantId,
     workspace_id: ctx.workspaceId,

@@ -30,7 +30,9 @@ import { CreateDraftFromAssetCard } from './CreateDraftFromAssetCard'
 import { CreateDraftFromAssignmentCard } from './CreateDraftFromAssignmentCard'
 import { DraftSourceBadge } from '@/components/messaging/DraftSourceBadge'
 import { CampaignAssignmentCard } from './CampaignAssignmentCard'
+import { describeScheduleFailure, dedupeFailureReasons } from './schedule-failure'
 import * as assignmentRepo from '@/modules/messaging/repositories/campaign-assignment.repo'
+import * as scheduleItemRepo from '@/modules/campaign-sequence/repositories/campaign-schedule-item.repo'
 import * as sequenceRepo from '@/modules/campaign-sequence/repositories/campaign-sequence.repo'
 import * as campaignTypeRepo from '@/modules/campaign-sequence/repositories/campaign-type.repo'
 
@@ -59,6 +61,12 @@ export default async function LeadDetailPage({ params }: PageProps) {
     ])
 
   const activeAssets = allAssets.filter(a => a.status === 'approved' || a.status === 'active')
+
+  // PROD-BUG-001: surface campaign schedule items that failed to promote (e.g.
+  // no contact linked) so the operator no longer sees a silent "Running / 0 sent".
+  const failedScheduleItems = await scheduleItemRepo
+    .listFailedScheduleItemsForLead(id, ctx.tenantId, ctx.workspaceId)
+    .catch(() => [] as Awaited<ReturnType<typeof scheduleItemRepo.listFailedScheduleItemsForLead>>)
 
   const campaignAssignments = await assignmentRepo.getCampaignAssignmentsForLead(ctx.workspaceId, id).catch(() => [])
 
@@ -156,6 +164,18 @@ export default async function LeadDetailPage({ params }: PageProps) {
             />
           </div>
         </div>
+
+        {/* PROD-BUG-001: visible campaign failure (no more silent "Running / 0 sent") */}
+        {failedScheduleItems.length > 0 && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <p className="font-semibold">This campaign couldn&apos;t send</p>
+            <ul className="mt-1 space-y-0.5 list-disc list-inside text-amber-800">
+              {dedupeFailureReasons(failedScheduleItems).map((reason, i) => (
+                <li key={i}>{describeScheduleFailure(reason)}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="grid gap-4 md:grid-cols-2">
           <Card>

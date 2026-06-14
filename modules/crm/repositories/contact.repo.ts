@@ -60,6 +60,31 @@ export async function listContactsWithCompany(opts: ListContactsOptions): Promis
   return (data ?? []) as unknown as ContactWithCompany[]
 }
 
+// First eligible contact for a company: has an email, is contactable, not
+// deleted. Used to resolve a recipient for a lead-scoped campaign whose lead
+// has no contact_id of its own (PROD-BUG-001). Oldest-first for determinism.
+export async function getFirstEligibleContactForCompany(
+  companyId: string,
+  tenantId:  string,
+): Promise<ContactRow | null> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('contacts')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('company_id', companyId)
+    .eq('do_not_contact', false)
+    .not('email', 'is', null)
+    .neq('email', '')
+    .is('deleted_at', null)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) return null
+  return data
+}
+
 export async function getContact(id: string, tenantId: string): Promise<ContactRow | null> {
   const supabase = createSupabaseServiceClient()
   const { data, error } = await supabase

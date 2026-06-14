@@ -43,6 +43,27 @@ export async function listCampaignScheduleItems(
   return data ?? []
 }
 
+// Failed schedule items for a lead — surfaced on the lead detail page so a
+// silent send failure (e.g. no contact linked) becomes visible (PROD-BUG-001).
+export async function listFailedScheduleItemsForLead(
+  leadId: string,
+  tenantId: string,
+  workspaceId: string,
+): Promise<CampaignScheduleItemRow[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('campaign_schedule_items')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .eq('lead_id', leadId)
+    .eq('status', 'failed')
+    .order('scheduled_for', { ascending: true })
+
+  if (error) throw new Error(`listFailedScheduleItemsForLead: ${error.message}`)
+  return data ?? []
+}
+
 export async function listCampaignScheduleItemsForAssignment(
   campaignAssignmentId: string,
   tenantId: string,
