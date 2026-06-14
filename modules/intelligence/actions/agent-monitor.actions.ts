@@ -104,6 +104,63 @@ export async function getAgentMonitorListData(
   }
 }
 
+// ---- All-agents roster (read-only) ----
+
+import {
+  AGENT_ROSTER, buildRoster, anomalies,
+  type AgentRosterRow, type RunAggregate,
+} from '@/modules/intelligence/agent-roster'
+
+export interface AgentRosterData {
+  windowDays:    number
+  rows:          AgentRosterRow[]
+  anomalyRows:   AgentRosterRow[]
+  leadsIngested: number
+}
+
+// Aggregates agent_runs / agent_decisions / ai_usage_events over the window by
+// agent_name (in-app, matching the analytics pattern), then folds them onto the
+// static roster. Read-only; no migration. Pilot-volume aggregation moves to an
+// RPC/materialized view at scale.
+export async function getAgentRosterData(
+  tenantId:   string,
+  windowDays: number = 7,
+): Promise<AgentRosterData> {
+  const supabase = createSupabaseServiceClient()
+  const since = new Date(Date.now() - windowDays * 86_400_000).toISOString()
+
+  const [{ data: runRows }, { data: decisionRows }, { data: usageRows }, { count: leadsIngested }] = await Promise.all([
+    supabase.from('agent_runs').select('agent_name, status, started_at').eq('tenant_id', tenantId).gte('started_at', since),
+    supabase.from('agent_decisions').select('agent_name').eq('tenant_id', tenantId).gte('created_at', since),
+    supabase.from('ai_usage_events').select('agent_name, total_tokens, estimated_cost_usd').eq('tenant_id', tenantId).gte('created_at', since),
+    supabase.from('leads').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId).gte('created_at', since),
+  ])
+
+  const runsByName = new Map<string, RunAggregate>()
+  for (const r of runRows ?? []) {
+    const cur = runsByName.get(r.agent_name) ?? { runs: 0, completed: 0, failed: 0, lastRunAt: null }
+    cur.runs++
+    if (r.status === 'completed') cur.completed++
+    if (r.status === 'failed' || r.status === 'killed') cur.failed++
+    if (!cur.lastRunAt || (r.started_at && r.started_at > cur.lastRunAt)) cur.lastRunAt = r.started_at
+    runsByName.set(r.agent_name, cur)
+  }
+
+  const decisionsByName = new Map<string, number>()
+  for (const d of decisionRows ?? []) decisionsByName.set(d.agent_name, (decisionsByName.get(d.agent_name) ?? 0) + 1)
+
+  const usageByName = new Map<string, { tokens: number; cost: number }>()
+  for (const u of usageRows ?? []) {
+    const cur = usageByName.get(u.agent_name) ?? { tokens: 0, cost: 0 }
+    cur.tokens += u.total_tokens ?? 0
+    cur.cost   += Number(u.estimated_cost_usd ?? 0)
+    usageByName.set(u.agent_name, cur)
+  }
+
+  const rows = buildRoster(AGENT_ROSTER, runsByName, decisionsByName, usageByName, leadsIngested ?? 0)
+  return { windowDays, rows, anomalyRows: anomalies(rows), leadsIngested: leadsIngested ?? 0 }
+}
+
 // ---- Detail page data ----
 
 export interface AgentRunFullTrace {

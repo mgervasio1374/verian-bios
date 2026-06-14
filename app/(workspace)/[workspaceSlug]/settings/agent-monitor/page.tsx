@@ -2,7 +2,8 @@ import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import { requirePermission } from '@/lib/auth/permissions'
-import { getAgentMonitorListData } from '@/modules/intelligence/actions/agent-monitor.actions'
+import { getAgentMonitorListData, getAgentRosterData, type AgentRosterData } from '@/modules/intelligence/actions/agent-monitor.actions'
+import { AgentRosterSection } from './AgentRosterSection'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Bot, ShieldAlert, ArrowRight, Brain } from 'lucide-react'
@@ -108,6 +109,12 @@ export default async function AgentMonitorPage({ params }: PageProps) {
 
   const isAdmin = ['system', 'platform_admin', 'tenant_admin'].includes(ctx.roleSlug)
 
+  // All-agents roster (read-only, non-fatal — advisory like the other panels)
+  let roster: AgentRosterData | null = null
+  try {
+    roster = await getAgentRosterData(ctx.tenantId)
+  } catch { /* silent — roster must not break the monitor */ }
+
   return (
     <div className="space-y-6 max-w-6xl">
       {/* Header */}
@@ -133,6 +140,9 @@ export default async function AgentMonitorPage({ params }: PageProps) {
         <StatCard label="Failed"      value={summary.failedTodayCount}     color={summary.failedTodayCount > 0 ? 'text-destructive' : 'text-foreground'} />
         <StatCard label="Open Guardrails" value={summary.openGuardrailCount} color={summary.openGuardrailCount > 0 ? 'text-amber-600' : 'text-foreground'} icon={summary.openGuardrailCount > 0 ? <ShieldAlert className="h-3.5 w-3.5 text-amber-500" /> : undefined} />
       </div>
+
+      {/* All-agents roster + expected-vs-actual anomaly */}
+      {roster && <AgentRosterSection data={roster} />}
 
       {/* System Controls (read-only) */}
       <Card>
