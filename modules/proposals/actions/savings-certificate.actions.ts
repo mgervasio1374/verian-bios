@@ -19,7 +19,7 @@ function parseNonNegativeNumber(raw: FormDataEntryValue | null): number | null {
 
 export async function generateSavingsCertificateAction(
   formData: FormData
-): Promise<ActionResult<{ downloadUrl: string; monthlySavings: number; annualSavings: number; hasSavings: boolean }>> {
+): Promise<ActionResult<{ downloadUrl: string; publicUrl: string; monthlySavings: number; annualSavings: number; hasSavings: boolean }>> {
   try {
     const supabase = await createSupabaseServerClient()
     const ctx      = await buildRequestContext(supabase)
@@ -81,6 +81,7 @@ export async function generateSavingsCertificateAction(
       success: true,
       data: {
         downloadUrl:    result.downloadUrl,
+        publicUrl:      result.publicUrl,
         monthlySavings: result.monthlySavings,
         annualSavings:  result.annualSavings,
         hasSavings:     result.hasSavings,

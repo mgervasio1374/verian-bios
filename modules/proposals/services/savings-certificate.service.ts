@@ -2,6 +2,8 @@ import { buildCalculatedAnalysis } from '@/lib/statement/analysis'
 import { generateProposalPdf } from '@/lib/pdf/proposal'
 import * as artifactService from '@/modules/artifacts/services/artifact.service'
 import { recordSavingsAnalysis } from '@/modules/proposals/repositories/savings-analysis.repo'
+import { createProposalEvent } from '@/modules/proposals/repositories/proposal-events.repo'
+import { generateShareToken } from '@/lib/proposals/share-token'
 import type { StatementAnalysis } from '@/lib/statement/analysis'
 import type { RequestContext } from '@/types/context'
 
@@ -11,6 +13,7 @@ export interface GenerateSavingsCertificateInput {
   contactName:            string | null
   contactEmail:           string | null
   contactId?:             string | null
+  leadId?:                string | null
   monthlyVolume:           number
   currentMonthlyFees:      number
   transactionCount:        number
@@ -18,12 +21,20 @@ export interface GenerateSavingsCertificateInput {
 }
 
 export interface GenerateSavingsCertificateResult {
-  artifactId:     string
-  downloadUrl:    string
-  monthlySavings: number
-  annualSavings:  number
-  hasSavings:     boolean
-  analysis:       StatementAnalysis
+  artifactId:      string
+  downloadUrl:     string
+  publicUrl:       string
+  shareToken:      string
+  proposalEventId: string
+  monthlySavings:  number
+  annualSavings:   number
+  hasSavings:      boolean
+  analysis:        StatementAnalysis
+}
+
+// Reads the configured app base URL (same env the statement workflow uses).
+function appBaseUrl(): string {
+  return (process.env.NEXT_PUBLIC_APP_URL ?? 'https://verian-bios.vercel.app').replace(/\/$/, '')
 }
 
 // Orchestrates the Evidence Layer Phase 1 flow:
@@ -76,11 +87,41 @@ export async function generateSavingsCertificate(
     analysis,
   })
 
+  // Create the hosted proposal: a 'draft' proposal_event carrying an unguessable
+  // share token and an immutable analysis snapshot in metadata. The public page
+  // at /p/{share_token} reads this single row.
+  const shareToken    = generateShareToken()
+  const annualSavings = analysis.estimated_savings_annual ?? 0
+  const proposalEvent = await createProposalEvent({
+    tenantId:        ctx.tenantId,
+    workspaceId:     ctx.workspaceId,
+    companyId:       input.companyId,
+    contactId:       input.contactId ?? null,
+    leadId:          input.leadId ?? null,
+    senderUserId:    ctx.userId === 'system' ? null : ctx.userId,
+    proposalSentAt:  new Date().toISOString(),
+    proposalAmount:  annualSavings,
+    estimatedSavings: analysis.estimated_savings_monthly ?? 0,
+    proposalStatus:  'draft',
+    captureSource:   'savings_analysis',
+    shareToken,
+    metadata: {
+      analysis,
+      certificate_artifact_id: artifactId,
+      company_name:            input.companyName,
+      generated_at:            generatedAt,
+    },
+  })
+
   const downloadUrl = await artifactService.getArtifactDownloadUrl(ctx, artifactId)
+  const publicUrl   = `${appBaseUrl()}/p/${shareToken}`
 
   return {
     artifactId,
     downloadUrl,
+    publicUrl,
+    shareToken,
+    proposalEventId: proposalEvent.id,
     monthlySavings: analysis.estimated_savings_monthly ?? 0,
     annualSavings:  analysis.estimated_savings_annual ?? 0,
     hasSavings:     (analysis.estimated_savings_monthly ?? 0) > 0,

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calculator, Loader2, ExternalLink } from 'lucide-react'
+import { Calculator, Loader2, ExternalLink, Link2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { generateSavingsCertificateAction } from '@/modules/proposals/actions/savings-certificate.actions'
 
@@ -12,6 +12,7 @@ interface Props {
 
 interface SuccessState {
   downloadUrl:    string
+  publicUrl:      string
   monthlySavings: number
   annualSavings:  number
   hasSavings:     boolean
@@ -30,7 +31,18 @@ export function GenerateSavingsAnalysisForm({ companyId }: Props) {
   const [interchangePct, setInterchangePct] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<SuccessState | null>(null)
+  const [copied, setCopied] = useState(false)
   const [pending, startTransition] = useTransition()
+
+  async function copyLink(url: string) {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setCopied(false)
+    }
+  }
 
   function handleSubmit() {
     setError(null)
@@ -140,14 +152,34 @@ export function GenerateSavingsAnalysisForm({ companyId }: Props) {
               No savings identified at the figures provided. The certificate was still generated.
             </p>
           )}
-          <a
-            href={result.downloadUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
-          >
-            Download savings certificate <ExternalLink className="h-3 w-3" />
-          </a>
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <a
+              href={result.downloadUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
+            >
+              Download PDF <ExternalLink className="h-3 w-3" />
+            </a>
+            <a
+              href={result.publicUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
+            >
+              Open proposal page <ExternalLink className="h-3 w-3" />
+            </a>
+            <button
+              type="button"
+              onClick={() => copyLink(result.publicUrl)}
+              className="inline-flex items-center gap-1 text-xs font-medium text-gray-700 hover:text-gray-900"
+            >
+              {copied
+                ? <><Check className="h-3 w-3 text-emerald-600" /> Copied</>
+                : <><Link2 className="h-3 w-3" /> Copy link</>}
+            </button>
+          </div>
+          <p className="text-[11px] text-muted-foreground break-all">{result.publicUrl}</p>
         </div>
       )}
     </div>

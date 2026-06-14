@@ -4,7 +4,7 @@ import type { Database } from '@/types/database'
 type ProposalEventRow = Database['public']['Tables']['proposal_events']['Row']
 type ProposalEventInsert = Database['public']['Tables']['proposal_events']['Insert']
 
-export type ProposalStatus = 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired' | 'withdrawn'
+export type ProposalStatus = 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired' | 'withdrawn'
 
 export interface CreateProposalEventInput {
   tenantId: string
@@ -23,6 +23,8 @@ export interface CreateProposalEventInput {
   proposalStatus?: ProposalStatus
   captureSource: string
   captureId?: string | null
+  shareToken?: string | null
+  metadata?: Record<string, unknown>
 }
 
 // Unique constraint name on (tenant_id, workspace_id, lead_id) WHERE proposal_status IN ('sent','viewed').
@@ -51,6 +53,8 @@ export async function createProposalEvent(
     proposal_status: input.proposalStatus ?? 'sent',
     capture_source: input.captureSource,
     capture_id: input.captureId ?? null,
+    share_token: input.shareToken ?? null,
+    metadata: (input.metadata ?? {}) as ProposalEventInsert['metadata'],
   }
 
   const { data, error } = await supabase
@@ -79,6 +83,24 @@ export async function getOpenProposalEventForLead(
     .is('deleted_at', null)
     .order('proposal_sent_at', { ascending: false })
     .limit(1)
+    .maybeSingle()
+
+  return data ?? null
+}
+
+// Public lookup by unguessable share token. Service-role read; only returns a
+// non-deleted row. No tenant scope (the token IS the capability) — callers must
+// treat the result as public-safe and not leak internal-only fields.
+export async function getProposalEventByShareToken(
+  shareToken: string
+): Promise<ProposalEventRow | null> {
+  if (!shareToken) return null
+  const supabase = createSupabaseServiceClient()
+  const { data } = await supabase
+    .from('proposal_events')
+    .select('*')
+    .eq('share_token', shareToken)
+    .is('deleted_at', null)
     .maybeSingle()
 
   return data ?? null

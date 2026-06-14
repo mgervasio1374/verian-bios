@@ -113,6 +113,9 @@ vi.mock('@/modules/artifacts/services/artifact.service', () => ({
 vi.mock('@/modules/proposals/repositories/savings-analysis.repo', () => ({
   recordSavingsAnalysis: vi.fn(async () => ({ id: 'ext-1' })),
 }))
+vi.mock('@/modules/proposals/repositories/proposal-events.repo', () => ({
+  createProposalEvent: vi.fn(async () => ({ id: 'pe-1' })),
+}))
 
 import { generateProposalPdf } from '@/lib/pdf/proposal'
 import * as artifactService from '@/modules/artifacts/services/artifact.service'

@@ -5490,6 +5490,7 @@ export type Database = {
           estimated_savings: number | null
           id: string
           lead_id: string | null
+          metadata: Json
           opportunity_id: string | null
           proposal_amount: number | null
           proposal_currency: string
@@ -5497,6 +5498,7 @@ export type Database = {
           proposal_sent_at: string
           proposal_status: string
           sender_user_id: string | null
+          share_token: string | null
           tenant_id: string
           updated_at: string
           workspace_id: string
@@ -5512,6 +5514,7 @@ export type Database = {
           estimated_savings?: number | null
           id?: string
           lead_id?: string | null
+          metadata?: Json
           opportunity_id?: string | null
           proposal_amount?: number | null
           proposal_currency?: string
@@ -5519,6 +5522,7 @@ export type Database = {
           proposal_sent_at: string
           proposal_status?: string
           sender_user_id?: string | null
+          share_token?: string | null
           tenant_id: string
           updated_at?: string
           workspace_id: string
@@ -5534,6 +5538,7 @@ export type Database = {
           estimated_savings?: number | null
           id?: string
           lead_id?: string | null
+          metadata?: Json
           opportunity_id?: string | null
           proposal_amount?: number | null
           proposal_currency?: string
@@ -5541,6 +5546,7 @@ export type Database = {
           proposal_sent_at?: string
           proposal_status?: string
           sender_user_id?: string | null
+          share_token?: string | null
           tenant_id?: string
           updated_at?: string
           workspace_id?: string
