@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   Brain,
   BarChart2,
+  MailCheck,
   Cpu,
   BookOpen,
   ListTodo,
@@ -94,6 +95,7 @@ export function Sidebar({ workspaceSlug, tenantName }: SidebarProps) {
         { label: 'System Intelligence', href: `${base}/settings/system-intelligence`, icon: <Brain className="h-4 w-4" /> },
         { label: 'AI Usage',            href: `${base}/settings/ai-usage`,            icon: <Cpu className="h-4 w-4" /> },
         { label: 'Analytics',           href: `${base}/settings/analytics`,           icon: <BarChart2 className="h-4 w-4" /> },
+        { label: 'Deliverability',      href: `${base}/settings/deliverability`,      icon: <MailCheck className="h-4 w-4" /> },
       ],
     },
     {
