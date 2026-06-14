@@ -1,7 +1,7 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import * as emailDraftRepo from '@/modules/messaging/repositories/email-draft.repo'
 import * as approvalRepo from '@/modules/workflow/repositories/approval.repo'
-import * as contactRepo from '@/modules/crm/repositories/contact.repo'
+import { resolveContactForLead } from '@/modules/crm/services/lead-contact-resolver'
 import * as companyRepo from '@/modules/crm/repositories/company.repo'
 import { reviewAndPersistEmailDraftQuality } from '@/modules/messaging/services/email-quality-review-runner.service'
 import * as activityEventService from '@/modules/intelligence/services/activity-event.service'
@@ -144,14 +144,20 @@ export async function generateManualCampaignDraft(input: {
 
   if (!lead) return { ok: false, reason: 'Lead not found.' }
 
-  // Require contact
-  if (!lead.contact_id) {
-    return { ok: false, reason: 'Lead has no contact linked. Add a contact before generating a draft.' }
+  // Resolve the recipient via the shared resolver (#32): the lead's own
+  // contact, else the company's first eligible contact. Only when the company
+  // has no usable contact either do we surface a no-contact error.
+  const contact = await resolveContactForLead({
+    contactId: lead.contact_id,
+    companyId: lead.company_id,
+    tenantId:  input.tenantId,
+  })
+  if (!contact) {
+    return { ok: false, reason: 'No contact linked to this lead, and the company has no contact with an email. Add a contact, then generate.' }
   }
-
-  const contact = await contactRepo.getContact(lead.contact_id, input.tenantId)
-  if (!contact)       return { ok: false, reason: 'Contact not found.' }
-  if (!contact.email) return { ok: false, reason: 'Contact has no email address. Add a contact email before generating a draft.' }
+  if (!contact.email) {
+    return { ok: false, reason: 'Contact has no email address. Add a contact email before generating a draft.' }
+  }
 
   // Duplicate guard — do not create over a pending draft
   const existingDraft = await emailDraftRepo.getPendingDraftForLead(input.tenantId, input.leadId)
@@ -218,7 +224,7 @@ export async function generateManualCampaignDraft(input: {
     bodyHtml,
     status:           'pending_approval',
     leadId:           input.leadId,
-    contactId:        lead.contact_id,
+    contactId:        contact.id,
     companyId:        lead.company_id,
     workflowRunId:    null,
     generatedByAi:    false,

@@ -1,5 +1,5 @@
 import * as emailDraftRepo from '@/modules/messaging/repositories/email-draft.repo'
-import * as contactRepo from '@/modules/crm/repositories/contact.repo'
+import { resolveContactForLead } from '@/modules/crm/services/lead-contact-resolver'
 import * as companyRepo from '@/modules/crm/repositories/company.repo'
 import * as leadRepo from '@/modules/crm/repositories/lead.repo'
 import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asset.repo'
@@ -64,31 +64,23 @@ export async function promoteScheduleItemToDraft(
     const asset = await assetRepo.getAssetById(tenantId, step.campaign_email_asset_id)
     if (!asset) throw new Error('asset_not_found')
 
-    // Resolve the recipient contact:
-    //   1. the item's own contact_id (contact-scoped assignment), else
-    //   2. the lead's contact_id (lead-scoped, contact captured), else
-    //   3. PROD-BUG-001 fallback: the lead's company's first eligible contact.
-    // A lead created from the company-add dialog has company_id but no
-    // contact_id; without (3) the item failed silently for the operator.
-    let contactId = item.contact_id
-    let resolvedContact = null as Awaited<ReturnType<typeof contactRepo.getContact>>
+    // Resolve the recipient contact via the shared resolver (#32): the item's
+    // own contact_id, else the lead's contact_id, else the lead's company's
+    // first eligible contact (PROD-BUG-001 fallback). A lead created from the
+    // company-add dialog has company_id but no contact_id; without the company
+    // fallback the item failed silently for the operator.
+    const lead = (!item.contact_id && item.lead_id)
+      ? await leadRepo.getLead(item.lead_id, tenantId)
+      : null
+    const contact = await resolveContactForLead({
+      contactId: item.contact_id ?? lead?.contact_id ?? null,
+      companyId: item.company_id ?? lead?.company_id ?? null,
+      tenantId,
+    })
 
-    if (!contactId && item.lead_id) {
-      const lead = await leadRepo.getLead(item.lead_id, tenantId)
-      contactId = lead?.contact_id ?? null
-
-      if (!contactId) {
-        const companyId = item.company_id ?? lead?.company_id ?? null
-        if (companyId) {
-          resolvedContact = await contactRepo.getFirstEligibleContactForCompany(companyId, tenantId)
-          contactId = resolvedContact?.id ?? null
-        }
-      }
-    }
-
-    if (!contactId) throw new Error('no_contact')
-    const contact = resolvedContact ?? await contactRepo.getContact(contactId, tenantId)
-    if (!contact || !contact.email) throw new Error('no_contact_email')
+    if (!contact) throw new Error('no_contact')
+    if (!contact.email) throw new Error('no_contact_email')
+    const contactId = contact.id
 
     const toName = [contact.first_name, contact.last_name].filter(Boolean).join(' ') || null
 

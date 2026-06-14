@@ -1,7 +1,7 @@
 import * as assetRepo         from '@/modules/messaging/repositories/campaign-email-asset.repo'
 import * as emailDraftRepo    from '@/modules/messaging/repositories/email-draft.repo'
 import * as approvalRepo      from '@/modules/workflow/repositories/approval.repo'
-import * as contactRepo       from '@/modules/crm/repositories/contact.repo'
+import { resolveContactForLead } from '@/modules/crm/services/lead-contact-resolver'
 import * as companyRepo       from '@/modules/crm/repositories/company.repo'
 import * as leadRepo          from '@/modules/crm/repositories/lead.repo'
 import * as agentDecisionRepo from '@/modules/intelligence/repositories/agent-decision.repo'
@@ -40,9 +40,14 @@ export async function createDraftFromAsset(
   const lead = await leadRepo.getLead(input.leadId, input.tenantId)
   if (!lead) return { ok: false, reason: 'lead_not_found' }
 
-  // 4. Load contact — require email
-  if (!lead.contact_id) return { ok: false, reason: 'no_contact_linked' }
-  const contact = await contactRepo.getContact(lead.contact_id, input.tenantId)
+  // 4. Resolve the recipient via the shared resolver (#32): the lead's own
+  //    contact, else the company's first eligible contact. Only a genuine
+  //    no-contact (none on the lead AND none on the company) yields the error.
+  const contact = await resolveContactForLead({
+    contactId: lead.contact_id,
+    companyId: lead.company_id,
+    tenantId:  input.tenantId,
+  })
   if (!contact)       return { ok: false, reason: 'no_contact_linked' }
   if (!contact.email) return { ok: false, reason: 'no_contact_email' }
 
@@ -99,7 +104,7 @@ export async function createDraftFromAsset(
     bodyText:         renderResult.renderedBodyText,
     status:           'pending_approval',
     leadId:           input.leadId,
-    contactId:        lead.contact_id,
+    contactId:        contact.id,
     companyId:        lead.company_id ?? null,
     workflowRunId:    null,
     generatedByAi:    false,
