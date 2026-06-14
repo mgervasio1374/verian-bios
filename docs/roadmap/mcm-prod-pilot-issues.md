@@ -22,6 +22,14 @@ Bugs and operational findings from the **production deployment + pilot** (verian
 - **Fix:** `import_rows` has a `row_number` column (set `i+1` in `import.service.ts` L115). Thread the current row's `row_number` from `checkRowForDuplicates` into `checkWithinBatchDuplicate` and add `.lt('row_number', currentRowNumber)` — excludes self **and** keeps the first occurrence unique (only 2nd+ occurrences flagged).
 - **Status: ✅ FIXED & VERIFIED ON PROD** `846a24e` (`mcm-v2-fix-import-within-batch-dedup-v1`) — threads `row_number` through and filters `row_number < current`. Redeployed (`vercel --prod`) and re-tested 2026-06-13 with `Documents/verian-import-test.csv`: batch flagged exactly 2 duplicates (Row 3 within-batch Alpha, Row 4 existing Smoke Test Prd Co), committed 2 unique (Import Test Alpha + Beta) as new companies/contacts/leads with Source: Import. Full import pipeline validated end-to-end on prod.
 
+### PROD-BUG-003 — Imported leads are invisible in the Leads list (no review/release surface)
+- **Severity:** Medium (operator confusion + stranded leads; NOT a blocker for MCM contact-scoped sends).
+- **Symptom:** After a successful import commit, the new leads do not appear anywhere in the Leads list. An operator who imports N rows sees the Leads list unchanged.
+- **Root cause:** `insertLead` stamps imported leads `status='imported_unreviewed'`, `metadata.workflow_enabled=false` (`import.commit.ts` L133-141), with `contact_id` correctly set. The Leads list (`app/(workspace)/[workspaceSlug]/leads/page.tsx` L33,54) renders only configured **pipeline stages** (`activeStages` = non-terminal stages). `imported_unreviewed` is not a pipeline stage → `leadsByStage['imported_unreviewed']` is never mapped to a rendered group → imported leads render nowhere. There is no "imported / needs review" bucket.
+- **Impact note:** MCM v2 campaign assignment is **unaffected** — `bulkAssignCampaignAction` is contact-scoped from the Companies list and ignores lead status/workflow_enabled. The dead end is specifically the **lead-workflow** handoff (imported leads can't be triaged into the sales pipeline from the UI).
+- **Fix:** (a) add an "Imported / Needs Review" bucket to the Leads UI listing `imported_unreviewed` leads, with a bulk **release-into-pipeline** action (set a real stage + `workflow_enabled=true`); or (b) at minimum a count badge + filter so they're discoverable.
+- **Status:** Open. Tracked as live task #31.
+
 ---
 
 ## Resolved code bugs (this release)
