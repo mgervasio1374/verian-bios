@@ -10,6 +10,7 @@ import * as assetService from '@/modules/messaging/services/campaign-asset.servi
 import * as aiService from '@/modules/messaging/services/campaign-asset-ai.service'
 import { createDraftFromAsset } from '@/modules/messaging/services/campaign-asset-draft.service'
 import { assetUsage } from '@/modules/campaign-sequence/services/sequence-usage.service'
+import { listAssetIdsReferencedBySteps } from '@/modules/campaign-sequence/repositories/campaign-sequence-step.repo'
 
 async function getCtx() {
   const supabase = await createSupabaseServerClient()
@@ -68,6 +69,41 @@ export async function deleteAssetAction(
     return { ok: true }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
+// Bulk hard-delete — only ids NOT referenced by any sequence step are deleted
+// (a step reference would break the FK). The referenced set is recomputed
+// server-side; the client selection is never trusted. Returns a tally so the
+// UI can report how many were skipped because they're in a sequence.
+export async function bulkDeleteCampaignAssetsAction(
+  ids: string[],
+): Promise<{ ok: boolean; deleted: number; skippedInUse: number; error?: string }> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx      = await buildRequestContext(supabase)
+    requirePermission(ctx, 'crm.leads.view')
+
+    const uniqueIds = Array.from(new Set(ids.filter(Boolean)))
+    if (uniqueIds.length === 0) return { ok: false, deleted: 0, skippedInUse: 0, error: 'Select at least one asset.' }
+
+    const referenced = await listAssetIdsReferencedBySteps(uniqueIds, ctx.tenantId)
+    const deletable  = uniqueIds.filter(id => !referenced.has(id))
+
+    let deleted = 0
+    for (const id of deletable) {
+      try {
+        await assetRepo.deleteAsset(ctx.tenantId, id)
+        deleted++
+      } catch {
+        // A stray FK (e.g. an email_draft source link) must not abort the batch.
+      }
+    }
+
+    revalidatePath('/[workspaceSlug]/settings/campaign-assets', 'page')
+    return { ok: true, deleted, skippedInUse: referenced.size }
+  } catch (err) {
+    return { ok: false, deleted: 0, skippedInUse: 0, error: err instanceof Error ? err.message : 'Unknown error' }
   }
 }
 

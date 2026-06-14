@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asset.repo'
+import { listAssetIdsReferencedBySteps } from '@/modules/campaign-sequence/repositories/campaign-sequence-step.repo'
 import { CampaignAssetList } from './CampaignAssetList'
 import { AiAssetDraftButton } from './AiAssetDraftButton'
 import { CollapsibleSection } from '@/components/CollapsibleSection'
@@ -20,6 +21,9 @@ export default async function CampaignAssetsPage({ params }: PageProps) {
   const ctx      = await buildRequestContext(supabase)
   const assets   = await assetRepo.listAssetsForWorkspace(ctx.tenantId, ctx.workspaceId).catch(() => [])
 
+  // Assets referenced by a sequence step are protected from hard delete.
+  const referencedIds = [...await listAssetIdsReferencedBySteps(assets.map(a => a.id), ctx.tenantId).catch(() => new Set<string>())]
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -37,7 +41,7 @@ export default async function CampaignAssetsPage({ params }: PageProps) {
         </Link>
       </div>
 
-      <CampaignAssetList assets={assets} workspaceSlug={workspaceSlug} />
+      <CampaignAssetList assets={assets} workspaceSlug={workspaceSlug} referencedIds={referencedIds} />
 
       {/* Campaign terminology reference — collapsed by default (W3) */}
       <CollapsibleSection

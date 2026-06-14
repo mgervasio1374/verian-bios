@@ -123,3 +123,26 @@ export async function listStepsReferencingAsset(
   if (error) throw new Error(`listStepsReferencingAsset: ${error.message}`)
   return (data ?? []) as { id: string; campaign_sequence_id: string }[]
 }
+
+// Set-based usage check: of the given asset ids, which are referenced by ANY
+// sequence step? Used to protect in-use assets from bulk/inline hard delete
+// (campaign_sequence_steps.campaign_email_asset_id would break the FK).
+export async function listAssetIdsReferencedBySteps(
+  assetIds: string[],
+  tenantId: string,
+): Promise<Set<string>> {
+  if (assetIds.length === 0) return new Set()
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('campaign_sequence_steps')
+    .select('campaign_email_asset_id')
+    .eq('tenant_id', tenantId)
+    .in('campaign_email_asset_id', assetIds)
+
+  if (error) throw new Error(`listAssetIdsReferencedBySteps: ${error.message}`)
+  const referenced = new Set<string>()
+  for (const row of (data ?? []) as { campaign_email_asset_id: string | null }[]) {
+    if (row.campaign_email_asset_id) referenced.add(row.campaign_email_asset_id)
+  }
+  return referenced
+}
