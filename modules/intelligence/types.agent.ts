@@ -73,6 +73,9 @@ export const SystemControlKey = {
   RECOMMENDATION_ENGINE_ENABLED:       'recommendation_engine_enabled',
   AUTO_TASK_CREATION_ENABLED:          'auto_task_creation_enabled',
   AGENT_ENABLED:                       'agent.enabled',
+  // Agent sweep — flips agent-specific action-contract enforcement from advisory
+  // (record-only) to fail-closed. Defaults false; BASE_BLOCKED is always enforced.
+  AGENT_ACTION_ENFORCEMENT_ENABLED:    'agent_action_enforcement_enabled',
   AGENT_CONFIDENCE_THRESHOLD_MIN:      'agent.confidence_threshold.min',
   AGENT_STATEMENT_CLASSIFIER_ENABLED:  'agent.statement_classifier.enabled',
   AGENT_PROPOSAL_BUILDER_ENABLED:      'agent.proposal_builder.enabled',

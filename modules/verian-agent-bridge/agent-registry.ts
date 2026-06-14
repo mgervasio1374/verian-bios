@@ -55,7 +55,7 @@ export type VerianBridgeAgentDescriptor = {
 // Shared blocked action baseline (all agents inherit this as a minimum)
 // ---------------------------------------------------------------------------
 
-const BASE_BLOCKED: readonly string[] = [
+export const BASE_BLOCKED: readonly string[] = [
   'send-email',
   'campaign-sending',
   'touch-production',
