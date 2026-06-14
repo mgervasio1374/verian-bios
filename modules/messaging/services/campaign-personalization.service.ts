@@ -1,4 +1,4 @@
-import { applyHouseStyle } from '@/modules/messaging/house-style'
+import { applyHouseStyle, tidyMergeArtifacts } from '@/modules/messaging/house-style'
 
 export interface PersonalizationFields {
   first_name?:           string | null
@@ -25,7 +25,12 @@ export interface RenderResult {
 }
 
 // Substitutes {{variable_name}} placeholders in a template string.
-// Order: fields[name] → fallbackValues[name] → '[variable_name]' sentinel.
+// Order: (1) real field value → (2) non-empty fallback → (3) graceful strip.
+// #17: an unresolved token renders as an EMPTY string (the surrounding
+// whitespace/punctuation is tidied afterward by tidyMergeArtifacts). The old
+// [variable_name] sentinel must never reach outbound copy — it looked broken
+// to recipients and to execs reviewing the approval inbox. Required-but-missing
+// tokens are still recorded so missingRequiredFields surfaces in the UI.
 function substitute(
   template:      string,
   fields:        PersonalizationFields,
@@ -46,7 +51,7 @@ function substitute(
       return fallback
     }
     if (requiredSet.has(name)) missing.add(name)
-    return `[${name}]`
+    return '' // graceful strip — never emit a [name] sentinel
   })
 }
 
@@ -69,13 +74,13 @@ export function renderCampaignAsset(
   const renderedBodyHtml = substitute(asset.bodyTemplateHtml, fields, fallbacks, requiredSet, missing, snapshot)
   const renderedBodyText = substitute(asset.bodyTemplateText, fields, fallbacks, requiredSet, missing, snapshot)
 
-  // Universal house-style chokepoint — the last step before returning, so every
-  // MCM draft is dash-free even if the asset template (legacy or AI-written)
-  // still contains an em dash.
+  // Universal chokepoint — the last steps before returning: house-style scrub
+  // (no AI-tell dashes) then merge-artifact tidy (#17: collapse the whitespace/
+  // punctuation orphans that stripping an unresolved token leaves behind).
   return {
-    renderedSubject:         applyHouseStyle(renderedSubject),
-    renderedBodyHtml:        applyHouseStyle(renderedBodyHtml, { html: true }),
-    renderedBodyText:        applyHouseStyle(renderedBodyText),
+    renderedSubject:         tidyMergeArtifacts(applyHouseStyle(renderedSubject)),
+    renderedBodyHtml:        tidyMergeArtifacts(applyHouseStyle(renderedBodyHtml, { html: true }), { html: true }),
+    renderedBodyText:        tidyMergeArtifacts(applyHouseStyle(renderedBodyText)),
     missingRequiredFields:   Array.from(missing),
     personalizationSnapshot: snapshot,
   }

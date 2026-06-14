@@ -75,3 +75,30 @@ export function applyHouseStyle(text: string, _opts: HouseStyleOptions = {}): st
 
 /** Exposed for tests/observability — the ordered rule names applied in v1. */
 export const HOUSE_STYLE_RULE_NAMES = RULES.map(r => r.name)
+
+// ---------------------------------------------------------------------------
+// Merge-artifact tidy (#17)
+// ---------------------------------------------------------------------------
+//
+// Stripping an unresolved {{token}} to an empty string leaves whitespace and
+// punctuation orphans ("Save  per month", "savings of .", "Hi , there"). This
+// cleans them. Pure, idempotent, and HTML-safe: it only manipulates runs of
+// horizontal whitespace and punctuation, never tag characters (< > = " /), and
+// preserves newlines (paragraph breaks in text bodies).
+export function tidyMergeArtifacts(text: string, _opts: HouseStyleOptions = {}): string {
+  if (!text) return text
+  return text
+    // remove a space immediately before sentence punctuation
+    .replace(/[ \t]+([,.;:!?])/g, '$1')
+    // collapse a repeated identical punctuation mark (".." , ", ,") to one
+    .replace(/([,.;:!?])(?:[ \t]*\1)+/g, '$1')
+    // strip an orphaned leading connective at a line start
+    // ("{{first_name}}, hello" -> ", hello" -> "hello")
+    .replace(/^[ \t]*[,;:][ \t]*/gm, '')
+    // collapse runs of horizontal whitespace to one (newlines preserved)
+    .replace(/[ \t]{2,}/g, ' ')
+    // trim horizontal whitespace at each line edge, then the whole string
+    .replace(/[ \t]+$/gm, '')
+    .replace(/^[ \t]+/gm, '')
+    .trim()
+}
