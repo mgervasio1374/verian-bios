@@ -5,6 +5,7 @@ import {
   fetchCommitmentForDraftGeneration,
 } from '@/modules/proposals/repositories/proposal-follow-up-draft.repo'
 import { getTemplateBySlug, getDefaultSenderIdentity } from '@/modules/messaging/repositories/email-draft.repo'
+import { getProposalEventById } from '@/modules/proposals/repositories/proposal-events.repo'
 import * as approvalRepo from '@/modules/workflow/repositories/approval.repo'
 import * as emailDraftRepo from '@/modules/messaging/repositories/email-draft.repo'
 import * as leadRepo from '@/modules/crm/repositories/lead.repo'
@@ -191,6 +192,30 @@ export async function generateProposalFollowUpDraftForWorkspace(
   const senderIdentity = await getDefaultSenderIdentity(tenantId)
   const senderName = senderIdentity?.name ?? 'Our Team'
 
+  // 8b. Open-state branch (#39). The follow-up opening line changes depending on
+  //     whether the merchant has opened the hosted proposal — first_viewed_at is
+  //     set (and status flips to 'viewed') on first open (#38). Best-effort: if
+  //     the proposal row can't be read, fall back to the not-yet-opened framing
+  //     rather than blocking the draft.
+  let proposalOpened = false
+  let proposalFirstViewedAt: string | null = null
+  try {
+    const proposalEvent = await getProposalEventById(tenantId, workspaceId, commitment.proposal_event_id)
+    proposalFirstViewedAt = proposalEvent?.first_viewed_at ?? null
+    proposalOpened = !!proposalEvent && (
+      proposalEvent.first_viewed_at != null ||
+      proposalEvent.proposal_status === 'viewed' ||
+      proposalEvent.proposal_status === 'accepted'
+    )
+  } catch {
+    proposalOpened = false
+  }
+
+  const companyForCopy = lead.name ?? 'your business'
+  const proposalStateLine = proposalOpened
+    ? `Glad you had a chance to look over the savings analysis for ${companyForCopy}. What stood out, and what questions can I answer?`
+    : `I wanted to make sure the savings analysis I put together for ${companyForCopy} reached you. Did you get a chance to look it over?`
+
   // 9. Render template variables
   const vars: Record<string, string> = {
     contact_first_name:   contact.first_name ?? '',
@@ -198,6 +223,7 @@ export async function generateProposalFollowUpDraftForWorkspace(
     sender_name:          senderName,
     follow_up_sequence:   String(commitment.follow_up_sequence),
     follow_up_due_at:     commitment.follow_up_due_at,
+    proposal_state_line:  proposalStateLine,
   }
   const renderedSubject  = renderTemplate(template.subject_template,       vars)
   const renderedBodyHtml = template.body_html_template
@@ -214,6 +240,8 @@ export async function generateProposalFollowUpDraftForWorkspace(
     follow_up_sequence:     commitment.follow_up_sequence,
     commitment_id:          commitmentId,
     proposal_event_id:      commitment.proposal_event_id,
+    proposal_opened:        proposalOpened,
+    proposal_first_viewed_at: proposalFirstViewedAt,
     actor_user_id:          actorUserId,
     generated_at:           new Date().toISOString(),
   }
