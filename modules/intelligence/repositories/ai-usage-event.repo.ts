@@ -1,4 +1,5 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
+import { estimateCostUsd } from '@/modules/intelligence/pricing/model-pricing'
 import type { Database } from '@/types/database'
 
 type AiUsageEventRow = Database['public']['Tables']['ai_usage_events']['Row']
@@ -77,6 +78,14 @@ export interface UsageTrendRow {
 
 export async function recordUsage(input: RecordUsageInput): Promise<AiUsageEventRow> {
   const supabase = createSupabaseServiceClient()
+
+  // Compute cost centrally when the caller didn't pass one — every agent
+  // service records tokens only, so this is what populates the cost dashboard.
+  // An explicitly-passed cost is respected.
+  const estimatedCostUsd = input.estimatedCostUsd != null
+    ? input.estimatedCostUsd
+    : estimateCostUsd(input.modelName, input.promptTokens ?? 0, input.completionTokens ?? 0)
+
   const { data, error } = await supabase
     .from('ai_usage_events')
     .insert({
@@ -89,7 +98,7 @@ export async function recordUsage(input: RecordUsageInput): Promise<AiUsageEvent
       prompt_tokens:        input.promptTokens ?? null,
       completion_tokens:    input.completionTokens ?? null,
       total_tokens:         input.totalTokens ?? null,
-      estimated_cost_usd:   input.estimatedCostUsd ?? null,
+      estimated_cost_usd:   estimatedCostUsd,
       provider_request_id:  input.providerRequestId ?? null,
       decision_id:          input.decisionId ?? null,
       related_entity_type:  input.relatedEntityType ?? null,

@@ -176,18 +176,23 @@ describe('Phase 3I — campaign-email-send.repo.ts: no direct send', () => {
 // ============================================================
 
 describe('Phase 3I — ai-cost-estimator.service.ts', () => {
-  const src = read('modules/intelligence/services/ai-cost-estimator.service.ts')
+  // #35: pricing moved to the canonical modules/intelligence/pricing/model-pricing.ts
+  // (single source of truth, wired into recordUsage + the backfill migration).
+  // The old service path remains a re-export shim for back-compat.
+  const shim    = read('modules/intelligence/services/ai-cost-estimator.service.ts')
+  const pricing = read('modules/intelligence/pricing/model-pricing.ts')
 
-  it('TC-3I-025: exports estimateCostUsd function', () => {
-    expect(src).toContain('export function estimateCostUsd(')
+  it('TC-3I-025: estimateCostUsd is exported (from the canonical pricing module, re-exported by the shim)', () => {
+    expect(pricing).toContain('export function estimateCostUsd(')
+    expect(shim).toContain("export { estimateCostUsd } from '@/modules/intelligence/pricing/model-pricing'")
   })
 
   it('TC-3I-026: contains claude-sonnet-4-6 pricing', () => {
-    expect(src).toContain("'claude-sonnet-4-6'")
+    expect(pricing).toContain("'claude-sonnet-4-6'")
   })
 
   it('TC-3I-027: contains claude-haiku pricing', () => {
-    expect(src).toContain("'claude-haiku-4-5-20251001'")
+    expect(pricing).toContain("'claude-haiku-4-5-20251001'")
   })
 })
 
