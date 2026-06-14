@@ -44,11 +44,11 @@ export function calculateUrgencyScore(lead: LeadRow): UrgencyScoreCalculation {
     lead_age: 0,
   }
 
-  // close_date_proximity (max 30)
-  if (lead.expected_close_date) {
-    const daysUntil = Math.floor(
-      (new Date(lead.expected_close_date).getTime() - now) / 86_400_000
-    )
+  // close_date_proximity (max 30) — requires a *parseable* close date.
+  const closeMs = lead.expected_close_date ? new Date(lead.expected_close_date).getTime() : NaN
+  const hasValidCloseDate = Number.isFinite(closeMs)
+  if (hasValidCloseDate) {
+    const daysUntil = Math.floor((closeMs - now) / 86_400_000)
     if (daysUntil <= 0) dimensions.close_date_proximity = 30      // overdue
     else if (daysUntil <= 14) dimensions.close_date_proximity = 28
     else if (daysUntil <= 30) dimensions.close_date_proximity = 22
@@ -57,10 +57,12 @@ export function calculateUrgencyScore(lead: LeadRow): UrgencyScoreCalculation {
     else dimensions.close_date_proximity = 5
   }
 
-  // lead_age (max 15) — older = more urgent to action
-  const ageInDays = Math.floor(
-    (now - new Date(lead.created_at).getTime()) / 86_400_000
-  )
+  // lead_age (max 15) — older = more urgent. Guard unparseable/missing created_at
+  // (NaN must not leak into the score or the reasoning).
+  const createdMs = new Date(lead.created_at).getTime()
+  const ageInDays = Number.isFinite(createdMs)
+    ? Math.max(0, Math.floor((now - createdMs) / 86_400_000))
+    : 0
   if (ageInDays >= 90) dimensions.lead_age = 15
   else if (ageInDays >= 60) dimensions.lead_age = 11
   else if (ageInDays >= 30) dimensions.lead_age = 7
@@ -76,7 +78,7 @@ export function calculateUrgencyScore(lead: LeadRow): UrgencyScoreCalculation {
   )
 
   // Confidence: higher when we have a close date and explicit priority
-  const hasCloseDate = !!lead.expected_close_date
+  const hasCloseDate = hasValidCloseDate
   const hasExplicitPriority = lead.priority !== 'medium'  // medium is the default
   const confidence = hasCloseDate && hasExplicitPriority ? 0.90
     : hasCloseDate ? 0.75

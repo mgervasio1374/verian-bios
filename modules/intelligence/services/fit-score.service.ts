@@ -46,13 +46,18 @@ export function calculateFitScore(lead: LeadRow): FitScoreCalculation {
     stage_signal: 0,
   }
 
+  // Normalize estimated_value once: only finite, positive amounts count.
+  // Guards garbage data (negative, NaN, non-numeric) from inflating either
+  // data_completeness or value_signal.
+  const evRaw = Number(lead.estimated_value)
+  const ev = Number.isFinite(evRaw) && evRaw > 0 ? evRaw : 0
+
   // data_completeness (max 30)
   if (lead.company_id) dimensions.data_completeness += 12
   if (lead.contact_id) dimensions.data_completeness += 12
-  if (lead.estimated_value) dimensions.data_completeness += 6
+  if (ev > 0) dimensions.data_completeness += 6
 
   // value_signal (max 30)
-  const ev = Number(lead.estimated_value ?? 0)
   if (ev >= 20000) dimensions.value_signal = 30
   else if (ev >= 15000) dimensions.value_signal = 26
   else if (ev >= 10000) dimensions.value_signal = 22
