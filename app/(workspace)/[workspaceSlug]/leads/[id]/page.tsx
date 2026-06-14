@@ -31,6 +31,8 @@ import { CreateDraftFromAssignmentCard } from './CreateDraftFromAssignmentCard'
 import { DraftSourceBadge } from '@/components/messaging/DraftSourceBadge'
 import { CampaignAssignmentCard } from './CampaignAssignmentCard'
 import { describeScheduleFailure, dedupeFailureReasons } from './schedule-failure'
+import { ConvertToOpportunity } from './ConvertToOpportunity'
+import * as opportunityService from '@/modules/crm/services/opportunity.service'
 import * as assignmentRepo from '@/modules/messaging/repositories/campaign-assignment.repo'
 import * as scheduleItemRepo from '@/modules/campaign-sequence/repositories/campaign-schedule-item.repo'
 import * as sequenceRepo from '@/modules/campaign-sequence/repositories/campaign-sequence.repo'
@@ -67,6 +69,11 @@ export default async function LeadDetailPage({ params }: PageProps) {
   const failedScheduleItems = await scheduleItemRepo
     .listFailedScheduleItemsForLead(id, ctx.tenantId, ctx.workspaceId)
     .catch(() => [] as Awaited<ReturnType<typeof scheduleItemRepo.listFailedScheduleItemsForLead>>)
+
+  // Lead → opportunity linkage: drives the Convert button vs the converted-link.
+  const linkedOpportunity = await opportunityService
+    .getOpportunityForLead(id, ctx.tenantId)
+    .catch(() => null)
 
   const campaignAssignments = await assignmentRepo.getCampaignAssignmentsForLead(ctx.workspaceId, id).catch(() => [])
 
@@ -161,6 +168,15 @@ export default async function LeadDetailPage({ params }: PageProps) {
               leadId={id}
               initialEnabled={lead.workflow_enabled ?? false}
               workspaceSlug={workspaceSlug}
+            />
+          </div>
+          <div className="mt-3">
+            <ConvertToOpportunity
+              leadId={id}
+              workspaceSlug={workspaceSlug}
+              defaultName={lead.name}
+              defaultValue={lead.estimated_value != null ? Number(lead.estimated_value) : null}
+              existingOpportunity={linkedOpportunity ? { id: linkedOpportunity.id, name: linkedOpportunity.name } : null}
             />
           </div>
         </div>

@@ -3,6 +3,7 @@ import { buildRequestContext } from '@/lib/auth/context'
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { Activity } from 'lucide-react'
 import { format } from 'date-fns'
+import { PageStatusBanner } from '@/components/PageStatusBanner'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -38,6 +39,11 @@ export default async function ActivitiesPage({ params }: PageProps) {
         <h1 className="text-2xl font-bold">Activities</h1>
         <p className="text-muted-foreground text-sm">{items.length} recent activities</p>
       </div>
+
+      <PageStatusBanner
+        variant="planned"
+        purpose="Activity logging is coming soon — calls, notes, and meetings will be logged here. This page currently shows system-generated activity only."
+      />
 
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
