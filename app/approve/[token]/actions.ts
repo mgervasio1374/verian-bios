@@ -6,6 +6,7 @@ import * as approvalRepo from '@/modules/workflow/repositories/approval.repo'
 import * as emailDraftRepo from '@/modules/messaging/repositories/email-draft.repo'
 import * as contactRepo from '@/modules/crm/repositories/contact.repo'
 import { checkSendEligibility } from '@/modules/messaging/services/send-eligibility.service'
+import { buildComplianceFooter, appendFooter } from '@/modules/messaging/services/compliance-footer.service'
 import { completeRecommendationsForApprovedAction } from '@/modules/intelligence/services/recommendation-completion.service'
 import type { ActionResult } from '@/modules/crm/actions/company.actions'
 import type { StatementAnalysis } from '@/lib/statement/analysis'
@@ -136,14 +137,24 @@ export async function approveAndSendAction(
       }
     }
 
-    // 7. Send customer email via Resend
+    // 7. Send customer email via Resend — with CAN-SPAM footer + List-Unsubscribe.
+    const footer = buildComplianceFooter(draft.tenant_id, draft.to_email)
+    const composed = appendFooter(draft.body_html, draft.body_text, footer)
+    const unsubHeaders = footer.listUnsubscribeHeader
+      ? {
+          'List-Unsubscribe': footer.listUnsubscribeHeader,
+          ...(footer.listUnsubscribePostHeader ? { 'List-Unsubscribe-Post': footer.listUnsubscribePostHeader } : {}),
+        }
+      : undefined
+
     const { data: resendData, error: resendErr } = await resend.emails.send({
       from:        fromAddress,
       to:          [draft.to_email],
       subject:     draft.subject,
-      html:        draft.body_html ?? `<p>${draft.body_text ?? ''}</p>`,
-      text:        draft.body_text ?? undefined,
+      html:        composed.html,
+      text:        composed.text,
       attachments: attachments.length ? attachments : undefined,
+      ...(unsubHeaders ? { headers: unsubHeaders } : {}),
     })
 
     const now = new Date().toISOString()

@@ -7,6 +7,7 @@ import * as systemControlRepo from '@/modules/intelligence/repositories/system-c
 import { SystemControlKey } from '@/modules/intelligence/types.agent'
 import { buildFollowUpCommitmentsFromRule, DEFAULT_SCHEDULE_RULE_KEY, getScheduleRule } from '@/modules/proposals/lib/schedule-rules'
 import { checkSendEligibility } from '@/modules/messaging/services/send-eligibility.service'
+import { buildComplianceFooter, appendFooter } from '@/modules/messaging/services/compliance-footer.service'
 import type { RequestContext } from '@/types/context'
 
 export interface ApproveAndSendInput {
@@ -112,13 +113,24 @@ export async function approveAndSendProposal(
     `just reply or use the contact form on the page.</p>` +
     `<p>Best,<br>${senderIdentity?.name ?? '321 Swipe'}<br>321 Swipe</p>`
 
+  // CAN-SPAM compliance footer + List-Unsubscribe header at send time.
+  const footer = buildComplianceFooter(ctx.tenantId, toEmail)
+  const composed = appendFooter(htmlBody, textBody, footer)
+  const unsubHeaders = footer.listUnsubscribeHeader
+    ? {
+        'List-Unsubscribe': footer.listUnsubscribeHeader,
+        ...(footer.listUnsubscribePostHeader ? { 'List-Unsubscribe-Post': footer.listUnsubscribePostHeader } : {}),
+      }
+    : undefined
+
   try {
     const { error } = await resend.emails.send({
       from:    fromAddress,
       to:      [toEmail],
       subject,
-      text:    textBody,
-      html:    htmlBody,
+      text:    composed.text,
+      html:    composed.html,
+      ...(unsubHeaders ? { headers: unsubHeaders } : {}),
     })
     if (error) return { ok: false, error: 'send_failed' }
   } catch {

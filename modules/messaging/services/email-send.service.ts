@@ -4,6 +4,7 @@ import { resend } from '@/lib/resend/client'
 import * as emailSendRepo from '@/modules/messaging/repositories/email-send.repo'
 import * as emailDraftRepo from '@/modules/messaging/repositories/email-draft.repo'
 import * as suppressionRepo from '@/modules/messaging/repositories/suppression.repo'
+import { buildComplianceFooter, appendFooter } from '@/modules/messaging/services/compliance-footer.service'
 import * as rateLimitService from '@/modules/messaging/services/rate-limit.service'
 import * as contactRepo from '@/modules/crm/repositories/contact.repo'
 import * as approvalRepo from '@/modules/workflow/repositories/approval.repo'
@@ -251,6 +252,17 @@ export async function sendApprovedDraft(
   const now = new Date().toISOString()
   let resendMessageId: string | null = null
 
+  // CAN-SPAM: inject the compliance footer (opt-out + physical address) and the
+  // List-Unsubscribe header pair at send time. Assets/drafts stay footer-free.
+  const footer = buildComplianceFooter(ctx.tenantId, draft.to_email)
+  const composed = appendFooter(draft.body_html, draft.body_text, footer)
+  const unsubHeaders = footer.listUnsubscribeHeader
+    ? {
+        'List-Unsubscribe': footer.listUnsubscribeHeader,
+        ...(footer.listUnsubscribePostHeader ? { 'List-Unsubscribe-Post': footer.listUnsubscribePostHeader } : {}),
+      }
+    : undefined
+
   try {
     // Resend SDK expects a discriminated union — always provide html to satisfy
     // the html-branch. body_html is always set by our template rendering;
@@ -259,10 +271,11 @@ export async function sendApprovedDraft(
       from:    fromAddress,
       to:      [draft.to_email],
       subject: draft.subject,
-      html:    draft.body_html ?? `<p>${draft.body_text ?? ''}</p>`,
-      text:    draft.body_text ?? undefined,
+      html:    composed.html,
+      text:    composed.text,
       // V4: replies go to the resolved sender (reply_to override or its email)
       replyTo: senderIdentity ? (senderIdentity.reply_to ?? senderIdentity.email) : undefined,
+      ...(unsubHeaders ? { headers: unsubHeaders } : {}),
     })
 
     if (resendError || !resendData) {

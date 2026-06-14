@@ -49,3 +49,30 @@ export async function checkEmailSuppression(
 
   return { blocked: false }
 }
+
+/**
+ * Records an opt-out in the unsubscribes table. Idempotent: on conflict with the
+ * UNIQUE (tenant_id, email) constraint it does nothing, so repeated clicks are safe.
+ * Email is lowercased to match the suppression check (checkEmailSuppression).
+ */
+export async function addUnsubscribe(
+  tenantId: string,
+  email: string,
+  source: string
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const { error } = await supabase
+    .from('unsubscribes')
+    .upsert(
+      {
+        tenant_id:       tenantId,
+        email:           email.toLowerCase(),
+        source,
+        reason:          'recipient_opt_out',
+        unsubscribed_at: new Date().toISOString(),
+      },
+      { onConflict: 'tenant_id,email', ignoreDuplicates: true }
+    )
+
+  if (error) throw new Error(`addUnsubscribe: ${error.message}`)
+}
