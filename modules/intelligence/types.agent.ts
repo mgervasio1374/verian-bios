@@ -76,6 +76,10 @@ export const SystemControlKey = {
   // Agent sweep — flips agent-specific action-contract enforcement from advisory
   // (record-only) to fail-closed. Defaults false; BASE_BLOCKED is always enforced.
   AGENT_ACTION_ENFORCEMENT_ENABLED:    'agent_action_enforcement_enabled',
+  // Agent sweep — the manual→automation bridge. When on, MCM campaign drafts are
+  // quality-scored at promote time and a draft scoring >=85 (+ learning confidence)
+  // auto-approves. Defaults false → the MCM path is unchanged until flipped.
+  QUALITY_AUTO_APPROVE_ENABLED:        'quality_auto_approve_enabled',
   AGENT_CONFIDENCE_THRESHOLD_MIN:      'agent.confidence_threshold.min',
   AGENT_STATEMENT_CLASSIFIER_ENABLED:  'agent.statement_classifier.enabled',
   AGENT_PROPOSAL_BUILDER_ENABLED:      'agent.proposal_builder.enabled',

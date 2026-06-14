@@ -4,6 +4,7 @@ import { getCampaignSequenceStepById } from '@/modules/campaign-sequence/reposit
 import { getFirstTouchItemForAssignment } from '@/modules/campaign-sequence/repositories/campaign-schedule-item.repo'
 import { getAssignmentById } from '@/modules/messaging/repositories/campaign-assignment.repo'
 import { updateScheduleItemStatus } from '@/modules/campaign-sequence/services/campaign-schedule-item.service'
+import { evaluateQualityAutoApprove } from '@/modules/campaign-sequence/services/quality-auto-approve.service'
 import type { CampaignScheduleItemRow } from '@/modules/campaign-sequence/types'
 
 export interface ApprovalRoutingCtx {
@@ -38,7 +39,11 @@ export function classifyDraftReadyItem(
   stepNumber: number,
   gated: boolean,
   autoApproveFirstTouch = false,
+  qualityAutoApprove = false,
 ): 'requires_approval' | 'auto_approve' | 'hold' {
+  // The quality bridge (score >= 85 + learning confidence) takes precedence over
+  // step/gating — a draft that clears it auto-approves regardless of stage.
+  if (qualityAutoApprove) return 'auto_approve'
   if (stepNumber === 1) return autoApproveFirstTouch ? 'auto_approve' : 'requires_approval'
   return gated ? 'auto_approve' : 'hold'
 }
@@ -94,7 +99,10 @@ export async function routeDraftReadyItem(
       autoApproveFirstTouch = assignment?.auto_approve_first_touch ?? false
     }
 
-    const classification = classifyDraftReadyItem(step.step_number, gated, autoApproveFirstTouch)
+    // Quality bridge — score >= 85 + learning confidence (control-gated, default off).
+    const qualityAutoApprove = await evaluateQualityAutoApprove(tenantId, item.email_draft_id)
+
+    const classification = classifyDraftReadyItem(step.step_number, gated, autoApproveFirstTouch, qualityAutoApprove)
 
     if (classification === 'hold') {
       return { outcome: 'held' }
@@ -148,7 +156,9 @@ export async function routeDraftReadyItem(
       },
     })
 
-    const resolveReason = step.step_number === 1 ? 'bulk_preapproved_first_touch' : 'hybrid_auto_send_gated'
+    const resolveReason = qualityAutoApprove
+      ? 'quality_auto_approve'
+      : step.step_number === 1 ? 'bulk_preapproved_first_touch' : 'hybrid_auto_send_gated'
     await approvalRepo.resolveApprovalRequest(
       approval.id,
       tenantId,

@@ -8,6 +8,9 @@ import { getCampaignSequenceById } from '@/modules/campaign-sequence/repositorie
 import { renderCampaignAsset } from '@/modules/messaging/services/campaign-personalization.service'
 import { updateScheduleItemStatus } from '@/modules/campaign-sequence/services/campaign-schedule-item.service'
 import { DRAFT_SOURCE_TYPE } from '@/modules/messaging/drafts/draft-source.constants'
+import { reviewAndPersistEmailDraftQuality } from '@/modules/messaging/services/email-quality-review-runner.service'
+import { getBooleanControl } from '@/modules/intelligence/repositories/system-control.repo'
+import { SystemControlKey } from '@/modules/intelligence/types.agent'
 import type { CampaignScheduleItemRow } from '@/modules/campaign-sequence/types'
 
 export interface ScheduleItemPromotionCtx {
@@ -158,6 +161,19 @@ export async function promoteScheduleItemToDraft(
     await updateScheduleItemStatus(item.id, tenantId, workspaceId, 'draft_ready', {
       email_draft_id: draft.id,
     })
+
+    // Quality-score the draft when the auto-approval bridge is enabled. Default-off:
+    // the MCM path is unchanged until quality_auto_approve_enabled is flipped on.
+    // Scoring only (autoRewrite:false) — never auto-rewrite operator-authored copy.
+    // The whole block is non-fatal: neither the control read nor the scoring may
+    // ever break the core promotion (the draft is already created + draft_ready).
+    try {
+      if (await getBooleanControl(SystemControlKey.QUALITY_AUTO_APPROVE_ENABLED, tenantId, false)) {
+        await reviewAndPersistEmailDraftQuality(draft.id, tenantId, workspaceId, { autoRewrite: false })
+      }
+    } catch {
+      // non-fatal — a scoring/control failure must not block the promoted draft
+    }
 
     return { outcome: 'promoted', draftId: draft.id }
   } catch (err) {

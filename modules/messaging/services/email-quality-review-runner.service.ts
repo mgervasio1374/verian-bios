@@ -16,7 +16,8 @@ const QUALITY_TARGET_SCORE = 85
 export async function reviewAndPersistEmailDraftQuality(
   emailDraftId: string,
   tenantId: string,
-  workspaceId?: string | null
+  workspaceId?: string | null,
+  opts?: { autoRewrite?: boolean },
 ): Promise<EmailQualityReviewRow> {
   const supabase = createSupabaseServiceClient()
 
@@ -108,8 +109,9 @@ export async function reviewAndPersistEmailDraftQuality(
     },
   }).catch(() => null)
 
-  // Auto-run rewrite loop if score is below the quality target (non-fatal)
-  if (stored.overall_score < QUALITY_TARGET_SCORE) {
+  // Auto-run rewrite loop if score is below the quality target (non-fatal).
+  // Callers that only want a score (e.g. MCM operator copy) pass autoRewrite:false.
+  if (opts?.autoRewrite !== false && stored.overall_score < QUALITY_TARGET_SCORE) {
     await runEmailRewriteLoop({
       tenantId,
       workspaceId:  typeof effectiveWorkspace === 'string' ? effectiveWorkspace : null,

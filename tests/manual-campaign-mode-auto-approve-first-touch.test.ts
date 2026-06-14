@@ -86,8 +86,8 @@ describe('TC-AAPT-03: router loads assignment for step 1 to read auto_approve_fi
     expect(preamble).toContain('step_number === 1')
   })
 
-  it('passes autoApproveFirstTouch as 3rd arg to classifyDraftReadyItem', () => {
-    const classifyIdx = router.indexOf('classifyDraftReadyItem(step.step_number, gated, autoApproveFirstTouch)')
+  it('passes autoApproveFirstTouch + qualityAutoApprove to classifyDraftReadyItem', () => {
+    const classifyIdx = router.indexOf('classifyDraftReadyItem(step.step_number, gated, autoApproveFirstTouch, qualityAutoApprove)')
     expect(classifyIdx).toBeGreaterThan(-1)
   })
 })
