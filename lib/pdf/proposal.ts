@@ -254,17 +254,71 @@ export async function generateProposalPdf(params: ProposalPdfParams): Promise<Ui
   y -= sectionHeader(page, 'Savings Potential', y, boldFont)
   y -= 4
 
-  drawRect(page, MARGIN, y - 44, PAGE_W - MARGIN * 2, 52, rgb(240/255, 253/255, 244/255), rgb(167/255, 243/255, 208/255))
-  page.drawText('Savings Estimate: Pending Statement Review', {
-    x: MARGIN + 8, y: y - 6,
-    size: 9, font: boldFont, color: C_GREEN,
-  })
-  const savingsText =
-    'An accurate savings estimate requires reviewing your full statement. ' +
-    'Our team will calculate your current effective rate, identify fee categories, ' +
-    'and provide a specific dollar savings projection during your review call.'
-  textLine(page, savingsText, MARGIN + 8, y - 18, { font, size: 8, color: C_GRAY, maxWidth: PAGE_W - MARGIN * 2 - 16 })
-  y -= 60
+  // A "calculated" analysis carries a real, engine-computed savings figure.
+  // A "placeholder" analysis (no operator-entered figures) falls back to the
+  // pending-review language.
+  const hasCalculatedSavings =
+    analysis.confidence === 'calculated' && analysis.estimated_savings_monthly != null
+
+  if (hasCalculatedSavings && (analysis.estimated_savings_monthly ?? 0) > 0) {
+    // Real savings — show the headline numbers + current vs proposed rate.
+    drawRect(page, MARGIN, y - 60, PAGE_W - MARGIN * 2, 68, rgb(240/255, 253/255, 244/255), rgb(167/255, 243/255, 208/255))
+
+    const monthly = analysis.estimated_savings_monthly ?? 0
+    const annual  = analysis.estimated_savings_annual ?? monthly * 12
+    page.drawText(`Estimated Monthly Savings: $${monthly.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, {
+      x: MARGIN + 8, y: y - 8,
+      size: 11, font: boldFont, color: C_GREEN,
+    })
+    page.drawText(`Estimated Annual Savings: $${annual.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, {
+      x: MARGIN + 8, y: y - 24,
+      size: 9, font: boldFont, color: C_DARK,
+    })
+
+    const currentRate = analysis.effective_rate_estimate
+    const volume      = analysis.monthly_volume_estimate
+    const proposedCost = analysis.extracted_fields?.proposed_monthly_cost
+    const proposedRate =
+      typeof proposedCost === 'number' && typeof volume === 'number' && volume > 0
+        ? proposedCost / volume
+        : null
+    const rateLine =
+      (currentRate != null ? `Current effective rate: ${(currentRate * 100).toFixed(2)}%` : 'Current effective rate: —') +
+      (proposedRate != null ? `   |   Proposed effective rate: ${(proposedRate * 100).toFixed(2)}%` : '')
+    page.drawText(rateLine, {
+      x: MARGIN + 8, y: y - 40,
+      size: 8, font, color: C_GRAY,
+    })
+    page.drawText('Based on operator-entered figures — an estimate, not a binding quote.', {
+      x: MARGIN + 8, y: y - 52,
+      size: 7, font, color: C_GRAY,
+    })
+    y -= 76
+  } else if (hasCalculatedSavings) {
+    // Calculated, but no savings at the figures provided — stay honest.
+    drawRect(page, MARGIN, y - 32, PAGE_W - MARGIN * 2, 40, C_LIGHT_BG, C_BORDER)
+    page.drawText('No savings identified at the figures provided', {
+      x: MARGIN + 8, y: y - 6,
+      size: 9, font: boldFont, color: C_DARK,
+    })
+    const noSavingsText =
+      'At the statement figures provided, 321 Swipe\'s proposed pricing does not beat your current cost. ' +
+      'A full statement review can surface fee categories and card-mix detail that may change this.'
+    textLine(page, noSavingsText, MARGIN + 8, y - 18, { font, size: 8, color: C_GRAY, maxWidth: PAGE_W - MARGIN * 2 - 16 })
+    y -= 48
+  } else {
+    drawRect(page, MARGIN, y - 44, PAGE_W - MARGIN * 2, 52, rgb(240/255, 253/255, 244/255), rgb(167/255, 243/255, 208/255))
+    page.drawText('Savings Estimate: Pending Statement Review', {
+      x: MARGIN + 8, y: y - 6,
+      size: 9, font: boldFont, color: C_GREEN,
+    })
+    const savingsText =
+      'An accurate savings estimate requires reviewing your full statement. ' +
+      'Our team will calculate your current effective rate, identify fee categories, ' +
+      'and provide a specific dollar savings projection during your review call.'
+    textLine(page, savingsText, MARGIN + 8, y - 18, { font, size: 8, color: C_GRAY, maxWidth: PAGE_W - MARGIN * 2 - 16 })
+    y -= 60
+  }
 
   // ── Next Steps ────────────────────────────────────────────────────────────
   y -= sectionHeader(page, 'Next Steps', y, boldFont)

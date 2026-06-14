@@ -15,6 +15,7 @@ import { GenerateRecommendationButton } from './GenerateRecommendationButton'
 import { CompanyEditDialog } from './CompanyEditDialog'
 import { DeleteCompanyButton } from './DeleteCompanyButton'
 import { UploadDocumentForm } from './UploadDocumentForm'
+import { GenerateSavingsAnalysisForm } from './GenerateSavingsAnalysisForm'
 import { CompanySegmentsRow } from './CompanySegmentsRow'
 import { StopCampaignButton } from './StopCampaignButton'
 import { PauseCampaignButton, ResumeCampaignButton } from './PauseResumeCampaignButtons'
@@ -305,6 +306,16 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Savings Analysis — operator-entered statement figures → certificate PDF */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-semibold">Savings Analysis</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <GenerateSavingsAnalysisForm companyId={id} />
+        </CardContent>
+      </Card>
 
       {/* Document Vault */}
       <Card>
