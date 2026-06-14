@@ -124,6 +124,52 @@ export async function getProposalEventById(
   return data ?? null
 }
 
+// Transitions a 'draft' hosted proposal to 'sent' and stamps proposal_sent_at.
+// Guarded by status='draft' so a double-submit cannot re-send / re-stamp an
+// already-sent proposal. Returns the updated row, or null if not in draft.
+export async function markProposalSent(
+  tenantId: string,
+  workspaceId: string,
+  eventId: string,
+  sentAt: string
+): Promise<ProposalEventRow | null> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('proposal_events')
+    .update({ proposal_status: 'sent', proposal_sent_at: sentAt, updated_at: new Date().toISOString() })
+    .eq('id', eventId)
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .eq('proposal_status', 'draft')
+    .is('deleted_at', null)
+    .select()
+    .maybeSingle()
+
+  if (error) throw new Error(`markProposalSent: ${error.message}`)
+  return data ?? null
+}
+
+// Idempotent first-open flip. A single conditional UPDATE that only matches a
+// 'sent' proposal whose first_viewed_at is still NULL — so it fires exactly once
+// even under double-render / prefetch, and never touches draft or terminal
+// proposals. Returns true if this call performed the flip.
+export async function markProposalViewedIfUnseen(
+  eventId: string
+): Promise<boolean> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('proposal_events')
+    .update({ proposal_status: 'viewed', first_viewed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq('id', eventId)
+    .eq('proposal_status', 'sent')
+    .is('first_viewed_at', null)
+    .is('deleted_at', null)
+    .select('id')
+
+  if (error) throw new Error(`markProposalViewedIfUnseen: ${error.message}`)
+  return (data ?? []).length > 0
+}
+
 export async function updateProposalStatus(
   tenantId: string,
   workspaceId: string,

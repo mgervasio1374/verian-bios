@@ -8,12 +8,14 @@ import { listCommitmentsForProposalEvent } from '@/modules/proposals/repositorie
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ProposalStatusControl } from './ProposalStatusControl'
+import { ApproveSendControl } from './ApproveSendControl'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string; eventId: string }>
 }
 
 const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  draft:     'outline',
   sent:      'secondary',
   viewed:    'default',
   accepted:  'default',
@@ -93,6 +95,9 @@ export default async function ProposalEventDetailPage({ params }: PageProps) {
         <CardContent className="py-2">
           <DetailRow label="Status"      value={<Badge variant={STATUS_VARIANT[event.proposal_status] ?? 'outline'}>{event.proposal_status}</Badge>} />
           <DetailRow label="Sent at"     value={fmtDate(event.proposal_sent_at)} />
+          {event.first_viewed_at && (
+            <DetailRow label="Viewed"    value={fmtDate(event.first_viewed_at)} />
+          )}
           <DetailRow label="Reference"   value={event.proposal_reference} />
           <DetailRow label="Amount"      value={fmtAmount(event.proposal_amount, event.proposal_currency)} />
           <DetailRow label="Savings"     value={event.estimated_savings !== null ? fmtAmount(event.estimated_savings, event.proposal_currency) : null} />
@@ -124,6 +129,11 @@ export default async function ProposalEventDetailPage({ params }: PageProps) {
           />
         </CardContent>
       </Card>
+
+      {/* Approve & Send (draft hosted proposals only) */}
+      {event.proposal_status === 'draft' && (
+        <ApproveSendControl proposalEventId={event.id} />
+      )}
 
       {/* Status Transition (open proposals only) */}
       {(event.proposal_status === 'sent' || event.proposal_status === 'viewed') && (

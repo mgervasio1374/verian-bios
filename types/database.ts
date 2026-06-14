@@ -5488,6 +5488,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           estimated_savings: number | null
+          first_viewed_at: string | null
           id: string
           lead_id: string | null
           metadata: Json
@@ -5512,6 +5513,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           estimated_savings?: number | null
+          first_viewed_at?: string | null
           id?: string
           lead_id?: string | null
           metadata?: Json
@@ -5536,6 +5538,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           estimated_savings?: number | null
+          first_viewed_at?: string | null
           id?: string
           lead_id?: string | null
           metadata?: Json

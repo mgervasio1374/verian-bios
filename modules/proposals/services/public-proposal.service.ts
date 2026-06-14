@@ -1,4 +1,4 @@
-import { getProposalEventByShareToken } from '@/modules/proposals/repositories/proposal-events.repo'
+import { getProposalEventByShareToken, markProposalViewedIfUnseen } from '@/modules/proposals/repositories/proposal-events.repo'
 import type { StatementAnalysis } from '@/lib/statement/analysis'
 
 // Public-safe view of a hosted proposal. Only fields suitable for an
@@ -32,12 +32,22 @@ export async function getPublicProposalByToken(
   const event = await getProposalEventByShareToken(token).catch(() => null)
   if (!event) return null
 
+  // Open-tracking: the first time a 'sent' proposal is opened, flip it to
+  // 'viewed' and stamp first_viewed_at. Idempotent (the repo's conditional
+  // UPDATE only matches sent + unseen), non-fatal, and never touches draft or
+  // terminal proposals. Reflect the flip in the returned status.
+  let proposalStatus = event.proposal_status
+  if (event.proposal_status === 'sent' && event.first_viewed_at == null) {
+    const flipped = await markProposalViewedIfUnseen(event.id).catch(() => false)
+    if (flipped) proposalStatus = 'viewed'
+  }
+
   const metadata = (event.metadata ?? {}) as Record<string, unknown>
   const analysis = asAnalysis(metadata.analysis)
 
   return {
     companyName:      typeof metadata.company_name === 'string' ? metadata.company_name : null,
-    proposalStatus:  event.proposal_status,
+    proposalStatus,
     estimatedSavings: event.estimated_savings,
     annualSavings:    event.proposal_amount,
     analysis,
