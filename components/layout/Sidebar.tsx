@@ -27,6 +27,7 @@ import {
   ListTodo,
   ClipboardList,
   ListChecks,
+  Gauge,
   UserCog,
   UserCircle,
   Layers,
@@ -71,6 +72,7 @@ export function Sidebar({ workspaceSlug }: SidebarProps) {
       items: [
         { label: 'Submissions',     href: `${base}/submissions`,         icon: <ArrowDownToLine className="h-4 w-4" /> },
         { label: 'Inbox',           href: `${base}/inbox`,               icon: <CheckCircle2 className="h-4 w-4" /> },
+        { label: 'Proposals',       href: `${base}/proposals`,           icon: <Gauge className="h-4 w-4" /> },
         { label: 'Proposal Inbox',  href: `${base}/proposal-inbox`,      icon: <FileText className="h-4 w-4" /> },
         { label: 'Proposal Events', href: `${base}/proposal-events`,     icon: <ClipboardList className="h-4 w-4" /> },
         { label: 'Follow-Ups',      href: `${base}/proposal-follow-ups`, icon: <ListChecks className="h-4 w-4" /> },
