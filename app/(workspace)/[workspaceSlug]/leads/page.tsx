@@ -10,6 +10,7 @@ import type { Database } from '@/types/database'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
+  searchParams: Promise<{ q?: string }>
 }
 
 type LeadRow = Database['public']['Tables']['leads']['Row']
@@ -21,16 +22,25 @@ const priorityColors: Record<string, string> = {
   low: 'bg-gray-100 text-gray-600',
 }
 
-export default async function LeadsPage({ params }: PageProps) {
+export default async function LeadsPage({ params, searchParams }: PageProps) {
   const { workspaceSlug } = await params
+  const { q } = await searchParams
+  const query = (q ?? '').trim().toLowerCase()
   const supabase = await createSupabaseServerClient()
   const ctx = await buildRequestContext(supabase)
 
-  const [leadsByStage, stages, importedLeads] = await Promise.all([
+  const [allLeadsByStage, stages, importedLeads] = await Promise.all([
     leadService.listLeadsByStage(ctx).catch(() => ({} as Record<string, LeadRow[]>)),
     getPipelineStages(ctx.tenantId, 'lead').catch(() => []),
     leadService.listImportedUnreviewedLeads(ctx).catch(() => [] as LeadRow[]),
   ])
+
+  // Lead name carries the company ("<contact> at <Company>" or the company itself),
+  // so a name match covers "search by company". Filtered server-side.
+  const leadsByStage: Record<string, LeadRow[]> = query
+    ? Object.fromEntries(Object.entries(allLeadsByStage).map(([k, v]) =>
+        [k, v.filter((l) => (l.name ?? '').toLowerCase().includes(query))]))
+    : allLeadsByStage
 
   const activeStages = stages.filter((s) => !s.is_terminal)
   const totalLeads = Object.values(leadsByStage).flat().length
@@ -40,10 +50,26 @@ export default async function LeadsPage({ params }: PageProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Leads</h1>
-          <p className="text-muted-foreground text-sm">{totalLeads} open leads</p>
+          <p className="text-muted-foreground text-sm">
+            {totalLeads} open leads{query ? ` matching "${q}"` : ''}
+          </p>
         </div>
         <AddLeadDialog />
       </div>
+
+      {/* Search by company / lead name */}
+      <form method="GET" className="flex gap-2">
+        <input
+          type="search"
+          name="q"
+          defaultValue={q ?? ''}
+          placeholder="Search by company or lead name…"
+          className="w-full max-w-sm rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+        {query && (
+          <Link href={`/${workspaceSlug}/leads`} className="rounded-md border px-3 py-2 text-sm text-muted-foreground hover:bg-muted">Clear</Link>
+        )}
+      </form>
 
       {/* #31: imported leads land outside the pipeline — surface them for triage */}
       <ImportedLeadsReview

@@ -30,10 +30,26 @@ export default async function ContactsPage({ params, searchParams }: PageProps) 
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Contacts</h1>
-          <p className="text-muted-foreground text-sm">{contacts.length} records</p>
+          <p className="text-muted-foreground text-sm">
+            {contacts.length} records{search ? ` matching "${search}"` : ''}
+          </p>
         </div>
         <AddContactDialog companies={companies.map(c => ({ id: c.id, name: c.name }))} />
       </div>
+
+      {/* Search by name or email */}
+      <form method="GET" className="flex gap-2">
+        <input
+          type="search"
+          name="search"
+          defaultValue={search ?? ''}
+          placeholder="Search by name or email…"
+          className="w-full max-w-sm rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+        {search && (
+          <Link href={`/${workspaceSlug}/contacts`} className="rounded-md border px-3 py-2 text-sm text-muted-foreground hover:bg-muted">Clear</Link>
+        )}
+      </form>
 
       {contacts.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">

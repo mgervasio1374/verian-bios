@@ -197,8 +197,20 @@ export default async function LeadDetailPage({ params }: PageProps) {
           <Card>
             <CardHeader><CardTitle className="text-sm">Lead Details</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
-              {lead.estimated_value && (
-                <Row label="Estimated Value" value={`$${Number(lead.estimated_value).toLocaleString()}`} />
+              {lead.estimated_value != null && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    Estimated Value
+                    <span
+                      title="Operator-entered / imported figure — NOT a system-calculated estimate. Verian uses it as an input to the fit score but does not derive it. (A derived volume×take-rate estimate with shown math is a planned evidence-layer feature.)"
+                      className="cursor-help rounded-full border px-1 text-[10px] leading-tight text-muted-foreground"
+                    >i</span>
+                  </span>
+                  <span className="font-medium">
+                    ${Number(lead.estimated_value).toLocaleString()}
+                    <span className="ml-1 text-[10px] font-normal text-muted-foreground">(entered)</span>
+                  </span>
+                </div>
               )}
               {lead.expected_close_date && (
                 <Row label="Expected Close" value={new Date(lead.expected_close_date).toLocaleDateString()} />
