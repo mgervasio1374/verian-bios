@@ -1,19 +1,68 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Printer, Send, Loader2, CheckCircle2 } from 'lucide-react'
+import { Printer, FileText, Send, Loader2, CheckCircle2 } from 'lucide-react'
 import { submitProposalInquiry } from '@/modules/proposals/actions/proposal-inquiry.actions'
 
-export function PrintButton() {
+// Dual print: "summary" prints only the proposal's numbers page; "full" prints
+// the proposal followed by the backing intelligence pages. We toggle a body
+// class that the page's print CSS keys off, then clear it on afterprint so the
+// live view is never left in a print-scoped state.
+function printWithMode(mode: 'summary' | 'full') {
+  const cls = mode === 'summary' ? 'print-summary' : 'print-full'
+  const clear = () => {
+    document.body.classList.remove('print-summary', 'print-full')
+    window.removeEventListener('afterprint', clear)
+  }
+  document.body.classList.remove('print-summary', 'print-full')
+  document.body.classList.add(cls)
+  window.addEventListener('afterprint', clear)
+  window.print()
+}
+
+export function PrintButtons() {
   return (
-    <button
-      type="button"
-      onClick={() => window.print()}
-      className="no-print inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+    <div className="no-print flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => printWithMode('summary')}
+        className="inline-flex items-center gap-1.5 rounded-md border border-white/40 bg-white/10 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/20"
+      >
+        <Printer className="h-4 w-4" />
+        Print proposal
+      </button>
+      <button
+        type="button"
+        onClick={() => printWithMode('full')}
+        className="inline-flex items-center gap-1.5 rounded-md border border-white/40 bg-white/10 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/20"
+      >
+        <FileText className="h-4 w-4" />
+        Print full document
+      </button>
+    </div>
+  )
+}
+
+// Light, removable casual-copy deterrent for the intelligence panel (the
+// "shown work"): non-selectable + right-click suppressed + a faint print-hidden
+// watermark. This is friction, NOT real protection — the merchant's own numbers
+// on the left remain fully selectable. Drop this wrapper to remove entirely.
+export function IntelligenceGuard({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="relative select-none"
+      onContextMenu={(e) => e.preventDefault()}
     >
-      <Printer className="h-4 w-4" />
-      Print
-    </button>
+      <div
+        aria-hidden
+        className="no-print pointer-events-none absolute inset-0 z-10 flex items-center justify-center overflow-hidden"
+      >
+        <span className="rotate-[-30deg] whitespace-nowrap text-5xl font-bold uppercase tracking-widest text-gray-900/[0.04]">
+          321 Swipe · Confidential
+        </span>
+      </div>
+      {children}
+    </div>
   )
 }
 

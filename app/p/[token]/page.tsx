@@ -1,6 +1,7 @@
 import { getPublicProposalByToken } from '@/modules/proposals/services/public-proposal.service'
-import { PrintButton, ProposalContactForm } from './ProposalClient'
-import { ShieldCheck, TrendingDown, AlertTriangle } from 'lucide-react'
+import { PrintButtons, ProposalContactForm, IntelligenceGuard } from './ProposalClient'
+import { deriveCostSavingsBridge } from '@/lib/statement/cost-bridge'
+import { ShieldCheck, TrendingDown, AlertTriangle, FlaskConical, ListChecks } from 'lucide-react'
 
 interface PageProps {
   params: Promise<{ token: string }>
@@ -11,9 +12,9 @@ function usd(n: number | null | undefined, dp = 2): string {
   return `$${n.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp })}`
 }
 
-function pct(rate: number | null | undefined): string {
+function pct(rate: number | null | undefined, dp = 2): string {
   if (rate == null || !Number.isFinite(rate)) return '—'
-  return `${(rate * 100).toFixed(2)}%`
+  return `${(rate * 100).toFixed(dp)}%`
 }
 
 export default async function HostedProposalPage({ params }: PageProps) {
@@ -23,175 +24,312 @@ export default async function HostedProposalPage({ params }: PageProps) {
   if (!proposal) return <NotAvailable />
 
   const a = proposal.analysis
+  const bridge = deriveCostSavingsBridge(a)
+
   const monthly = proposal.estimatedSavings ?? a?.estimated_savings_monthly ?? 0
   const annual  = proposal.annualSavings ?? a?.estimated_savings_annual ?? 0
   const hasSavings = monthly > 0
 
   const volume = a?.monthly_volume_estimate ?? null
   const currentRate = a?.effective_rate_estimate ?? null
-  const proposedCost = typeof a?.extracted_fields?.proposed_monthly_cost === 'number'
-    ? (a.extracted_fields.proposed_monthly_cost as number)
-    : null
-  const proposedRate = proposedCost != null && volume != null && volume > 0 ? proposedCost / volume : null
+  const proposedCost = bridge?.proposedCost
+    ?? (typeof a?.extracted_fields?.proposed_monthly_cost === 'number'
+      ? (a.extracted_fields.proposed_monthly_cost as number)
+      : null)
+  const proposedRate = bridge?.proposedRate
+    ?? (proposedCost != null && volume != null && volume > 0 ? proposedCost / volume : null)
+  const avgTicket = bridge?.avgTicket ?? null
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Print stylesheet — render cleanly to paper */}
+    <div className="min-h-screen bg-gray-100">
+      {/* Print stylesheet — two modes, single-column on paper.
+          summary = the proposal numbers page only; full = proposal + backing
+          intelligence pages. The buttons toggle a body class. */}
       <style>{`
         @media print {
           .no-print { display: none !important; }
           body { background: #fff !important; }
-          .print-card { box-shadow: none !important; border-color: #e5e7eb !important; break-inside: avoid; }
+          /* collapse the split into a single column */
+          .proposal-grid { display: block !important; }
+          .print-card { box-shadow: none !important; border-color: #e5e7eb !important; }
+          .print-card, table, .keep-together { break-inside: avoid; }
+          /* proposal first, intelligence starts on a fresh page (full mode) */
+          body.print-full [data-print="proposal"] { break-after: page; }
+          /* summary mode: only the proposal "numbers" block prints */
+          body.print-summary [data-print="intelligence"] { display: none !important; }
+          body.print-summary [data-print="proposal"] > *:not([data-print="summary"]) { display: none !important; }
         }
       `}</style>
 
       {/* Brand header */}
-      <header className="bg-[#1d4ed8] text-white">
-        <div className="max-w-3xl mx-auto px-6 py-6 flex items-center justify-between">
+      <header className="bg-[#0f1e3d] text-white">
+        <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between gap-4">
           <div>
             <p className="text-2xl font-bold tracking-tight">321 SWIPE</p>
-            <p className="text-sm text-blue-100">Merchant Processing Solutions</p>
+            <p className="text-sm text-blue-100">Payment Intelligence Proposal</p>
           </div>
-          <PrintButton />
+          <PrintButtons />
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-6 py-8 space-y-6">
+      <main className="max-w-6xl mx-auto px-6 py-8">
+        <div className="proposal-grid grid gap-6 lg:grid-cols-2 items-start">
 
-        {/* Headline */}
-        <section className="bg-white rounded-xl border shadow-sm p-6 print-card">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Savings Proposal
-          </p>
-          <h1 className="text-2xl font-bold mt-1">{proposal.companyName ?? 'Your Business'}</h1>
+          {/* ============================================================== */}
+          {/* LEFT — Professional proposal document                          */}
+          {/* ============================================================== */}
+          <div data-print="proposal" className="space-y-6">
 
-          {hasSavings ? (
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4">
-                <p className="text-xs text-emerald-700 font-medium flex items-center gap-1">
-                  <TrendingDown className="h-3.5 w-3.5" /> Estimated monthly savings
+            {/* "Page 1 / the numbers" — printed in summary mode */}
+            <div data-print="summary" className="space-y-6">
+              <section className="bg-white rounded-xl border shadow-sm p-6 print-card">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Savings Proposal
                 </p>
-                <p className="text-3xl font-bold text-emerald-700 mt-1">{usd(monthly)}</p>
-              </div>
-              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4">
-                <p className="text-xs text-emerald-700 font-medium">Estimated annual savings</p>
-                <p className="text-3xl font-bold text-emerald-700 mt-1">{usd(annual)}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-5 rounded-lg bg-gray-50 border p-4 text-sm text-gray-700">
-              At the figures provided, your current pricing is already competitive. A full
-              statement review can surface fee categories and card-mix detail that may change this.
-            </div>
-          )}
+                <h1 className="text-2xl font-bold mt-1">{proposal.companyName ?? 'Your Business'}</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Prepared for {proposal.companyName ?? 'your business'}
+                  {a?.statement_period ? ` · Statement period: ${a.statement_period}` : ''}
+                </p>
 
-          <div className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
-            <div>
-              <span className="text-muted-foreground">Current effective rate: </span>
-              <span className="font-semibold">{pct(currentRate)}</span>
+                {/* KPI card row */}
+                <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <Kpi
+                    label="Monthly savings"
+                    value={usd(monthly, 0)}
+                    accent={hasSavings}
+                    icon={<TrendingDown className="h-3.5 w-3.5" />}
+                  />
+                  <Kpi label="Annual savings" value={usd(annual, 0)} accent={hasSavings} />
+                  <Kpi label="Current eff. rate" value={pct(currentRate)} />
+                  <Kpi label="Proposed eff. rate" value={pct(proposedRate)} accent />
+                </div>
+
+                {!hasSavings && (
+                  <div className="mt-4 rounded-lg bg-gray-50 border p-4 text-sm text-gray-700">
+                    At the figures provided, your current pricing is already competitive. A full
+                    statement review can surface fee categories and card-mix detail that may change this.
+                  </div>
+                )}
+              </section>
+
+              {/* Savings view table */}
+              {bridge && (
+                <section className="bg-white rounded-xl border shadow-sm p-6 print-card">
+                  <SectionHeader>Savings View</SectionHeader>
+                  <table className="w-full text-sm">
+                    <tbody className="divide-y">
+                      <Row label="Monthly savings" value={usd(bridge.monthlySavings)} strong accent={hasSavings} />
+                      <Row label="Annual savings" value={usd(bridge.annualSavings)} strong accent={hasSavings} />
+                      <Row label="3-year savings" value={usd(bridge.threeYearSavings)} accent={hasSavings} />
+                      <Row label="Savings as % of current cost" value={pct(bridge.savingsPctOfCurrent)} />
+                    </tbody>
+                  </table>
+                </section>
+              )}
             </div>
-            <div>
-              <span className="text-muted-foreground">Proposed effective rate: </span>
-              <span className="font-semibold text-emerald-700">{pct(proposedRate)}</span>
-            </div>
+
+            {/* Statement Analysis table */}
+            {a && (
+              <section className="bg-white rounded-xl border shadow-sm overflow-hidden print-card">
+                <SectionBand>Statement Analysis</SectionBand>
+                <table className="w-full text-sm">
+                  <tbody className="divide-y">
+                    <Row label="Merchant" value={proposal.companyName ?? '—'} />
+                    <Row label="Processor" value={a.processor_name ?? '—'} />
+                    <Row label="Statement period" value={a.statement_period ?? '—'} />
+                    <Row label="Monthly volume" value={usd(volume, 0)} />
+                    <Row label="Transactions / month" value={a.transaction_count_estimate?.toLocaleString() ?? '—'} />
+                    <Row label="Average ticket" value={usd(avgTicket)} />
+                    <Row label="Total monthly fees" value={usd(a.total_fees_estimate)} />
+                    <Row label="Current effective rate" value={pct(currentRate)} strong />
+                  </tbody>
+                </table>
+              </section>
+            )}
+
+            {/* Recommended pricing structure */}
+            {a && (
+              <section className="bg-white rounded-xl border shadow-sm overflow-hidden print-card">
+                <SectionBand>Recommended Pricing Structure</SectionBand>
+                <table className="w-full text-sm">
+                  <tbody className="divide-y">
+                    <Row label="Pricing model" value="Interchange-Plus" strong />
+                    <Row label="Processing markup" value={`${a.proposed_basis_points} bps (${(a.proposed_basis_points / 100).toFixed(2)}%)`} />
+                    <Row label="Per-transaction fee" value={`$${(a.proposed_per_txn_cents / 100).toFixed(2)}`} />
+                    <Row label="Monthly account fee" value={usd(a.proposed_monthly_fee)} />
+                    {proposedCost != null && <Row label="Proposed monthly cost" value={usd(proposedCost)} strong accent />}
+                  </tbody>
+                </table>
+              </section>
+            )}
+
+            {/* What happens next */}
+            <section className="bg-white rounded-xl border shadow-sm p-6 print-card">
+              <SectionHeader>What happens next</SectionHeader>
+              <ol className="space-y-2 text-sm text-gray-700 list-decimal list-inside">
+                <li>Review this proposal — print or save a copy for your records.</li>
+                <li>Have a question? Send us a message and our team will follow up.</li>
+                <li>We&apos;ll walk through your full statement, confirm your savings, and finalize pricing.</li>
+                <li>If you&apos;re ready, we handle the switch — usually 1–2 business days.</li>
+              </ol>
+            </section>
+
+            {/* Assumptions / disclaimer */}
+            {a && a.assumptions.length > 0 && (
+              <section className="bg-white rounded-xl border shadow-sm p-6 print-card">
+                <h2 className="text-sm font-semibold mb-2">Assumptions &amp; disclaimer</h2>
+                <ul className="space-y-1.5 text-xs text-muted-foreground">
+                  {a.assumptions.map((s, i) => (
+                    <li key={i} className="flex gap-1.5"><span>•</span><span>{s}</span></li>
+                  ))}
+                </ul>
+                <p className="text-[11px] text-muted-foreground mt-3">
+                  This document is for informational purposes only and is an estimate, not a binding
+                  quote. Rates and fees are subject to underwriting. Past savings achieved by other
+                  merchants are not a guarantee of future results.
+                </p>
+              </section>
+            )}
           </div>
-        </section>
 
-        {/* Plain-English explanations */}
-        <section className="bg-white rounded-xl border shadow-sm p-6 space-y-5 print-card">
-          <h2 className="text-lg font-semibold">How we calculated your savings</h2>
+          {/* ============================================================== */}
+          {/* RIGHT — "How we calculated this" intelligence panel            */}
+          {/* ============================================================== */}
+          <div data-print="intelligence">
+            <IntelligenceGuard>
+              {bridge ? (
+                <div className="space-y-6">
+                  {/* Cost savings bridge — the worked decomposition */}
+                  <section className="bg-white rounded-xl border shadow-sm p-6 print-card">
+                    <div className="flex items-center justify-between mb-1">
+                      <SectionHeader className="mb-0">How we calculated this</SectionHeader>
+                      <ConfidenceBadge />
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Every figure below traces to your statement. Here is the line-by-line bridge
+                      from what you pay today to your cost under 321 Swipe.
+                    </p>
 
-          <Explainer title="What is interchange?">
-            Interchange is the wholesale fee that Visa and Mastercard charge on every transaction.
-            Every processor pays the same interchange — it&apos;s not something anyone can discount.
-            The difference between processors is the markup they add on top.
-          </Explainer>
+                    <table className="w-full text-sm">
+                      <tbody className="divide-y">
+                        <BridgeRow
+                          label="Current amount deducted"
+                          formula={`${pct(bridge.currentRate)} effective on ${usd(bridge.monthlyVolume, 0)}`}
+                          value={usd(bridge.currentMonthlyCost)}
+                          strong
+                        />
+                        <BridgeRow
+                          label="Interchange (pass-through, at cost)"
+                          formula={`≈ ${pct(bridge.assumedInterchangeRate)} of ${usd(bridge.monthlyVolume, 0)} volume`}
+                          value={usd(bridge.interchange)}
+                        />
+                        <BridgeRow
+                          label="321 Swipe markup"
+                          formula={`${bridge.markupBps} bps × ${usd(bridge.monthlyVolume, 0)}`}
+                          value={usd(bridge.markup)}
+                        />
+                        <BridgeRow
+                          label="Per-transaction fee"
+                          formula={`${usd(bridge.perTxnDollars)} × ${bridge.transactionCount.toLocaleString()} txns`}
+                          value={usd(bridge.perTxn)}
+                        />
+                        <BridgeRow
+                          label="Monthly account fee"
+                          formula="flat"
+                          value={usd(bridge.monthlyFee)}
+                        />
+                        <BridgeRow
+                          label="Proposed monthly cost"
+                          formula="interchange + markup + per-txn + monthly fee"
+                          value={usd(bridge.proposedCost)}
+                          strong
+                        />
+                        <BridgeRow
+                          label="Your monthly savings"
+                          formula={`${usd(bridge.currentMonthlyCost)} − ${usd(bridge.proposedCost)}`}
+                          value={usd(bridge.monthlySavings)}
+                          strong
+                          accent
+                        />
+                      </tbody>
+                    </table>
+                  </section>
 
-          <Explainer title="Why interchange-plus saves you money">
-            Many processors bundle interchange and their markup into one blended rate, which hides
-            how much margin they keep. With interchange-plus, you pay interchange (at cost) plus a
-            small, fixed, fully transparent markup — so every dollar of interchange savings stays
-            with you.
-          </Explainer>
+                  {/* Effective rate comparison */}
+                  <section className="bg-white rounded-xl border shadow-sm p-6 print-card">
+                    <SectionHeader>Effective rate — current vs. proposed</SectionHeader>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="rounded-lg border bg-gray-50 p-4">
+                        <p className="text-xs text-muted-foreground">Current</p>
+                        <p className="text-2xl font-bold mt-1">{pct(bridge.currentRate)}</p>
+                      </div>
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                        <p className="text-xs text-emerald-700">Proposed</p>
+                        <p className="text-2xl font-bold text-emerald-700 mt-1">{pct(bridge.proposedRate)}</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      A {pct(bridge.savingsPctOfCurrent)} reduction in what you pay to process the same
+                      {' '}{usd(bridge.monthlyVolume, 0)} in monthly volume.
+                    </p>
+                  </section>
 
-          <Explainer title="How we got to your number">
-            Using your statement figures, we estimated your current effective rate
-            ({pct(currentRate)} of {usd(volume, 0)} in monthly volume) and compared it against your
-            cost under 321 Swipe&apos;s interchange-plus pricing. The difference is your estimated
-            savings.
-          </Explainer>
-        </section>
+                  {/* Methodology / logic followed */}
+                  <section className="bg-white rounded-xl border shadow-sm p-6 print-card">
+                    <SectionHeader className="flex items-center gap-2">
+                      <ListChecks className="h-4 w-4 text-blue-600" /> Logic followed
+                    </SectionHeader>
+                    <ol className="space-y-2 text-sm text-gray-700 list-decimal list-inside">
+                      <li>Anchored to your actual statement{a?.statement_period ? ` (${a.statement_period})` : ''} — volume, fees, and transaction count are taken as entered.</li>
+                      <li>Computed your current effective rate as total fees ÷ monthly volume.</li>
+                      <li>Repriced the same volume under interchange-plus: interchange at cost, plus a transparent {bridge.markupBps} bps markup, {usd(bridge.perTxnDollars)}/transaction, and a {usd(bridge.monthlyFee)} monthly fee.</li>
+                      <li>Held interchange constant (it&apos;s the wholesale cost every processor pays), so the savings come entirely from a lower, visible markup.</li>
+                      <li>Reported savings conservatively — clamped to zero if repricing didn&apos;t beat your current cost.</li>
+                    </ol>
+                  </section>
 
-        {/* Figures table */}
-        {a && (
-          <section className="bg-white rounded-xl border shadow-sm p-6 print-card">
-            <h2 className="text-lg font-semibold mb-4">Your statement figures</h2>
-            <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-              <Figure label="Monthly volume" value={usd(volume, 0)} />
-              <Figure label="Current monthly fees" value={usd(a.total_fees_estimate)} />
-              <Figure label="Monthly transactions" value={a.transaction_count_estimate?.toLocaleString() ?? '—'} />
-              <Figure label="Current effective rate" value={pct(currentRate)} />
-              <Figure label="Proposed monthly cost" value={usd(proposedCost)} />
-              <Figure label="Proposed effective rate" value={pct(proposedRate)} />
-            </dl>
-          </section>
-        )}
+                  {/* Assumptions rationale */}
+                  {a && a.assumptions.length > 0 && (
+                    <section className="bg-white rounded-xl border shadow-sm p-6 print-card">
+                      <SectionHeader className="flex items-center gap-2">
+                        <FlaskConical className="h-4 w-4 text-blue-600" /> Assumptions behind these numbers
+                      </SectionHeader>
+                      <ul className="space-y-1.5 text-xs text-muted-foreground">
+                        {a.assumptions.map((s, i) => (
+                          <li key={i} className="flex gap-1.5"><span>•</span><span>{s}</span></li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                </div>
+              ) : (
+                <section className="bg-white rounded-xl border shadow-sm p-6 print-card">
+                  <SectionHeader className="flex items-center gap-2">
+                    <FlaskConical className="h-4 w-4 text-blue-600" /> How we calculate your savings
+                  </SectionHeader>
+                  <p className="text-sm text-muted-foreground">
+                    A full, worked cost-savings analysis — line by line — is available after we review
+                    your statement. We don&apos;t estimate a savings figure until we&apos;ve confirmed
+                    your actual volume, fees, and card mix.
+                  </p>
+                </section>
+              )}
+            </IntelligenceGuard>
 
-        {/* Proposed pricing card */}
-        {a && (
-          <section className="bg-white rounded-xl border shadow-sm p-6 print-card">
-            <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-blue-600" /> Proposed 321 Swipe pricing
-            </h2>
-            <p className="text-sm text-muted-foreground mb-4">Interchange-plus — fully transparent.</p>
-            <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-              <Figure label="Processing markup" value={`${a.proposed_basis_points} bps (${(a.proposed_basis_points / 100).toFixed(2)}%)`} />
-              <Figure label="Per-transaction fee" value={`$${(a.proposed_per_txn_cents / 100).toFixed(2)}`} />
-              <Figure label="Monthly account fee" value={usd(a.proposed_monthly_fee)} />
-              <Figure label="Pricing model" value="Interchange-Plus" />
-            </dl>
-          </section>
-        )}
+            {/* Contact us (screen only) */}
+            <section className="bg-white rounded-xl border shadow-sm p-6 mt-6 no-print">
+              <h2 className="text-lg font-semibold mb-1">Contact us</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                Have a question about your proposal? We&apos;ll get back to you shortly.
+              </p>
+              <ProposalContactForm token={token} />
+            </section>
+          </div>
+        </div>
 
-        {/* What happens next */}
-        <section className="bg-white rounded-xl border shadow-sm p-6 print-card">
-          <h2 className="text-lg font-semibold mb-3">What happens next</h2>
-          <ol className="space-y-2 text-sm text-gray-700 list-decimal list-inside">
-            <li>Review this proposal — print or save a copy for your records.</li>
-            <li>Have a question? Send us a message below and our team will follow up.</li>
-            <li>We&apos;ll walk through your full statement, confirm your savings, and finalize pricing.</li>
-            <li>If you&apos;re ready, we handle the switch — usually 1–2 business days.</li>
-          </ol>
-        </section>
-
-        {/* Contact us */}
-        <section className="bg-white rounded-xl border shadow-sm p-6 print-card no-print">
-          <h2 className="text-lg font-semibold mb-1">Contact us</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Have a question about your proposal? We&apos;ll get back to you shortly.
-          </p>
-          <ProposalContactForm token={token} />
-        </section>
-
-        {/* Assumptions / disclaimer */}
-        {a && a.assumptions.length > 0 && (
-          <section className="bg-white rounded-xl border shadow-sm p-6 print-card">
-            <h2 className="text-sm font-semibold mb-2">Assumptions &amp; disclaimer</h2>
-            <ul className="space-y-1.5 text-xs text-muted-foreground">
-              {a.assumptions.map((s, i) => (
-                <li key={i} className="flex gap-1.5"><span>•</span><span>{s}</span></li>
-              ))}
-            </ul>
-            <p className="text-[11px] text-muted-foreground mt-3">
-              This document is for informational purposes only and is an estimate, not a binding
-              quote. Rates and fees are subject to underwriting. Past savings achieved by other
-              merchants are not a guarantee of future results.
-            </p>
-          </section>
-        )}
-
-        <footer className="text-center text-xs text-muted-foreground py-4">
-          321 Swipe · Merchant Processing Solutions
+        <footer className="text-center text-xs text-muted-foreground py-6">
+          321 Swipe · Payment Intelligence
         </footer>
       </main>
     </div>
@@ -200,21 +338,55 @@ export default async function HostedProposalPage({ params }: PageProps) {
 
 // ---- Sub-components ----
 
-function Explainer({ title, children }: { title: string; children: React.ReactNode }) {
+function Kpi({ label, value, accent, icon }: { label: string; value: string; accent?: boolean; icon?: React.ReactNode }) {
   return (
-    <div>
-      <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-      <p className="text-sm text-gray-600 mt-1 leading-relaxed">{children}</p>
+    <div className={`rounded-lg border p-3 ${accent ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50'}`}>
+      <p className={`text-xs font-medium flex items-center gap-1 ${accent ? 'text-emerald-700' : 'text-muted-foreground'}`}>
+        {icon}{label}
+      </p>
+      <p className={`text-xl font-bold mt-1 ${accent ? 'text-emerald-700' : ''}`}>{value}</p>
     </div>
   )
 }
 
-function Figure({ label, value }: { label: string; value: string }) {
+function SectionBand({ children }: { children: React.ReactNode }) {
   return (
-    <div>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="font-semibold">{value}</dd>
+    <div className="bg-[#0f1e3d] text-white px-6 py-3">
+      <h2 className="text-sm font-semibold uppercase tracking-wide">{children}</h2>
     </div>
+  )
+}
+
+function SectionHeader({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <h2 className={`text-lg font-semibold mb-4 ${className}`}>{children}</h2>
+}
+
+function Row({ label, value, strong, accent }: { label: string; value: string; strong?: boolean; accent?: boolean }) {
+  return (
+    <tr>
+      <td className="py-2.5 px-6 text-muted-foreground">{label}</td>
+      <td className={`py-2.5 px-6 text-right ${strong ? 'font-semibold' : ''} ${accent ? 'text-emerald-700' : ''}`}>{value}</td>
+    </tr>
+  )
+}
+
+function BridgeRow({ label, formula, value, strong, accent }: { label: string; formula: string; value: string; strong?: boolean; accent?: boolean }) {
+  return (
+    <tr>
+      <td className="py-2.5 pr-3">
+        <span className={`block ${strong ? 'font-semibold' : ''}`}>{label}</span>
+        <span className="block text-xs text-muted-foreground">{formula}</span>
+      </td>
+      <td className={`py-2.5 text-right align-top whitespace-nowrap ${strong ? 'font-semibold' : ''} ${accent ? 'text-emerald-700' : ''}`}>{value}</td>
+    </tr>
+  )
+}
+
+function ConfidenceBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-medium text-emerald-700">
+      <ShieldCheck className="h-3.5 w-3.5" /> Calculated
+    </span>
   )
 }
 
