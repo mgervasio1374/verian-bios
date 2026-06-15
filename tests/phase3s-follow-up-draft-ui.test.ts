@@ -26,6 +26,9 @@ function readSrc(relPath: string): string {
 
 const GENERATE_BUTTON = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/GenerateFollowUpDraftButton.tsx'
 const QUEUE_PAGE      = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/page.tsx'
+// Per-row actions now live behind a disclosure component
+// (mcm-v2-followup-row-actions-disclosure-v1); the page passes props/permissions down.
+const ROW_ACTIONS     = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/FollowUpRowActions.tsx'
 const QUEUE_REPO      = 'modules/proposals/repositories/proposal-follow-up-commitments.repo.ts'
 
 // ---------------------------------------------------------------------------
@@ -223,12 +226,15 @@ describe('Slice 4: GenerateFollowUpDraftButton component', () => {
 describe('Slice 4: queue page wiring', () => {
 
   it('TC-3S-UI-026: queue page imports GenerateFollowUpDraftButton', () => {
-    expect(readSrc(QUEUE_PAGE)).toContain('GenerateFollowUpDraftButton')
-    expect(readSrc(QUEUE_PAGE)).toContain('./GenerateFollowUpDraftButton')
+    // The page delegates to FollowUpRowActions, which imports the button.
+    expect(readSrc(QUEUE_PAGE)).toContain('FollowUpRowActions')
+    const actions = readSrc(ROW_ACTIONS)
+    expect(actions).toContain('GenerateFollowUpDraftButton')
+    expect(actions).toContain('./GenerateFollowUpDraftButton')
   })
 
   it('TC-3S-UI-027: queue page renders GenerateFollowUpDraftButton inside canMutate block', () => {
-    const src = readSrc(QUEUE_PAGE)
+    const src = readSrc(ROW_ACTIONS)
     const canMutateBlock = src.indexOf('canMutate && (')
     const genDraftUsage  = src.indexOf('<GenerateFollowUpDraftButton')
     expect(canMutateBlock).toBeGreaterThan(-1)
@@ -236,18 +242,21 @@ describe('Slice 4: queue page wiring', () => {
   })
 
   it('TC-3S-UI-028: queue page passes commitmentId to GenerateFollowUpDraftButton', () => {
-    const src = readSrc(QUEUE_PAGE)
+    const src = readSrc(ROW_ACTIONS)
     const usage = src.slice(src.indexOf('<GenerateFollowUpDraftButton'))
-    expect(usage).toContain('commitmentId={item.id}')
+    expect(usage).toContain('commitmentId={commitmentId}')
+    // …and the page forwards the row's id into the disclosure.
+    expect(readSrc(QUEUE_PAGE)).toContain('commitmentId={item.id}')
   })
 
   it('TC-3S-UI-029: queue page passes existingDraftId from item.draft_id', () => {
-    const src = readSrc(QUEUE_PAGE)
-    expect(src).toContain('existingDraftId={item.draft_id}')
+    // Page forwards item.draft_id as draftId; the disclosure maps it to existingDraftId.
+    expect(readSrc(QUEUE_PAGE)).toContain('draftId={item.draft_id}')
+    expect(readSrc(ROW_ACTIONS)).toContain('existingDraftId={draftId}')
   })
 
   it('TC-3S-UI-030: existing Phase 3R mutation controls are still present in page', () => {
-    const src = readSrc(QUEUE_PAGE)
+    const src = readSrc(ROW_ACTIONS)
     expect(src).toContain('CompleteFollowUpButton')
     expect(src).toContain('SkipFollowUpButton')
     expect(src).toContain('RescheduleFollowUpButton')
@@ -267,8 +276,10 @@ describe('Slice 4: queue page wiring', () => {
   })
 
   it('TC-3S-UI-033: canMutate still gates all mutation controls including GenerateFollowUpDraftButton', () => {
-    const src = readSrc(QUEUE_PAGE)
-    // All four mutation controls must appear inside the same canMutate block
+    // Page derives canMutate and passes it down; the disclosure gates all four
+    // mutation controls behind it.
+    expect(readSrc(QUEUE_PAGE)).toContain('canMutate')
+    const src = readSrc(ROW_ACTIONS)
     expect(src).toContain('canMutate')
     expect(src).toContain('GenerateFollowUpDraftButton')
     expect(src).toContain('CompleteFollowUpButton')

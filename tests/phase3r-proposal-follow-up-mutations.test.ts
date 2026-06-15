@@ -32,6 +32,9 @@ const COMPLETE_BUTTON   = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/C
 const SKIP_BUTTON           = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/SkipFollowUpButton.tsx'
 const RESCHEDULE_BUTTON     = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/RescheduleFollowUpButton.tsx'
 const QUEUE_PAGE        = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/page.tsx'
+// Per-row mutation controls now live in the disclosure component
+// (mcm-v2-followup-row-actions-disclosure-v1); the page passes permissions down.
+const ROW_ACTIONS       = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/FollowUpRowActions.tsx'
 
 // ---------------------------------------------------------------------------
 // Slice 4 — Complete-only repository write model
@@ -630,9 +633,10 @@ describe('Slice 7: proposal follow-up complete UI control — CompleteFollowUpBu
   })
 
   it('TC-3R-102: follow-up queue page imports CompleteFollowUpButton', () => {
-    const src = readSrc(QUEUE_PAGE)
-    expect(src).toContain('CompleteFollowUpButton')
-    expect(src).toContain('CompleteFollowUpButton')
+    // The page now delegates the row cluster to FollowUpRowActions, which is
+    // where CompleteFollowUpButton is imported and rendered.
+    expect(readSrc(QUEUE_PAGE)).toContain('FollowUpRowActions')
+    expect(readSrc(ROW_ACTIONS)).toContain('CompleteFollowUpButton')
   })
 
   it('TC-3R-103: queue page passes commitmentId to CompleteFollowUpButton', () => {
@@ -1418,9 +1422,9 @@ describe('Slice 13: proposal follow-up skip UI control — SkipFollowUpButton', 
   })
 
   it('TC-3R-230: follow-up queue page imports SkipFollowUpButton', () => {
-    const src = readSrc(QUEUE_PAGE)
-    expect(src).toContain('SkipFollowUpButton')
-    expect(src).toContain('SkipFollowUpButton')
+    // Relocated into the FollowUpRowActions disclosure component.
+    expect(readSrc(QUEUE_PAGE)).toContain('FollowUpRowActions')
+    expect(readSrc(ROW_ACTIONS)).toContain('SkipFollowUpButton')
   })
 
   it('TC-3R-231: queue page passes commitmentId to SkipFollowUpButton', () => {
@@ -2178,8 +2182,9 @@ describe('Slice 14E: proposal follow-up reschedule UI control — RescheduleFoll
   })
 
   it('TC-3R-347: follow-up queue page imports RescheduleFollowUpButton', () => {
-    const src = readSrc(QUEUE_PAGE)
-    expect(src).toContain('RescheduleFollowUpButton')
+    // Relocated into the FollowUpRowActions disclosure component.
+    expect(readSrc(QUEUE_PAGE)).toContain('FollowUpRowActions')
+    expect(readSrc(ROW_ACTIONS)).toContain('RescheduleFollowUpButton')
   })
 
   it('TC-3R-348: queue page passes commitmentId to RescheduleFollowUpButton', () => {

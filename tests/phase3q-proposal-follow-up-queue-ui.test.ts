@@ -25,6 +25,9 @@ function readSrc(relPath: string): string {
 // ---------------------------------------------------------------------------
 
 const QUEUE_PAGE    = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/page.tsx'
+// The per-row action cluster now lives behind a disclosure component
+// (mcm-v2-followup-row-actions-disclosure-v1); the page passes permissions down.
+const ROW_ACTIONS   = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/FollowUpRowActions.tsx'
 const QUEUE_ACTION  = 'modules/proposals/actions/proposal-follow-up-queue.actions.ts'
 const SIDEBAR       = 'components/layout/Sidebar.tsx'
 
@@ -248,12 +251,14 @@ describe('Slice 14F: follow-up queue UI — permission-aware mutation visibility
   })
 
   it('TC-3Q-134: mutation controls are conditionally rendered based on canMutate', () => {
-    const src = readSrc(QUEUE_PAGE)
-    // canMutate gates all three mutation controls
-    expect(src).toContain('canMutate')
-    expect(src).toContain('CompleteFollowUpButton')
-    expect(src).toContain('SkipFollowUpButton')
-    expect(src).toContain('RescheduleFollowUpButton')
+    // The page derives canMutate and passes it to the row-actions disclosure,
+    // which gates the three mutation controls behind it.
+    expect(readSrc(QUEUE_PAGE)).toContain('canMutate')
+    const actions = readSrc(ROW_ACTIONS)
+    expect(actions).toContain('canMutate')
+    expect(actions).toContain('CompleteFollowUpButton')
+    expect(actions).toContain('SkipFollowUpButton')
+    expect(actions).toContain('RescheduleFollowUpButton')
   })
 
   it('TC-3Q-135: page falls back to canMutate=false on auth error', () => {

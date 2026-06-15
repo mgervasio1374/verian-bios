@@ -26,6 +26,9 @@ function readSrc(relPath: string): string {
 
 const SEND_BUTTON  = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/SendFollowUpDraftButton.tsx'
 const QUEUE_PAGE   = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/page.tsx'
+// Per-row actions now live behind a disclosure component
+// (mcm-v2-followup-row-actions-disclosure-v1); the page passes props/permissions down.
+const ROW_ACTIONS = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/FollowUpRowActions.tsx'
 const QUEUE_REPO   = 'modules/proposals/repositories/proposal-follow-up-commitments.repo.ts'
 
 // ---------------------------------------------------------------------------
@@ -208,9 +211,11 @@ describe('Slice 4: SendFollowUpDraftButton component', () => {
 describe('Slice 4: queue page wiring', () => {
 
   it('TC-3T-UI-031: queue page imports SendFollowUpDraftButton', () => {
-    const src = readSrc(QUEUE_PAGE)
-    expect(src).toContain('SendFollowUpDraftButton')
-    expect(src).toContain('./SendFollowUpDraftButton')
+    // The page delegates to FollowUpRowActions, which imports the send button.
+    expect(readSrc(QUEUE_PAGE)).toContain('FollowUpRowActions')
+    const actions = readSrc(ROW_ACTIONS)
+    expect(actions).toContain('SendFollowUpDraftButton')
+    expect(actions).toContain('./SendFollowUpDraftButton')
   })
 
   it('TC-3T-UI-031b: queue page derives canSendEmail from messaging.send_emails permission', () => {
@@ -220,16 +225,17 @@ describe('Slice 4: queue page wiring', () => {
   })
 
   it('TC-3T-UI-031c: SendFollowUpDraftButton is gated by canSendEmail, not canMutate', () => {
-    const src = readSrc(QUEUE_PAGE)
-    // canSendEmail must gate the send button
+    // The page derives canSendEmail and passes it down; the disclosure gates the
+    // send button behind it, outside the canMutate block.
+    expect(readSrc(QUEUE_PAGE)).toContain('canSendEmail')
+    const src = readSrc(ROW_ACTIONS)
     expect(src).toContain('canSendEmail &&')
-    // The send button must not be nested inside the canMutate block
     const canMutateBlock = src.slice(src.indexOf('canMutate && ('), src.indexOf('{canSendEmail &&'))
     expect(canMutateBlock).not.toContain('SendFollowUpDraftButton')
   })
 
   it('TC-3T-UI-031d: Generate/Complete/Skip/Reschedule remain under canMutate, not canSendEmail', () => {
-    const src = readSrc(QUEUE_PAGE)
+    const src = readSrc(ROW_ACTIONS)
     const canMutateBlock = src.slice(src.indexOf('canMutate && ('), src.indexOf('{canSendEmail &&'))
     expect(canMutateBlock).toContain('CompleteFollowUpButton')
     expect(canMutateBlock).toContain('SkipFollowUpButton')
@@ -254,9 +260,11 @@ describe('Slice 4: queue page wiring', () => {
   })
 
   it('TC-3T-UI-034: queue page passes commitmentId to SendFollowUpDraftButton', () => {
-    const src = readSrc(QUEUE_PAGE)
+    const src = readSrc(ROW_ACTIONS)
     const usage = src.slice(src.indexOf('<SendFollowUpDraftButton'))
-    expect(usage).toContain('commitmentId={item.id}')
+    expect(usage).toContain('commitmentId={commitmentId}')
+    // …and the page forwards the row's id into the disclosure.
+    expect(readSrc(QUEUE_PAGE)).toContain('commitmentId={item.id}')
   })
 
   it('TC-3T-UI-035: queue page passes draftStatus from item.draft_status', () => {
@@ -270,20 +278,24 @@ describe('Slice 4: queue page wiring', () => {
   })
 
   it('TC-3T-UI-037: queue page keeps GenerateFollowUpDraftButton', () => {
-    expect(readSrc(QUEUE_PAGE)).toContain('GenerateFollowUpDraftButton')
+    // Retained — now rendered via the FollowUpRowActions disclosure.
+    expect(readSrc(ROW_ACTIONS)).toContain('GenerateFollowUpDraftButton')
   })
 
   it('TC-3T-UI-038: queue page keeps Complete, Skip, Reschedule controls', () => {
-    const src = readSrc(QUEUE_PAGE)
+    const src = readSrc(ROW_ACTIONS)
     expect(src).toContain('CompleteFollowUpButton')
     expect(src).toContain('SkipFollowUpButton')
     expect(src).toContain('RescheduleFollowUpButton')
   })
 
   it('TC-3T-UI-039: send UI is not wired to draftId as the primary action input', () => {
-    const src = readSrc(QUEUE_PAGE)
-    // Page must not pass draftId to SendFollowUpDraftButton
-    expect(src).not.toContain('draftId={item.draft_id}')
+    // The send button must not receive draftId — its action input is commitmentId.
+    // (The page does forward item.draft_id to the disclosure, but only for the
+    // Generate button's existingDraftId; the send button never sees it.)
+    const src = readSrc(ROW_ACTIONS)
+    const sendUsage = src.slice(src.indexOf('<SendFollowUpDraftButton'), src.indexOf('/>', src.indexOf('<SendFollowUpDraftButton')))
+    expect(sendUsage).not.toContain('draftId')
   })
 
   it('TC-3T-UI-040: queue page does not reference campaign sending feature flag', () => {
@@ -380,7 +392,8 @@ describe('Slice 4: safety guardrails', () => {
   })
 
   it('TC-3T-UI-051: Phase 3R Phase 3S controls are unchanged in page', () => {
-    const src = readSrc(QUEUE_PAGE)
+    // Controls are unchanged — now composed in the FollowUpRowActions disclosure.
+    const src = readSrc(ROW_ACTIONS)
     expect(src).toContain('CompleteFollowUpButton')
     expect(src).toContain('SkipFollowUpButton')
     expect(src).toContain('RescheduleFollowUpButton')
