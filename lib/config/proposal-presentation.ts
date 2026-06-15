@@ -12,8 +12,8 @@ export interface ProposalPresentation {
   aboutUs:        string
 }
 
-const DEFAULT_SENDER_NAME  = '321 Swipe Team'
-const DEFAULT_SENDER_TITLE = 'Merchant Services'
+const DEFAULT_SENDER_NAME  = 'Bruce Hughes'
+const DEFAULT_SENDER_TITLE = 'Chief Information Officer'
 const DEFAULT_EMAIL        = 'sales@321swipe.com'
 const DEFAULT_WEBSITE      = '321swipe.com'
 const DEFAULT_PHONE        = '941-552-0725'

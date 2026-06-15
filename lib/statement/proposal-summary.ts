@@ -27,6 +27,84 @@ function stripEmDashes(s: string): string {
   return s.replace(/—|–/g, '-').replace(/\s-\s/g, ', ')
 }
 
+// ---- Numeric grounding guard -------------------------------------------------
+// Builds the set of real $-amounts and %-values the summary is allowed to state,
+// then verifies every $/% token the model emitted matches one of them within
+// tolerance. Anything else is a fabricated figure → the caller falls back.
+
+function isFiniteNum(n: unknown): n is number {
+  return typeof n === 'number' && Number.isFinite(n)
+}
+
+// The grounded dollar amounts the summary may reference.
+function allowedAmounts(analysis: StatementAnalysis, bridge: CostSavingsBridge | null): number[] {
+  const out: number[] = []
+  const push = (n: unknown) => { if (isFiniteNum(n)) out.push(Math.abs(n)) }
+  push(analysis.monthly_volume_estimate)
+  push(analysis.total_fees_estimate)
+  push(analysis.proposed_monthly_fee)
+  push(analysis.estimated_savings_monthly)
+  push(analysis.estimated_savings_annual)
+  if (bridge) {
+    push(bridge.monthlyVolume); push(bridge.currentMonthlyCost); push(bridge.proposedCost)
+    push(bridge.monthlySavings); push(bridge.annualSavings); push(bridge.threeYearSavings)
+    push(bridge.avgTicket); push(bridge.markup); push(bridge.perTxn); push(bridge.perTxnDollars)
+    push(bridge.monthlyFee); push(bridge.interchange)
+  }
+  return out
+}
+
+// The grounded percentage values (in percentage points, e.g. 2.28 for 2.28%).
+function allowedPercents(analysis: StatementAnalysis, bridge: CostSavingsBridge | null): number[] {
+  const out: number[] = []
+  const pushRate = (r: unknown) => { if (isFiniteNum(r)) out.push(Math.abs(r) * 100) }
+  pushRate(analysis.effective_rate_estimate)
+  if (bridge) {
+    pushRate(bridge.currentRate); pushRate(bridge.proposedRate); pushRate(bridge.savingsPctOfCurrent)
+    pushRate(bridge.assumedInterchangeRate)
+    if (isFiniteNum(bridge.markupBps)) out.push(bridge.markupBps / 100) // bps → %
+  }
+  return out
+}
+
+// A $ amount is grounded if within $1 or 0.5% of an allowed amount.
+function amountGrounded(value: number, allowed: number[]): boolean {
+  return allowed.some(a => Math.abs(value - a) <= Math.max(1, a * 0.005))
+}
+
+// A % is grounded if within 0.1 percentage points of an allowed value.
+function percentGrounded(value: number, allowed: number[]): boolean {
+  return allowed.some(a => Math.abs(value - a) <= 0.1)
+}
+
+// True iff every $-amount and %-value token in `text` matches a grounded figure.
+// Tolerance-based (not exact-string) so normal rounding/phrasing passes while a
+// hallucinated figure is rejected.
+function isNumericallyGrounded(
+  text: string,
+  analysis: StatementAnalysis,
+  bridge: CostSavingsBridge | null
+): boolean {
+  const amounts  = allowedAmounts(analysis, bridge)
+  const percents = allowedPercents(analysis, bridge)
+
+  // Check %-tokens first, then strip them so the digits inside "2.28%" aren't
+  // re-parsed as a bare dollar-less amount.
+  const pctTokens = text.match(/(\d[\d,]*(?:\.\d+)?)\s*%/g) ?? []
+  for (const tok of pctTokens) {
+    const v = parseFloat(tok.replace(/[%,]/g, ''))
+    if (Number.isFinite(v) && !percentGrounded(v, percents)) return false
+  }
+
+  const dollarTokens = text.match(/\$\s?\d[\d,]*(?:\.\d+)?/g) ?? []
+  for (const tok of dollarTokens) {
+    const v = parseFloat(tok.replace(/[$,\s]/g, ''))
+    if (Number.isFinite(v) && !amountGrounded(v, amounts)) return false
+  }
+
+  return true
+}
+
 // Pure, deterministic 2-3 sentence summary built from the real figures. No I/O.
 export function buildProposalSummaryFallback(
   analysis: StatementAnalysis,
@@ -97,6 +175,9 @@ export async function generateProposalSummary(
 
     // Reject empty / suspiciously short output — fall back rather than ship a stub.
     if (text.length < 40) return fallback
+
+    // Numeric grounding guard: never ship a $ or % the figures don't support.
+    if (!isNumericallyGrounded(text, analysis, bridge)) return fallback
 
     return text
   } catch {

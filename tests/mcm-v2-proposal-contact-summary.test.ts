@@ -101,6 +101,54 @@ describe('TC-CS-03: generateProposalSummary — clean text is used', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Numeric grounding guard
+// ---------------------------------------------------------------------------
+
+describe('TC-CS-06: generateProposalSummary — numeric grounding guard', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('output using only in-figures numbers is used', async () => {
+    const grounded =
+      'For March 2026, Harbor Diner processes $100,000 monthly at 3.20% and reprices to 2.28%, ' +
+      'an estimated $915.00 in monthly savings.'
+    vi.mocked(chatComplete).mockResolvedValueOnce({ text: grounded, promptTokens: 10, completionTokens: 20, modelName: 'm' })
+    const a = calculated()
+    const out = await generateProposalSummary(a, deriveCostSavingsBridge(a))
+    expect(out).toBe(grounded)
+  })
+
+  it('a $ amount absent from the figures → fallback', async () => {
+    const a = calculated()
+    const bridge = deriveCostSavingsBridge(a)
+    const hallucinated =
+      'Harbor Diner could save an incredible $5,000 every single month with 321 Swipe pricing today.'
+    vi.mocked(chatComplete).mockResolvedValueOnce({ text: hallucinated, promptTokens: 10, completionTokens: 20, modelName: 'm' })
+    const out = await generateProposalSummary(a, bridge)
+    expect(out).toBe(buildProposalSummaryFallback(a, bridge))
+  })
+
+  it('a % value absent from the figures → fallback', async () => {
+    const a = calculated()
+    const bridge = deriveCostSavingsBridge(a)
+    const hallucinated =
+      'Harbor Diner can cut its effective rate to just 0.99% under 321 Swipe pricing for the same volume.'
+    vi.mocked(chatComplete).mockResolvedValueOnce({ text: hallucinated, promptTokens: 10, completionTokens: 20, modelName: 'm' })
+    const out = await generateProposalSummary(a, bridge)
+    expect(out).toBe(buildProposalSummaryFallback(a, bridge))
+  })
+
+  it('normal rounding of a real figure passes (tolerance, not exact-string)', async () => {
+    // proposed cost is $2,285.00; "$2,285" (no cents) must still be grounded.
+    const rounded =
+      'For March 2026, Harbor Diner reprices to about $2,285 per month at roughly 2.28%, saving $915 monthly.'
+    vi.mocked(chatComplete).mockResolvedValueOnce({ text: rounded, promptTokens: 10, completionTokens: 20, modelName: 'm' })
+    const a = calculated()
+    const out = await generateProposalSummary(a, deriveCostSavingsBridge(a))
+    expect(out).toBe(rounded)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Presentation config
 // ---------------------------------------------------------------------------
 
@@ -114,8 +162,12 @@ describe('TC-CS-04: getProposalPresentation — defaults + env override', () => 
     delete process.env.PROPOSAL_SENDER_EMAIL
     delete process.env.PROPOSAL_INQUIRY_EMAIL
     delete process.env.PROPOSAL_ABOUT_US
+    delete process.env.PROPOSAL_SENDER_NAME
+    delete process.env.PROPOSAL_SENDER_TITLE
     const { getProposalPresentation } = await import('@/lib/config/proposal-presentation')
     const p = getProposalPresentation()
+    expect(p.senderName).toBe('Bruce Hughes')
+    expect(p.senderTitle).toBe('Chief Information Officer')
     expect(p.companyPhone).toBe('941-552-0725')
     expect(p.companyWebsite).toBe('321swipe.com')
     expect(p.senderEmail).toBe('sales@321swipe.com')
@@ -147,12 +199,30 @@ describe('TC-CS-05: web + PDF first pages render contact, about-us, and summary'
     expect(page).toContain('proposal.proposalSummary')
   })
 
+  it('web: the summary primer renders before the KPI row', () => {
+    const page = readFileSync(join(root, 'app', 'p', '[token]', 'page.tsx'), 'utf8')
+    const summaryIdx = page.indexOf('{summary && (')
+    const kpiIdx     = page.indexOf("label=\"Monthly savings\"")
+    expect(summaryIdx).toBeGreaterThan(-1)
+    expect(kpiIdx).toBeGreaterThan(-1)
+    expect(summaryIdx).toBeLessThan(kpiIdx)
+  })
+
   it('PDF page 1 renders the contact block (phone), about-us, and summary', () => {
     const pdf = readFileSync(join(root, 'lib', 'pdf', 'proposal.ts'), 'utf8')
     expect(pdf).toContain('getProposalPresentation')
     expect(pdf).toContain('About 321 Swipe')
     expect(pdf).toContain('presentation.companyPhone')
     expect(pdf).toContain('buildProposalSummaryFallback')
+  })
+
+  it('PDF: the summary paragraph draw precedes the kpiRow call', () => {
+    const pdf = readFileSync(join(root, 'lib', 'pdf', 'proposal.ts'), 'utf8')
+    const summaryIdx = pdf.indexOf('paragraph(doc, summary')
+    const kpiIdx     = pdf.indexOf('kpiRow(doc, [') // the call, not the fn definition
+    expect(summaryIdx).toBeGreaterThan(-1)
+    expect(kpiIdx).toBeGreaterThan(-1)
+    expect(summaryIdx).toBeLessThan(kpiIdx)
   })
 
   it('public-proposal.service exposes proposalSummary (stored or live fallback)', () => {

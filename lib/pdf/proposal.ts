@@ -234,13 +234,9 @@ export async function generateProposalPdf(params: ProposalPdfParams): Promise<Ui
   if (contactEmail) { doc.page.drawText(contactEmail, { x: MARGIN, y: doc.y - 2, size: 9, font, color: C_GRAY }); doc.y -= 12 }
   doc.y -= 6
 
-  // Summary paragraph (under the prepared-for line)
+  // Summary paragraph — the primer, immediately after the prepared-for line and
+  // before the KPI row, so it is the first substantive read.
   paragraph(doc, summary, 9, C_DARK)
-  doc.y -= 4
-  // About 321 Swipe intro (near the top)
-  doc.page.drawText('About 321 Swipe', { x: MARGIN, y: doc.y - 2, size: 8, font: bold, color: C_DARK })
-  doc.y -= 12
-  paragraph(doc, presentation.aboutUs, 8, C_GRAY)
   doc.y -= 8
 
   if (bridge) {
@@ -292,6 +288,11 @@ export async function generateProposalPdf(params: ProposalPdfParams): Promise<Ui
   row(doc, 'Per-transaction fee',    `$${(analysis.proposed_per_txn_cents / 100).toFixed(2)}`, { tint: true })
   row(doc, 'Monthly account fee',    usd(analysis.proposed_monthly_fee))
   if (bridge) row(doc, 'Proposed monthly cost', usd(bridge.proposedCost), { tint: true, strong: true, accent: true })
+  doc.y -= 8
+
+  // About 321 Swipe + contact block — supporting context near the bottom of page 1.
+  sectionBand(doc, 'About 321 Swipe')
+  paragraph(doc, presentation.aboutUs, 8, C_GRAY)
   doc.y -= 8
 
   // Contact block (your 321 Swipe contact)

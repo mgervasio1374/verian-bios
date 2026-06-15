@@ -106,6 +106,12 @@ export default async function HostedProposalPage({ params, searchParams }: PageP
                   {a?.statement_period ? ` · Statement period: ${a.statement_period}` : ''}
                 </p>
 
+                {/* Written summary — the primer, the first substantive read,
+                    priming the numbers below. */}
+                {summary && (
+                  <p className="mt-4 text-sm text-gray-700 leading-relaxed">{summary}</p>
+                )}
+
                 {/* KPI card row */}
                 <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <Kpi
@@ -151,18 +157,11 @@ export default async function HostedProposalPage({ params, searchParams }: PageP
                 </section>
               )}
 
-              {/* Summary + About 321 Swipe — compact, ink-light */}
-              <section className="bg-white rounded-xl border shadow-sm p-6 print-card space-y-4">
-                {summary && (
-                  <div>
-                    <h2 className="text-sm font-semibold mb-1">Summary</h2>
-                    <p className="text-sm text-gray-700 leading-relaxed">{summary}</p>
-                  </div>
-                )}
-                <div>
-                  <h2 className="text-sm font-semibold mb-1">About 321 Swipe</h2>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{presentation.aboutUs}</p>
-                </div>
+              {/* About 321 Swipe — supporting context near the bottom of page 1,
+                  kept with the contact block (not the lead). */}
+              <section className="bg-white rounded-xl border shadow-sm p-6 print-card">
+                <h2 className="text-sm font-semibold mb-1">About 321 Swipe</h2>
+                <p className="text-xs text-muted-foreground leading-relaxed">{presentation.aboutUs}</p>
               </section>
 
               {/* Contact block */}
