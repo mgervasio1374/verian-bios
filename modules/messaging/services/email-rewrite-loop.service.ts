@@ -10,6 +10,7 @@ import * as sysCtrlRepo from '@/modules/intelligence/repositories/system-control
 import { ActivityEventType, SystemControlKey } from '@/modules/intelligence/types.agent'
 import { generateLlmRewriteCandidates } from '@/modules/messaging/copywriting/rewrite-llm'
 import type { RewriteLlmTelemetry } from '@/modules/messaging/copywriting/rewrite-llm'
+import type { EmailDraftVersionRow } from '@/modules/messaging/repositories/email-draft-version.repo'
 import {
   classifyEmailMessageStrategy,
   violatesMessageTruth,
@@ -38,7 +39,8 @@ export interface RewriteLoopResult {
   emailDraftId:        string
   originalScore:       number
   bestScore:           number
-  bestVersionId:       string
+  // Null when no eligible (scored, non-blocked) version exists — the badge is cleared.
+  bestVersionId:       string | null
   bestVersionNumber:   number
   bestVersionSubject:  string | null
   bestVersionBody:     string | null
@@ -49,6 +51,49 @@ export interface RewriteLoopResult {
 }
 
 export type RewriteLoopOutput = RewriteLoopResult | { success: false; error: string }
+
+// ---- Best-version selection (pure, source-agnostic) ----
+
+// Minimal shape selectBestVersion needs — satisfied by EmailDraftVersionRow and
+// by test fixtures alike. Selection depends ONLY on score + status + type +
+// number, never on candidate origin (llm_rewrite vs template).
+export interface SelectableVersion {
+  id:             string
+  version_number: number
+  version_type:   string
+  quality_score:  number | null
+  quality_status: string | null
+}
+
+// Deterministic best-version selector over ALL persisted versions.
+//   - eligible = scored AND not 'blocked' (a blocked version NEVER wins)
+//   - none eligible → null
+//   - else: highest Math.round(quality_score); tie-break prefers a 'rewrite'
+//     over an 'original', then the highest version_number.
+export function selectBestVersion(
+  versions: SelectableVersion[]
+): { id: string; versionNumber: number; score: number } | null {
+  const eligible = versions.filter(
+    v => v.quality_score != null && v.quality_status !== 'blocked'
+  )
+  if (eligible.length === 0) return null
+
+  let best = eligible[0]
+  let bestScore = Math.round(Number(best.quality_score))
+
+  for (const v of eligible.slice(1)) {
+    const score = Math.round(Number(v.quality_score))
+    if (score > bestScore) { best = v; bestScore = score; continue }
+    if (score < bestScore) continue
+    // tie on score: prefer rewrite over original, then higher version_number
+    const vRewrite    = v.version_type === 'rewrite'
+    const bestRewrite = best.version_type === 'rewrite'
+    if (vRewrite && !bestRewrite) { best = v; continue }
+    if (vRewrite === bestRewrite && v.version_number > best.version_number) { best = v; continue }
+  }
+
+  return { id: best.id, versionNumber: best.version_number, score: bestScore }
+}
 
 // ---- Candidate type ----
 
@@ -664,18 +709,18 @@ export async function runEmailRewriteLoop(input: {
 
     // ---- Score all distinct, truth-valid candidates ----
 
+    // Running best score this run — feeds each row's improvementFromPrevious only.
+    // The persisted "Best" badge is chosen by selectBestVersion after the loop.
     let bestScore          = v1Score
-    let bestVersionId      = v1Row.id
-    let bestVersionNumber  = v1Row.version_number
-    let bestVersionSubject: string | null = draft.subject
-    let bestVersionBody:    string | null = draft.body_text
     let iterations         = 0
     let duplicatesSkipped  = 0
     let truthViolations    = 0
-    let allBlocked         = true
 
     const seenThisRun = new Set<string>()
     let nextVersionNumber = originalChanged ? startVersionNumber + 1 : startVersionNumber
+
+    // Every version row created this run, for source-agnostic best selection below.
+    const createdThisRunRows: EmailDraftVersionRow[] = []
 
     for (const candidate of candidates) {
       // Exact dedup within this run
@@ -698,7 +743,6 @@ export async function runEmailRewriteLoop(input: {
 
       if (newRiskCount > originalRiskFlagCount + HIGH_RISK_THRESHOLD) { duplicatesSkipped++; continue }
 
-      allBlocked = false
       iterations++
 
       const vRow = await emailDraftVersionRepo.createEmailDraftVersion({
@@ -738,52 +782,65 @@ export async function runEmailRewriteLoop(input: {
       })
       nextVersionNumber++
       historicalBodies.push(candidate.bodyText)
+      createdThisRunRows.push(vRow)
 
-      if (candidateScore > bestScore) {
-        bestScore          = candidateScore
-        bestVersionId      = vRow.id
-        bestVersionNumber  = vRow.version_number
-        bestVersionSubject = candidate.subject
-        bestVersionBody    = candidate.bodyText
-      }
+      if (candidateScore > bestScore) bestScore = candidateScore
 
       if (candidateScore >= target) break
     }
 
-    // ---- Final status ----
+    // ---- Source-agnostic best selection over ALL persisted versions ----
+    // Replaces the seeded incremental compare. Considers existing versions +
+    // this-run rows, never lets a blocked version win, and so makes re-runs
+    // non-regressing (a prior good rewrite stays Best even if a re-run adds
+    // nothing). Works identically for llm_rewrite- and template-sourced rows.
+    const allPersisted = new Map<string, EmailDraftVersionRow>()
+    for (const v of existingVersions) allPersisted.set(v.id, v)
+    allPersisted.set(v1Row.id, v1Row)
+    for (const r of createdThisRunRows) allPersisted.set(r.id, r)
 
+    const selected = selectBestVersion([...allPersisted.values()])
+
+    const finalBestId:      string | null = selected ? selected.id : null
+    const finalBestNumber:  number        = selected ? selected.versionNumber : 0
+    const finalBestScore:   number        = selected ? selected.score : 0
+    const selectedRow       = selected ? allPersisted.get(selected.id) ?? null : null
+    const finalBestSubject: string | null = selectedRow ? selectedRow.subject   : null
+    const finalBestBody:    string | null = selectedRow ? selectedRow.body_text : null
+
+    // ---- Final status from the SELECTED best (not this-run iterations alone) ----
     let finalStatus: RewriteLoopStatus
-    if (bestScore >= target) {
-      finalStatus = 'passed_threshold'
-    } else if (allBlocked && iterations === 0) {
+    if (!selected) {
       finalStatus = 'blocked_risk'
-    } else if (bestScore > v1Score) {
+    } else if (finalBestScore >= target) {
+      finalStatus = 'passed_threshold'
+    } else if (finalBestScore > v1Score) {
       finalStatus = 'improved_but_below_threshold'
     } else {
       finalStatus = 'no_improvement'
     }
 
     await persistLoopResult(input.emailDraftId, input.tenantId, {
-      bestVersionId,
-      bestVersionNumber,
-      bestVersionScore: bestScore,
+      bestVersionId:    finalBestId,
+      bestVersionNumber: finalBestNumber,
+      bestVersionScore: finalBestScore,
       loopStatus:       finalStatus,
       iterations,
     })
 
-    await recordLoopActivity(input, v1Score, bestScore, iterations, finalStatus, target)
+    await recordLoopActivity(input, v1Score, finalBestScore, iterations, finalStatus, target)
 
     agentDecisionRepo.createDecision({
       tenantId:       input.tenantId,
       agentName:      'email_rewrite_agent',
       agentVersion:   'rules-v1',
       decisionType:   'rewrite_applied',
-      decisionStatus: bestVersionId && finalStatus === 'passed_threshold' ? 'completed' : 'completed',
+      decisionStatus: 'completed',
       leadId:         draft.lead_id ?? null,
       draftId:        input.emailDraftId,
-      shortReason:    `Rewrite loop: ${iterations} iterations, best score ${bestScore}`,
-      inputSnapshot:  { target_score: target, best_version_score: bestScore },
-      outputSummary:  { iterations, final_version_id: bestVersionId, status: finalStatus },
+      shortReason:    `Rewrite loop: ${iterations} iterations, best score ${finalBestScore}`,
+      inputSnapshot:  { target_score: target, best_version_score: finalBestScore },
+      outputSummary:  { iterations, final_version_id: finalBestId, status: finalStatus },
       learningTags:   [`rewrite_iterations_${iterations}`, finalStatus === 'passed_threshold' ? 'rewrite_success' : 'rewrite_below_threshold'],
     }).catch((err) => console.error('[email-rewrite-agent] Failed to write agent decision:', err))
 
@@ -791,11 +848,11 @@ export async function runEmailRewriteLoop(input: {
       success:            true,
       emailDraftId:       input.emailDraftId,
       originalScore:      v1Score,
-      bestScore,
-      bestVersionId,
-      bestVersionNumber,
-      bestVersionSubject,
-      bestVersionBody,
+      bestScore:          finalBestScore,
+      bestVersionId:      finalBestId,
+      bestVersionNumber:  finalBestNumber,
+      bestVersionSubject: finalBestSubject,
+      bestVersionBody:    finalBestBody,
       iterations,
       duplicatesSkipped:  duplicatesSkipped + truthViolations,
       status:             finalStatus,

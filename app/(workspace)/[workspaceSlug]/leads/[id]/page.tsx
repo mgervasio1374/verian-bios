@@ -122,10 +122,13 @@ export default async function LeadDetailPage({ params }: PageProps) {
     ? await emailQualityRepo.getEmailQualityReview(latestDraft.id, ctx.tenantId).catch(() => null)
     : null
 
+  // Single source of truth: resolve the persisted best_version_id into its row,
+  // so the EmailQualityCard's "Best rewrite" panel and the RewriteVersionPanel
+  // star always point at the same version (and never at a blocked one).
   const [bestVersion, allVersions] = latestDraft
     ? await Promise.all([
         qualityReview?.best_version_id
-          ? emailDraftVersionRepo.getBestEmailDraftVersion(latestDraft.id, ctx.tenantId).catch(() => null)
+          ? emailDraftVersionRepo.getEmailDraftVersionById(latestDraft.id, qualityReview.best_version_id, ctx.tenantId).catch(() => null)
           : Promise.resolve(null),
         emailDraftVersionRepo.listEmailDraftVersions(latestDraft.id, ctx.tenantId).catch(() => []),
       ])

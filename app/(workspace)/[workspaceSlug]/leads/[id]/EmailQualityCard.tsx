@@ -131,13 +131,18 @@ export function EmailQualityCard({ emailDraftId, initialReview, bestVersion: ini
       setLoopLoading(false)
       if (result.success) {
         const d = result.data
-        // Update client state immediately with full data — no flash of empty content
-        setBestVersion({
-          subject:       d.bestVersionSubject ?? '',
-          bodyText:      d.bestVersionBody    ?? '',
-          versionNumber: d.bestVersionNumber,
-          score:         d.bestScore,
-        })
+        // Update client state immediately with full data — no flash of empty content.
+        // A null best (no eligible, non-blocked version) clears the panel cleanly.
+        setBestVersion(
+          d.bestVersionId
+            ? {
+                subject:       d.bestVersionSubject ?? '',
+                bodyText:      d.bestVersionBody    ?? '',
+                versionNumber: d.bestVersionNumber,
+                score:         d.bestScore,
+              }
+            : null,
+        )
         // Also update the quality review row fields so loop summary re-renders
         setReview(prev => prev ? {
           ...prev,

@@ -65,7 +65,16 @@ vi.mock('@/modules/messaging/repositories/email-draft-version.repo', () => ({
   listEmailDraftVersions: vi.fn(async () => []),
   createEmailDraftVersion: vi.fn(async (row: Record<string, unknown>) => {
     h.createdVersions.push(row)
-    return { id: `v-${h.createdVersions.length}`, version_number: row.versionNumber as number, body_text: row.bodyText as string }
+    // Echo the quality fields the real repo returns — selectBestVersion reads them.
+    return {
+      id: `v-${h.createdVersions.length}`,
+      version_number: row.versionNumber as number,
+      version_type:   row.versionType as string,
+      quality_score:  row.qualityScore as number | null,
+      quality_status: row.qualityStatus as string | null,
+      subject:        row.subject as string,
+      body_text:      row.bodyText as string,
+    }
   }),
 }))
 

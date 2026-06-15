@@ -79,6 +79,27 @@ export async function listEmailDraftVersions(
   return data ?? []
 }
 
+// Fetch a single version by id (tenant-scoped). Used to resolve the persisted
+// best_version_id into its row so every surface reads ONE source of truth.
+export async function getEmailDraftVersionById(
+  emailDraftId: string,
+  versionId:    string,
+  tenantId:     string
+): Promise<EmailDraftVersionRow | null> {
+  const supabase = createSupabaseServiceClient()
+  const { data } = await supabase
+    .from('email_draft_versions')
+    .select('*')
+    .eq('id', versionId)
+    .eq('email_draft_id', emailDraftId)
+    .eq('tenant_id', tenantId)
+    .single()
+  return data ?? null
+}
+
+// Hardened: a blocked version is never returned as "best". Ordered by score then
+// version_number so a tie prefers the later version. Prefer resolving
+// best_version_id via getEmailDraftVersionById; this remains as a safe fallback.
 export async function getBestEmailDraftVersion(
   emailDraftId: string,
   tenantId:     string
@@ -90,7 +111,9 @@ export async function getBestEmailDraftVersion(
     .eq('email_draft_id', emailDraftId)
     .eq('tenant_id', tenantId)
     .not('quality_score', 'is', null)
+    .neq('quality_status', 'blocked')
     .order('quality_score', { ascending: false })
+    .order('version_number', { ascending: false })
     .limit(1)
     .single()
   return data ?? null
