@@ -49,14 +49,25 @@ describe('TC-CM-01: calculated analysis → multi-page certificate (proposal + i
   })
 })
 
-describe('TC-CM-02: placeholder analysis (bridge null) → single proposal page, no fabricated bridge', () => {
-  it('still generates a valid PDF and omits the intelligence page', async () => {
-    const analysis = buildPlaceholderAnalysis({ metadata: {}, source: 'web' }, 'statement.pdf', 'Acme')
-    const bytes = await generateProposalPdf({ ...baseParams, companyName: 'Acme', analysis })
+describe('TC-CM-02: placeholder analysis (bridge null) → no intelligence page, no fabricated bridge', () => {
+  it('still generates a valid PDF with strictly fewer pages than the calculated render', async () => {
+    const placeholder = buildPlaceholderAnalysis({ metadata: {}, source: 'web' }, 'statement.pdf', 'Acme')
+    const bytes = await generateProposalPdf({ ...baseParams, companyName: 'Acme', analysis: placeholder })
     expect(bytes.byteLength).toBeGreaterThan(0)
 
-    const doc = await PDFDocument.load(bytes)
-    expect(doc.getPageCount()).toBe(1)
+    const placeholderDoc = await PDFDocument.load(bytes)
+    expect(placeholderDoc.getPageCount()).toBeGreaterThanOrEqual(1)
+
+    // The only structural difference is the worked intelligence page, which the
+    // bridge-null placeholder omits — so it renders strictly fewer pages than a
+    // calculated proposal. (Page-1 content like the contact block may itself flow
+    // to a second sheet, so an exact "=== 1" count is no longer the right proxy.)
+    const calculated = buildCalculatedAnalysis({
+      monthlyVolume: 100_000, currentMonthlyFees: 3_200, transactionCount: 2_000,
+      companyName: 'Acme', statementPeriod: 'March 2026',
+    })
+    const calcDoc = await PDFDocument.load(await generateProposalPdf({ ...baseParams, companyName: 'Acme', analysis: calculated }))
+    expect(placeholderDoc.getPageCount()).toBeLessThan(calcDoc.getPageCount())
   })
 })
 

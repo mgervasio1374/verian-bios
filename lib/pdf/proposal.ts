@@ -1,6 +1,8 @@
 import { PDFDocument, rgb, StandardFonts, type PDFPage, type PDFFont } from 'pdf-lib'
 import type { StatementAnalysis } from '@/lib/statement/analysis'
 import { deriveCostSavingsBridge } from '@/lib/statement/cost-bridge'
+import { buildProposalSummaryFallback } from '@/lib/statement/proposal-summary'
+import { getProposalPresentation } from '@/lib/config/proposal-presentation'
 
 // Multi-page proposal certificate. Mirrors the hosted web page at
 // app/p/[token]/page.tsx section-for-section and is driven by the SAME pure
@@ -44,6 +46,7 @@ export interface ProposalPdfParams {
   analysis:     StatementAnalysis
   calendlyLink: string
   generatedAt:  string
+  proposalSummary?: string
 }
 
 // ---- Formatting (mirrors the web page's usd()/pct()) ----
@@ -190,7 +193,7 @@ function kpiRow(doc: Doc, cards: Array<{ label: string; value: string; accent?: 
 // ---- Main export (signature unchanged) ----
 
 export async function generateProposalPdf(params: ProposalPdfParams): Promise<Uint8Array> {
-  const { companyName, contactName, contactEmail, analysis, calendlyLink, generatedAt } = params
+  const { companyName, contactName, contactEmail, analysis, calendlyLink, generatedAt, proposalSummary } = params
 
   const pdf  = await PDFDocument.create()
   const font = await pdf.embedFont(StandardFonts.Helvetica)
@@ -209,6 +212,12 @@ export async function generateProposalPdf(params: ProposalPdfParams): Promise<Ui
 
   // Single source of truth for every calculation figure.
   const bridge = deriveCostSavingsBridge(analysis)
+  const presentation = getProposalPresentation()
+  // Prefer the immutable stored summary; fall back to the deterministic template
+  // so the PDF always carries one even for older flows.
+  const summary = (proposalSummary && proposalSummary.trim())
+    ? proposalSummary.trim()
+    : buildProposalSummaryFallback(analysis, bridge)
 
   // ════════════════════════════════════════════════════════════════════════
   // PAGE 1 — Proposal (the numbers)
@@ -223,6 +232,15 @@ export async function generateProposalPdf(params: ProposalPdfParams): Promise<Ui
   doc.y -= 14
   if (contactName)  { doc.page.drawText(contactName,  { x: MARGIN, y: doc.y - 2, size: 9, font, color: C_GRAY }); doc.y -= 12 }
   if (contactEmail) { doc.page.drawText(contactEmail, { x: MARGIN, y: doc.y - 2, size: 9, font, color: C_GRAY }); doc.y -= 12 }
+  doc.y -= 6
+
+  // Summary paragraph (under the prepared-for line)
+  paragraph(doc, summary, 9, C_DARK)
+  doc.y -= 4
+  // About 321 Swipe intro (near the top)
+  doc.page.drawText('About 321 Swipe', { x: MARGIN, y: doc.y - 2, size: 8, font: bold, color: C_DARK })
+  doc.y -= 12
+  paragraph(doc, presentation.aboutUs, 8, C_GRAY)
   doc.y -= 8
 
   if (bridge) {
@@ -274,6 +292,13 @@ export async function generateProposalPdf(params: ProposalPdfParams): Promise<Ui
   row(doc, 'Per-transaction fee',    `$${(analysis.proposed_per_txn_cents / 100).toFixed(2)}`, { tint: true })
   row(doc, 'Monthly account fee',    usd(analysis.proposed_monthly_fee))
   if (bridge) row(doc, 'Proposed monthly cost', usd(bridge.proposedCost), { tint: true, strong: true, accent: true })
+  doc.y -= 8
+
+  // Contact block (your 321 Swipe contact)
+  sectionBand(doc, 'Your 321 Swipe Contact')
+  row(doc, presentation.senderName, presentation.senderEmail, { tint: true, strong: true })
+  row(doc, presentation.senderTitle, presentation.companyPhone)
+  row(doc, 'Web', presentation.companyWebsite, { tint: true })
 
   // ════════════════════════════════════════════════════════════════════════
   // PAGE 2 — How we calculated this (intelligence) — calculated only

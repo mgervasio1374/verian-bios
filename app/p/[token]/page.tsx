@@ -1,7 +1,8 @@
 import { getPublicProposalByToken } from '@/modules/proposals/services/public-proposal.service'
 import { PrintButtons, ProposalContactForm, IntelligenceGuard } from './ProposalClient'
 import { deriveCostSavingsBridge } from '@/lib/statement/cost-bridge'
-import { ShieldCheck, TrendingDown, AlertTriangle, FlaskConical, ListChecks } from 'lucide-react'
+import { getProposalPresentation } from '@/lib/config/proposal-presentation'
+import { ShieldCheck, TrendingDown, AlertTriangle, FlaskConical, ListChecks, Mail, Globe, Phone } from 'lucide-react'
 
 interface PageProps {
   params:       Promise<{ token: string }>
@@ -41,6 +42,8 @@ export default async function HostedProposalPage({ params, searchParams }: PageP
   const proposedRate = bridge?.proposedRate
     ?? (proposedCost != null && volume != null && volume > 0 ? proposedCost / volume : null)
   const avgTicket = bridge?.avgTicket ?? null
+  const presentation = getProposalPresentation()
+  const summary = proposal.proposalSummary
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -147,6 +150,32 @@ export default async function HostedProposalPage({ params, searchParams }: PageP
                   </table>
                 </section>
               )}
+
+              {/* Summary + About 321 Swipe — compact, ink-light */}
+              <section className="bg-white rounded-xl border shadow-sm p-6 print-card space-y-4">
+                {summary && (
+                  <div>
+                    <h2 className="text-sm font-semibold mb-1">Summary</h2>
+                    <p className="text-sm text-gray-700 leading-relaxed">{summary}</p>
+                  </div>
+                )}
+                <div>
+                  <h2 className="text-sm font-semibold mb-1">About 321 Swipe</h2>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{presentation.aboutUs}</p>
+                </div>
+              </section>
+
+              {/* Contact block */}
+              <section className="bg-white rounded-xl border shadow-sm p-6 print-card">
+                <h2 className="text-sm font-semibold mb-2">Your 321 Swipe contact</h2>
+                <p className="text-sm font-medium">{presentation.senderName}</p>
+                <p className="text-xs text-muted-foreground">{presentation.senderTitle}</p>
+                <div className="mt-3 flex flex-col gap-1.5 text-sm">
+                  <span className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-muted-foreground" />{presentation.senderEmail}</span>
+                  <span className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-muted-foreground" />{presentation.companyPhone}</span>
+                  <span className="flex items-center gap-2"><Globe className="h-3.5 w-3.5 text-muted-foreground" />{presentation.companyWebsite}</span>
+                </div>
+              </section>
             </div>
 
             {/* Statement Analysis table */}

@@ -1,4 +1,6 @@
 import { buildCalculatedAnalysis } from '@/lib/statement/analysis'
+import { deriveCostSavingsBridge } from '@/lib/statement/cost-bridge'
+import { generateProposalSummary } from '@/lib/statement/proposal-summary'
 import { generateProposalPdf } from '@/lib/pdf/proposal'
 import * as artifactService from '@/modules/artifacts/services/artifact.service'
 import { recordSavingsAnalysis } from '@/modules/proposals/repositories/savings-analysis.repo'
@@ -57,6 +59,12 @@ export async function generateSavingsCertificate(
   const calendlyLink = process.env.CALENDLY_LINK ?? 'https://calendly.com/321swipe'
   const generatedAt  = new Date().toISOString()
 
+  // One AI summary per operator-triggered certificate, stored immutably so the
+  // web page and PDF show identical text. Falls back to a deterministic template
+  // on any LLM outage (never throws, never blocks the certificate).
+  const bridge          = deriveCostSavingsBridge(analysis)
+  const proposalSummary = await generateProposalSummary(analysis, bridge)
+
   const pdfBytes = await generateProposalPdf({
     companyName:  input.companyName,
     contactName:  input.contactName,
@@ -64,6 +72,7 @@ export async function generateSavingsCertificate(
     analysis,
     calendlyLink,
     generatedAt,
+    proposalSummary,
   })
 
   const safeCompany = (input.companyName ?? 'merchant').replace(/\s+/g, '-').toLowerCase()
@@ -110,6 +119,7 @@ export async function generateSavingsCertificate(
       certificate_artifact_id: artifactId,
       company_name:            input.companyName,
       generated_at:            generatedAt,
+      proposal_summary:        proposalSummary,
     },
   })
 

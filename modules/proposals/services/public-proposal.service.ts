@@ -1,5 +1,7 @@
 import { getProposalEventByShareToken, markProposalViewedIfUnseen } from '@/modules/proposals/repositories/proposal-events.repo'
 import type { StatementAnalysis } from '@/lib/statement/analysis'
+import { deriveCostSavingsBridge } from '@/lib/statement/cost-bridge'
+import { buildProposalSummaryFallback } from '@/lib/statement/proposal-summary'
 
 // Public-safe view of a hosted proposal. Only fields suitable for an
 // unauthenticated viewer are exposed — no tenant/workspace/user ids, no
@@ -10,6 +12,7 @@ export interface PublicProposalView {
   estimatedSavings:    number | null   // monthly
   annualSavings:       number | null
   analysis:            StatementAnalysis | null
+  proposalSummary:     string | null
   generatedAt:         string | null
 }
 
@@ -52,12 +55,22 @@ export async function getPublicProposalByToken(
   const metadata = (event.metadata ?? {}) as Record<string, unknown>
   const analysis = asAnalysis(metadata.analysis)
 
+  // Prefer the immutable stored summary (web + PDF match). For pre-existing
+  // proposals that predate this field, compute the deterministic fallback live
+  // so they still show a summary.
+  const storedSummary = typeof metadata.proposal_summary === 'string' && metadata.proposal_summary.trim()
+    ? (metadata.proposal_summary as string)
+    : null
+  const proposalSummary =
+    storedSummary ?? (analysis ? buildProposalSummaryFallback(analysis, deriveCostSavingsBridge(analysis)) : null)
+
   return {
     companyName:      typeof metadata.company_name === 'string' ? metadata.company_name : null,
     proposalStatus,
     estimatedSavings: event.estimated_savings,
     annualSavings:    event.proposal_amount,
     analysis,
+    proposalSummary,
     generatedAt:      typeof metadata.generated_at === 'string' ? metadata.generated_at : event.created_at,
   }
 }
