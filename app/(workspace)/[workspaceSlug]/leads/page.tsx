@@ -36,14 +36,17 @@ export default async function LeadsPage({ params, searchParams }: PageProps) {
   ])
 
   // Lead name carries the company ("<contact> at <Company>" or the company itself),
-  // so a name match covers "search by company". Filtered server-side.
+  // so a name match covers "search by company". One pure helper filters both the
+  // pipeline stages AND the imported queue, so search narrows them consistently.
   const leadsByStage: Record<string, LeadRow[]> = query
     ? Object.fromEntries(Object.entries(allLeadsByStage).map(([k, v]) =>
-        [k, v.filter((l) => (l.name ?? '').toLowerCase().includes(query))]))
+        [k, leadService.filterLeadsByQuery(v, query)]))
     : allLeadsByStage
+  const filteredImported = leadService.filterLeadsByQuery(importedLeads, query)
 
   const activeStages = stages.filter((s) => !s.is_terminal)
   const totalLeads = Object.values(leadsByStage).flat().length
+  const importedCount = filteredImported.length
 
   return (
     <div className="space-y-6">
@@ -51,7 +54,9 @@ export default async function LeadsPage({ params, searchParams }: PageProps) {
         <div>
           <h1 className="text-2xl font-bold">Leads</h1>
           <p className="text-muted-foreground text-sm">
-            {totalLeads} open leads{query ? ` matching "${q}"` : ''}
+            {query
+              ? `${totalLeads} open · ${importedCount} imported matching "${q}"`
+              : `${totalLeads} open leads`}
           </p>
         </div>
         <AddLeadDialog />
@@ -74,7 +79,7 @@ export default async function LeadsPage({ params, searchParams }: PageProps) {
       {/* #31: imported leads land outside the pipeline — surface them for triage */}
       <ImportedLeadsReview
         workspaceSlug={workspaceSlug}
-        leads={importedLeads.map((l) => ({
+        leads={filteredImported.map((l) => ({
           id:              l.id,
           name:            l.name,
           estimated_value: l.estimated_value,
@@ -83,11 +88,17 @@ export default async function LeadsPage({ params, searchParams }: PageProps) {
       />
 
       {totalLeads === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-          <Zap className="h-10 w-10 text-muted-foreground mb-3" />
-          <p className="text-sm font-medium">No open leads</p>
-          <p className="text-xs text-muted-foreground mt-1">Add your first lead to start the pipeline</p>
-        </div>
+        // Suppress the pipeline empty-state when imported matches exist — the
+        // imported queue above is the relevant result for this search.
+        importedCount === 0 && (
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
+            <Zap className="h-10 w-10 text-muted-foreground mb-3" />
+            <p className="text-sm font-medium">{query ? 'No open leads match your search' : 'No open leads'}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {query ? 'Try a different name or company' : 'Add your first lead to start the pipeline'}
+            </p>
+          </div>
+        )
       ) : (
         <div className="space-y-6">
           {activeStages.map((stage) => {

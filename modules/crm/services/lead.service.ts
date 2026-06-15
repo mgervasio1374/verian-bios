@@ -11,6 +11,20 @@ import type { Database } from '@/types/database'
 type LeadInsert = Database['public']['Tables']['leads']['Insert']
 type LeadUpdate = Database['public']['Tables']['leads']['Update']
 
+// Pure, case-insensitive substring filter shared by the leads page's pipeline
+// stages AND the imported "Needs Review" queue, so a single search box narrows
+// both lists consistently. The lead `name` embeds the contact + company
+// ("<Contact> at <Company>"), so a name match covers searching by either.
+// Empty/whitespace query → pass-through (returns the input list unchanged).
+export function filterLeadsByQuery<T extends { name: string | null }>(
+  leads: T[],
+  query: string
+): T[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return leads
+  return leads.filter((l) => (l.name ?? '').toLowerCase().includes(q))
+}
+
 function derivePriority(estimatedValue?: number | null): string {
   if (!estimatedValue) return 'medium'
   if (estimatedValue >= 15000) return 'critical'
