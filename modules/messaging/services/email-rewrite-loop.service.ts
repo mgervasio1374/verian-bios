@@ -639,6 +639,7 @@ export async function runEmailRewriteLoop(input: {
     if (llmEnabled) {
       const llmCandidates = await generateLlmRewriteCandidates(
         {
+          tenantId:            input.tenantId,
           relationshipContext: classification.relationshipContext,
           trigger:             classification.trigger,
           primaryAngle:        classification.primaryAngle,

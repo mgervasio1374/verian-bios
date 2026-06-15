@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronDown, ChevronUp, TrendingUp, CheckCircle2, AlertTriangle, Loader2, Star } from 'lucide-react'
+import { ChevronDown, ChevronUp, TrendingUp, CheckCircle2, AlertTriangle, Loader2, Star, Sparkles } from 'lucide-react'
 import { applyEmailDraftVersionAction } from '@/modules/messaging/actions/apply-email-rewrite.actions'
+import { promoteVersionToExemplarAction } from '@/modules/messaging/actions/copy-exemplar.actions'
 import { EDITABLE_EMAIL_DRAFT_STATUSES } from '@/modules/messaging/constants/email-draft-status'
 import type { EmailDraftVersionRow } from '@/modules/messaging/repositories/email-draft-version.repo'
 
@@ -56,6 +57,9 @@ export function RewriteVersionPanel({
   const [applyingId, setApplyingId]          = useState<string | null>(null)
   const [errors, setErrors]                  = useState<Record<string, string>>({})
   const [appliedId, setAppliedId]            = useState<string | null>(null)
+  const [savingExemplarId, setSavingExemplarId] = useState<string | null>(null)
+  const [savedExemplarId, setSavedExemplarId]   = useState<string | null>(null)
+  const [exemplarErrors, setExemplarErrors]     = useState<Record<string, string>>({})
   const [, startTransition]                  = useTransition()
 
   const canApply = (EDITABLE_EMAIL_DRAFT_STATUSES as readonly string[]).includes(draftStatus)
@@ -75,6 +79,20 @@ export function RewriteVersionPanel({
         router.refresh()
       } else {
         setErrors(prev => ({ ...prev, [versionId]: result.error }))
+      }
+    })
+  }
+
+  function handleSaveExemplar(versionId: string) {
+    setExemplarErrors(prev => ({ ...prev, [versionId]: '' }))
+    setSavingExemplarId(versionId)
+    startTransition(async () => {
+      const result = await promoteVersionToExemplarAction(versionId)
+      setSavingExemplarId(null)
+      if (result.success) {
+        setSavedExemplarId(versionId)
+      } else {
+        setExemplarErrors(prev => ({ ...prev, [versionId]: result.error }))
       }
     })
   }
@@ -279,6 +297,37 @@ export function RewriteVersionPanel({
                         This is the original draft. Apply a rewrite version to update it.
                       </p>
                     )}
+
+                    {/* Save as exemplar — captures this copy as house voice for
+                        future rewrites. Permission is enforced by the action. */}
+                    <div className="border-t pt-2 space-y-1">
+                      {savedExemplarId === v.id ? (
+                        <div className="flex items-center gap-1.5 text-xs text-green-700">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Saved as a voice exemplar.
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleSaveExemplar(v.id)}
+                          disabled={savingExemplarId === v.id}
+                          className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground
+                                     hover:text-foreground border rounded-md px-3 py-1.5 transition-colors
+                                     disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {savingExemplarId === v.id
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <Sparkles className="h-3.5 w-3.5" />
+                          }
+                          {savingExemplarId === v.id ? 'Saving…' : 'Save as exemplar'}
+                        </button>
+                      )}
+                      {exemplarErrors[v.id] && (
+                        <div className="flex items-start gap-1.5 text-xs text-red-700">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <span>{exemplarErrors[v.id]}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

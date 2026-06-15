@@ -19,6 +19,7 @@ import { GLOBAL_BANNED_PHRASES } from './copywriting-agent.types'
 import { applyHouseStyle } from '@/modules/messaging/house-style'
 import { violatesMessageTruth } from '@/modules/messaging/services/email-message-strategy.service'
 import type { RelationshipContext } from '@/modules/messaging/services/email-message-strategy.service'
+import { listActiveExemplarsForSkill } from '@/modules/messaging/repositories/copy-exemplar.repo'
 
 // Structurally identical to the loop's candidate shape, so an LLM candidate and
 // a template candidate are interchangeable downstream.
@@ -74,6 +75,7 @@ function containsBannedPhrase(text: string): boolean {
 
 export async function generateLlmRewriteCandidates(
   params: {
+    tenantId:            string
     relationshipContext: string
     trigger:             string
     primaryAngle:        string
@@ -93,8 +95,32 @@ export async function generateLlmRewriteCandidates(
     const skill = getSkillDefinition(skillSlug, 1)
     if (!skill) return null
 
+    // Per-tenant learned voice: inject this company's own canonical exemplars for
+    // this context as few-shot examples. Fail-open — any load error → no examples,
+    // and generation proceeds exactly as before.
+    let exemplars: Array<{ subject: string; body_text: string }> = []
+    try {
+      exemplars = await listActiveExemplarsForSkill(params.tenantId, skillSlug, 3)
+    } catch {
+      exemplars = []
+    }
+
+    // Optional house-voice few-shot section, injected BEFORE the JSON-format
+    // instruction when this tenant has captured exemplars for the context.
+    const houseVoice: string[] = []
+    if (exemplars.length > 0) {
+      houseVoice.push(
+        '',
+        "House voice examples for this context (match this company's style, structure, and tone; do NOT copy verbatim or reuse their specifics):",
+      )
+      exemplars.forEach((ex, i) => {
+        houseVoice.push(`Example ${i + 1}:`, `Subject: ${ex.subject}`, `Body:\n${ex.body_text}`)
+      })
+    }
+
     // System prompt grounded in the resolved skill + the same hard rules the
-    // Copywriting Agent's generateBodyWithLlm enforces + the global ban list.
+    // Copywriting Agent's generateBodyWithLlm enforces + the global ban list +
+    // (when present) the tenant's own house-voice exemplars.
     const system = [
       'You are an expert B2B copywriter for 321 Swipe, a merchant payment-processing provider.',
       `You are rewriting an outreach email that is in the "${skillSlug}" relationship context.`,
@@ -117,6 +143,7 @@ export async function generateLlmRewriteCandidates(
       `- Reference the literal company name "${params.company}" where natural.`,
       '- Do NOT use merge tokens or placeholders like {{first_name}}; write the real values.',
       `- Never use any of these banned phrases: ${GLOBAL_BANNED_PHRASES.join('; ')}.`,
+      ...houseVoice,
       '',
       `Return STRICT JSON only, no prose and no code fences: an array of ${count} objects, each ` +
         '{"subject": "<subject line>", "bodyText": "<email body>"}.',

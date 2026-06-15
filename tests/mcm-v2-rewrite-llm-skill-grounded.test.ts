@@ -6,6 +6,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/llm/client', () => ({ chatComplete: vi.fn() }))
+// No exemplars by default — these tests cover the skill-grounded path itself.
+vi.mock('@/modules/messaging/repositories/copy-exemplar.repo', () => ({
+  listActiveExemplarsForSkill: vi.fn(async () => []),
+}))
 import { chatComplete } from '@/lib/llm/client'
 import {
   mapRelationshipToSkillSlug,
@@ -14,6 +18,7 @@ import {
 } from '@/modules/messaging/copywriting/rewrite-llm'
 
 const baseParams = {
+  tenantId:            't-1',
   relationshipContext: 'cold_outreach',
   trigger:             'manual_lead_created',
   primaryAngle:        'direct_intro',
