@@ -133,12 +133,23 @@ function fixtureToStrategyInput(raw: Record<string, unknown>): StrategyInput {
     } : { partner_membership_confirmed: false },
     event: event ? {
       event_name:         (event['event_name'] as string | null) ?? null,
-      event_date:         (event['event_date'] as string | null) ?? null,
+      // Recency-sensitive (60-day event cutoff). Use event_days_ago for such
+      // scenarios instead of an absolute event_date — absolute dates rot over time.
+      event_date:         (event['event_date'] as string | null)
+        ?? (typeof event['event_days_ago'] === 'number'
+          ? new Date(Date.now() - (event['event_days_ago'] as number) * 86_400_000).toISOString()
+          : null),
       conversation_notes: (event['conversation_notes'] as string | null) ?? null,
     } : null,
     proposal: {
       proposal_sent:        (proposal?.['proposal_sent'] as boolean) ?? false,
-      proposal_sent_at:     (proposal?.['proposal_sent_at'] as string | null) ?? null,
+      // Recency-sensitive (days_since_proposal). Use proposal_sent_days_ago for
+      // such scenarios instead of an absolute proposal_sent_at — absolute dates
+      // rot over time. Kept populated (not null) so STRAT_WARN_008 doesn't trip.
+      proposal_sent_at:     (proposal?.['proposal_sent_at'] as string | null)
+        ?? (typeof proposal?.['proposal_sent_days_ago'] === 'number'
+          ? new Date(Date.now() - (proposal['proposal_sent_days_ago'] as number) * 86_400_000).toISOString()
+          : null),
       proposal_summary:     (proposal?.['proposal_summary'] as string | null) ?? null,
     },
     customer: {

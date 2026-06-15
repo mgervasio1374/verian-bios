@@ -14,7 +14,7 @@
       "lead_stage": "statement_review",
       "opted_out": false,
       "prior_touch_count": 2,
-      "last_contacted_at": "2026-05-12T10:00:00Z",
+      "last_contacted_days_ago": 14,
       "last_engagement_signal": "none",
       "prior_campaign_messages": [
         {

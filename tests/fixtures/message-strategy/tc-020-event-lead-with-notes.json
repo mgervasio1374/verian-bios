@@ -42,7 +42,7 @@
     },
     "event": {
       "event_name": "Service World Expo 2026",
-      "event_date": "2026-05-16T00:00:00Z",
+      "event_days_ago": 5,
       "conversation_notes": "HVAC owner, 6 techs, uses Square for field payments. Processes about $80K/month. Frustrated with Square fees on bigger jobs. Open to reviewing processing costs. Interested in next-day funding option."
     },
     "proposal": {

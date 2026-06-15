@@ -14,7 +14,7 @@
       "lead_stage": "customer",
       "opted_out": false,
       "prior_touch_count": 8,
-      "last_contacted_at": "2026-02-15T10:00:00Z",
+      "last_contacted_days_ago": 14,
       "last_engagement_signal": "replied",
       "prior_campaign_messages": []
     },
@@ -43,7 +43,7 @@
     "event": null,
     "proposal": {
       "proposal_sent": true,
-      "proposal_sent_at": "2026-01-20T10:00:00Z"
+      "proposal_sent_days_ago": 146
     },
     "customer": {
       "is_existing_customer": true,

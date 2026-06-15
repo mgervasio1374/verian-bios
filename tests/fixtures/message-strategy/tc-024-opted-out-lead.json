@@ -14,7 +14,7 @@
       "lead_stage": "contacted",
       "opted_out": true,
       "prior_touch_count": 2,
-      "last_contacted_at": "2026-05-01T08:00:00Z",
+      "last_contacted_days_ago": 14,
       "last_engagement_signal": "unsubscribed",
       "prior_campaign_messages": [
         {
