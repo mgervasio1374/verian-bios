@@ -9,10 +9,9 @@ import { runEmailRewriteLoop } from '@/modules/messaging/services/email-rewrite-
 import type { ActionResult } from '@/modules/crm/actions/company.actions'
 import type { RewriteLoopResult } from '@/modules/messaging/services/email-rewrite-loop.service'
 
-// The rewrite loop now makes a single skill-grounded LLM call (~20-40s on
-// gpt-4o-mini). Allow up to 60s; it is ONE call returning the full variant
-// array, never N sequential calls.
-export const maxDuration = 60
+// NOTE: maxDuration cannot be exported from a 'use server' file (only async
+// functions may be exported). The route segment config that governs this
+// action's execution time lives on the invoking route — the lead detail page.
 
 export async function runEmailRewriteLoopAction(
   emailDraftId: string

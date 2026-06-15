@@ -38,6 +38,11 @@ import * as scheduleItemRepo from '@/modules/campaign-sequence/repositories/camp
 import * as sequenceRepo from '@/modules/campaign-sequence/repositories/campaign-sequence.repo'
 import * as campaignTypeRepo from '@/modules/campaign-sequence/repositories/campaign-type.repo'
 
+// The skill-grounded rewrite loop (runEmailRewriteLoopAction, invoked from this
+// route via EmailQualityCard) makes a single LLM call (~20-40s). Server Actions
+// inherit their invoking route's segment config, so this governs that call.
+export const maxDuration = 60
+
 interface PageProps {
   params: Promise<{ workspaceSlug: string; id: string }>
 }
