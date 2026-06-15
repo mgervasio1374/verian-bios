@@ -6,7 +6,10 @@ import * as activityEventService from '@/modules/intelligence/services/activity-
 import * as agentDecisionRepo from '@/modules/intelligence/repositories/agent-decision.repo'
 import * as aiUsageRepo from '@/modules/intelligence/repositories/ai-usage-event.repo'
 import { preflightCheck } from '@/modules/intelligence/services/ai-budget-enforcer.service'
-import { ActivityEventType } from '@/modules/intelligence/types.agent'
+import * as sysCtrlRepo from '@/modules/intelligence/repositories/system-control.repo'
+import { ActivityEventType, SystemControlKey } from '@/modules/intelligence/types.agent'
+import { generateLlmRewriteCandidates } from '@/modules/messaging/copywriting/rewrite-llm'
+import type { RewriteLlmTelemetry } from '@/modules/messaging/copywriting/rewrite-llm'
 import {
   classifyEmailMessageStrategy,
   violatesMessageTruth,
@@ -571,34 +574,83 @@ export async function runEmailRewriteLoop(input: {
       return { success: false, error: 'AI budget exhausted — rewrite loop blocked.' }
     }
 
-    // Record AI usage (rule-based v1: 0 tokens; update when LLM is wired in)
-    aiUsageRepo.recordUsage({
-      tenantId:         input.tenantId,
-      agentName:        'email_rewrite_agent',
-      featureName:      'rewrite_loop',
-      modelName:        'claude-sonnet-4-6',
-      promptTokens:     0,
-      completionTokens: 0,
-      totalTokens:      0,
-      estimatedCostUsd: 0,
-      leadId:           draft.lead_id ?? null,
-      draftId:          input.emailDraftId,
-      success:          true,
-    }).catch((err) => console.error('[email-rewrite-agent] Failed to record AI usage event:', err))
-
     // ---- Build context-appropriate candidate pool ----
 
     const first   = contactFirstName || 'there'
     const company = context.companyName ?? 'your business'
 
-    const candidates = buildContextualCandidates({
-      classification,
-      suggestedSubject: originalReview.suggestedSubject,
-      suggestedBody:    originalReview.suggestedBody,
-      first,
-      company,
-      senderName,
-    })
+    // Skill-grounded LLM rewrite (gated, default off → template behavior). When
+    // the flag is on AND the LLM returns a non-empty, guardrail-passing set, we
+    // use those variants; otherwise we fall back to the deterministic templates.
+    // LLM variants flow through the SAME dedup/truth/scoring/persistence below.
+    let candidates: RewriteCandidate[] | null = null
+    const llmTelemetry: RewriteLlmTelemetry = { promptTokens: 0, completionTokens: 0, modelName: '' }
+    let usedLlm = false
+
+    const llmEnabled = await sysCtrlRepo
+      .getBooleanControl(SystemControlKey.COPYWRITING_AGENT_LLM_ENABLED, input.tenantId, false)
+      .catch(() => false)
+
+    if (llmEnabled) {
+      const llmCandidates = await generateLlmRewriteCandidates(
+        {
+          relationshipContext: classification.relationshipContext,
+          trigger:             classification.trigger,
+          primaryAngle:        classification.primaryAngle,
+          currentSubject:      draft.subject ?? '',
+          currentBody:         draft.body_text,
+          first,
+          company,
+          senderName,
+        },
+        llmTelemetry,
+      )
+      if (llmCandidates && llmCandidates.length > 0) {
+        usedLlm = true
+        // Preserve today's behavior: prepend the quality_suggestion candidate
+        // when present and truth-valid, then the LLM variants.
+        const merged: RewriteCandidate[] = []
+        if (originalReview.suggestedSubject && originalReview.suggestedBody &&
+            !violatesMessageTruth(classification.relationshipContext, originalReview.suggestedSubject, originalReview.suggestedBody)) {
+          merged.push({
+            subject:         originalReview.suggestedSubject,
+            bodyText:        originalReview.suggestedBody,
+            strategyKey:     'quality_suggestion',
+            strategyLabel:   STRATEGY_LABELS.quality_suggestion.label,
+            strategyPurpose: STRATEGY_LABELS.quality_suggestion.purpose,
+          })
+        }
+        merged.push(...llmCandidates)
+        candidates = merged
+      }
+    }
+
+    if (!candidates) {
+      candidates = buildContextualCandidates({
+        classification,
+        suggestedSubject: originalReview.suggestedSubject,
+        suggestedBody:    originalReview.suggestedBody,
+        first,
+        company,
+        senderName,
+      })
+    }
+
+    // Record AI usage: REAL tokens + model when the LLM path produced candidates;
+    // 0 tokens on the template-fallback path. Non-fatal.
+    aiUsageRepo.recordUsage({
+      tenantId:         input.tenantId,
+      agentName:        'email_rewrite_agent',
+      featureName:      'rewrite_loop',
+      modelName:        usedLlm ? llmTelemetry.modelName : 'rule_based_templates',
+      promptTokens:     usedLlm ? llmTelemetry.promptTokens : 0,
+      completionTokens: usedLlm ? llmTelemetry.completionTokens : 0,
+      totalTokens:      usedLlm ? llmTelemetry.promptTokens + llmTelemetry.completionTokens : 0,
+      estimatedCostUsd: 0,
+      leadId:           draft.lead_id ?? null,
+      draftId:          input.emailDraftId,
+      success:          true,
+    }).catch((err) => console.error('[email-rewrite-agent] Failed to record AI usage event:', err))
 
     // Historical bodies for global deduplication
     const historicalBodies: string[] = [
