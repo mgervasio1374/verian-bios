@@ -39,16 +39,16 @@ const CAMPAIGN_ASSETS = 'app/(workspace)/[workspaceSlug]/settings/campaign-asset
 // TC-3X-S2-001/002: Sidebar logo sizing and Verian BIOS text removal
 // ---------------------------------------------------------------------------
 describe('TC-3X-S2-001/002: Sidebar logo is larger and "Verian BIOS" text is removed', () => {
-  // MCM v2 W1: the PNG lockup was replaced with the vector BrandMark + VERIAN
-  // wordmark; the original concern (no tiny logo, no "Verian BIOS" text) holds.
+  // The PNG lockup → inline BrandMark + VERIAN wordmark step was superseded by
+  // the official /brand/verian-logo.svg vector lockup; the original concerns
+  // (no tiny logo, no "Verian BIOS" text) still hold.
   it('Sidebar logo does NOT use h-7 class (was too small)', () => {
     expect(readSrc(SIDEBAR)).not.toContain('className="h-7 w-auto object-contain"')
   })
 
-  it('Sidebar renders the BrandMark with the VERIAN wordmark', () => {
+  it('Sidebar renders the official vector lockup', () => {
     const src = readSrc(SIDEBAR)
-    expect(src).toContain('BrandMark')
-    expect(src).toContain('VERIAN')
+    expect(src).toContain('/brand/verian-logo.svg')
   })
 
   it('Sidebar does NOT contain "Verian BIOS" text', () => {

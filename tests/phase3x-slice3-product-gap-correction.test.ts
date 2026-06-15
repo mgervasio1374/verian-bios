@@ -40,12 +40,12 @@ const CHANGED_UI_FILES = [
 ]
 
 describe('TC-3X-S3-001: Sidebar logo product correction', () => {
-  // MCM v2 W1: the white-background PNG lockup was replaced with the inline
-  // vector BrandMark + VERIAN wordmark; the original concerns (no tiny logo,
+  // The inline vector BrandMark + VERIAN wordmark was superseded by the official
+  // /brand/verian-logo.svg vector lockup; the original concerns (no tiny logo,
   // no "Verian BIOS" text, no temp mark) still hold.
-  it('uses the vector BrandMark instead of the PNG lockup', () => {
+  it('uses the official vector lockup instead of the PNG lockup', () => {
     const src = readSrc(SIDEBAR)
-    expect(src).toContain('BrandMark')
+    expect(src).toContain('/brand/verian-logo.svg')
     expect(src).not.toContain('/brand/verian-logo.png')
   })
 

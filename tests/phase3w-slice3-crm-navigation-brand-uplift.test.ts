@@ -64,12 +64,11 @@ describe('TC-3W-S3-002: Sidebar uses sidebar tokens, logo, section labels, and c
     expect(src).toContain('bg-sidebar')
   })
 
-  // MCM v2 W1: the white-background PNG lockup was replaced with the inline
-  // vector BrandMark + VERIAN wordmark so the brand renders on the navy sidebar.
-  it('Sidebar renders the vector BrandMark with the VERIAN wordmark', () => {
+  // The inline navy BrandMark + VERIAN wordmark was superseded by the official
+  // /brand/verian-logo.svg vector lockup on the white sidebar.
+  it('Sidebar renders the official vector lockup', () => {
     const src = readSrc(SIDEBAR)
-    expect(src).toContain('BrandMark')
-    expect(src).toContain('VERIAN')
+    expect(src).toContain('/brand/verian-logo.svg')
     expect(src).not.toContain('/brand/verian-logo.png')
   })
 
@@ -93,23 +92,23 @@ describe('TC-3W-S3-002: Sidebar uses sidebar tokens, logo, section labels, and c
 })
 
 // ---------------------------------------------------------------------------
-// TC-3W-S3-003: globals.css — sidebar token values updated to navy
+// TC-3W-S3-003: globals.css — light sidebar tokens moved navy → white (intentional)
 // ---------------------------------------------------------------------------
 
-describe('TC-3W-S3-003: globals.css sidebar tokens updated to deep navy', () => {
-  it('--sidebar is set to deep navy oklch value', () => {
+describe('TC-3W-S3-003: globals.css light sidebar tokens are white (was navy)', () => {
+  it('--sidebar is set to white oklch value', () => {
     const src = readSrc(GLOBALS_CSS)
-    expect(src).toContain('--sidebar: oklch(0.22 0.065 258)')
+    expect(src).toContain('--sidebar: oklch(1 0 0)')
   })
 
-  it('--sidebar-foreground is set to near-white oklch value', () => {
+  it('--sidebar-foreground is set to dark-navy text oklch value', () => {
     const src = readSrc(GLOBALS_CSS)
-    expect(src).toContain('--sidebar-foreground: oklch(0.96 0 0)')
+    expect(src).toContain('--sidebar-foreground: oklch(0.32 0.02 258)')
   })
 
-  it('--sidebar-accent is set to lighter navy oklch value', () => {
+  it('--sidebar-accent is set to light-grey oklch value', () => {
     const src = readSrc(GLOBALS_CSS)
-    expect(src).toContain('--sidebar-accent: oklch(0.28 0.065 258)')
+    expect(src).toContain('--sidebar-accent: oklch(0.955 0.006 258)')
   })
 })
 

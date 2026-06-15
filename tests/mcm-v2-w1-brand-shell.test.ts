@@ -52,19 +52,20 @@ describe('TC-W1-01: BrandMark is a vector V mark (source-read)', () => {
 // TC-W1-02: Sidebar brand block + nav polish
 // ---------------------------------------------------------------------------
 
-describe('TC-W1-02: Sidebar brand block uses BrandMark + wordmark (source-read)', () => {
+describe('TC-W1-02: Sidebar brand block uses the official vector lockup (source-read)', () => {
   const src = read(SIDEBAR)
 
-  it('imports and renders BrandMark, not the PNG lockup', () => {
-    expect(src).toContain("from '@/components/layout/BrandMark'")
-    expect(src).toContain('<BrandMark size={28} />')
+  // The W1 inline BrandMark + JSX wordmark was superseded by the official
+  // /brand/verian-logo.svg vector lockup on the white sidebar.
+  it('references the official vector lockup, not the PNG lockup', () => {
+    expect(src).toContain('/brand/verian-logo.svg')
     expect(src).not.toContain('verian-logo.png')
     expect(src).not.toContain("from 'next/image'")
   })
 
-  it('renders the VERIAN wordmark with letter-spacing', () => {
-    expect(src).toContain('VERIAN')
-    expect(src).toContain('tracking-[0.22em]')
+  it('references the official vector lockup (wordmark now lives inside the SVG)', () => {
+    // The VERIAN wordmark + letter-spacing moved into verian-logo.svg, not JSX.
+    expect(src).toContain('/brand/verian-logo.svg')
   })
 
   it('active nav item gains a teal left indicator', () => {

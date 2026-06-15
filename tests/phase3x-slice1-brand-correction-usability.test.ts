@@ -48,11 +48,11 @@ describe('TC-3X-S1-001: Official logo asset exists', () => {
 // TC-3X-S1-002: Sidebar uses official logo, not temp Slice 3 asset
 // ---------------------------------------------------------------------------
 describe('TC-3X-S1-002: Sidebar references official logo', () => {
-  // MCM v2 W1: the PNG lockup (baked on white) was replaced with the inline
-  // vector BrandMark + wordmark for the dark sidebar.
-  it('Sidebar uses the vector BrandMark instead of the PNG lockup', () => {
+  // The inline vector BrandMark was superseded by the official
+  // /brand/verian-logo.svg vector lockup on the white sidebar.
+  it('Sidebar uses the official vector lockup instead of the PNG lockup', () => {
     const src = readSrc(SIDEBAR)
-    expect(src).toContain('BrandMark')
+    expect(src).toContain('/brand/verian-logo.svg')
     expect(src).not.toContain('/brand/verian-logo.png')
   })
 
