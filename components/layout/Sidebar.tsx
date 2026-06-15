@@ -33,7 +33,6 @@ import {
   Tags,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { BrandMark } from '@/components/layout/BrandMark'
 
 interface SidebarProps {
   workspaceSlug: string
@@ -51,7 +50,7 @@ interface NavSection {
   items: NavItem[]
 }
 
-export function Sidebar({ workspaceSlug, tenantName }: SidebarProps) {
+export function Sidebar({ workspaceSlug }: SidebarProps) {
   const pathname = usePathname()
   const base = `/${workspaceSlug}`
 
@@ -112,15 +111,10 @@ export function Sidebar({ workspaceSlug, tenantName }: SidebarProps) {
 
   return (
     <aside className="flex h-screen w-60 flex-col border-r border-sidebar-border bg-sidebar">
-      {/* Brand */}
-      <div className="flex flex-col items-start justify-center border-b border-sidebar-border px-5 py-5 gap-1.5">
-        <div className="flex items-center gap-2.5">
-          <BrandMark size={28} />
-          <span className="text-white font-semibold text-[15px] tracking-[0.22em]">VERIAN</span>
-        </div>
-        {tenantName && (
-          <span className="text-[10px] text-sidebar-foreground/55 truncate max-w-[180px] leading-none">{tenantName}</span>
-        )}
+      {/* Brand — fixed h-14 to match TopNav so the bottom border lines up */}
+      <div className="flex h-14 shrink-0 items-center border-b border-sidebar-border px-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/verian-logo.svg" alt="Verian" className="h-9 w-auto" />
       </div>
 
       {/* Navigation */}
