@@ -50,15 +50,15 @@ export function AgentRosterSection({ data }: { data: AgentRosterData }) {
 
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b text-muted-foreground">
-              <th className="text-left p-2 font-medium">Agent</th>
-              <th className="text-left p-2 font-medium">State</th>
-              <th className="text-right p-2 font-medium">Runs</th>
-              <th className="text-right p-2 font-medium">Failed</th>
-              <th className="text-right p-2 font-medium">Decisions</th>
-              <th className="text-right p-2 font-medium">Tokens</th>
-              <th className="text-right p-2 font-medium">Cost</th>
-              <th className="text-right p-2 font-medium">Last run</th>
+            <tr className="border-b text-muted-foreground [&>th]:cursor-help">
+              <th className="text-left p-2 font-medium" title="The agent and its implementation state. live = runs + logs telemetry; gated = built but dry-run; skeletal/defined = registered, not yet logging; stub = placeholder.">Agent</th>
+              <th className="text-left p-2 font-medium" title="live = executing + logging; gated = dry-run only; skeletal = logic exists, no telemetry; defined = registry entry only; stub = execution-gate placeholder.">State</th>
+              <th className="text-right p-2 font-medium" title="Number of times this agent executed in the window (one agent_run per invocation). 'no telemetry' = the agent has never logged a run.">Runs</th>
+              <th className="text-right p-2 font-medium" title="Runs that ended in status failed or killed. Click into a run on the list below to see the error and inputs.">Failed</th>
+              <th className="text-right p-2 font-medium" title="Decisions logged: a recorded agent choice — what it decided, the input it saw, an output summary, a short reason, and a confidence. Distinct from runs (a run can record several decisions).">Decisions</th>
+              <th className="text-right p-2 font-medium" title="Total prompt+completion tokens the agent consumed in the window (real counts from the LLM; deterministic agents record 0).">Tokens</th>
+              <th className="text-right p-2 font-medium" title="Estimated USD cost of those tokens at the model's price (auto-computed). Deterministic agents cost $0.">Cost</th>
+              <th className="text-right p-2 font-medium" title="Timestamp of this agent's most recent run.">Last run</th>
             </tr>
           </thead>
           <tbody>
