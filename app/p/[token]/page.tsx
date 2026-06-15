@@ -107,8 +107,17 @@ export default async function HostedProposalPage({ params }: PageProps) {
 
                 {!hasSavings && (
                   <div className="mt-4 rounded-lg bg-gray-50 border p-4 text-sm text-gray-700">
-                    At the figures provided, your current pricing is already competitive. A full
-                    statement review can surface fee categories and card-mix detail that may change this.
+                    {a?.confidence === 'calculated' ? (
+                      <>
+                        At the figures provided, your current pricing is already competitive. A full
+                        statement review can surface fee categories and card-mix detail that may change this.
+                      </>
+                    ) : (
+                      <>
+                        Contact us for a full statement review — we&apos;ll calculate your current
+                        effective rate and a specific savings figure from your actual statement.
+                      </>
+                    )}
                   </div>
                 )}
               </section>
