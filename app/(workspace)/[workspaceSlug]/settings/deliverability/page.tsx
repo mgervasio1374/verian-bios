@@ -5,9 +5,11 @@ import { getDeliverabilityOverview } from '@/modules/analytics/deliverability.re
 import type { DeliverabilityHealth } from '@/modules/analytics/deliverability'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import Link from 'next/link'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
+  searchParams: Promise<{ q?: string }>
 }
 
 const HEALTH_VARIANT: Record<DeliverabilityHealth, 'secondary' | 'outline' | 'destructive'> = {
@@ -28,14 +30,18 @@ function fmtDate(iso: string | null): string {
   })
 }
 
-export default async function DeliverabilityPage({ params }: PageProps) {
-  await params
+export default async function DeliverabilityPage({ params, searchParams }: PageProps) {
+  const { workspaceSlug } = await params
+  const { q } = await searchParams
+  const query = (q ?? '').trim().toLowerCase()
   const supabase = await createSupabaseServerClient()
   const ctx      = await buildRequestContext(supabase)
   requirePermission(ctx, 'crm.companies.view')
 
   const overview = await getDeliverabilityOverview(ctx.tenantId)
-  const { byDomain, bySender, recentBounces, suppression, totalSends } = overview
+  const { recentBounces, suppression, totalSends } = overview
+  const byDomain = query ? overview.byDomain.filter(d => d.domain.toLowerCase().includes(query)) : overview.byDomain
+  const bySender = query ? overview.bySender.filter(s => s.senderEmail.toLowerCase().includes(query)) : overview.bySender
 
   return (
     <div className="p-6 space-y-6">
@@ -46,6 +52,17 @@ export default async function DeliverabilityPage({ params }: PageProps) {
           Reputation is only flagged once a domain/sender clears a minimum sample.
         </p>
       </div>
+
+      <form method="GET" className="flex gap-2">
+        <input
+          type="search" name="q" defaultValue={q ?? ''}
+          placeholder="Filter by recipient domain or sender…"
+          className="w-full max-w-sm rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+        {query && (
+          <Link href={`/${workspaceSlug}/settings/deliverability`} className="rounded-md border px-3 py-2 text-sm text-muted-foreground hover:bg-muted">Clear</Link>
+        )}
+      </form>
 
       {/* Per-domain reputation */}
       <Card>

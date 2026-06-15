@@ -7,21 +7,27 @@ import Link from 'next/link'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
+  searchParams: Promise<{ q?: string; sort?: string }>
 }
 
-export default async function OpportunitiesPage({ params }: PageProps) {
+export default async function OpportunitiesPage({ params, searchParams }: PageProps) {
   const { workspaceSlug } = await params
+  const { q, sort } = await searchParams
+  const query = (q ?? '').trim()
   const supabase = await createSupabaseServerClient()
   const ctx = await buildRequestContext(supabase)
 
   const svc = createSupabaseServiceClient()
-  const { data: opportunities } = await svc
+  let qb = svc
     .from('opportunities')
     .select('id, name, stage, status, value, expected_close_date, created_at, company_id, lead_id')
     .eq('tenant_id', ctx.tenantId)
     .eq('workspace_id', ctx.workspaceId)
     .is('deleted_at', null)
-    .order('created_at', { ascending: false })
+  if (query) qb = qb.ilike('name', `%${query}%`)  // opp name carries the company
+  const sortCol = sort === 'value' ? 'value' : sort === 'name' ? 'name' : 'created_at'
+  const { data: opportunities } = await qb
+    .order(sortCol, { ascending: sort === 'name', nullsFirst: false })
     .limit(200)
 
   const rows = opportunities ?? []
@@ -30,8 +36,26 @@ export default async function OpportunitiesPage({ params }: PageProps) {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Opportunities</h1>
-        <p className="text-muted-foreground text-sm">{rows.length} records</p>
+        <p className="text-muted-foreground text-sm">{rows.length} records{query ? ` matching "${query}"` : ''}</p>
       </div>
+
+      {/* Search by company / name + sort */}
+      <form method="GET" className="flex flex-wrap gap-2">
+        <input
+          type="search" name="q" defaultValue={q ?? ''}
+          placeholder="Search by company or name…"
+          className="w-full max-w-sm rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+        <select name="sort" defaultValue={sort ?? 'created_at'} className="rounded-md border bg-background px-3 py-2 text-sm">
+          <option value="created_at">Newest</option>
+          <option value="value">Value</option>
+          <option value="name">Name (A–Z)</option>
+        </select>
+        <button type="submit" className="rounded-md border px-3 py-2 text-sm hover:bg-muted">Apply</button>
+        {(query || sort) && (
+          <Link href={`/${workspaceSlug}/opportunities`} className="rounded-md border px-3 py-2 text-sm text-muted-foreground hover:bg-muted">Clear</Link>
+        )}
+      </form>
 
       {rows.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
