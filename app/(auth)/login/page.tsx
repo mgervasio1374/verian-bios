@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation'
-import Image from 'next/image'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { LoginForm } from './LoginForm'
 
@@ -10,13 +9,13 @@ export default async function LoginPage() {
   if (user) redirect('/dashboard')
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/20 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-card p-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex items-center justify-center">
-            <Image src="/brand/verian-logo.png" alt="Verian" width={213} height={64} className="h-16 w-auto object-contain" priority />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/verian-logo.svg" alt="Verian" className="h-16 w-auto object-contain" />
           </div>
-          <h1 className="text-2xl font-bold">Verian BIOS</h1>
           <p className="text-muted-foreground text-sm mt-1">Business Intelligence Operating System</p>
         </div>
         <LoginForm />

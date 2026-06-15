@@ -95,10 +95,18 @@ describe('TC-W1-03: favicon and login logo (source-read)', () => {
     expect(src).toContain('#0d9488')
   })
 
-  it('login keeps the PNG lockup capped at ~64px, centered', () => {
+  it('login uses the vector lockup on a white surface, capped at ~64px, centered, no doubled brand text', () => {
     const src = read(LOGIN_PAGE)
-    expect(src).toContain('/brand/verian-logo.png')
+    expect(src).toContain('/brand/verian-logo.svg')
     expect(src).toContain('h-16 w-auto object-contain')
+    // White surface so the logo's white background blends with no visible box.
+    expect(src).toContain('bg-card')
+    // Login no longer uses the PNG or next/image.
+    expect(src).not.toContain('/brand/verian-logo.png')
+    expect(src).not.toContain("from 'next/image'")
+    // Single canonical tagline; the lockup already carries the VERIAN name.
+    expect(src).toContain('Business Intelligence Operating System')
+    expect(src).not.toContain('Verian BIOS')
   })
 })
 

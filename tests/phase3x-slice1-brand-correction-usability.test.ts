@@ -78,12 +78,16 @@ describe('TC-3X-S1-003/004: Login page uses official logo', () => {
     expect(src).not.toContain('bg-primary text-primary-foreground font-bold text-lg')
   })
 
-  it('login/page.tsx contains /brand/verian-logo.png', () => {
-    expect(readSrc(LOGIN_PAGE)).toContain('/brand/verian-logo.png')
+  it('login/page.tsx contains /brand/verian-logo.svg', () => {
+    expect(readSrc(LOGIN_PAGE)).toContain('/brand/verian-logo.svg')
   })
 
-  it('login/page.tsx imports next/image', () => {
-    expect(readSrc(LOGIN_PAGE)).toContain("import Image from 'next/image'")
+  // The SVG lockup renders via a plain <img> (the proven Sidebar pattern);
+  // next/image can 400 on *.svg through the optimizer, so login no longer uses it.
+  it('login/page.tsx renders the logo via a plain <img>, not next/image', () => {
+    const src = readSrc(LOGIN_PAGE)
+    expect(src).toContain('<img src="/brand/verian-logo.svg"')
+    expect(src).not.toContain("from 'next/image'")
   })
 })
 
