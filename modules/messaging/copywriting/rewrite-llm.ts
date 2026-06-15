@@ -145,6 +145,19 @@ export async function generateLlmRewriteCandidates(
       `- Never use any of these banned phrases: ${GLOBAL_BANNED_PHRASES.join('; ')}.`,
       ...houseVoice,
       '',
+      // Quality requirements — align generated copy with the deterministic
+      // rubric's truth-safe signals (brand fit, literal personalization, concrete
+      // payment-processing mention, advisory framing, one low-friction CTA, length
+      // band) without fabricating or breaking the relationship-context truth guard.
+      'Quality requirements — every variant is scored on these; satisfy all that are truthful for this context:',
+      '- Name the sender company literally as "321 Swipe" in the body.',
+      `- Reference the recipient's company name ("${params.company}") naturally in the body, and address ${params.first} by name.`,
+      '- Mention card payment processing concretely (e.g. processing costs, card processing setup, fees) — but do NOT claim a statement was submitted or reviewed unless this context is statement_review_follow_up.',
+      '- Frame the next step as consultative: phrases like "take a closer look", "worth a look", or "worth reviewing" (not a hard pitch).',
+      '- Exactly ONE clear, low-friction call to action, phrased as an invitation, e.g. "Would you be open to a short call this week?" or "open to a quick 15-minute call?".',
+      '- Keep each variant between 50 and 150 words, in 3-4 short paragraphs.',
+      "- Do NOT use: unsupported savings/guarantee/'best rates'/'lowest rates' claims; spam words (free, limited time, act now, click here); more than one exclamation mark; ALL-CAPS words; merge-field placeholders like {{first_name}}; mass-email clichés ('businesses like yours', 'I came across', 'wanted to reach out', 'hope this finds you well').",
+      '',
       `Return STRICT JSON only, no prose and no code fences: an array of ${count} objects, each ` +
         '{"subject": "<subject line>", "bodyText": "<email body>"}.',
     ].join('\n')

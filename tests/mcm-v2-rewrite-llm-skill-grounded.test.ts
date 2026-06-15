@@ -11,6 +11,8 @@ vi.mock('@/modules/messaging/repositories/copy-exemplar.repo', () => ({
   listActiveExemplarsForSkill: vi.fn(async () => []),
 }))
 import { chatComplete } from '@/lib/llm/client'
+import { listActiveExemplarsForSkill } from '@/modules/messaging/repositories/copy-exemplar.repo'
+import { reviewEmailDraftQuality } from '@/modules/messaging/services/email-quality.service'
 import {
   mapRelationshipToSkillSlug,
   generateLlmRewriteCandidates,
@@ -138,5 +140,89 @@ describe('TC-RLG-04: fail-open → null', () => {
     const out = await generateLlmRewriteCandidates(baseParams, telemetry)
     expect(out).toBeNull()
     expect(telemetry).toEqual({ promptTokens: 0, completionTokens: 0, modelName: '' })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Quality-requirements block (rubric tightening)
+// ---------------------------------------------------------------------------
+
+function lastSystemPrompt(): string {
+  const calls = vi.mocked(chatComplete).mock.calls
+  return (calls[calls.length - 1][0] as { system: string }).system
+}
+
+describe('TC-RLG-05: system prompt carries the quality-requirements block', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('contains the brand, single-CTA, length, and literal-company requirements', async () => {
+    llmReturns(JSON.stringify([
+      { subject: 'Reviewing your processing setup', bodyText: 'Hi Bob,\n\nHappy to take a closer look at Arthur Heating processing costs. Open to a short call this week?\n\nSam' },
+    ]))
+    await generateLlmRewriteCandidates(baseParams)
+
+    const sys = lastSystemPrompt()
+    expect(sys).toContain('Quality requirements')
+    expect(sys).toContain('Name the sender company literally as "321 Swipe" in the body.')
+    expect(sys).toContain('Exactly ONE clear, low-friction call to action')
+    expect(sys).toContain('between 50 and 150 words')
+    // literal personalization from baseParams (no tokens)
+    expect(sys).toContain('Arthur Heating')
+    expect(sys).toContain('Bob')
+  })
+
+  it('the JSON-format instruction still appears AFTER the requirements (ordering preserved)', async () => {
+    llmReturns(JSON.stringify([
+      { subject: 'ok', bodyText: 'Hi Bob,\n\nHappy to review Arthur Heating processing setup. Open to a short call?\n\nSam' },
+    ]))
+    await generateLlmRewriteCandidates(baseParams)
+
+    const sys = lastSystemPrompt()
+    const reqIdx  = sys.indexOf('Quality requirements')
+    const jsonIdx = sys.indexOf('Return STRICT JSON only')
+    expect(reqIdx).toBeGreaterThan(-1)
+    expect(jsonIdx).toBeGreaterThan(reqIdx)
+  })
+
+  it('house-voice (when exemplars present) precedes the requirements, which precede the JSON instruction', async () => {
+    vi.mocked(listActiveExemplarsForSkill).mockResolvedValueOnce([
+      { subject: 'Voice One', body_text: 'A body in our house voice.' },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as any)
+    llmReturns(JSON.stringify([
+      { subject: 'ok', bodyText: 'Hi Bob,\n\nHappy to review Arthur Heating processing costs. Open to a short call?\n\nSam' },
+    ]))
+    await generateLlmRewriteCandidates(baseParams)
+
+    const sys = lastSystemPrompt()
+    const houseIdx = sys.indexOf('House voice examples')
+    const reqIdx   = sys.indexOf('Quality requirements')
+    const jsonIdx  = sys.indexOf('Return STRICT JSON only')
+    expect(houseIdx).toBeGreaterThan(-1)
+    expect(houseIdx).toBeLessThan(reqIdx)
+    expect(reqIdx).toBeLessThan(jsonIdx)
+  })
+})
+
+describe('TC-RLG-06: a requirements-following body scores well on the rubric (cold_outreach)', () => {
+  it('a 321 Swipe + company-named, advisory, one-soft-CTA body scores >= 78', () => {
+    const subject = 'A closer look at Arthur Heating processing'
+    const bodyText =
+      'Hi Bob,\n\n' +
+      'I work with 321 Swipe, and I help businesses get clarity on their card processing costs ' +
+      'and setup.\n\n' +
+      'If it would be useful, I can take a closer look at how Arthur Heating currently processes ' +
+      'card payments and flag anything worth reviewing. No pressure, just a practical second set ' +
+      'of eyes.\n\n' +
+      'Would you be open to a short call this week?\n\n' +
+      'Best,\nSam'
+    const review = reviewEmailDraftQuality({
+      tenantId: 't-1',
+      emailDraftId: 'd-1',
+      subject,
+      bodyText,
+      context: { leadName: 'Bob', companyName: 'Arthur Heating' },
+    })
+    expect(review.overallScore).toBeGreaterThanOrEqual(78)
   })
 })
