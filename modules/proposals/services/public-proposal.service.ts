@@ -24,8 +24,14 @@ function asAnalysis(value: unknown): StatementAnalysis | null {
 // Loads a hosted proposal by its public share token. Returns null for an
 // unknown / empty / deleted token — the caller renders a clean not-available
 // page. Never throws on a missing row.
+//
+// opts.preview: when true, this is an internal operator preview — the
+// view-flip (open-tracking) is skipped entirely, so opening the page never
+// records a merchant view on any status. Default (no opts) is byte-for-byte the
+// original public behavior.
 export async function getPublicProposalByToken(
-  token: string
+  token: string,
+  opts?: { preview?: boolean }
 ): Promise<PublicProposalView | null> {
   if (!token || typeof token !== 'string') return null
 
@@ -36,8 +42,9 @@ export async function getPublicProposalByToken(
   // 'viewed' and stamp first_viewed_at. Idempotent (the repo's conditional
   // UPDATE only matches sent + unseen), non-fatal, and never touches draft or
   // terminal proposals. Reflect the flip in the returned status.
+  // Skipped entirely for an operator preview so a review never records a view.
   let proposalStatus = event.proposal_status
-  if (event.proposal_status === 'sent' && event.first_viewed_at == null) {
+  if (!opts?.preview && event.proposal_status === 'sent' && event.first_viewed_at == null) {
     const flipped = await markProposalViewedIfUnseen(event.id).catch(() => false)
     if (flipped) proposalStatus = 'viewed'
   }

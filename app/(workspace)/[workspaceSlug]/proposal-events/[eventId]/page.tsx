@@ -84,9 +84,21 @@ export default async function ProposalEventDetailPage({ params }: PageProps) {
           </div>
           <p className="text-xs text-muted-foreground font-mono mt-1">{event.id}</p>
         </div>
-        <Link href={base} className="text-sm text-muted-foreground hover:underline">
-          ← Proposal Events
-        </Link>
+        <div className="flex items-center gap-4">
+          {event.share_token && (
+            <a
+              href={`/p/${event.share_token}?preview=1`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              Review proposal →
+            </a>
+          )}
+          <Link href={base} className="text-sm text-muted-foreground hover:underline">
+            ← Proposal Events
+          </Link>
+        </div>
       </div>
 
       {/* Proposal Details */}
@@ -132,7 +144,22 @@ export default async function ProposalEventDetailPage({ params }: PageProps) {
 
       {/* Approve & Send (draft hosted proposals only) */}
       {event.proposal_status === 'draft' && (
-        <ApproveSendControl proposalEventId={event.id} />
+        <div className="space-y-2">
+          {event.share_token && (
+            <a
+              href={`/p/${event.share_token}?preview=1`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm hover:bg-primary/10"
+            >
+              <span className="text-muted-foreground">
+                Review what the merchant will see before sending.
+              </span>
+              <span className="font-medium text-primary whitespace-nowrap">Review proposal →</span>
+            </a>
+          )}
+          <ApproveSendControl proposalEventId={event.id} />
+        </div>
       )}
 
       {/* Status Transition (open proposals only) */}

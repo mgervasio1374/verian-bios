@@ -4,7 +4,8 @@ import { deriveCostSavingsBridge } from '@/lib/statement/cost-bridge'
 import { ShieldCheck, TrendingDown, AlertTriangle, FlaskConical, ListChecks } from 'lucide-react'
 
 interface PageProps {
-  params: Promise<{ token: string }>
+  params:       Promise<{ token: string }>
+  searchParams: Promise<{ preview?: string }>
 }
 
 function usd(n: number | null | undefined, dp = 2): string {
@@ -17,9 +18,10 @@ function pct(rate: number | null | undefined, dp = 2): string {
   return `${(rate * 100).toFixed(dp)}%`
 }
 
-export default async function HostedProposalPage({ params }: PageProps) {
+export default async function HostedProposalPage({ params, searchParams }: PageProps) {
   const { token } = await params
-  const proposal = await getPublicProposalByToken(token)
+  const preview = (await searchParams).preview === '1'
+  const proposal = await getPublicProposalByToken(token, { preview })
 
   if (!proposal) return <NotAvailable />
 
@@ -60,6 +62,15 @@ export default async function HostedProposalPage({ params }: PageProps) {
           body.print-summary [data-print="proposal"] > *:not([data-print="summary"]) { display: none !important; }
         }
       `}</style>
+
+      {/* Operator preview banner — opening with ?preview=1 skips open-tracking,
+          so the operator can review what the merchant will see without recording
+          a view. Screen-only. */}
+      {preview && (
+        <div className="no-print bg-amber-100 text-amber-900 text-sm text-center px-4 py-2 border-b border-amber-300">
+          Preview — opening this page did not record a view.
+        </div>
+      )}
 
       {/* Brand header */}
       <header className="bg-[#0f1e3d] text-white">
