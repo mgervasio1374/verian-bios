@@ -16,6 +16,7 @@ import { CompanyEditDialog } from './CompanyEditDialog'
 import { DeleteCompanyButton } from './DeleteCompanyButton'
 import { UploadDocumentForm } from './UploadDocumentForm'
 import { GenerateSavingsAnalysisForm } from './GenerateSavingsAnalysisForm'
+import { IngestStatementForm } from './IngestStatementForm'
 import { CompanySegmentsRow } from './CompanySegmentsRow'
 import { StopCampaignButton } from './StopCampaignButton'
 import { PauseCampaignButton, ResumeCampaignButton } from './PauseResumeCampaignButtons'
@@ -43,6 +44,11 @@ import { DOCUMENT_TYPE_LABELS, DOCUMENT_SOURCE_LABELS } from '@/modules/artifact
 interface PageProps {
   params: Promise<{ workspaceSlug: string; id: string }>
 }
+
+// Manual statement ingest (IngestStatementForm → ingestStatementAction) generates
+// a proposal PDF + uploads, which can be slow. Server Actions inherit their
+// invoking route's segment config, so this governs that call.
+export const maxDuration = 60
 
 export default async function CompanyDetailPage({ params }: PageProps) {
   const { workspaceSlug, id } = await params
@@ -314,6 +320,23 @@ export default async function CompanyDetailPage({ params }: PageProps) {
         </CardHeader>
         <CardContent>
           <GenerateSavingsAnalysisForm companyId={id} />
+        </CardContent>
+      </Card>
+
+      {/* Ingest Statement → Build Proposal — operator ingests an inbox statement
+          against a contact-with-email; builds the draft proposal for Approve & Send */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-semibold">Ingest Statement → Build Proposal</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <IngestStatementForm
+            companyId={id}
+            workspaceSlug={workspaceSlug}
+            contacts={contacts
+              .filter(c => c.email && c.email.trim())
+              .map(c => ({ id: c.id, name: [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email!, email: c.email! }))}
+          />
         </CardContent>
       </Card>
 
