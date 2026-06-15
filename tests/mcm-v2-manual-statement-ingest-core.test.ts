@@ -114,6 +114,9 @@ describe('TC-MSI-01: happy path wires every builder', () => {
     expect(eventArg.shareToken).toBeTruthy()
     const expected = buildCalculatedAnalysis({ monthlyVolume: 100_000, currentMonthlyFees: 3_200, transactionCount: 2_000 })
     expect(eventArg.estimatedSavings).toBeCloseTo(expected.estimated_savings_monthly ?? 0, 6)
+    // proposal_amount carries ANNUAL savings (matches savings-certificate.service so
+    // the Proposal Pipeline "Savings pipeline $" sums consistently) — NOT proposed cost.
+    expect(eventArg.proposalAmount).toBeCloseTo(expected.estimated_savings_annual ?? 0, 6)
     const meta = eventArg.metadata as Record<string, unknown>
     expect(meta.statement_artifact_id).toBe('stmt-art-1')
     expect(meta.proposal_pdf_artifact_id).toBe('pdf-art-1')

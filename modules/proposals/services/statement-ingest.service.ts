@@ -1,6 +1,5 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { buildCalculatedAnalysis } from '@/lib/statement/analysis'
-import { deriveCostSavingsBridge } from '@/lib/statement/cost-bridge'
 import { generateProposalPdf } from '@/lib/pdf/proposal'
 import { generateShareToken } from '@/lib/proposals/share-token'
 import { requirePermission } from '@/lib/auth/permissions'
@@ -189,12 +188,10 @@ export async function ingestStatementAndBuildProposal(
   }
 
   // f. Create the draft proposal_event (share token, savings figure, links).
-  const bridge = deriveCostSavingsBridge(analysis)
-  const proposedMonthlyCost =
-    bridge?.proposedCost ??
-    (typeof analysis.extracted_fields?.proposed_monthly_cost === 'number'
-      ? (analysis.extracted_fields.proposed_monthly_cost as number)
-      : null)
+  // proposal_amount carries the ANNUAL savings (matches savings-certificate.service
+  // so the Proposal Pipeline "Savings pipeline $" KPI sums consistently across the
+  // website and manual-ingest paths); estimated_savings carries the monthly figure.
+  const annualSavings           = analysis.estimated_savings_annual ?? 0
   const estimatedSavingsMonthly = analysis.estimated_savings_monthly ?? 0
   const shareToken = generateShareToken()
 
@@ -206,7 +203,7 @@ export async function ingestStatementAndBuildProposal(
     leadId,
     senderUserId:    ctx.userId === 'system' ? null : ctx.userId,
     proposalSentAt:  new Date().toISOString(),
-    proposalAmount:  proposedMonthlyCost,
+    proposalAmount:  annualSavings,
     estimatedSavings: estimatedSavingsMonthly,
     proposalStatus:  'draft',
     captureSource:   'manual',
