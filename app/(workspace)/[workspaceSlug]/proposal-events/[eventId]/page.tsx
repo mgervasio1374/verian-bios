@@ -17,6 +17,7 @@ import { CompleteFollowUpButton } from '../../proposal-follow-ups/CompleteFollow
 import { SkipFollowUpButton } from '../../proposal-follow-ups/SkipFollowUpButton'
 import { RescheduleFollowUpButton } from '../../proposal-follow-ups/RescheduleFollowUpButton'
 import { GenerateFollowUpDraftButton } from '../../proposal-follow-ups/GenerateFollowUpDraftButton'
+import { DeleteProposalButton } from './DeleteProposalButton'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string; eventId: string }>
@@ -150,6 +151,7 @@ export default async function ProposalEventDetailPage({ params }: PageProps) {
           <Link href={base} className="text-sm text-muted-foreground hover:underline">
             ← Proposal Events
           </Link>
+          <DeleteProposalButton eventId={event.id} workspaceSlug={workspaceSlug} />
         </div>
       </div>
 
@@ -175,9 +177,9 @@ export default async function ProposalEventDetailPage({ params }: PageProps) {
       <Card>
         <CardHeader><CardTitle>Linked Records</CardTitle></CardHeader>
         <CardContent className="py-2">
-          <DetailRow label="Lead ID"     value={event.lead_id    ? <span className="font-mono text-xs">{event.lead_id}</span>    : null} />
-          <DetailRow label="Company ID"  value={event.company_id ? <span className="font-mono text-xs">{event.company_id}</span> : null} />
-          <DetailRow label="Contact ID"  value={event.contact_id ? <span className="font-mono text-xs">{event.contact_id}</span> : null} />
+          <DetailRow label="Lead ID"     value={event.lead_id    ? <Link href={`/${workspaceSlug}/leads/${event.lead_id}`}       className="font-mono text-xs text-primary hover:underline">{event.lead_id}</Link>    : null} />
+          <DetailRow label="Company ID"  value={event.company_id ? <Link href={`/${workspaceSlug}/companies/${event.company_id}`} className="font-mono text-xs text-primary hover:underline">{event.company_id}</Link> : null} />
+          <DetailRow label="Contact ID"  value={event.contact_id ? <Link href={`/${workspaceSlug}/contacts/${event.contact_id}`}  className="font-mono text-xs text-primary hover:underline">{event.contact_id}</Link> : null} />
           <DetailRow
             label="Capture ID"
             value={

@@ -213,6 +213,25 @@ export async function getProposalEventById(
   return data ?? null
 }
 
+// Soft-deletes a proposal event (sets deleted_at). Tenant/workspace-scoped with a
+// deleted_at IS NULL guard so a double-delete is a no-op. Mirrors softDeleteCapture.
+export async function softDeleteProposalEvent(
+  tenantId: string,
+  workspaceId: string,
+  eventId: string
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const { error } = await supabase
+    .from('proposal_events')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', eventId)
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .is('deleted_at', null)
+
+  if (error) throw new Error(`softDeleteProposalEvent: ${error.message}`)
+}
+
 // Transitions a 'draft' hosted proposal to 'sent' and stamps proposal_sent_at.
 // Guarded by status='draft' so a double-submit cannot re-send / re-stamp an
 // already-sent proposal. Returns the updated row, or null if not in draft.
