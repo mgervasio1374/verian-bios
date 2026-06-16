@@ -6,6 +6,7 @@ import * as contactService from '@/modules/crm/services/contact.service'
 import * as companyScoreRepo from '@/modules/intelligence/repositories/company-score.repo'
 import * as recommendationRepo from '@/modules/intelligence/repositories/recommendation.repo'
 import * as companyDocService from '@/modules/artifacts/services/company-document.service'
+import * as activityEventRepo from '@/modules/intelligence/repositories/activity-event.repo'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Globe, Phone, FileText, ExternalLink } from 'lucide-react'
@@ -17,6 +18,7 @@ import { DeleteCompanyButton } from './DeleteCompanyButton'
 import { UploadDocumentForm } from './UploadDocumentForm'
 import { GenerateSavingsAnalysisForm } from './GenerateSavingsAnalysisForm'
 import { IngestStatementForm } from './IngestStatementForm'
+import { CompanyActivityTimeline } from './CompanyActivityTimeline'
 import { CompanySegmentsRow } from './CompanySegmentsRow'
 import { StopCampaignButton } from './StopCampaignButton'
 import { PauseCampaignButton, ResumeCampaignButton } from './PauseResumeCampaignButtons'
@@ -55,12 +57,13 @@ export default async function CompanyDetailPage({ params }: PageProps) {
   const supabase = await createSupabaseServerClient()
   const ctx = await buildRequestContext(supabase)
 
-  const [company, contacts, currentScore, currentRec, documents] = await Promise.all([
+  const [company, contacts, currentScore, currentRec, documents, activityEvents] = await Promise.all([
     companyService.getCompany(ctx, id).catch(() => null),
     contactService.listContacts(ctx, { companyId: id, limit: 20 }).catch(() => []),
     companyScoreRepo.getCurrentCompanyScore(id, ctx.tenantId, 'overall').catch(() => null),
     recommendationRepo.getLatestCompanyRecommendation(id, ctx.tenantId).catch(() => null),
     companyDocService.listDocumentsForCompany(id, ctx.tenantId, { limit: 10 }).catch(() => []),
+    activityEventRepo.listCompanyActivityEvents(ctx.tenantId, id, { limit: 30 }).catch(() => []),
   ])
 
   if (!company) notFound()
@@ -72,7 +75,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
   ])
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-6xl">
       {/* Header */}
       <div>
         <div className="flex items-start justify-between">
@@ -134,6 +137,10 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           />
         </div>
       </div>
+
+      {/* Two-column layout: existing content (left) + company activity rail (right) */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2 space-y-6">
 
       <div className="grid gap-4 md:grid-cols-2">
         {/* Company Info */}
@@ -412,6 +419,13 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           )}
         </CardContent>
       </Card>
+        </div>
+
+        {/* Right rail — company activity */}
+        <aside className="xl:col-span-1 xl:sticky xl:top-6 self-start">
+          <CompanyActivityTimeline events={activityEvents} />
+        </aside>
+      </div>
     </div>
   )
 }
