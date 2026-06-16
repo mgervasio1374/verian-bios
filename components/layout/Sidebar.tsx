@@ -87,6 +87,7 @@ export function Sidebar({ workspaceSlug }: SidebarProps) {
         { label: 'Artifacts',         href: `${base}/artifacts`,                icon: <FolderOpen className="h-4 w-4" /> },
         { label: 'Campaign Assets',    href: `${base}/settings/campaign-assets`,    icon: <BookOpen className="h-4 w-4" /> },
         { label: 'Campaign Sequences', href: `${base}/settings/campaign-sequences`, icon: <Layers className="h-4 w-4" /> },
+        { label: 'Campaign Types',     href: `${base}/settings/campaign-types`,     icon: <Layers className="h-4 w-4" /> },
         { label: 'Segments',           href: `${base}/settings/segments`,           icon: <Tags className="h-4 w-4" /> },
         { label: 'Voice Exemplars',    href: `${base}/settings/exemplars`,          icon: <Sparkles className="h-4 w-4" /> },
         { label: 'Email Signature',    href: `${base}/settings/email-signature`,    icon: <PenLine className="h-4 w-4" /> },

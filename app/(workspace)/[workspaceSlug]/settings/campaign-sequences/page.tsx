@@ -25,7 +25,7 @@ export default async function CampaignSequencesPage({ params }: PageProps) {
 
   const [sequences, types, senders, assets] = await Promise.all([
     listCampaignSequencesForWorkspace(ctx.tenantId, ctx.workspaceId).catch(() => []),
-    listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId }).catch(() => []),
+    listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId, status: 'active' }).catch(() => []),
     listSenderIdentities(ctx.tenantId).catch(() => []),
     listAssetsForWorkspace(ctx.tenantId, ctx.workspaceId).catch(() => []),
   ])

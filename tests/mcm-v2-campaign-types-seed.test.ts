@@ -80,13 +80,14 @@ describe('TC-CTS-07: both pages fetch listCampaignTypes + pass campaignTypes to 
   const detail = read('app/(workspace)/[workspaceSlug]/settings/campaign-assets/[assetId]/page.tsx')
   const list   = read('app/(workspace)/[workspaceSlug]/settings/campaign-assets/page.tsx')
   it('[assetId] page wires both branches', () => {
-    expect(detail).toContain('listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId })')
+    // A2 (mcm-v2-campaign-types-admin) added status: 'active' to these author picks.
+    expect(detail).toContain('listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId, status: \'active\' })')
     // both editor renders carry the prop
     const occurrences = (detail.match(/campaignTypes=\{types\.map/g) ?? []).length
     expect(occurrences).toBeGreaterThanOrEqual(2)
   })
   it('list page wires AiAssetDraftButton', () => {
-    expect(list).toContain('listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId })')
+    expect(list).toContain('listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId, status: \'active\' })')
     expect(list).toContain('campaignTypes={campaignTypes.map')
   })
 })

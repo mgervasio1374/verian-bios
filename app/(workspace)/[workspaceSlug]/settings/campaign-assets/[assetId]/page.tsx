@@ -32,7 +32,7 @@ export default async function CampaignAssetDetailPage({ params, searchParams }: 
     // Build ctx (the early return predated it) so the dropdown can read DB types.
     const supabase = await createSupabaseServerClient()
     const ctx      = await buildRequestContext(supabase)
-    const types    = await listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId }).catch(() => [])
+    const types    = await listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId, status: 'active' }).catch(() => [])
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">New Campaign Asset</h1>
@@ -69,7 +69,7 @@ export default async function CampaignAssetDetailPage({ params, searchParams }: 
       requiredFields:        (asset.required_fields as string[]) ?? [],
       fallbackValues:        (asset.fallback_values as Record<string, string>) ?? {},
     }
-    const types = await listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId }).catch(() => [])
+    const types = await listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId, status: 'active' }).catch(() => [])
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Edit Asset</h1>

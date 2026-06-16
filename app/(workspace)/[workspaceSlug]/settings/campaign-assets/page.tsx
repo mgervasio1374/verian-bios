@@ -24,7 +24,7 @@ export default async function CampaignAssetsPage({ params }: PageProps) {
 
   // Assets referenced by a sequence step are protected from hard delete.
   const referencedIds = [...await listAssetIdsReferencedBySteps(assets.map(a => a.id), ctx.tenantId).catch(() => new Set<string>())]
-  const campaignTypes = await listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId }).catch(() => [])
+  const campaignTypes = await listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId, status: 'active' }).catch(() => [])
 
   return (
     <div className="space-y-6">
