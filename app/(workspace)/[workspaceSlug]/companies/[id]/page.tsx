@@ -18,6 +18,7 @@ import { GenerateRecommendationButton } from './GenerateRecommendationButton'
 import { CompanyEditDialog } from './CompanyEditDialog'
 import { DeleteCompanyButton } from './DeleteCompanyButton'
 import { UploadDocumentForm } from './UploadDocumentForm'
+import { DeleteDocumentButton } from './DeleteDocumentButton'
 import { GenerateSavingsAnalysisForm } from './GenerateSavingsAnalysisForm'
 import { IngestStatementForm } from './IngestStatementForm'
 import { CompanyActivityTimeline } from './CompanyActivityTimeline'
@@ -421,6 +422,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
                         Open <ExternalLink className="h-3 w-3" />
                       </a>
                     )}
+                    <DeleteDocumentButton artifactId={doc.id} companyId={id} />
                   </div>
                 </div>
               ))}

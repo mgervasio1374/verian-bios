@@ -194,3 +194,17 @@ export async function archiveCompanyDocument(
 ): Promise<void> {
   return companyDocRepo.markCompanyDocumentArchived(artifactId, tenantId)
 }
+
+// Soft-deletes a document so it disappears from the Documents card. Verifies the
+// artifact belongs to the given company + tenant before deleting (the client id is
+// not trusted). Returns false when the artifact is missing or not in this company.
+export async function deleteCompanyDocument(
+  artifactId: string,
+  companyId:  string,
+  tenantId:   string
+): Promise<boolean> {
+  const artifact = await companyDocRepo.getCompanyDocumentById(artifactId, tenantId)
+  if (!artifact || artifact.company_id !== companyId) return false
+  await companyDocRepo.softDeleteCompanyDocument(artifactId, tenantId)
+  return true
+}

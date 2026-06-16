@@ -7,6 +7,7 @@ import { buildRequestContext } from '@/lib/auth/context'
 import { requirePermission } from '@/lib/auth/permissions'
 import * as companyService from '@/modules/crm/services/company.service'
 import { recordCompanyDocument } from '@/modules/artifacts/services/company-document.service'
+import { deleteCompanyDocument } from '@/modules/artifacts/services/company-document.service'
 import type { ActionResult } from '@/modules/crm/actions/company.actions'
 
 // Same whitelist and cap as the statement intake route
@@ -87,6 +88,34 @@ export async function uploadCompanyDocumentAction(
 
     revalidatePath('/[workspaceSlug]/companies/[id]', 'page')
     return { success: true, data: { artifactId: artifact.id } }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
+// Soft-deletes a document from a company's Documents card. Gated crm.companies.edit.
+// Ownership (artifact belongs to company+tenant) is verified server-side — the
+// client-supplied id is not trusted.
+export async function deleteCompanyDocumentAction(
+  artifactId: string,
+  companyId:  string,
+): Promise<ActionResult<{ artifactId: string }>> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx      = await buildRequestContext(supabase)
+    requirePermission(ctx, 'crm.companies.edit')
+
+    if (!artifactId || !companyId) {
+      return { success: false, error: 'invalid_input: artifactId and companyId are required' }
+    }
+
+    const ok = await deleteCompanyDocument(artifactId, companyId, ctx.tenantId)
+    if (!ok) {
+      return { success: false, error: 'not_found: document does not belong to this company' }
+    }
+
+    revalidatePath('/[workspaceSlug]/companies/[id]', 'page')
+    return { success: true, data: { artifactId } }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }

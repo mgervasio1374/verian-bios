@@ -128,6 +128,25 @@ export async function markCompanyDocumentArchived(
   if (error) throw new Error(`markCompanyDocumentArchived: ${error.message}`)
 }
 
+// Soft-deletes a document by setting deleted_at. Because every documents read
+// filters deleted_at IS NULL, this removes the doc from the card (a status-only
+// archive would NOT, since listCompanyDocuments doesn't filter on status).
+// Tenant-scoped with a deleted_at IS NULL guard so a double-delete is a no-op.
+export async function softDeleteCompanyDocument(
+  id: string,
+  tenantId: string
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const { error } = await supabase
+    .from('artifacts')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+    .is('deleted_at', null)
+
+  if (error) throw new Error(`softDeleteCompanyDocument: ${error.message}`)
+}
+
 // ---- Signed URLs ----
 
 // Generates a short-lived (1-hour) signed URL for a single artifact.
