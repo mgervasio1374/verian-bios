@@ -142,7 +142,7 @@ export default async function AgentMonitorPage({ params }: PageProps) {
       </div>
 
       {/* All-agents roster + expected-vs-actual anomaly */}
-      {roster && <AgentRosterSection data={roster} />}
+      {roster && <AgentRosterSection data={roster} workspaceSlug={workspaceSlug} />}
 
       {/* System Controls (read-only) */}
       <Card>

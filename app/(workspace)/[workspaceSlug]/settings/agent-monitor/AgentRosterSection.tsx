@@ -1,34 +1,14 @@
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AlertTriangle } from 'lucide-react'
 import type { AgentRosterData } from '@/modules/intelligence/actions/agent-monitor.actions'
-import type { AgentImplState, AgentRosterCategory } from '@/modules/intelligence/agent-roster'
+import {
+  IMPL_VARIANT, IMPL_LABEL, CATEGORY_LABEL, CATEGORY_ORDER,
+  fmtDate, fmtTokens, fmtCost,
+} from './agent-roster-format'
 
-const IMPL_VARIANT: Record<AgentImplState, 'default' | 'secondary' | 'outline'> = {
-  live: 'default', gated: 'secondary', skeletal: 'outline', definition_only: 'outline', stub: 'outline',
-}
-const IMPL_LABEL: Record<AgentImplState, string> = {
-  live: 'live', gated: 'gated', skeletal: 'skeletal', definition_only: 'defined', stub: 'stub',
-}
-const CATEGORY_LABEL: Record<AgentRosterCategory, string> = {
-  messaging: 'Messaging', business_intelligence: 'Business intel',
-  policy_safety: 'Policy / safety', development: 'Development', execution: 'Execution',
-}
-const CATEGORY_ORDER: AgentRosterCategory[] = [
-  'messaging', 'business_intelligence', 'policy_safety', 'development', 'execution',
-]
-
-function fmtDate(iso: string | null): string {
-  if (!iso) return 'never'
-  return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
-function fmtTokens(n: number): string {
-  if (n <= 0) return '—'
-  return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n)
-}
-function fmtCost(n: number): string { return n > 0 ? `$${n.toFixed(2)}` : '—' }
-
-export function AgentRosterSection({ data }: { data: AgentRosterData }) {
+export function AgentRosterSection({ data, workspaceSlug }: { data: AgentRosterData; workspaceSlug: string }) {
   const { rows, anomalyRows, leadsIngested, windowDays } = data
 
   return (
@@ -74,7 +54,12 @@ export function AgentRosterSection({ data }: { data: AgentRosterData }) {
                 ...catRows.map(r => (
                   <tr key={r.key} className={`border-b last:border-0 ${r.anomaly ? 'bg-amber-50' : ''}`}>
                     <td className="p-2">
-                      <span className="font-medium">{r.label}</span>
+                      <Link
+                        href={`/${workspaceSlug}/settings/agent-monitor/agent/${r.key}`}
+                        className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {r.label}
+                      </Link>
                       {r.anomaly && <AlertTriangle className="inline h-3.5 w-3.5 ml-1.5 text-amber-600" />}
                     </td>
                     <td className="p-2">

@@ -1,0 +1,176 @@
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { buildRequestContext } from '@/lib/auth/context'
+import { requirePermission } from '@/lib/auth/permissions'
+import { getAgentProfileData } from '@/modules/intelligence/actions/agent-monitor.actions'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { ArrowLeft, ArrowRight, Bot } from 'lucide-react'
+import {
+  IMPL_VARIANT, IMPL_LABEL, CATEGORY_LABEL,
+  fmtDate, fmtTokens, fmtCost,
+} from '../../agent-roster-format'
+
+interface PageProps {
+  params: Promise<{ workspaceSlug: string; agentKey: string }>
+}
+
+const STATUS_VARIANT: Record<string, 'default' | 'destructive' | 'secondary' | 'outline'> = {
+  completed: 'default',
+  failed:    'destructive',
+  killed:    'destructive',
+  running:   'secondary',
+  cancelled: 'outline',
+}
+
+const STATUS_DOT: Record<string, string> = {
+  completed: 'bg-green-500',
+  failed:    'bg-red-500',
+  killed:    'bg-red-700',
+  running:   'bg-blue-500 animate-pulse',
+  cancelled: 'bg-gray-400',
+}
+
+export default async function AgentProfilePage({ params }: PageProps) {
+  const { workspaceSlug, agentKey } = await params
+  const supabase = await createSupabaseServerClient()
+  const ctx = await buildRequestContext(supabase)
+  requirePermission(ctx, 'crm.companies.view')
+
+  const profile = await getAgentProfileData(ctx.tenantId, agentKey)
+  if (!profile) notFound()
+
+  const { row, recentRuns, windowDays } = profile
+  const { agg, hasTelemetry } = row
+  const monitorBase = `/${workspaceSlug}/settings/agent-monitor`
+
+  return (
+    <div className="space-y-6 max-w-5xl">
+      {/* Back link */}
+      <Link href={monitorBase} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="h-4 w-4" /> Agent Monitor
+      </Link>
+
+      {/* Header */}
+      <div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Bot className="h-6 w-6 text-muted-foreground" />
+          <h1 className="text-2xl font-bold">{row.label}</h1>
+          <Badge variant={IMPL_VARIANT[row.implState]} className="text-xs">{IMPL_LABEL[row.implState]}</Badge>
+        </div>
+        <div className="flex items-center gap-3 mt-1.5 text-sm text-muted-foreground flex-wrap">
+          <span>{CATEGORY_LABEL[row.category]}</span>
+          <span>·</span>
+          <span className="font-mono text-xs">{row.key}</span>
+          <span>·</span>
+          <span>
+            Telemetry:{' '}
+            {row.telemetryNames.length > 0
+              ? <span className="font-mono text-xs">{row.telemetryNames.join(', ')}</span>
+              : <span className="italic">none</span>}
+          </span>
+        </div>
+      </div>
+
+      {/* Aggregate (windowed) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Activity — last {windowDays} days</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {hasTelemetry ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <Metric label="Runs"        value={String(agg.runs)} />
+              <Metric label="Completed"   value={String(agg.completed)} color="text-green-600" />
+              <Metric label="Failed"      value={String(agg.failed)} color={agg.failed > 0 ? 'text-destructive' : undefined} />
+              <Metric label="Decisions"   value={String(agg.decisions)} />
+              <Metric label="Total tokens" value={fmtTokens(agg.totalTokens)} />
+              <Metric label="Cost"        value={fmtCost(agg.costUsd)} />
+              <Metric label="Last run"    value={fmtDate(agg.lastRunAt)} />
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              This agent is registered but not yet instrumented (state: {IMPL_LABEL[row.implState]}).
+              No runs, decisions, or token usage are recorded.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Recent runs (most recent 25, NOT window-bounded) */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm">Recent Runs</CardTitle>
+            <span className="text-xs text-muted-foreground">most recent {recentRuns.length} (up to 25, all time)</span>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {recentRuns.length === 0 ? (
+            <p className="p-6 text-sm text-muted-foreground">
+              {hasTelemetry
+                ? 'No runs recorded for this agent yet.'
+                : 'This agent does not log runs.'}
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b text-muted-foreground">
+                    <th className="px-4 py-2.5 text-left font-medium">Status</th>
+                    <th className="px-4 py-2.5 text-left font-medium">Agent</th>
+                    <th className="px-4 py-2.5 text-left font-medium">Type</th>
+                    <th className="px-4 py-2.5 text-left font-medium">Subject</th>
+                    <th className="px-4 py-2.5 text-left font-medium">Trigger</th>
+                    <th className="px-4 py-2.5 text-left font-medium">Started</th>
+                    <th className="px-4 py-2.5 text-left font-medium"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {recentRuns.map(run => {
+                    const subjectLabel = run.subject_id
+                      ? `${run.subject_type ?? '—'} · ${run.subject_id.slice(0, 8)}…`
+                      : run.subject_type ?? '—'
+                    return (
+                      <tr key={run.id} className="hover:bg-muted/30">
+                        <td className="px-4 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`h-2 w-2 rounded-full shrink-0 ${STATUS_DOT[run.status] ?? 'bg-gray-400'}`} />
+                            <Badge variant={STATUS_VARIANT[run.status] ?? 'outline'}>{run.status}</Badge>
+                          </div>
+                        </td>
+                        <td className="px-4 py-2 font-mono">{run.agent_name}</td>
+                        <td className="px-4 py-2 text-muted-foreground">{run.run_type ?? '—'}</td>
+                        <td className="px-4 py-2 max-w-[160px] truncate" title={run.subject_id ?? ''}>{subjectLabel}</td>
+                        <td className="px-4 py-2 text-muted-foreground">{run.trigger_source ?? '—'}</td>
+                        <td className="px-4 py-2 text-muted-foreground whitespace-nowrap">{fmtDate(run.started_at)}</td>
+                        <td className="px-4 py-2">
+                          <Link
+                            href={`/${workspaceSlug}/settings/agent-monitor/${run.id}`}
+                            className="flex items-center gap-0.5 text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            Trace <ArrowRight className="h-3 w-3" />
+                          </Link>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function Metric({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={`text-lg font-semibold tabular-nums mt-0.5 ${color ?? ''}`}>{value}</p>
+    </div>
+  )
+}

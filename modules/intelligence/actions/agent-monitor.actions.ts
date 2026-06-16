@@ -161,6 +161,45 @@ export async function getAgentRosterData(
   return { windowDays, rows, anomalyRows: anomalies(rows), leadsIngested: leadsIngested ?? 0 }
 }
 
+// ---- Per-agent profile page data ----
+
+export interface AgentProfileData {
+  row:        AgentRosterRow
+  recentRuns: AgentRunRow[]
+  windowDays: number
+}
+
+// Resolves one roster row by its key (e.g. copywriting_agent) and its recent runs
+// across all telemetry agent_names it logs under. Reuses getAgentRosterData (the
+// canonical windowed aggregation) and listAgentRuns (most-recent-N, not window-
+// bounded). Returns null when the key is not a known roster entry (page → 404).
+// No permission check here — the caller (page) gates, matching getAgentRosterData.
+export async function getAgentProfileData(
+  tenantId:   string,
+  agentKey:   string,
+  windowDays: number = 7,
+): Promise<AgentProfileData | null> {
+  const { rows } = await getAgentRosterData(tenantId, windowDays)
+  const row = rows.find(r => r.key === agentKey)
+  if (!row) return null
+
+  // Fetch recent runs per telemetry name, flatten, sort newest-first, cap at 25.
+  // Uninstrumented agents (telemetryNames: []) yield an empty array — no runs.
+  const perName = await Promise.all(
+    row.telemetryNames.map(n => agentRunRepo.listAgentRuns(tenantId, { agentName: n, limit: 25 })),
+  )
+  const recentRuns = perName
+    .flat()
+    .sort((a, b) => {
+      const ta = a.started_at ? new Date(a.started_at).getTime() : 0
+      const tb = b.started_at ? new Date(b.started_at).getTime() : 0
+      return tb - ta
+    })
+    .slice(0, 25)
+
+  return { row, recentRuns, windowDays }
+}
+
 // ---- Detail page data ----
 
 export interface AgentRunFullTrace {
