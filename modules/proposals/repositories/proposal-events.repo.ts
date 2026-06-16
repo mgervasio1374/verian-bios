@@ -2,6 +2,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import type { Database } from '@/types/database'
 
 type ProposalEventRow = Database['public']['Tables']['proposal_events']['Row']
+export type { ProposalEventRow }
 type ProposalEventInsert = Database['public']['Tables']['proposal_events']['Insert']
 
 export type ProposalStatus = 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired' | 'withdrawn'
@@ -86,6 +87,29 @@ export async function getOpenProposalEventForLead(
     .maybeSingle()
 
   return data ?? null
+}
+
+// All non-deleted proposal events for a company (newest first), for the company
+// detail Proposals card.
+export async function listProposalEventsForCompany(
+  tenantId: string,
+  workspaceId: string,
+  companyId: string,
+  opts: { limit?: number } = {}
+): Promise<ProposalEventRow[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('proposal_events')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .eq('company_id', companyId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(opts.limit ?? 20)
+
+  if (error) throw new Error(`listProposalEventsForCompany: ${error.message}`)
+  return data ?? []
 }
 
 // Public lookup by unguessable share token. Service-role read; only returns a

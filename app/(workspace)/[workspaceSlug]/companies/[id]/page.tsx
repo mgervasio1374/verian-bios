@@ -7,6 +7,7 @@ import * as companyScoreRepo from '@/modules/intelligence/repositories/company-s
 import * as recommendationRepo from '@/modules/intelligence/repositories/recommendation.repo'
 import * as companyDocService from '@/modules/artifacts/services/company-document.service'
 import * as activityEventRepo from '@/modules/intelligence/repositories/activity-event.repo'
+import { listProposalEventsForCompany } from '@/modules/proposals/repositories/proposal-events.repo'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Globe, Phone, FileText, ExternalLink } from 'lucide-react'
@@ -19,6 +20,7 @@ import { UploadDocumentForm } from './UploadDocumentForm'
 import { GenerateSavingsAnalysisForm } from './GenerateSavingsAnalysisForm'
 import { IngestStatementForm } from './IngestStatementForm'
 import { CompanyActivityTimeline } from './CompanyActivityTimeline'
+import { ProposalsCard } from '../../components/ProposalsCard'
 import { CompanySegmentsRow } from './CompanySegmentsRow'
 import { StopCampaignButton } from './StopCampaignButton'
 import { PauseCampaignButton, ResumeCampaignButton } from './PauseResumeCampaignButtons'
@@ -57,13 +59,14 @@ export default async function CompanyDetailPage({ params }: PageProps) {
   const supabase = await createSupabaseServerClient()
   const ctx = await buildRequestContext(supabase)
 
-  const [company, contacts, currentScore, currentRec, documents, activityEvents] = await Promise.all([
+  const [company, contacts, currentScore, currentRec, documents, activityEvents, proposals] = await Promise.all([
     companyService.getCompany(ctx, id).catch(() => null),
     contactService.listContacts(ctx, { companyId: id, limit: 20 }).catch(() => []),
     companyScoreRepo.getCurrentCompanyScore(id, ctx.tenantId, 'overall').catch(() => null),
     recommendationRepo.getLatestCompanyRecommendation(id, ctx.tenantId).catch(() => null),
     companyDocService.listDocumentsForCompany(id, ctx.tenantId, { limit: 10 }).catch(() => []),
     activityEventRepo.listCompanyActivityEvents(ctx.tenantId, id, { limit: 30 }).catch(() => []),
+    listProposalEventsForCompany(ctx.tenantId, ctx.workspaceId, id, { limit: 20 }).catch(() => []),
   ])
 
   if (!company) notFound()
@@ -329,6 +332,9 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           <GenerateSavingsAnalysisForm companyId={id} />
         </CardContent>
       </Card>
+
+      {/* Proposals — the company's proposal pipeline (status + savings + link) */}
+      <ProposalsCard proposals={proposals} workspaceSlug={workspaceSlug} />
 
       {/* Ingest Statement → Build Proposal — operator ingests an inbox statement
           against a contact-with-email; builds the draft proposal for Approve & Send */}
