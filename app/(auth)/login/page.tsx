@@ -16,7 +16,6 @@ export default async function LoginPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/brand/verian-logo.svg" alt="Verian" className="h-16 w-auto object-contain" />
           </div>
-          <p className="text-muted-foreground text-sm mt-1">Business Intelligence Operating System</p>
         </div>
         <LoginForm />
       </div>

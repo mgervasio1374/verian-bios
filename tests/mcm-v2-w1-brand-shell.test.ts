@@ -104,8 +104,8 @@ describe('TC-W1-03: favicon and login logo (source-read)', () => {
     // Login no longer uses the PNG or next/image.
     expect(src).not.toContain('/brand/verian-logo.png')
     expect(src).not.toContain("from 'next/image'")
-    // Single canonical tagline; the lockup already carries the VERIAN name.
-    expect(src).toContain('Business Intelligence Operating System')
+    // No tagline text; the lockup already carries the VERIAN name (BI tagline removed).
+    expect(src).not.toContain('Business Intelligence Operating System')
     expect(src).not.toContain('Verian BIOS')
   })
 })

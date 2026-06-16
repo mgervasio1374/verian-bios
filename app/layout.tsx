@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Verian BIOS",
-  description: "Business Intelligence Operating System",
+  description: "Verian",
 };
 
 export default function RootLayout({
