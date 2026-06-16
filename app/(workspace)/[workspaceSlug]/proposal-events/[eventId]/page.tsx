@@ -5,6 +5,9 @@ import { buildRequestContext } from '@/lib/auth/context'
 import { requirePermission } from '@/lib/auth/permissions'
 import { getProposalEventById } from '@/modules/proposals/repositories/proposal-events.repo'
 import { listCommitmentsForProposalEvent } from '@/modules/proposals/repositories/proposal-follow-up-commitments.repo'
+import * as contactRepo from '@/modules/crm/repositories/contact.repo'
+import { getDefaultSenderIdentity } from '@/modules/messaging/repositories/email-draft.repo'
+import { composeProposalEmail } from '@/modules/proposals/lib/proposal-email'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ProposalStatusControl } from './ProposalStatusControl'
@@ -70,6 +73,29 @@ export default async function ProposalEventDetailPage({ params }: PageProps) {
   const commitments = await listCommitmentsForProposalEvent(ctx.tenantId, ctx.workspaceId, eventId)
 
   const base = `/${workspaceSlug}/proposal-events`
+
+  // Merchant Email preview — built from the SAME composer that approveAndSendProposal
+  // uses, so what's shown here is byte-for-byte what the merchant receives. Resolution
+  // mirrors approve-send: company_name from metadata, first name from the contact,
+  // sender from the default identity. Skipped gracefully if there's no share token.
+  const previewMeta    = (event.metadata ?? {}) as Record<string, unknown>
+  const [previewContact, previewSender] = await Promise.all([
+    event.contact_id ? contactRepo.getContact(event.contact_id, ctx.tenantId).catch(() => null) : Promise.resolve(null),
+    getDefaultSenderIdentity(ctx.tenantId).catch(() => null),
+  ])
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://verian-bios.vercel.app').replace(/\/$/, '')
+  const emailPreview = event.share_token
+    ? {
+        toEmail: previewContact?.email ?? null,
+        publicUrl: `${appUrl}/p/${event.share_token}`,
+        ...composeProposalEmail({
+          companyName: typeof previewMeta.company_name === 'string' ? previewMeta.company_name : 'your business',
+          firstName:   previewContact?.first_name ?? 'there',
+          senderName:  previewSender?.name ?? '321 Swipe',
+          publicUrl:   `${appUrl}/p/${event.share_token}`,
+        }),
+      }
+    : null
 
   return (
     <div className="p-6 space-y-6 max-w-3xl">
@@ -160,6 +186,30 @@ export default async function ProposalEventDetailPage({ params }: PageProps) {
           )}
           <ApproveSendControl proposalEventId={event.id} />
         </div>
+      )}
+
+      {/* Merchant Email — read-only preview of exactly what gets sent on Approve & Send */}
+      {emailPreview && (
+        <Card>
+          <CardHeader><CardTitle>Merchant Email</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              This is what {emailPreview.toEmail ?? 'the merchant contact'} receives when you Approve &amp; Send.
+            </p>
+            <DetailRow label="To"      value={emailPreview.toEmail ?? <span className="text-muted-foreground">No contact email</span>} />
+            <DetailRow label="Subject" value={emailPreview.subject} />
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">Body</span>
+              <pre className="whitespace-pre-wrap rounded-md border bg-muted/30 p-3 text-sm font-sans leading-relaxed">
+                {emailPreview.textBody}
+              </pre>
+            </div>
+            <DetailRow
+              label="Proposal link"
+              value={<span className="font-mono text-xs break-all">{emailPreview.publicUrl}</span>}
+            />
+          </CardContent>
+        </Card>
       )}
 
       {/* Status Transition (open proposals only) */}

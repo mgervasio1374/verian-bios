@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { FileUp, Loader2, ExternalLink } from 'lucide-react'
+import { FileUp, Loader2, ExternalLink, Paperclip } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ingestStatementAction } from '@/modules/proposals/actions/statement-ingest.actions'
 
@@ -25,6 +25,7 @@ interface SuccessState {
 
 export function IngestStatementForm({ companyId, workspaceSlug, contacts }: Props) {
   const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
   const [contactId, setContactId] = useState(contacts[0]?.id ?? '')
   const [file, setFile] = useState<File | null>(null)
@@ -104,15 +105,32 @@ export function IngestStatementForm({ companyId, workspaceSlug, contacts }: Prop
             </select>
           </label>
 
-          <label className="text-xs font-medium">
+          <div className="text-xs font-medium">
             Statement file
             <input
+              ref={fileInputRef}
               type="file"
               accept=".pdf,.jpg,.jpeg,.png,.tiff,.csv,.xls,.xlsx"
               onChange={e => setFile(e.target.files?.[0] ?? null)}
-              className="mt-1 w-full text-sm"
+              className="hidden"
             />
-          </label>
+            <div className="mt-1 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 rounded border bg-background px-2.5 py-1.5 text-sm font-medium hover:bg-muted"
+              >
+                <Paperclip className="h-3.5 w-3.5" />
+                Choose statement file
+              </button>
+              <span className={`truncate text-sm ${file ? 'text-foreground' : 'text-muted-foreground'}`}>
+                {file ? file.name : 'No file chosen'}
+              </span>
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              PDF, image, CSV, or Excel. Up to 20 MB.
+            </p>
+          </div>
 
           <label className="text-xs font-medium">
             Monthly processing volume ($)

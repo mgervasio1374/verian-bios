@@ -8,6 +8,7 @@ import { SystemControlKey } from '@/modules/intelligence/types.agent'
 import { buildFollowUpCommitmentsFromRule, DEFAULT_SCHEDULE_RULE_KEY, getScheduleRule } from '@/modules/proposals/lib/schedule-rules'
 import { checkSendEligibility } from '@/modules/messaging/services/send-eligibility.service'
 import { buildComplianceFooter, appendFooter } from '@/modules/messaging/services/compliance-footer.service'
+import { composeProposalEmail } from '@/modules/proposals/lib/proposal-email'
 import type { RequestContext } from '@/types/context'
 
 export interface ApproveAndSendInput {
@@ -93,25 +94,14 @@ export async function approveAndSendProposal(
   const toName      = [contact?.first_name, contact?.last_name].filter(Boolean).join(' ') || null
   const firstName   = contact?.first_name ?? 'there'
 
-  const subject = `Your 321 Swipe savings analysis — ${companyName}`
-  const textBody =
-    `Hi ${firstName},\n\n` +
-    `We put together a savings analysis for ${companyName} based on your merchant processing statement. ` +
-    `You can view the full, interactive proposal here:\n\n${publicUrl}\n\n` +
-    `It walks through your current effective rate, your estimated savings under 321 Swipe's ` +
-    `transparent interchange-plus pricing, and what happens next. If you have any questions, ` +
-    `just reply or use the contact form on the page.\n\n` +
-    `Best,\n${senderIdentity?.name ?? '321 Swipe'}\n321 Swipe`
-  const htmlBody =
-    `<p>Hi ${firstName},</p>` +
-    `<p>We put together a savings analysis for <strong>${companyName}</strong> based on your ` +
-    `merchant processing statement.</p>` +
-    `<p><a href="${publicUrl}" style="display:inline-block;background:#2563eb;color:#fff;` +
-    `padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;">View your savings proposal</a></p>` +
-    `<p>It walks through your current effective rate, your estimated savings under 321 Swipe's ` +
-    `transparent interchange-plus pricing, and what happens next. If you have any questions, ` +
-    `just reply or use the contact form on the page.</p>` +
-    `<p>Best,<br>${senderIdentity?.name ?? '321 Swipe'}<br>321 Swipe</p>`
+  // Single-source composition (also drives the operator preview). Byte-identical
+  // to the prior inline strings.
+  const { subject, textBody, htmlBody } = composeProposalEmail({
+    companyName,
+    firstName,
+    senderName: senderIdentity?.name ?? '321 Swipe',
+    publicUrl,
+  })
 
   // CAN-SPAM compliance footer + List-Unsubscribe header at send time.
   const footer = buildComplianceFooter(ctx.tenantId, toEmail)
