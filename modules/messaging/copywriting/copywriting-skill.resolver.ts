@@ -22,9 +22,40 @@ import { getLearnedSkill, type LearnedSkillRow } from '@/modules/messaging/skill
 
 const COPYWRITING_FAMILY = 'copywriting'
 
-const VALID_CATEGORIES: ReadonlySet<string> = new Set([
-  'context', 'audience', 'positioning', 'tone', 'compliance',
-])
+// The categories parseDefinition accepts — exported so the editor's select offers
+// exactly these (an out-of-set category makes a learned row fail to resolve).
+export const COPYWRITING_SKILL_CATEGORIES = ['context', 'audience', 'positioning', 'tone', 'compliance'] as const
+
+const VALID_CATEGORIES: ReadonlySet<string> = new Set(COPYWRITING_SKILL_CATEGORIES)
+
+// Contract builder: produces a learned_skills.definition jsonb in the EXACT shape
+// parseDefinition reads. The editor and the round-trip test both use this so an
+// authored skill is guaranteed to resolve. (slug/version live in their own columns.)
+export interface CopywritingSkillDefinitionInput {
+  category:          string
+  toneRules:         string
+  messagingRules:    string
+  requiredElements:  string[]
+  forbiddenElements: string[]
+  ctaGuidance:       string
+  complianceNotes:   string
+  examples:          string[]
+  antiPatterns:      string[]
+}
+
+export function buildCopywritingSkillDefinition(input: CopywritingSkillDefinitionInput): Record<string, unknown> {
+  return {
+    category:          input.category,
+    toneRules:         input.toneRules,
+    messagingRules:    input.messagingRules,
+    requiredElements:  input.requiredElements,
+    forbiddenElements: input.forbiddenElements,
+    ctaGuidance:       input.ctaGuidance,
+    complianceNotes:   input.complianceNotes,
+    examples:          input.examples,
+    antiPatterns:      input.antiPatterns,
+  }
+}
 
 function isStringArray(v: unknown): v is string[] {
   return Array.isArray(v) && v.every(x => typeof x === 'string')

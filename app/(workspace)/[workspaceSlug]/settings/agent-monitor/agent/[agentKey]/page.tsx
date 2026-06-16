@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
-import { requirePermission } from '@/lib/auth/permissions'
+import { requirePermission, hasPermission } from '@/lib/auth/permissions'
 import { getAgentProfileData } from '@/modules/intelligence/actions/agent-monitor.actions'
 import { AGENT_SKILL_FAMILY } from '@/modules/intelligence/agent-workflows'
 import { getAllSkillDefinitions } from '@/modules/messaging/copywriting/copywriting-agent.skill-definitions'
@@ -10,6 +10,7 @@ import { listLearnedSkills } from '@/modules/messaging/skills/learned-skill.repo
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, ArrowRight, Bot } from 'lucide-react'
+import { LearnedSkillEditor } from './LearnedSkillEditor'
 import {
   IMPL_VARIANT, IMPL_LABEL, CATEGORY_LABEL,
   fmtDate, fmtTokens, fmtCost,
@@ -56,6 +57,9 @@ export default async function AgentProfilePage({ params }: PageProps) {
     ? await listLearnedSkills(ctx.tenantId, { family }).catch(() => [])
     : []
   const totalSkills = seedSkills.length + learnedSkills.length
+  // The editor is available only for the editable copywriting family + managers.
+  const canManage = hasPermission(ctx, 'messaging.manage_templates')
+  const skillsEditable = family === 'copywriting' && canManage
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -148,6 +152,19 @@ export default async function AgentProfilePage({ params }: PageProps) {
                 </div>
               ))}
             </div>
+          )}
+          {skillsEditable && (
+            <LearnedSkillEditor
+              learnedSkills={learnedSkills.map(s => ({
+                id:            s.id,
+                skill_slug:    s.skill_slug,
+                skill_version: s.skill_version,
+                category:      s.category,
+                status:        s.status,
+                source:        s.source,
+                definition:    s.definition,
+              }))}
+            />
           )}
         </CardContent>
       </Card>
