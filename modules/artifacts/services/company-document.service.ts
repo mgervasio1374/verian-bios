@@ -1,5 +1,6 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import * as companyDocRepo from '@/modules/artifacts/repositories/company-document.repo'
+import { recordActivityEvent } from '@/modules/intelligence/repositories/activity-event.repo'
 import { deriveDocumentSource } from '@/modules/artifacts/types'
 import type { ArtifactRow } from '@/modules/artifacts/repositories/company-document.repo'
 
@@ -60,7 +61,7 @@ export async function recordCompanyDocument(input: {
   metadata?:      Record<string, unknown>
   status?:        string
 }): Promise<ArtifactRow> {
-  return companyDocRepo.createCompanyDocument({
+  const artifact = await companyDocRepo.createCompanyDocument({
     tenant_id:       input.tenantId,
     workspace_id:    input.workspaceId    ?? null,
     company_id:      input.companyId,
@@ -77,6 +78,23 @@ export async function recordCompanyDocument(input: {
     status:          input.status         ?? 'active',
     is_latest:       true,
   })
+
+  // Company-scoped activity for the Company Activity panel (non-fatal).
+  await recordActivityEvent({
+    tenantId:     input.tenantId,
+    workspaceId:  input.workspaceId,
+    eventType:    'company_document_uploaded',
+    eventSource:  'company_document',
+    entityType:   'company',
+    entityId:     input.companyId,
+    companyId:    input.companyId,
+    leadId:       input.leadId,
+    contactId:    input.contactId,
+    eventSummary: `Document uploaded: ${input.name}`,
+    metadata:     { artifact_id: artifact.id, artifact_type: input.artifactType },
+  }).catch(() => null)
+
+  return artifact
 }
 
 // Sets company_id on a generated artifact (e.g., a proposal PDF created by an

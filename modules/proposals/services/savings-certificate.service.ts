@@ -5,6 +5,7 @@ import { generateProposalPdf } from '@/lib/pdf/proposal'
 import * as artifactService from '@/modules/artifacts/services/artifact.service'
 import { recordSavingsAnalysis } from '@/modules/proposals/repositories/savings-analysis.repo'
 import { createProposalEvent } from '@/modules/proposals/repositories/proposal-events.repo'
+import * as activityEventRepo from '@/modules/intelligence/repositories/activity-event.repo'
 import { generateShareToken } from '@/lib/proposals/share-token'
 import type { StatementAnalysis } from '@/lib/statement/analysis'
 import type { RequestContext } from '@/types/context'
@@ -125,6 +126,24 @@ export async function generateSavingsCertificate(
 
   const downloadUrl = await artifactService.getArtifactDownloadUrl(ctx, artifactId)
   const publicUrl   = `${appBaseUrl()}/p/${shareToken}`
+
+  // Company-scoped activity for the Company Activity panel (non-fatal).
+  const monthly = analysis.estimated_savings_monthly ?? 0
+  await activityEventRepo.recordActivityEvent({
+    tenantId:     ctx.tenantId,
+    workspaceId:  ctx.workspaceId,
+    eventType:    'savings_analysis_generated',
+    eventSource:  'savings_analysis',
+    entityType:   'company',
+    entityId:     input.companyId,
+    companyId:    input.companyId,
+    contactId:    input.contactId ?? undefined,
+    leadId:       input.leadId ?? undefined,
+    eventSummary: monthly > 0
+      ? `Savings analysis generated ($${monthly.toLocaleString('en-US', { maximumFractionDigits: 0 })}/mo)`
+      : 'Savings analysis generated',
+    metadata:     { proposal_event_id: proposalEvent.id, artifact_id: artifactId },
+  }).catch(() => null)
 
   return {
     artifactId,

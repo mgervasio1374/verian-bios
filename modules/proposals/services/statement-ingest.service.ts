@@ -11,6 +11,7 @@ import * as artifactService from '@/modules/artifacts/services/artifact.service'
 import { linkUploadedStatementToCompany } from '@/modules/artifacts/services/company-document.service'
 import { recordSavingsAnalysis } from '@/modules/proposals/repositories/savings-analysis.repo'
 import { createProposalEvent } from '@/modules/proposals/repositories/proposal-events.repo'
+import * as activityEventRepo from '@/modules/intelligence/repositories/activity-event.repo'
 import type { RequestContext } from '@/types/context'
 
 // Same whitelist + cap as the statement intake route / uploadCompanyDocumentAction.
@@ -217,6 +218,21 @@ export async function ingestStatementAndBuildProposal(
       generated_at:             new Date().toISOString(),
     },
   })
+
+  // Company-scoped activity for the Company Activity panel (non-fatal).
+  await activityEventRepo.recordActivityEvent({
+    tenantId:     ctx.tenantId,
+    workspaceId:  ctx.workspaceId,
+    eventType:    'statement_ingested',
+    eventSource:  'statement_ingest',
+    entityType:   'company',
+    entityId:     input.companyId,
+    companyId:    input.companyId,
+    contactId:    input.contactId,
+    leadId:       leadId ?? undefined,
+    eventSummary: 'Statement ingested and proposal drafted',
+    metadata:     { proposal_event_id: proposalEvent.id, statement_artifact_id: statementArtifact.id },
+  }).catch(() => null)
 
   return {
     proposalEventId:         proposalEvent.id,

@@ -22,6 +22,9 @@ const EVENT_LABELS: Record<string, string> = {
   QUALITY_REVIEW_COMPLETED:         'Quality review completed',
   MANUAL_CAMPAIGN_DRAFT_CREATED:    'Manual draft created',
   LEAD_STAGE_CHANGED:               'Stage changed',
+  savings_analysis_generated:       'Savings analysis generated',
+  statement_ingested:               'Statement ingested',
+  company_document_uploaded:        'Document uploaded',
 }
 
 const OUTCOME_COLORS: Record<string, string> = {
