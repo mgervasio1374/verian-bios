@@ -106,6 +106,48 @@ export async function getProposalEventByShareToken(
   return data ?? null
 }
 
+// Merges (or clears, when override is null) metadata.proposal_email_override on a
+// proposal_events row via read-modify-write of the metadata jsonb. Tenant/workspace
+// scoped. Returns the updated row, or null if the row doesn't exist.
+export async function setProposalEmailOverride(
+  tenantId: string,
+  workspaceId: string,
+  eventId: string,
+  override: { subject?: string | null; bodyText?: string | null } | null
+): Promise<ProposalEventRow | null> {
+  const supabase = createSupabaseServiceClient()
+
+  const { data: existing } = await supabase
+    .from('proposal_events')
+    .select('metadata')
+    .eq('id', eventId)
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .is('deleted_at', null)
+    .maybeSingle()
+  if (!existing) return null
+
+  const metadata = { ...((existing.metadata ?? {}) as Record<string, unknown>) }
+  if (override === null) {
+    delete metadata.proposal_email_override
+  } else {
+    metadata.proposal_email_override = override
+  }
+
+  const { data, error } = await supabase
+    .from('proposal_events')
+    .update({ metadata: metadata as ProposalEventInsert['metadata'], updated_at: new Date().toISOString() })
+    .eq('id', eventId)
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .is('deleted_at', null)
+    .select()
+    .maybeSingle()
+
+  if (error) throw new Error(`setProposalEmailOverride: ${error.message}`)
+  return data ?? null
+}
+
 export async function getProposalEventById(
   tenantId: string,
   workspaceId: string,

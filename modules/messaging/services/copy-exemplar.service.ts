@@ -5,12 +5,16 @@ import { NotFoundError } from '@/lib/auth/errors'
 import type { RequestContext } from '@/types/context'
 import type { CopyExemplarRow } from '@/modules/messaging/repositories/copy-exemplar.repo'
 
-// The four rewrite context skill slugs an authored exemplar may target.
+// Skill slugs an authored/captured exemplar may target. The first four are the
+// rewrite context slugs; 'proposal_send' is corpus-building only (captured from
+// the proposal email editor) — the rewrite loop never maps to it, so it does not
+// steer rewrite output.
 export const EXEMPLAR_SKILL_SLUGS = [
   'cold_outreach',
   'new_inquiry_response',
   'statement_review_follow_up',
   're_engagement',
+  'proposal_send',
 ] as const
 
 const MANAGE = 'messaging.manage_templates'

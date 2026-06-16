@@ -94,14 +94,21 @@ export async function approveAndSendProposal(
   const toName      = [contact?.first_name, contact?.last_name].filter(Boolean).join(' ') || null
   const firstName   = contact?.first_name ?? 'there'
 
-  // Single-source composition (also drives the operator preview). Byte-identical
-  // to the prior inline strings.
-  const { subject, textBody, htmlBody } = composeProposalEmail({
-    companyName,
-    firstName,
-    senderName: senderIdentity?.name ?? '321 Swipe',
-    publicUrl,
-  })
+  // Single-source composition (also drives the operator preview). Honors an
+  // operator override stored on the event (subject/body); no override → byte-
+  // identical to the default. The /p link is always guaranteed in the body.
+  const override = (metadata.proposal_email_override ?? null) as
+    | { subject?: string | null; bodyText?: string | null }
+    | null
+  const { subject, textBody, htmlBody } = composeProposalEmail(
+    {
+      companyName,
+      firstName,
+      senderName: senderIdentity?.name ?? '321 Swipe',
+      publicUrl,
+    },
+    override ?? undefined,
+  )
 
   // CAN-SPAM compliance footer + List-Unsubscribe header at send time.
   const footer = buildComplianceFooter(ctx.tenantId, toEmail)

@@ -10,6 +10,7 @@ const SKILLS: { slug: string; label: string }[] = [
   { slug: 'new_inquiry_response',       label: 'New inquiry response' },
   { slug: 'statement_review_follow_up', label: 'Statement review follow-up' },
   { slug: 're_engagement',              label: 'Re-engagement' },
+  { slug: 'proposal_send',              label: 'Proposal send email' },
 ]
 
 export function NewExemplarForm() {

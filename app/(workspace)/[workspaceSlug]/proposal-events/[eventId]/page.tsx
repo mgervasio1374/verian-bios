@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
-import { requirePermission } from '@/lib/auth/permissions'
+import { requirePermission, hasPermission } from '@/lib/auth/permissions'
 import { getProposalEventById } from '@/modules/proposals/repositories/proposal-events.repo'
 import { listCommitmentsForProposalEvent } from '@/modules/proposals/repositories/proposal-follow-up-commitments.repo'
 import * as contactRepo from '@/modules/crm/repositories/contact.repo'
@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ProposalStatusControl } from './ProposalStatusControl'
 import { ApproveSendControl } from './ApproveSendControl'
+import { MerchantEmailCard } from './MerchantEmailCard'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string; eventId: string }>
@@ -84,18 +85,32 @@ export default async function ProposalEventDetailPage({ params }: PageProps) {
     getDefaultSenderIdentity(ctx.tenantId).catch(() => null),
   ])
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://verian-bios.vercel.app').replace(/\/$/, '')
+  // Default composition (no override) + the stored override → the editable card
+  // resolves current = override ?? default, matching what approve-send sends.
+  const rawOverride = (previewMeta.proposal_email_override ?? null) as
+    | { subject?: string | null; bodyText?: string | null }
+    | null
   const emailPreview = event.share_token
-    ? {
-        toEmail: previewContact?.email ?? null,
-        publicUrl: `${appUrl}/p/${event.share_token}`,
-        ...composeProposalEmail({
+    ? (() => {
+        const publicUrl = `${appUrl}/p/${event.share_token}`
+        const def = composeProposalEmail({
           companyName: typeof previewMeta.company_name === 'string' ? previewMeta.company_name : 'your business',
           firstName:   previewContact?.first_name ?? 'there',
           senderName:  previewSender?.name ?? '321 Swipe',
-          publicUrl:   `${appUrl}/p/${event.share_token}`,
-        }),
-      }
+          publicUrl,
+        })
+        return {
+          toEmail:        previewContact?.email ?? null,
+          publicUrl,
+          defaultSubject: def.subject,
+          defaultBody:    def.textBody,
+          override:       rawOverride ? { subject: rawOverride.subject ?? null, bodyText: rawOverride.bodyText ?? null } : null,
+        }
+      })()
     : null
+  const isDraft   = event.proposal_status === 'draft'
+  const canEdit   = hasPermission(ctx, 'messaging.send_emails')
+  const canManage = hasPermission(ctx, 'messaging.manage_templates')
 
   return (
     <div className="p-6 space-y-6 max-w-3xl">
@@ -188,28 +203,19 @@ export default async function ProposalEventDetailPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Merchant Email — read-only preview of exactly what gets sent on Approve & Send */}
+      {/* Merchant Email — editable while draft; honored at Approve & Send */}
       {emailPreview && (
-        <Card>
-          <CardHeader><CardTitle>Merchant Email</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-xs text-muted-foreground">
-              This is what {emailPreview.toEmail ?? 'the merchant contact'} receives when you Approve &amp; Send.
-            </p>
-            <DetailRow label="To"      value={emailPreview.toEmail ?? <span className="text-muted-foreground">No contact email</span>} />
-            <DetailRow label="Subject" value={emailPreview.subject} />
-            <div className="space-y-1">
-              <span className="text-xs text-muted-foreground">Body</span>
-              <pre className="whitespace-pre-wrap rounded-md border bg-muted/30 p-3 text-sm font-sans leading-relaxed">
-                {emailPreview.textBody}
-              </pre>
-            </div>
-            <DetailRow
-              label="Proposal link"
-              value={<span className="font-mono text-xs break-all">{emailPreview.publicUrl}</span>}
-            />
-          </CardContent>
-        </Card>
+        <MerchantEmailCard
+          eventId={event.id}
+          toEmail={emailPreview.toEmail}
+          publicUrl={emailPreview.publicUrl}
+          defaultSubject={emailPreview.defaultSubject}
+          defaultBody={emailPreview.defaultBody}
+          override={emailPreview.override}
+          isDraft={isDraft}
+          canEdit={canEdit}
+          canManage={canManage}
+        />
       )}
 
       {/* Status Transition (open proposals only) */}

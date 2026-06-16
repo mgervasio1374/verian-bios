@@ -125,6 +125,16 @@ describe('TC-CE-04: createExemplar persists with source authored', () => {
   })
 })
 
+describe('TC-CE-04b: createExemplar accepts the proposal_send slug', () => {
+  beforeEach(() => vi.clearAllMocks())
+  it('persists an authored copy_exemplar with skill_slug proposal_send', async () => {
+    await createExemplar(adminCtx, { skillSlug: 'proposal_send', subject: 'Proposal subject', body: 'Proposal body' })
+    const arg = vi.mocked(exemplarRepo.insertExemplar).mock.calls[0][0]
+    expect(arg.skill_slug).toBe('proposal_send')
+    expect(arg.source).toBe('authored')
+  })
+})
+
 describe('TC-CE-05: promoteVersionToExemplar derives skill from metadata', () => {
   beforeEach(() => vi.clearAllMocks())
   it('cold_outreach context → cold_outreach slug, source promoted, source_version_id set', async () => {

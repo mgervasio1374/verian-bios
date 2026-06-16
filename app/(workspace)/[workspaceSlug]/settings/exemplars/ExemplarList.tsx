@@ -11,6 +11,7 @@ const SKILL_LABELS: Record<string, string> = {
   new_inquiry_response:       'New inquiry response',
   statement_review_follow_up: 'Statement review follow-up',
   re_engagement:              'Re-engagement',
+  proposal_send:              'Proposal send email',
 }
 
 export function ExemplarList({ exemplars }: { exemplars: CopyExemplarRow[] }) {
