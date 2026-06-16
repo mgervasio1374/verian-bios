@@ -21,10 +21,45 @@ export interface RecordActivityEventInput {
   occurredAt?: string
 }
 
+// Best-effort: derive the company from a lead (preferred) or contact when the
+// caller didn't supply one. A failed lookup returns null so the insert proceeds
+// with company_id null — never throws. This makes every lead-/contact-scoped
+// event (sends, drafts, campaign lifecycle) company-discoverable from one place.
+async function deriveCompanyId(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  tenantId: string,
+  leadId?: string,
+  contactId?: string,
+): Promise<string | null> {
+  try {
+    if (leadId) {
+      const { data } = await supabase
+        .from('leads').select('company_id').eq('id', leadId).eq('tenant_id', tenantId).maybeSingle()
+      if (data?.company_id) return data.company_id
+    }
+    if (contactId) {
+      const { data } = await supabase
+        .from('contacts').select('company_id').eq('id', contactId).eq('tenant_id', tenantId).maybeSingle()
+      if (data?.company_id) return data.company_id
+    }
+  } catch {
+    // non-fatal — fall through to null
+  }
+  return null
+}
+
 export async function recordActivityEvent(
   input: RecordActivityEventInput
 ): Promise<ActivityEventRow> {
   const supabase = createSupabaseServiceClient()
+
+  // Derive company_id only when the caller didn't provide one and a lead/contact is.
+  const companyId = input.companyId
+    ?? (input.leadId || input.contactId
+      ? await deriveCompanyId(supabase, input.tenantId, input.leadId, input.contactId)
+      : null)
+
   const row = {
     tenant_id:     input.tenantId,
     workspace_id:  input.workspaceId  ?? null,
@@ -34,7 +69,7 @@ export async function recordActivityEvent(
     entity_id:     input.entityId     ?? null,
     event_summary: input.eventSummary ?? null,
     contact_id:    input.contactId    ?? null,
-    company_id:    input.companyId    ?? null,
+    company_id:    companyId          ?? null,
     lead_id:       input.leadId       ?? null,
     properties:    input.properties   ?? {},
     metadata:      input.metadata     ?? {},

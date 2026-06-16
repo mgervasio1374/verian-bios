@@ -164,6 +164,7 @@ export async function createCampaignAssignment(
     entityType:  'campaign_assignment',
     entityId:    row.id,
     leadId:      input.leadId,
+    contactId:   input.contactId,
     eventSummary: `Campaign assignment created: ${input.campaignType} (${assignment_status})`,
     metadata: {
       assignment_id:    row.id,

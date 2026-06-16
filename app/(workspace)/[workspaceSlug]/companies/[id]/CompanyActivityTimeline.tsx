@@ -28,6 +28,7 @@ const EVENT_LABELS: Record<string, string> = {
   savings_analysis_generated:       'Savings analysis generated',
   statement_ingested:               'Statement ingested',
   company_document_uploaded:        'Document uploaded',
+  proposal_created:                 'Proposal created',
 }
 
 const OUTCOME_COLORS: Record<string, string> = {
