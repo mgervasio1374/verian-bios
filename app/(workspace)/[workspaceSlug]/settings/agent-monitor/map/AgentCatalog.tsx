@@ -147,7 +147,7 @@ export function AgentCatalog({ agents, workspaceSlug, workflows }: Props) {
 
                       {/* Links: skills + traces, both into the agent profile */}
                       <div className="flex items-center gap-3 mt-2.5">
-                        <Link href={profileHref} className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800">
+                        <Link href={`${profileHref}#skills`} className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800">
                           <Sparkles className="h-3 w-3" />
                           {a.skillCount > 0 ? `${a.skillCount} skill${a.skillCount === 1 ? '' : 's'}` : 'no skills yet'}
                         </Link>

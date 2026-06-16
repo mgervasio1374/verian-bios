@@ -4,6 +4,9 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import { requirePermission } from '@/lib/auth/permissions'
 import { getAgentProfileData } from '@/modules/intelligence/actions/agent-monitor.actions'
+import { AGENT_SKILL_FAMILY } from '@/modules/intelligence/agent-workflows'
+import { getAllSkillDefinitions } from '@/modules/messaging/copywriting/copywriting-agent.skill-definitions'
+import { listLearnedSkills } from '@/modules/messaging/skills/learned-skill.repo'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, ArrowRight, Bot } from 'lucide-react'
@@ -45,12 +48,27 @@ export default async function AgentProfilePage({ params }: PageProps) {
   const { agg, hasTelemetry } = row
   const monitorBase = `/${workspaceSlug}/settings/agent-monitor`
 
+  // Skills: the curated seed (copywriting only today) + this tenant's learned rows
+  // for the agent's family. Best-effort — never break the profile.
+  const family = AGENT_SKILL_FAMILY[agentKey]
+  const seedSkills = family === 'copywriting' ? getAllSkillDefinitions() : []
+  const learnedSkills = family
+    ? await listLearnedSkills(ctx.tenantId, { family }).catch(() => [])
+    : []
+  const totalSkills = seedSkills.length + learnedSkills.length
+
   return (
     <div className="space-y-6 max-w-5xl">
-      {/* Back link */}
-      <Link href={monitorBase} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Agent Monitor
-      </Link>
+      {/* Back row — both Agent Monitor and Agent Map are reachable without a detour */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href={monitorBase} className="inline-flex items-center gap-1 hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" /> Agent Monitor
+        </Link>
+        <span>·</span>
+        <Link href={`${monitorBase}/map`} className="hover:text-foreground">
+          Agent Map
+        </Link>
+      </div>
 
       {/* Header */}
       <div>
@@ -94,6 +112,42 @@ export default async function AgentProfilePage({ params }: PageProps) {
               This agent is registered but not yet instrumented (state: {IMPL_LABEL[row.implState]}).
               No runs, decisions, or token usage are recorded.
             </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Skills (read-only). #skills anchor lets the Agent Map deep-link here. */}
+      <Card id="skills">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm">Skills</CardTitle>
+            <span className="text-xs text-muted-foreground">
+              {totalSkills > 0 ? `${totalSkills} total` : ''}
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {totalSkills === 0 ? (
+            <p className="text-sm text-muted-foreground">No skills defined for this agent yet.</p>
+          ) : (
+            <div className="divide-y">
+              {seedSkills.map(s => (
+                <div key={`seed-${s.skillSlug}-${s.skillVersion}`} className="flex items-center gap-2 py-2 first:pt-0 last:pb-0 flex-wrap">
+                  <span className="font-mono text-xs">{s.skillSlug}</span>
+                  <span className="text-xs text-muted-foreground">v{s.skillVersion}</span>
+                  <Badge variant="outline" className="text-xs">{s.category}</Badge>
+                  <Badge variant="secondary" className="text-xs">seed</Badge>
+                </div>
+              ))}
+              {learnedSkills.map(s => (
+                <div key={`learned-${s.id}`} className="flex items-center gap-2 py-2 first:pt-0 last:pb-0 flex-wrap">
+                  <span className="font-mono text-xs">{s.skill_slug}</span>
+                  <span className="text-xs text-muted-foreground">v{s.skill_version}</span>
+                  <Badge variant="outline" className="text-xs">{s.source}</Badge>
+                  <Badge variant={s.status === 'active' ? 'default' : 'secondary'} className="text-xs">{s.status}</Badge>
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
