@@ -49,6 +49,14 @@ const CONTROL_WARNINGS: Record<string, string> = {
     'Requires follow_up_accountability_enabled to be active.',
   'follow_up_escalations_enabled':
     'Requires follow_up_accountability_enabled to be active.',
+  'statement_review_agent_enabled':
+    'Advisory, deterministic (no LLM/token cost). Writes a plausibility review of each statement analysis on ingest/certificate generation.',
+  'copywriting_agent_llm_enabled':
+    'Spends OpenRouter tokens on user-triggered copy generation/rewrites. No background loop.',
+  'quality_auto_approve_enabled':
+    'Lets MCM drafts scoring ≥85 with learning confidence auto-approve (still send-gated). Enable only when you want hands-off first-touch approval.',
+  'agent_action_enforcement_enabled':
+    'Switches agent action-contract checks from advisory to fail-closed. BASE_BLOCKED is always enforced regardless.',
 }
 
 const CONTROL_GROUP_DEFINITIONS = [
@@ -93,6 +101,17 @@ const CONTROL_GROUP_DEFINITIONS = [
       'agent.statement_classifier.enabled',
       'agent.proposal_builder.enabled',
       'agent.company_scoring.enabled',
+    ],
+  },
+  {
+    group:       'Learning & Automation Controls',
+    description: 'Advisory learning-loop and automation agents. Off by default; enabling spends LLM tokens only where noted.',
+    isFuture:    false,
+    keys: [
+      'statement_review_agent_enabled',
+      'copywriting_agent_llm_enabled',
+      'quality_auto_approve_enabled',
+      'agent_action_enforcement_enabled',
     ],
   },
 ] as const
@@ -182,9 +201,23 @@ export async function getSystemControlsAction(): Promise<ActionResult<ControlGro
 
 // ---- Write ----
 
-// Toggles a boolean system control value.
-// Only updates the `value` field — never touches `is_enabled`.
-// Requires tenant_admin or platform_admin role.
+// Humanizes a control key for the NOT-NULL label column on first upsert.
+// e.g. 'statement_review_agent_enabled' → 'Statement Review Agent'.
+function humanizeControlKey(key: string): string {
+  return key
+    .replace(/_enabled$/, '')
+    .replace(/\./g, ' ')
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+}
+
+// Toggles a boolean system control value, TENANT-scoped (tenant_id = ctx.tenantId).
+// Writes BOTH is_enabled and value to `value` (ON → both true, OFF → both false) so
+// getBooleanControl — which requires both — reliably reflects the toggle even for
+// never-seeded controls. resolveSystemControl already prefers the tenant row, so the
+// runtime read path needs no change. Requires tenant_admin or platform_admin role.
 export async function updateSystemControlValueAction(
   key:   string,
   value: boolean
@@ -205,12 +238,17 @@ export async function updateSystemControlValueAction(
     const existing = await systemControlRepo.resolveSystemControl(key, ctx.tenantId)
     const previousValue = typeof existing?.value === 'boolean' ? existing.value : null
 
-    // Update the platform-level row (tenant_id IS NULL)
-    await systemControlRepo.setControlValue(
+    // Upsert a TENANT-scoped row with both flags set from `value`. Supplies the
+    // NOT-NULL label (preferring an existing row's label) + a generic description.
+    await systemControlRepo.upsertTenantBooleanControl(
       key as SystemControlKey,
       value,
-      null,
-      ctx.userId === 'system' ? null : ctx.userId
+      ctx.tenantId,
+      {
+        label:       existing?.label ?? humanizeControlKey(key),
+        description: existing?.description ?? 'Set from the System Controls UI.',
+        updatedBy:   ctx.userId === 'system' ? null : ctx.userId,
+      },
     )
 
     // Activity event (non-fatal if it fails)

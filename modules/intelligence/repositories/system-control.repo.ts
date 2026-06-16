@@ -118,6 +118,37 @@ export async function setControlValue(
   if (error) throw new Error(`setControlValue: ${error.message}`)
 }
 
+// Upserts a TENANT-scoped boolean control (tenant_id = tenantId), setting BOTH
+// is_enabled and value to `value` so getBooleanControl (which requires both true)
+// reliably reflects the toggle: ON → both true, OFF → both false. Supplies the
+// NOT-NULL label/description columns required on insert. On conflict (tenant_id,
+// key) it updates the existing tenant row. Used by the System Controls UI toggle.
+export async function upsertTenantBooleanControl(
+  key: SystemControlKey | string,
+  value: boolean,
+  tenantId: string,
+  meta: { label: string; description: string; updatedBy?: string | null },
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const { error } = await supabase
+    .from('system_controls')
+    .upsert(
+      {
+        tenant_id:   tenantId,
+        key,
+        label:       meta.label,
+        description: meta.description,
+        value,
+        is_enabled:  value,
+        scope:       'tenant',
+        updated_by:  meta.updatedBy ?? null,
+      },
+      { onConflict: 'tenant_id,key' },
+    )
+
+  if (error) throw new Error(`upsertTenantBooleanControl: ${error.message}`)
+}
+
 export async function setIsEnabled(
   key: SystemControlKey | string,
   isEnabled: boolean,
