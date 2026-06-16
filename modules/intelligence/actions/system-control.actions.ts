@@ -57,6 +57,8 @@ const CONTROL_WARNINGS: Record<string, string> = {
     'Lets MCM drafts scoring ≥85 with learning confidence auto-approve (still send-gated). Enable only when you want hands-off first-touch approval.',
   'agent_action_enforcement_enabled':
     'Switches agent action-contract checks from advisory to fail-closed. BASE_BLOCKED is always enforced regardless.',
+  'learned_skills_enabled':
+    'When on, per-tenant authored copywriting skills override the built-in seed in the rewrite loop. Falls back to the seed when none are authored.',
 }
 
 const CONTROL_GROUP_DEFINITIONS = [
@@ -112,6 +114,7 @@ const CONTROL_GROUP_DEFINITIONS = [
       'copywriting_agent_llm_enabled',
       'quality_auto_approve_enabled',
       'agent_action_enforcement_enabled',
+      'learned_skills_enabled',
     ],
   },
 ] as const

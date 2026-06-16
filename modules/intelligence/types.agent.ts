@@ -117,6 +117,10 @@ export const SystemControlKey = {
   // MCM v2 Phase 1a — text-first statement figure extraction agent (LLM over the
   // PDF text layer). Advisory; disabled by default → never runs until flipped.
   STATEMENT_EXTRACTION_AGENT_ENABLED:      'statement_extraction_agent_enabled',
+
+  // MCM v2 Agent Map 3b — consume per-tenant authored learned copywriting skills in
+  // the rewrite loop (resolveCopywritingSkill). Default OFF → static seed lookup.
+  LEARNED_SKILLS_ENABLED:                  'learned_skills_enabled',
 } as const
 export type SystemControlKey = typeof SystemControlKey[keyof typeof SystemControlKey]
 

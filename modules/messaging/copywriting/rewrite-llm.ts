@@ -15,6 +15,9 @@
 
 import { chatComplete } from '@/lib/llm/client'
 import { getSkillDefinition } from './copywriting-agent.skill-definitions'
+import { resolveCopywritingSkill } from './copywriting-skill.resolver'
+import { getBooleanControl } from '@/modules/intelligence/repositories/system-control.repo'
+import { SystemControlKey } from '@/modules/intelligence/types.agent'
 import { GLOBAL_BANNED_PHRASES } from './copywriting-agent.types'
 import { applyHouseStyle } from '@/modules/messaging/house-style'
 import { violatesMessageTruth } from '@/modules/messaging/services/email-message-strategy.service'
@@ -92,7 +95,16 @@ export async function generateLlmRewriteCandidates(
     const count = params.count ?? 4
 
     const skillSlug = mapRelationshipToSkillSlug(params.relationshipContext)
-    const skill = getSkillDefinition(skillSlug, 1)
+    // Learned-skills consumption (LEARNED_SKILLS_ENABLED, default OFF):
+    //   off → today's static seed lookup (behavior unchanged);
+    //   on  → DB-resolved (tenant → global → seed), with any resolver error
+    //         falling back to the static seed. getBooleanControl is itself fail-safe
+    //         (→ false) so the off-path never depends on the controls table.
+    // Only the SOURCE of the skill object changes; downstream grounding is identical.
+    const learnedOn = await getBooleanControl(SystemControlKey.LEARNED_SKILLS_ENABLED, params.tenantId, false).catch(() => false)
+    const skill = learnedOn
+      ? (await resolveCopywritingSkill(params.tenantId, skillSlug, 1).catch(() => null)) ?? getSkillDefinition(skillSlug, 1)
+      : getSkillDefinition(skillSlug, 1)
     if (!skill) return null
 
     // Per-tenant learned voice: inject this company's own canonical exemplars for

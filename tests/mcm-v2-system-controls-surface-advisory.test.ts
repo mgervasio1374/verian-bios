@@ -50,14 +50,16 @@ beforeEach(() => {
 // Group + warnings surfaced via the read action
 // ---------------------------------------------------------------------------
 
-describe('TC-SCA-01: the four advisory controls render in a Learning & Automation group', () => {
-  it('group exists with the four keys in order', async () => {
+describe('TC-SCA-01: the advisory controls render in a Learning & Automation group', () => {
+  it('group exists and contains the advisory keys (in order, more may be appended)', async () => {
     const res = await getSystemControlsAction()
     expect(res.success).toBe(true)
     const group = res.success ? res.data.find(g => g.group === 'Learning & Automation Controls') : undefined
     expect(group).toBeTruthy()
     expect(group!.isFuture).toBe(false)
-    expect(group!.controls.map(c => c.key)).toEqual(ADVISORY_KEYS)
+    // The original four advisory controls lead the group, in order. Later slices
+    // (e.g. learned_skills_enabled) may append more keys after them.
+    expect(group!.controls.map(c => c.key).slice(0, ADVISORY_KEYS.length)).toEqual(ADVISORY_KEYS)
   })
 })
 
