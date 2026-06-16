@@ -13,6 +13,7 @@ import { CloneAssetButton } from '../CloneAssetButton'
 import { SubmitForReviewButton } from '../SubmitForReviewButton'
 import { DeleteAssetButton } from '../DeleteAssetButton'
 import { assetUsage } from '@/modules/campaign-sequence/services/sequence-usage.service'
+import { listCampaignTypes } from '@/modules/campaign-sequence/repositories/campaign-type.repo'
 
 // V3.1: AI revision retries transient 429/5xx (up to ~3x30s worst case);
 // server actions inherit this segment config, so give them headroom.
@@ -28,10 +29,14 @@ export default async function CampaignAssetDetailPage({ params, searchParams }: 
   const { edit }                   = await searchParams
 
   if (assetId === 'new') {
+    // Build ctx (the early return predated it) so the dropdown can read DB types.
+    const supabase = await createSupabaseServerClient()
+    const ctx      = await buildRequestContext(supabase)
+    const types    = await listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId }).catch(() => [])
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">New Campaign Asset</h1>
-        <CampaignAssetEditor workspaceSlug={workspaceSlug} />
+        <CampaignAssetEditor workspaceSlug={workspaceSlug} campaignTypes={types.map(t => ({ slug: t.slug, name: t.name }))} />
       </div>
     )
   }
@@ -64,10 +69,16 @@ export default async function CampaignAssetDetailPage({ params, searchParams }: 
       requiredFields:        (asset.required_fields as string[]) ?? [],
       fallbackValues:        (asset.fallback_values as Record<string, string>) ?? {},
     }
+    const types = await listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId }).catch(() => [])
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Edit Asset</h1>
-        <CampaignAssetEditor workspaceSlug={workspaceSlug} assetId={assetId} initial={initial} />
+        <CampaignAssetEditor
+          workspaceSlug={workspaceSlug}
+          assetId={assetId}
+          campaignTypes={types.map(t => ({ slug: t.slug, name: t.name }))}
+          initial={initial}
+        />
       </div>
     )
   }

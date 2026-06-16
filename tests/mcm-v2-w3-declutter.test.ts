@@ -75,7 +75,9 @@ describe('TC-W3-02: campaign-assets page declutter (source-read)', () => {
   it('keeps the terminology content and the New Asset header button', () => {
     expect(src).toContain('Campaign Terminology')
     expect(src).toContain('/settings/campaign-assets/new')
-    expect(src).toContain('<AiAssetDraftButton workspaceSlug={workspaceSlug} />')
+    // A1 (mcm-v2-campaign-types-seed): the button now also receives DB-backed
+    // campaignTypes; still rendered with workspaceSlug.
+    expect(src).toContain('<AiAssetDraftButton workspaceSlug={workspaceSlug} campaignTypes={campaignTypes.map(t => ({ slug: t.slug, name: t.name }))} />')
   })
 })
 

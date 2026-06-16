@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asset.repo'
 import { listAssetIdsReferencedBySteps } from '@/modules/campaign-sequence/repositories/campaign-sequence-step.repo'
+import { listCampaignTypes } from '@/modules/campaign-sequence/repositories/campaign-type.repo'
 import { CampaignAssetList } from './CampaignAssetList'
 import { AiAssetDraftButton } from './AiAssetDraftButton'
 import { CollapsibleSection } from '@/components/CollapsibleSection'
@@ -23,6 +24,7 @@ export default async function CampaignAssetsPage({ params }: PageProps) {
 
   // Assets referenced by a sequence step are protected from hard delete.
   const referencedIds = [...await listAssetIdsReferencedBySteps(assets.map(a => a.id), ctx.tenantId).catch(() => new Set<string>())]
+  const campaignTypes = await listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId }).catch(() => [])
 
   return (
     <div className="space-y-6">
@@ -88,7 +90,7 @@ export default async function CampaignAssetsPage({ params }: PageProps) {
         title="Generate a single asset with AI"
         description="For one-off assets — multi-touch sequences are generated on the Campaign Sequences page."
       >
-        <AiAssetDraftButton workspaceSlug={workspaceSlug} />
+        <AiAssetDraftButton workspaceSlug={workspaceSlug} campaignTypes={campaignTypes.map(t => ({ slug: t.slug, name: t.name }))} />
       </CollapsibleSection>
     </div>
   )

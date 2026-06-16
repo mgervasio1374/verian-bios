@@ -12,20 +12,29 @@ import { createHumanAssetAction, updateAssetContentAction } from './actions'
 interface Props {
   workspaceSlug: string
   assetId?:      string
+  // DB-backed campaign types (seeded per workspace). When empty, the dropdown
+  // falls back to the CAMPAIGN_TYPE constant so a fresh workspace still shows all 8.
+  campaignTypes?: { slug: string; name: string }[]
   initial?: {
     assetName:     string
     campaignType:  string
   } & AssetTemplateContent
 }
 
-const CAMPAIGN_TYPE_OPTIONS = Object.entries(CAMPAIGN_TYPE).map(([, v]) => ({
+// Fallback options derived from the constant (the canonical 8 + backend source of truth).
+const FALLBACK_CAMPAIGN_TYPE_OPTIONS = Object.entries(CAMPAIGN_TYPE).map(([, v]) => ({
   label: v.replace(/_/g, ' '),
   value: v,
 }))
 
-export function CampaignAssetEditor({ workspaceSlug, assetId, initial }: Props) {
+export function CampaignAssetEditor({ workspaceSlug, assetId, campaignTypes, initial }: Props) {
   const router      = useRouter()
   const [pending, startTransition] = useTransition()
+
+  // Prefer DB types; fall back to the constant when none are seeded yet.
+  const campaignTypeOptions = (campaignTypes && campaignTypes.length > 0)
+    ? campaignTypes.map(t => ({ value: t.slug, label: t.name }))
+    : FALLBACK_CAMPAIGN_TYPE_OPTIONS
 
   const [assetName,     setAssetName]     = useState(initial?.assetName ?? '')
   const [campaignType,  setCampaignType]  = useState(initial?.campaignType ?? CAMPAIGN_TYPE.INITIAL_CONTACT)
@@ -153,7 +162,7 @@ export function CampaignAssetEditor({ workspaceSlug, assetId, initial }: Props) 
             onChange={(e) => setCampaignType(e.target.value)}
             className="rounded border px-2 py-1.5 text-sm"
           >
-            {CAMPAIGN_TYPE_OPTIONS.map((o) => (
+            {campaignTypeOptions.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>

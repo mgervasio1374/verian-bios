@@ -6,18 +6,25 @@ import { CAMPAIGN_TYPE } from '@/modules/messaging/campaign-assets/campaign-asse
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { generateAiDraftAction } from './actions'
 
-const CAMPAIGN_TYPE_OPTIONS = Object.entries(CAMPAIGN_TYPE).map(([, v]) => ({
+// Fallback options derived from the constant (the canonical 8 + backend source of truth).
+const FALLBACK_CAMPAIGN_TYPE_OPTIONS = Object.entries(CAMPAIGN_TYPE).map(([, v]) => ({
   label: v.replace(/_/g, ' '),
   value: v,
 }))
 
 interface Props {
   workspaceSlug: string
+  // DB-backed campaign types; falls back to the constant when empty.
+  campaignTypes?: { slug: string; name: string }[]
 }
 
-export function AiAssetDraftButton({ workspaceSlug }: Props) {
+export function AiAssetDraftButton({ workspaceSlug, campaignTypes }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
+
+  const campaignTypeOptions = (campaignTypes && campaignTypes.length > 0)
+    ? campaignTypes.map(t => ({ value: t.slug, label: t.name }))
+    : FALLBACK_CAMPAIGN_TYPE_OPTIONS
 
   const [campaignType, setCampaignType] = useState<string>(CAMPAIGN_TYPE.INITIAL_CONTACT)
   const [promptBrief,  setPromptBrief]  = useState('')
@@ -85,7 +92,7 @@ export function AiAssetDraftButton({ workspaceSlug }: Props) {
             onChange={(e) => setCampaignType(e.target.value)}
             className="rounded border px-2 py-1.5 text-sm"
           >
-            {CAMPAIGN_TYPE_OPTIONS.map((o) => (
+            {campaignTypeOptions.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>

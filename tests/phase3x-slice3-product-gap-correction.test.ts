@@ -66,7 +66,9 @@ describe('TC-3X-S3-002: Campaign asset creation sequence configuration preview',
   it('campaign-assets/new is handled by the existing dynamic asset route', () => {
     const src = readSrc(CAMPAIGN_ASSET_DETAIL_PAGE)
     expect(src).toContain("assetId === 'new'")
-    expect(src).toContain('<CampaignAssetEditor workspaceSlug={workspaceSlug} />')
+    // A1 (mcm-v2-campaign-types-seed): the 'new' branch now also passes DB-backed
+    // campaignTypes to the editor; still rendered with workspaceSlug.
+    expect(src).toContain('<CampaignAssetEditor workspaceSlug={workspaceSlug} campaignTypes={types.map(t => ({ slug: t.slug, name: t.name }))} />')
   })
 
   // MCM v2 W1: the static "Sequence Configuration Preview" block was removed —
