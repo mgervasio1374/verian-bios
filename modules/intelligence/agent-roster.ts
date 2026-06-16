@@ -39,6 +39,8 @@ export const AGENT_ROSTER: readonly AgentRosterDef[] = [
   { key: 'sales_ops_intelligence_agent',  label: 'Sales-Ops Intelligence',  category: 'business_intelligence', implState: 'skeletal', telemetryNames: [] },
   // MCM v2 Phase 0 — deterministic statement-analysis review/grader (gated default-off).
   { key: 'statement_review_agent',         label: 'Statement Review',         category: 'business_intelligence', implState: 'gated', telemetryNames: ['statement_review_agent'], processesLeads: false },
+  // MCM v2 Phase 1a — text-first statement figure extraction (LLM; gated default-off).
+  { key: 'statement_extraction_agent',     label: 'Statement Extraction',     category: 'business_intelligence', implState: 'gated', telemetryNames: ['statement_extraction_agent'], processesLeads: false },
   // Policy / safety
   { key: 'prompt_policy_agent',    label: 'Prompt Policy',   category: 'policy_safety', implState: 'gated',    telemetryNames: [] },
   { key: 'risk_classifier_agent',  label: 'Risk Classifier', category: 'policy_safety', implState: 'skeletal', telemetryNames: [] },

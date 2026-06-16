@@ -113,6 +113,10 @@ export const SystemControlKey = {
   // only; disabled by default → zero behavior change at the ingest chokepoints until
   // flipped. No LLM in Phase 0.
   STATEMENT_REVIEW_AGENT_ENABLED:          'statement_review_agent_enabled',
+
+  // MCM v2 Phase 1a — text-first statement figure extraction agent (LLM over the
+  // PDF text layer). Advisory; disabled by default → never runs until flipped.
+  STATEMENT_EXTRACTION_AGENT_ENABLED:      'statement_extraction_agent_enabled',
 } as const
 export type SystemControlKey = typeof SystemControlKey[keyof typeof SystemControlKey]
 

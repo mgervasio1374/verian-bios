@@ -12,10 +12,10 @@ import {
 const runs = (over: Partial<RunAggregate> = {}): RunAggregate => ({ runs: 0, completed: 0, failed: 0, lastRunAt: null, ...over })
 
 describe('TC-AR-01: roster shape', () => {
-  // MCM v2: +1 agent (statement_review_agent, business_intelligence) → 18→19.
-  // Category set unchanged at 5.
-  it('lists 19 agents (15 registry + 3 live runtime + 1 statement review) across all 5 categories', () => {
-    expect(AGENT_ROSTER).toHaveLength(19)
+  // MCM v2: +2 agents (statement_review_agent + statement_extraction_agent, both
+  // business_intelligence) → 18→20. Category set unchanged at 5.
+  it('lists 20 agents (15 registry + 3 live runtime + 2 statement agents) across all 5 categories', () => {
+    expect(AGENT_ROSTER).toHaveLength(20)
     const cats = new Set(AGENT_ROSTER.map(a => a.category))
     expect([...cats].sort()).toEqual(['business_intelligence', 'development', 'execution', 'messaging', 'policy_safety'])
   })
