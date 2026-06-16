@@ -109,6 +109,25 @@ export async function listEntityActivityEvents(
   return data ?? []
 }
 
+// Contact is a leaf (no rollup) — events directly tagged with the contact.
+export async function listContactActivityEvents(
+  tenantId: string,
+  contactId: string,
+  opts: { limit?: number } = {}
+): Promise<ActivityEventRow[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('activity_events')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('contact_id', contactId)
+    .order('occurred_at', { ascending: false })
+    .limit(opts.limit ?? 50)
+
+  if (error) throw new Error(`listContactActivityEvents: ${error.message}`)
+  return data ?? []
+}
+
 export async function listLeadActivityEvents(
   tenantId: string,
   leadId: string,

@@ -112,6 +112,29 @@ export async function listProposalEventsForCompany(
   return data ?? []
 }
 
+// All non-deleted proposal events for a contact (newest first), for the contact
+// detail Proposals card.
+export async function listProposalEventsForContact(
+  tenantId: string,
+  workspaceId: string,
+  contactId: string,
+  opts: { limit?: number } = {}
+): Promise<ProposalEventRow[]> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('proposal_events')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .eq('contact_id', contactId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(opts.limit ?? 20)
+
+  if (error) throw new Error(`listProposalEventsForContact: ${error.message}`)
+  return data ?? []
+}
+
 // Public lookup by unguessable share token. Service-role read; only returns a
 // non-deleted row. No tenant scope (the token IS the capability) — callers must
 // treat the result as public-safe and not leak internal-only fields.

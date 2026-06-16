@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
@@ -202,7 +203,9 @@ export default async function CompanyDetailPage({ params }: PageProps) {
                   <div key={c.id} className="text-sm flex items-start justify-between gap-2">
                     <div>
                       <p className="font-medium">
-                        {c.first_name} {c.last_name}
+                        <Link href={`/${workspaceSlug}/contacts/${c.id}`} className="hover:underline">
+                          {c.first_name} {c.last_name}
+                        </Link>
                         {c.is_primary_contact && (
                           <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">Primary</span>
                         )}

@@ -40,6 +40,32 @@ export async function listDocumentsForCompany(
   return withUrls
 }
 
+// Lists a contact's non-deleted documents, enriched with signed URLs + source.
+// Mirror of listDocumentsForCompany, scoped to contact_id (contact detail page).
+export async function listDocumentsForContact(
+  contactId: string,
+  tenantId: string,
+  opts: { limit?: number } = {}
+): Promise<CompanyDocumentWithUrl[]> {
+  const artifacts = await companyDocRepo.listContactDocuments(contactId, tenantId, opts)
+  if (artifacts.length === 0) return []
+
+  const withUrls = await Promise.all(
+    artifacts.map(async (artifact) => {
+      const signedUrl = artifact.storage_path
+        ? await companyDocRepo.getDocumentSignedUrl(artifact.storage_path, artifact.storage_bucket)
+        : null
+      return {
+        ...artifact,
+        signedUrl,
+        source: deriveDocumentSource(artifact.artifact_type, artifact.description),
+      }
+    })
+  )
+
+  return withUrls
+}
+
 // ---- Write ----
 
 // Creates a new artifact record linked to a company.

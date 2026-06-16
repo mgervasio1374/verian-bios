@@ -74,7 +74,11 @@ export default async function ContactsPage({ params, searchParams }: PageProps) 
               {contacts.map((c) => (
                 <tr key={c.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3">
-                    <p className="font-medium">{c.first_name} {c.last_name}</p>
+                    <p className="font-medium">
+                      <Link href={`/${workspaceSlug}/contacts/${c.id}`} className="hover:underline">
+                        {c.first_name} {c.last_name}
+                      </Link>
+                    </p>
                     {c.is_primary_contact && (
                       <span className="text-xs text-blue-600">Primary Contact</span>
                     )}

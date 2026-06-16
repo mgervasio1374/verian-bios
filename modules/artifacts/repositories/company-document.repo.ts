@@ -40,6 +40,28 @@ export async function listCompanyDocuments(
   return data ?? []
 }
 
+export async function listContactDocuments(
+  contactId: string,
+  tenantId: string,
+  opts: { limit?: number; artifactType?: string } = {}
+): Promise<ArtifactRow[]> {
+  const supabase = createSupabaseServiceClient()
+  let query = supabase
+    .from('artifacts')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('contact_id', contactId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(opts.limit ?? 20)
+
+  if (opts.artifactType) query = query.eq('artifact_type', opts.artifactType)
+
+  const { data, error } = await query
+  if (error) throw new Error(`listContactDocuments: ${error.message}`)
+  return data ?? []
+}
+
 export async function getCompanyDocumentById(
   id: string,
   tenantId: string

@@ -53,16 +53,23 @@ function formatRelativeTime(iso: string): string {
 }
 
 interface CompanyActivityTimelineProps {
-  events: ActivityEventRow[]
+  events:     ActivityEventRow[]
+  // Reused by the contact detail page; defaults preserve the company behavior.
+  title?:     string
+  emptyText?: string
 }
 
-export function CompanyActivityTimeline({ events }: CompanyActivityTimelineProps) {
+export function CompanyActivityTimeline({
+  events,
+  title = 'Company Activity',
+  emptyText = 'No activity recorded yet for this company.',
+}: CompanyActivityTimelineProps) {
   if (events.length === 0) {
     return (
       <Card>
-        <CardHeader><CardTitle className="text-sm">Company Activity</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-sm">{title}</CardTitle></CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">No activity recorded yet for this company.</p>
+          <p className="text-sm text-muted-foreground">{emptyText}</p>
         </CardContent>
       </Card>
     )
@@ -70,7 +77,7 @@ export function CompanyActivityTimeline({ events }: CompanyActivityTimelineProps
 
   return (
     <Card>
-      <CardHeader><CardTitle className="text-sm">Company Activity</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-sm">{title}</CardTitle></CardHeader>
       <CardContent>
         <ol className="space-y-3">
           {events.map((event) => (
