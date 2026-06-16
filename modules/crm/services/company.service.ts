@@ -107,3 +107,23 @@ export async function countCompanies(ctx: RequestContext) {
   requirePermission(ctx, 'crm.companies.view')
   return companyRepo.countCompanies(ctx.tenantId, ctx.workspaceId)
 }
+
+// Filtered count — mirrors listCompanies' filters (same opts shape) for the
+// Companies page header total + pagination.
+export async function countCompaniesFiltered(
+  ctx: RequestContext,
+  opts: {
+    search?: string
+    status?: string
+    industry?: string
+    customerStatus?: 'prospect' | 'customer' | 'former_customer'
+    ids?: string[]
+  } = {}
+) {
+  requirePermission(ctx, 'crm.companies.view')
+  return companyRepo.countCompaniesFiltered({
+    tenantId: ctx.tenantId,
+    workspaceId: ctx.workspaceId,
+    ...opts,
+  })
+}

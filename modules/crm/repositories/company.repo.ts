@@ -139,6 +139,32 @@ export async function updateCompaniesCustomerStatus(
   return data?.length ?? 0
 }
 
+// Counts companies matching the SAME filters as listCompanies (tenant, workspace,
+// deleted_at IS NULL, plus status/industry/customerStatus/search/ids when present).
+// Ignores ordering and paging (count of the full filtered set). Used to drive the
+// Companies page header total + pagination. Does not modify the unfiltered
+// countCompanies above (other callers depend on its signature).
+export async function countCompaniesFiltered(opts: ListCompaniesOptions): Promise<number> {
+  const supabase = createSupabaseServiceClient()
+
+  let query = supabase
+    .from('companies')
+    .select('*', { count: 'exact', head: true })
+    .eq('tenant_id', opts.tenantId)
+    .eq('workspace_id', opts.workspaceId)
+    .is('deleted_at', null)
+
+  if (opts.status) query = query.eq('status', opts.status)
+  if (opts.industry) query = query.eq('industry', opts.industry)
+  if (opts.customerStatus) query = query.eq('customer_status', opts.customerStatus)
+  if (opts.search) query = query.ilike('name', `%${opts.search}%`)
+  if (opts.ids) query = query.in('id', opts.ids)
+
+  const { count, error } = await query
+  if (error) throw new Error(`countCompaniesFiltered: ${error.message}`)
+  return count ?? 0
+}
+
 export async function countCompanies(tenantId: string, workspaceId: string): Promise<number> {
   const supabase = createSupabaseServiceClient()
   const { count, error } = await supabase

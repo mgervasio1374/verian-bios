@@ -37,34 +37,46 @@ export default async function CompaniesPage({ params, searchParams }: PageProps)
   const customerStatus = (CUSTOMER_FILTER_VALUES as readonly string[]).includes(customer ?? '')
     ? (customer as 'prospect' | 'customer' | 'former_customer')
     : undefined
-  const offset = ((Number(page) || 1) - 1) * 50
+  const pageSize    = 50
+  const currentPage = Number(page) || 1
+  const offset      = (currentPage - 1) * pageSize
 
   const supabase = await createSupabaseServerClient()
   const ctx = await buildRequestContext(supabase)
 
-  const [companies, segments, manualSequences, campaignTypes] = await Promise.all([
-    (async () => {
-      let ids: string[] | undefined
-      if (segment) {
-        ids = await segmentService.listCompanyIdsForSegment(ctx, segment).catch(() => [])
-        if (ids.length === 0) return []
-      }
-      return companyService.listCompanies(ctx, {
-        search,
-        ids,
-        status,
-        industry,
-        customerStatus,
-        orderBy:  sort,
-        orderDir: dir === 'desc' ? 'desc' : dir === 'asc' ? 'asc' : undefined,
-        limit:    50,
-        offset,
-      })
-    })().catch(() => []),
+  // Resolve the active segment to company ids once, shared by the list + count so
+  // the total respects the segment filter (and a zero-id segment yields total 0).
+  let ids: string[] | undefined
+  let segmentEmpty = false
+  if (segment) {
+    ids = await segmentService.listCompanyIdsForSegment(ctx, segment).catch(() => [])
+    if (ids.length === 0) segmentEmpty = true
+  }
+
+  // Shared filter opts — list and count must agree exactly.
+  const filterOpts = { search, ids, status, industry, customerStatus }
+
+  const [companies, total, segments, manualSequences, campaignTypes] = await Promise.all([
+    (segmentEmpty
+      ? Promise.resolve([])
+      : companyService.listCompanies(ctx, {
+          ...filterOpts,
+          orderBy:  sort,
+          orderDir: dir === 'desc' ? 'desc' : dir === 'asc' ? 'asc' : undefined,
+          limit:    pageSize,
+          offset,
+        })
+    ).catch(() => []),
+    (segmentEmpty
+      ? Promise.resolve(0)
+      : companyService.countCompaniesFiltered(ctx, filterOpts)
+    ).catch(() => 0),
     listSegmentsForWorkspace(ctx.tenantId, ctx.workspaceId).catch(() => []),
     listManualSequencesForWorkspace(ctx.tenantId, ctx.workspaceId).catch(() => []),
     listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId }).catch(() => []),
   ])
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   const typeSlugById = new Map(campaignTypes.map(t => [t.id, t.slug]))
   // V1 prompt-leak heuristic: flag sequences referencing prompt-shaped assets
@@ -100,7 +112,7 @@ export default async function CompaniesPage({ params, searchParams }: PageProps)
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Companies</h1>
-          <p className="text-muted-foreground text-sm">{companies.length} records</p>
+          <p className="text-muted-foreground text-sm">{total} records</p>
         </div>
         <AddCompanyDialog
           workspaceSlug={workspaceSlug}
@@ -121,6 +133,10 @@ export default async function CompaniesPage({ params, searchParams }: PageProps)
         activeSort={sort ?? ''}
         activeDir={dir === 'desc' ? 'desc' : 'asc'}
         search={search ?? ''}
+        total={total}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        totalPages={totalPages}
       />
     </div>
   )

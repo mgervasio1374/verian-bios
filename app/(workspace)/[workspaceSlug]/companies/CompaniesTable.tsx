@@ -84,6 +84,10 @@ interface Props {
   activeSort:      string
   activeDir:       'asc' | 'desc'
   search:          string
+  total:           number
+  currentPage:     number
+  pageSize:        number
+  totalPages:      number
 }
 
 export function CompaniesTable({
@@ -99,6 +103,10 @@ export function CompaniesTable({
   activeSort,
   activeDir,
   search,
+  total,
+  currentPage,
+  pageSize,
+  totalPages,
 }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -202,6 +210,14 @@ export function CompaniesTable({
   function handleSort(column: string) {
     const nextDir = activeSort === column && activeDir === 'asc' ? 'desc' : 'asc'
     navigate({ sort: column, dir: nextDir })
+  }
+
+  // Pagination — navigate() preserves all active params; it does NOT carry `page`,
+  // so filter/sort changes implicitly reset to page 1. Here we set it explicitly.
+  function goToPage(p: number) {
+    const clamped = Math.min(Math.max(1, p), totalPages)
+    setSelectedIds(new Set()) // selection is per-page; clear when paging
+    navigate({ page: clamped > 1 ? String(clamped) : '' })
   }
 
   function sortIndicator(column: string): string {
@@ -699,6 +715,34 @@ export function CompaniesTable({
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Pagination footer — preserves all active params; bounds-disabled. */}
+      {total > 0 && (
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <span className="text-xs text-muted-foreground">
+            Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, total)} of {total}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage <= 1}
+              className="rounded border px-3 py-1.5 text-xs hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ← Prev
+            </button>
+            <span className="text-xs text-muted-foreground">Page {currentPage} of {totalPages}</span>
+            <button
+              type="button"
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+              className="rounded border px-3 py-1.5 text-xs hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next →
+            </button>
+          </div>
         </div>
       )}
     </div>
