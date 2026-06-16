@@ -32,6 +32,25 @@ function str(formData: FormData, key: string): string | null {
   return typeof raw === 'string' && raw.trim() ? raw.trim() : null
 }
 
+// Parses the carried extraction-agent proposal (JSON in a hidden field). Tolerant:
+// any malformed/absent value → null so the ingest proceeds without accuracy capture.
+function parseAgentExtraction(
+  formData: FormData,
+): { fields: Record<string, unknown>; fieldConfidence?: Record<string, number> } | null {
+  const raw = formData.get('agentExtraction')
+  if (typeof raw !== 'string' || !raw.trim()) return null
+  try {
+    const parsed = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object' || !parsed.fields || typeof parsed.fields !== 'object') return null
+    return {
+      fields:          parsed.fields,
+      fieldConfidence: parsed.fieldConfidence && typeof parsed.fieldConfidence === 'object' ? parsed.fieldConfidence : undefined,
+    }
+  } catch {
+    return null
+  }
+}
+
 export async function ingestStatementAction(
   formData: FormData,
 ): Promise<ActionResult<{ proposalEventId: string; shareToken: string }>> {
@@ -71,6 +90,7 @@ export async function ingestStatementAction(
       figures: { monthlyVolume, currentMonthlyFees, transactionCount, assumedInterchangeRate },
       statementPeriod: str(formData, 'statementPeriod'),
       processor:       str(formData, 'processor'),
+      agentExtraction: parseAgentExtraction(formData),
     })
 
     revalidatePath('/[workspaceSlug]/companies/[id]', 'page')

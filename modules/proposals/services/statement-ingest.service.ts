@@ -12,6 +12,9 @@ import { linkUploadedStatementToCompany } from '@/modules/artifacts/services/com
 import { recordSavingsAnalysis } from '@/modules/proposals/repositories/savings-analysis.repo'
 import { createProposalEvent } from '@/modules/proposals/repositories/proposal-events.repo'
 import { reviewAnalysisForExtraction } from '@/modules/proposals/services/statement-review.service'
+import { recordAnalysisReview } from '@/modules/proposals/repositories/statement-analysis-review.repo'
+import { computeExtractionFieldGrades } from '@/lib/statement/extraction-grade'
+import type { ExtractedFigures } from '@/lib/statement/extraction-parse'
 import * as activityEventRepo from '@/modules/intelligence/repositories/activity-event.repo'
 import type { RequestContext } from '@/types/context'
 
@@ -50,6 +53,49 @@ export interface IngestStatementInput {
   }
   statementPeriod?: string | null
   processor?:       string | null
+  // Phase 1b — the extraction agent's proposed figures (if the operator ran AI
+  // pre-fill), carried through so the server can grade agent-vs-final accuracy.
+  agentExtraction?: {
+    fields:          Partial<ExtractedFigures> | Record<string, unknown>
+    fieldConfidence?: Record<string, number>
+  } | null
+}
+
+// Grades the carried agent proposal against the operator's final figures and writes
+// an extraction_accuracy review. Only when a proposal was supplied. Self-contained
+// and non-fatal — any failure is swallowed so the ingest never breaks.
+export async function captureExtractionAccuracy(args: {
+  tenantId:             string
+  workspaceId?:         string | null
+  documentExtractionId: string
+  proposalEventId?:     string | null
+  companyId?:           string | null
+  agentExtraction:      { fields: Partial<ExtractedFigures> | Record<string, unknown>; fieldConfidence?: Record<string, number> } | null
+  finalFigures: {
+    monthlyVolume:      number | null
+    currentMonthlyFees: number | null
+    transactionCount:   number | null
+    processor:          string | null
+    statementPeriod:    string | null
+  }
+}): Promise<void> {
+  if (!args.agentExtraction) return
+  try {
+    const { fieldGrades, matchRate } = computeExtractionFieldGrades(args.agentExtraction, args.finalFigures)
+    await recordAnalysisReview({
+      tenantId:             args.tenantId,
+      workspaceId:          args.workspaceId ?? null,
+      documentExtractionId: args.documentExtractionId,
+      proposalEventId:      args.proposalEventId ?? null,
+      companyId:            args.companyId ?? null,
+      reviewType:           'extraction_accuracy',
+      verdict:              matchRate === 1 ? 'pass' : 'flagged',
+      qualityScore:         Math.round(matchRate * 100),
+      findings:             [],
+      fieldGrades,
+      source:               'agent',
+    })
+  } catch { /* swallow — accuracy capture is advisory only */ }
 }
 
 export interface IngestStatementResult {
@@ -247,6 +293,27 @@ export async function ingestStatementAndBuildProposal(
         companyId:       input.companyId,
       })
     } catch { /* swallow — advisory only */ }
+  }
+
+  // Phase 1b extraction-accuracy capture (advisory, non-fatal). Only when the
+  // operator ran AI pre-fill. Self-contained + swallows errors so a review failure
+  // never fails the ingest.
+  if (documentExtractionId) {
+    await captureExtractionAccuracy({
+      tenantId:             ctx.tenantId,
+      workspaceId:          ctx.workspaceId,
+      documentExtractionId,
+      proposalEventId:      proposalEvent.id,
+      companyId:            input.companyId,
+      agentExtraction:      input.agentExtraction ?? null,
+      finalFigures: {
+        monthlyVolume:      input.figures.monthlyVolume,
+        currentMonthlyFees: input.figures.currentMonthlyFees,
+        transactionCount:   input.figures.transactionCount,
+        processor:          input.processor ?? null,
+        statementPeriod:    input.statementPeriod ?? null,
+      },
+    })
   }
 
   return {

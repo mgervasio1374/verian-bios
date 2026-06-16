@@ -2,9 +2,15 @@
 
 import { useState, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { FileUp, Loader2, ExternalLink, Paperclip } from 'lucide-react'
+import { FileUp, Loader2, ExternalLink, Paperclip, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ingestStatementAction } from '@/modules/proposals/actions/statement-ingest.actions'
+import { extractStatementFiguresAction } from '@/modules/proposals/actions/statement-extraction.actions'
+
+interface AgentExtraction {
+  fields:          Record<string, unknown>
+  fieldConfidence?: Record<string, number>
+}
 
 interface ContactOption {
   id:    string
@@ -39,7 +45,55 @@ export function IngestStatementForm({ companyId, workspaceSlug, contacts }: Prop
   const [result, setResult] = useState<SuccessState | null>(null)
   const [pending, startTransition] = useTransition()
 
+  // Phase 1b — carried extraction-agent proposal + UI feedback.
+  const [agentExtraction, setAgentExtraction] = useState<AgentExtraction | null>(null)
+  const [extractHint, setExtractHint] = useState<string | null>(null)
+  const [extractPending, startExtract] = useTransition()
+
   const noContacts = contacts.length === 0
+
+  // Reset any carried proposal when the chosen file changes — a stale proposal
+  // must never leak across different files.
+  function handleFileChange(next: File | null) {
+    setFile(next)
+    setAgentExtraction(null)
+    setExtractHint(null)
+  }
+
+  function setIfPresent(setter: (v: string) => void, v: unknown) {
+    if (typeof v === 'number' && Number.isFinite(v)) setter(String(v))
+    else if (typeof v === 'string' && v.trim()) setter(v.trim())
+  }
+
+  // "Extract figures with AI": runs the advisory extraction agent over the chosen
+  // file and pre-fills the inputs. All values remain editable. Never blocks manual entry.
+  function handleExtract() {
+    if (!file) { setError('Choose a statement file first.'); return }
+    setExtractHint(null)
+    const fd = new FormData()
+    fd.set('companyId', companyId)
+    fd.set('file', file)
+    startExtract(async () => {
+      const res = await extractStatementFiguresAction(fd)
+      if (!res.success) {
+        // Agent off / unavailable / unconfigured → silently leave manual entry.
+        return
+      }
+      if (res.data.warning === 'no_extractable_text') {
+        setExtractHint("Couldn't read text from this PDF — enter figures manually.")
+        return
+      }
+      const fields = res.data.fields
+      if (!fields) return
+      setIfPresent(setMonthlyVolume,      fields.monthlyVolume)
+      setIfPresent(setCurrentMonthlyFees, fields.currentMonthlyFees)
+      setIfPresent(setTransactionCount,   fields.transactionCount)
+      setIfPresent(setProcessor,          fields.processor)
+      setIfPresent(setStatementPeriod,    fields.statementPeriod)
+      setAgentExtraction({ fields: fields as unknown as Record<string, unknown>, fieldConfidence: res.data.fieldConfidence ?? undefined })
+      setExtractHint('AI-filled — confirm the figures below before building the proposal.')
+    })
+  }
 
   function handleSubmit() {
     setError(null)
@@ -58,6 +112,8 @@ export function IngestStatementForm({ companyId, workspaceSlug, contacts }: Prop
     if (interchangePct.trim())  formData.set('assumedInterchangePct', interchangePct.trim())
     if (processor.trim())       formData.set('processor', processor.trim())
     if (statementPeriod.trim()) formData.set('statementPeriod', statementPeriod.trim())
+    // Carry the agent proposal so the server can grade extraction accuracy.
+    if (agentExtraction) formData.set('agentExtraction', JSON.stringify(agentExtraction))
 
     startTransition(async () => {
       const res = await ingestStatementAction(formData)
@@ -111,7 +167,7 @@ export function IngestStatementForm({ companyId, workspaceSlug, contacts }: Prop
               ref={fileInputRef}
               type="file"
               accept=".pdf,.jpg,.jpeg,.png,.tiff,.csv,.xls,.xlsx"
-              onChange={e => setFile(e.target.files?.[0] ?? null)}
+              onChange={e => handleFileChange(e.target.files?.[0] ?? null)}
               className="hidden"
             />
             <div className="mt-1 flex items-center gap-2">
@@ -130,6 +186,22 @@ export function IngestStatementForm({ companyId, workspaceSlug, contacts }: Prop
             <p className="mt-1 text-[11px] text-muted-foreground">
               PDF, image, CSV, or Excel. Up to 20 MB.
             </p>
+            {file && (
+              <div className="mt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleExtract}
+                  disabled={extractPending}
+                  className="inline-flex items-center gap-1.5 rounded border bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {extractPending
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <Sparkles className="h-3.5 w-3.5" />}
+                  Extract figures with AI
+                </button>
+                {extractHint && <span className="text-[11px] text-muted-foreground">{extractHint}</span>}
+              </div>
+            )}
           </div>
 
           <label className="text-xs font-medium">
