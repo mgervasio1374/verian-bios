@@ -13,6 +13,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ProposalStatusControl } from './ProposalStatusControl'
 import { ApproveSendControl } from './ApproveSendControl'
 import { MerchantEmailCard } from './MerchantEmailCard'
+import { CompleteFollowUpButton } from '../../proposal-follow-ups/CompleteFollowUpButton'
+import { SkipFollowUpButton } from '../../proposal-follow-ups/SkipFollowUpButton'
+import { RescheduleFollowUpButton } from '../../proposal-follow-ups/RescheduleFollowUpButton'
+import { GenerateFollowUpDraftButton } from '../../proposal-follow-ups/GenerateFollowUpDraftButton'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string; eventId: string }>
@@ -72,6 +76,11 @@ export default async function ProposalEventDetailPage({ params }: PageProps) {
   if (!event) notFound()
 
   const commitments = await listCommitmentsForProposalEvent(ctx.tenantId, ctx.workspaceId, eventId)
+
+  // Mutation permission for the per-commitment action cluster. The page gate stays
+  // crm.leads.view; canMutate only controls whether the action buttons render.
+  // Mirrors the Follow-Up Queue page's check exactly.
+  const canMutate = hasPermission(ctx, 'crm.leads.edit')
 
   const base = `/${workspaceSlug}/proposal-events`
 
@@ -247,6 +256,7 @@ export default async function ProposalEventDetailPage({ params }: PageProps) {
                     <th className="text-left p-3 font-medium">Completed</th>
                     <th className="text-left p-3 font-medium">Completed by</th>
                     <th className="text-left p-3 font-medium">Notes</th>
+                    {canMutate && <th className="text-right p-3 font-medium">Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -276,6 +286,18 @@ export default async function ProposalEventDetailPage({ params }: PageProps) {
                         <td className="p-3 text-xs text-muted-foreground max-w-[160px] truncate">
                           {c.completion_notes ?? '—'}
                         </td>
+                        {canMutate && (
+                          <td className="p-3 align-top">
+                            {c.commitment_status === 'open' && (
+                              <div className="flex flex-col gap-1.5 items-end">
+                                <CompleteFollowUpButton commitmentId={c.id} />
+                                <SkipFollowUpButton commitmentId={c.id} />
+                                <RescheduleFollowUpButton commitmentId={c.id} currentDueAt={c.follow_up_due_at} />
+                                <GenerateFollowUpDraftButton commitmentId={c.id} existingDraftId={c.draft_id} />
+                              </div>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     )
                   })}
