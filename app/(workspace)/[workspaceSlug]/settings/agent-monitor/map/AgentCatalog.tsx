@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   IMPL_VARIANT, IMPL_LABEL, CATEGORY_LABEL, CATEGORY_ORDER,
 } from '../agent-roster-format'
+import { RouteMap } from './RouteMap'
 import type { AgentImplState, AgentRosterCategory } from '@/modules/intelligence/agent-roster'
 
 interface WorkflowChip {
@@ -92,6 +93,14 @@ export function AgentCatalog({ agents, workspaceSlug, workflows }: Props) {
           <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/50 shrink-0" />
           all outbound / advisory
         </span>
+      </div>
+
+      {/* Route map — shares the legend's selected state for route highlighting. */}
+      <div>
+        <RouteMap selected={selected} colorByWorkflow={Object.fromEntries(workflows.map(w => [w.key, w.color]))} />
+        <p className="text-[11px] text-muted-foreground mt-1.5">
+          Stations group related agents; see the catalog below for every agent.
+        </p>
       </div>
 
       {/* Catalog grouped by category */}
