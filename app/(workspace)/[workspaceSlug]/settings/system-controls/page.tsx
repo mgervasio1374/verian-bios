@@ -93,7 +93,9 @@ export default async function SystemControlsPage({ params }: PageProps) {
             {group.controls.map((control) => {
               const isGlobalPause = control.key === 'global_agent_pause'
               const canToggle     = isAdmin && !control.isNumeric
-              const toggleDisabled = !canToggle || control.isFuture || !control.exists
+              // Unseeded controls remain togglable — the first toggle upserts a
+              // tenant row. The "Not seeded" badge stays as informational only.
+              const toggleDisabled = !canToggle || control.isFuture
 
               return (
                 <div

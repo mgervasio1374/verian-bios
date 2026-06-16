@@ -143,11 +143,18 @@ export interface ControlGroupData {
 export async function getSystemControlsAction(): Promise<ActionResult<ControlGroupData[]>> {
   try {
     const supabase = await createSupabaseServerClient()
-    await buildRequestContext(supabase)   // auth only — reads are not admin-restricted
+    const ctx      = await buildRequestContext(supabase)   // auth only — reads are not admin-restricted
 
-    // Load all platform-level controls in one query
-    const allControls = await systemControlRepo.listControls(null)
-    const controlMap  = new Map(allControls.map(c => [c.key, c]))
+    // Resolve each control with tenant precedence over platform (mirrors
+    // resolveSystemControl): load platform rows then overlay tenant rows so a
+    // tenant override wins for the same key. This makes the UI reflect the
+    // effective runtime state, including controls only ever toggled at tenant scope.
+    const [platformControls, tenantControls] = await Promise.all([
+      systemControlRepo.listControls(null),
+      systemControlRepo.listControls(ctx.tenantId),
+    ])
+    const controlMap = new Map(platformControls.map(c => [c.key, c]))
+    for (const row of tenantControls) controlMap.set(row.key, row)
 
     const groups: ControlGroupData[] = CONTROL_GROUP_DEFINITIONS.map(({ group, description, isFuture, keys }) => ({
       group,
@@ -175,7 +182,8 @@ export async function getSystemControlsAction(): Promise<ActionResult<ControlGro
         }
 
         const rawValue   = row.value
-        const boolVal    = typeof rawValue === 'boolean' ? rawValue : null
+        // Effective on-state: matches getBooleanControl (requires BOTH flags true).
+        const boolVal    = typeof rawValue === 'boolean' ? (row.is_enabled === true && rawValue === true) : null
         const numericVal = typeof rawValue === 'number'  ? rawValue : null
 
         return {
