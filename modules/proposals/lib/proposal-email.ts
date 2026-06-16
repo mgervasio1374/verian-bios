@@ -61,7 +61,8 @@ export function composeProposalEmail(
 ): ComposedProposalEmail {
   const { companyName, firstName, senderName, publicUrl } = params
 
-  const defaultSubject = `Your 321 Swipe savings analysis — ${companyName}`
+  // House style: no em/en dashes (matches the rewrite loop).
+  const defaultSubject = `Your 321 Swipe savings analysis for ${companyName}`
   const subject = override?.subject?.trim() || defaultSubject
 
   const overrideBody = override?.bodyText?.trim()
@@ -74,7 +75,12 @@ export function composeProposalEmail(
     return { subject, textBody, htmlBody }
   }
 
-  // Default path — EXACTLY as PE1 (byte-identical when there is no override body).
+  // Signoff dedup: when the sender identity is itself "321 Swipe", don't repeat it.
+  const senderIs321 = senderName.trim().toLowerCase() === '321 swipe'
+  const textSignoff = senderIs321 ? `Best,\n321 Swipe` : `Best,\n${senderName}\n321 Swipe`
+  const htmlSignoff = senderIs321 ? `<p>Best,<br>321 Swipe</p>` : `<p>Best,<br>${senderName}<br>321 Swipe</p>`
+
+  // Default path — byte-identical to PE1 except the deduped signoff above.
   const textBody =
     `Hi ${firstName},\n\n` +
     `We put together a savings analysis for ${companyName} based on your merchant processing statement. ` +
@@ -82,7 +88,7 @@ export function composeProposalEmail(
     `It walks through your current effective rate, your estimated savings under 321 Swipe's ` +
     `transparent interchange-plus pricing, and what happens next. If you have any questions, ` +
     `just reply or use the contact form on the page.\n\n` +
-    `Best,\n${senderName}\n321 Swipe`
+    textSignoff
   const htmlBody =
     `<p>Hi ${firstName},</p>` +
     `<p>We put together a savings analysis for <strong>${companyName}</strong> based on your ` +
@@ -92,7 +98,7 @@ export function composeProposalEmail(
     `<p>It walks through your current effective rate, your estimated savings under 321 Swipe's ` +
     `transparent interchange-plus pricing, and what happens next. If you have any questions, ` +
     `just reply or use the contact form on the page.</p>` +
-    `<p>Best,<br>${senderName}<br>321 Swipe</p>`
+    htmlSignoff
 
   return { subject, textBody, htmlBody }
 }

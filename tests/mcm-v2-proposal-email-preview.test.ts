@@ -42,3 +42,26 @@ describe('TC-PEP-02: composition is deterministic / pure', () => {
     expect(composeProposalEmail(params)).toEqual(composeProposalEmail(params))
   })
 })
+
+describe('TC-PEP-03: copy fixes — house-style subject + signoff dedup', () => {
+  it('subject reads "... for {company}" and has no em/en dash', () => {
+    const { subject } = composeProposalEmail(params)
+    expect(subject).toContain('for Harbor Diner')
+    expect(/[—–]/.test(subject)).toBe(false)
+  })
+
+  it('senderName "321 Swipe" → "321 Swipe" appears exactly once in text and html signoffs', () => {
+    const { textBody, htmlBody } = composeProposalEmail({ ...params, senderName: '321 Swipe' })
+    // body mentions "321 Swipe's ..." once in the prose plus the signoff. Count signoff form precisely.
+    expect((textBody.match(/Best,\n321 Swipe/g) ?? []).length).toBe(1)
+    expect(textBody).not.toContain('321 Swipe\n321 Swipe')
+    expect((htmlBody.match(/Best,<br>321 Swipe<\/p>/g) ?? []).length).toBe(1)
+    expect(htmlBody).not.toContain('321 Swipe<br>321 Swipe')
+  })
+
+  it('senderName "Bruce Hughes" → signoff keeps both the name and 321 Swipe', () => {
+    const { textBody, htmlBody } = composeProposalEmail({ ...params, senderName: 'Bruce Hughes' })
+    expect(textBody).toContain('Best,\nBruce Hughes\n321 Swipe')
+    expect(htmlBody).toContain('Best,<br>Bruce Hughes<br>321 Swipe</p>')
+  })
+})
