@@ -11,6 +11,7 @@ import * as artifactService from '@/modules/artifacts/services/artifact.service'
 import { linkUploadedStatementToCompany } from '@/modules/artifacts/services/company-document.service'
 import { recordSavingsAnalysis } from '@/modules/proposals/repositories/savings-analysis.repo'
 import { createProposalEvent } from '@/modules/proposals/repositories/proposal-events.repo'
+import { reviewAnalysisForExtraction } from '@/modules/proposals/services/statement-review.service'
 import * as activityEventRepo from '@/modules/intelligence/repositories/activity-event.repo'
 import type { RequestContext } from '@/types/context'
 
@@ -126,7 +127,7 @@ export async function ingestStatementAndBuildProposal(
     source:                 'operator_entered',
   })
 
-  await recordSavingsAnalysis({
+  const { id: documentExtractionId } = await recordSavingsAnalysis({
     tenantId:   ctx.tenantId,
     artifactId: statementArtifact.id,
     analysis,
@@ -233,6 +234,20 @@ export async function ingestStatementAndBuildProposal(
     eventSummary: 'Statement ingested and proposal drafted',
     metadata:     { proposal_event_id: proposalEvent.id, statement_artifact_id: statementArtifact.id },
   }).catch(() => null)
+
+  // Phase 0 statement review (advisory, gated default-off). Best-effort but AWAITED
+  // (per the ISSUE-008 lesson — must complete on Vercel, never fire-and-forget) and
+  // wrapped so a review failure never fails the ingest. No-op when the control is off.
+  if (documentExtractionId) {
+    try {
+      await reviewAnalysisForExtraction(ctx.tenantId, {
+        documentExtractionId,
+        workspaceId:     ctx.workspaceId,
+        proposalEventId: proposalEvent.id,
+        companyId:       input.companyId,
+      })
+    } catch { /* swallow — advisory only */ }
+  }
 
   return {
     proposalEventId:         proposalEvent.id,

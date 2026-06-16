@@ -5,6 +5,7 @@ import { generateProposalPdf } from '@/lib/pdf/proposal'
 import * as artifactService from '@/modules/artifacts/services/artifact.service'
 import { recordSavingsAnalysis } from '@/modules/proposals/repositories/savings-analysis.repo'
 import { createProposalEvent } from '@/modules/proposals/repositories/proposal-events.repo'
+import { reviewAnalysisForExtraction } from '@/modules/proposals/services/statement-review.service'
 import * as activityEventRepo from '@/modules/intelligence/repositories/activity-event.repo'
 import { generateShareToken } from '@/lib/proposals/share-token'
 import type { StatementAnalysis } from '@/lib/statement/analysis'
@@ -91,7 +92,7 @@ export async function generateSavingsCertificate(
   })
 
   // Persist the savings figure (in structured_data) linked to the certificate.
-  await recordSavingsAnalysis({
+  const { id: documentExtractionId } = await recordSavingsAnalysis({
     tenantId:   ctx.tenantId,
     artifactId,
     analysis,
@@ -144,6 +145,20 @@ export async function generateSavingsCertificate(
       : 'Savings analysis generated',
     metadata:     { proposal_event_id: proposalEvent.id, artifact_id: artifactId },
   }).catch(() => null)
+
+  // Phase 0 statement review (advisory, gated default-off). Best-effort but AWAITED
+  // (per the ISSUE-008 lesson — must complete on Vercel, never fire-and-forget) and
+  // wrapped so a review failure never fails certificate generation. No-op when off.
+  if (documentExtractionId) {
+    try {
+      await reviewAnalysisForExtraction(ctx.tenantId, {
+        documentExtractionId,
+        workspaceId:     ctx.workspaceId,
+        proposalEventId: proposalEvent.id,
+        companyId:       input.companyId,
+      })
+    } catch { /* swallow — advisory only */ }
+  }
 
   return {
     artifactId,

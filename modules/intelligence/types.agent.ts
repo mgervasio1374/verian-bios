@@ -108,6 +108,11 @@ export const SystemControlKey = {
   CAMPAIGN_APPROVAL_ROUTING_ENABLED:       'campaign_approval_routing_enabled',
   // Manual Campaign Mode — send dispatch; disabled by default
   CAMPAIGN_SEND_DISPATCH_ENABLED:          'campaign_send_dispatch_enabled',
+
+  // MCM v2 Phase 0 — deterministic statement-analysis review/grader agent. Advisory
+  // only; disabled by default → zero behavior change at the ingest chokepoints until
+  // flipped. No LLM in Phase 0.
+  STATEMENT_REVIEW_AGENT_ENABLED:          'statement_review_agent_enabled',
 } as const
 export type SystemControlKey = typeof SystemControlKey[keyof typeof SystemControlKey]
 

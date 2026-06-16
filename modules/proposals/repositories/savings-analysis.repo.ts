@@ -32,3 +32,23 @@ export async function recordSavingsAnalysis(input: {
   if (error) throw new Error(`recordSavingsAnalysis: ${error.message}`)
   return { id: data?.id ?? null }
 }
+
+// Tenant-scoped read of a single document_extraction by id, returning the stored
+// StatementAnalysis snapshot in structured_data. Used by the Phase 0 statement
+// review agent. Returns null when not found.
+export async function getDocumentExtractionById(
+  tenantId:    string,
+  extractionId: string,
+): Promise<{ id: string; structured_data: StatementAnalysis } | null> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('document_extractions')
+    .select('id, structured_data')
+    .eq('tenant_id', tenantId)
+    .eq('id', extractionId)
+    .maybeSingle()
+
+  if (error) throw new Error(`getDocumentExtractionById: ${error.message}`)
+  if (!data) return null
+  return { id: data.id, structured_data: data.structured_data as unknown as StatementAnalysis }
+}
