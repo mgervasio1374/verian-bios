@@ -40,6 +40,23 @@ export async function getDefaultSenderIdentity(
   return data ?? null
 }
 
+// Sets the signature on the tenant's default sender identity. The signature
+// column (migration 20240060) is not yet in the generated types, so the update
+// payload is cast. Returns nothing; callers re-read via SELECT * if needed.
+export async function updateDefaultSenderIdentitySignature(
+  tenantId: string,
+  signature: string | null
+): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const { error } = await supabase
+    .from('sender_identities')
+    .update({ signature } as never)
+    .eq('tenant_id', tenantId)
+    .eq('is_default', true)
+    .is('deleted_at', null)
+  if (error) throw new Error(`updateDefaultSenderIdentitySignature: ${error.message}`)
+}
+
 // V4: resolve a specific sender identity (e.g. the sequence's). Requires
 // status 'active' — a retired/pending identity makes callers fall back to
 // the tenant default.

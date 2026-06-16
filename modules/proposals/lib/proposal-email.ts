@@ -11,6 +11,9 @@ export interface ComposeProposalEmailParams {
   firstName:   string
   senderName:  string
   publicUrl:   string
+  // Optional per-identity signature; when present (and no override body) it
+  // replaces the built-in "Best, ..." signoff verbatim.
+  signature?:  string | null
 }
 
 export interface ProposalEmailOverride {
@@ -33,6 +36,17 @@ function escapeHtml(s: string): string {
 function linkButton(publicUrl: string): string {
   return `<a href="${publicUrl}" style="display:inline-block;background:#2563eb;color:#fff;` +
     `padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;">View your savings proposal</a>`
+}
+
+// Paragraph-wraps plain text into html (blank lines → <p>, single \n → <br>),
+// escaping content. Used for the signature block.
+function paragraphWrapHtml(text: string): string {
+  return text
+    .split(/\n{2,}/)
+    .map(p => p.trim())
+    .filter(Boolean)
+    .map(p => `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`)
+    .join('')
 }
 
 // Paragraph-wraps an override body (blank lines → <p>, single \n → <br>), rendering
@@ -59,7 +73,7 @@ export function composeProposalEmail(
   params: ComposeProposalEmailParams,
   override?: ProposalEmailOverride,
 ): ComposedProposalEmail {
-  const { companyName, firstName, senderName, publicUrl } = params
+  const { companyName, firstName, senderName, publicUrl, signature } = params
 
   // House style: no em/en dashes (matches the rewrite loop).
   const defaultSubject = `Your 321 Swipe savings analysis for ${companyName}`
@@ -75,10 +89,16 @@ export function composeProposalEmail(
     return { subject, textBody, htmlBody }
   }
 
-  // Signoff dedup: when the sender identity is itself "321 Swipe", don't repeat it.
+  // Signoff: a configured per-identity signature wins verbatim; otherwise the
+  // slice-1 deduped default (no "321 Swipe" repeat when the sender is 321 Swipe).
+  const sig = signature?.trim()
   const senderIs321 = senderName.trim().toLowerCase() === '321 swipe'
-  const textSignoff = senderIs321 ? `Best,\n321 Swipe` : `Best,\n${senderName}\n321 Swipe`
-  const htmlSignoff = senderIs321 ? `<p>Best,<br>321 Swipe</p>` : `<p>Best,<br>${senderName}<br>321 Swipe</p>`
+  const textSignoff = sig
+    ? sig
+    : (senderIs321 ? `Best,\n321 Swipe` : `Best,\n${senderName}\n321 Swipe`)
+  const htmlSignoff = sig
+    ? paragraphWrapHtml(sig)
+    : (senderIs321 ? `<p>Best,<br>321 Swipe</p>` : `<p>Best,<br>${senderName}<br>321 Swipe</p>`)
 
   // Default path — byte-identical to PE1 except the deduped signoff above.
   const textBody =

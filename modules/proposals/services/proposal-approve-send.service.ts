@@ -100,12 +100,15 @@ export async function approveAndSendProposal(
   const override = (metadata.proposal_email_override ?? null) as
     | { subject?: string | null; bodyText?: string | null }
     | null
+  // signature column (migration 20240060) isn't in the generated row type yet.
+  const senderSignature = (senderIdentity as { signature?: string | null } | null)?.signature ?? null
   const { subject, textBody, htmlBody } = composeProposalEmail(
     {
       companyName,
       firstName,
       senderName: senderIdentity?.name ?? '321 Swipe',
       publicUrl,
+      signature: senderSignature,
     },
     override ?? undefined,
   )

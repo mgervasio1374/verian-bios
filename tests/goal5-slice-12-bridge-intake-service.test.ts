@@ -321,13 +321,13 @@ describe('Goal 5 Slice 12 — Bridge Intake Orchestration Service (TC-G5-S12-001
     expect(src).not.toContain('codex-review.repo')
   })
 
-  it('TC-G5-S12-047: no new migration file with prefix 20240060 or higher exists (20240059 added by MCM v2 copy exemplars)', () => {
+  it('TC-G5-S12-047: no new migration file with prefix 20240061 or higher exists (20240060 added by MCM v2 sender identity signature)', () => {
     const migrationsDir = path.join(root, 'supabase/migrations')
     const files = fs.readdirSync(migrationsDir)
     const newMigrations = files.filter(f => {
       const match = f.match(/^(\d+)/)
       if (!match) return false
-      return parseInt(match[1], 10) >= 20240060
+      return parseInt(match[1], 10) >= 20240061
     })
     expect(newMigrations).toHaveLength(0)
   })

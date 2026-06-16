@@ -98,6 +98,8 @@ export default async function ProposalEventDetailPage({ params }: PageProps) {
           firstName:   previewContact?.first_name ?? 'there',
           senderName:  previewSender?.name ?? '321 Swipe',
           publicUrl,
+          // signature column (migration 20240060) not in the generated row type yet.
+          signature:   (previewSender as { signature?: string | null } | null)?.signature ?? null,
         })
         return {
           toEmail:        previewContact?.email ?? null,
