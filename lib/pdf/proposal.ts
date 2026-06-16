@@ -52,12 +52,12 @@ export interface ProposalPdfParams {
 // ---- Formatting (mirrors the web page's usd()/pct()) ----
 
 function usd(n: number | null | undefined, dp = 2): string {
-  if (n == null || !Number.isFinite(n)) return '—'
+  if (n == null || !Number.isFinite(n)) return '-'
   return `$${n.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp })}`
 }
 
 function pct(rate: number | null | undefined, dp = 2): string {
-  if (rate == null || !Number.isFinite(rate)) return '—'
+  if (rate == null || !Number.isFinite(rate)) return '-'
   return `${(rate * 100).toFixed(dp)}%`
 }
 
@@ -271,11 +271,11 @@ export async function generateProposalPdf(params: ProposalPdfParams): Promise<Ui
 
   // Statement Analysis
   sectionBand(doc, 'Statement Analysis')
-  row(doc, 'Merchant',               companyName ?? '—', { tint: true })
-  row(doc, 'Processor',              analysis.processor_name ?? '—')
-  row(doc, 'Statement period',       analysis.statement_period ?? '—', { tint: true })
+  row(doc, 'Merchant',               companyName ?? '-', { tint: true })
+  row(doc, 'Processor',              analysis.processor_name ?? '-')
+  row(doc, 'Statement period',       analysis.statement_period ?? '-', { tint: true })
   row(doc, 'Monthly volume',         usd(analysis.monthly_volume_estimate, 0))
-  row(doc, 'Transactions / month',   analysis.transaction_count_estimate?.toLocaleString() ?? '—', { tint: true })
+  row(doc, 'Transactions / month',   analysis.transaction_count_estimate?.toLocaleString() ?? '-', { tint: true })
   row(doc, 'Average ticket',         usd(bridge?.avgTicket ?? null))
   row(doc, 'Total monthly fees',     usd(analysis.total_fees_estimate), { tint: true })
   row(doc, 'Current effective rate', pct(analysis.effective_rate_estimate), { strong: true })
@@ -340,7 +340,7 @@ export async function generateProposalPdf(params: ProposalPdfParams): Promise<Ui
     doc.y -= 8
 
     // Effective rate — current vs proposed
-    sectionBand(doc, 'Effective Rate — Current vs. Proposed')
+    sectionBand(doc, 'Effective Rate: Current vs. Proposed')
     row(doc, 'Current effective rate',  pct(bridge.currentRate), { tint: true })
     row(doc, 'Proposed effective rate', pct(bridge.proposedRate), { strong: true, accent: true })
     doc.y -= 2
@@ -354,11 +354,11 @@ export async function generateProposalPdf(params: ProposalPdfParams): Promise<Ui
     // Logic followed — same five steps as the web page
     sectionBand(doc, 'Logic Followed')
     const steps = [
-      `Anchored to your actual statement${analysis.statement_period ? ` (${analysis.statement_period})` : ''} — volume, fees, and transaction count are taken as entered.`,
+      `Anchored to your actual statement${analysis.statement_period ? ` (${analysis.statement_period})` : ''}: volume, fees, and transaction count are taken as entered.`,
       'Computed your current effective rate as total fees ÷ monthly volume.',
       `Repriced the same volume under interchange-plus: interchange at cost, plus a transparent ${bridge.markupBps} bps markup, ${usd(bridge.perTxnDollars)}/transaction, and a ${usd(bridge.monthlyFee)} monthly fee.`,
       "Held interchange constant (it's the wholesale cost every processor pays), so the savings come entirely from a lower, visible markup.",
-      "Reported savings conservatively — clamped to zero if repricing didn't beat your current cost.",
+      "Reported savings conservatively, clamped to zero if repricing didn't beat your current cost.",
     ]
     steps.forEach((s, i) => paragraph(doc, `${i + 1}.  ${s}`, 8, C_DARK))
     doc.y -= 8
@@ -377,10 +377,10 @@ export async function generateProposalPdf(params: ProposalPdfParams): Promise<Ui
 
   sectionBand(doc, 'Next Steps')
   const nextSteps = [
-    'Review this proposal — print or save a copy for your records.',
+    'Review this proposal: print or save a copy for your records.',
     `Schedule your free review call: ${calendlyLink}`,
     "We'll walk through your full statement, confirm your savings, and finalize pricing.",
-    "If you're ready, we handle the switch — usually 1–2 business days.",
+    "If you're ready, we handle the switch, usually 1-2 business days.",
   ]
   nextSteps.forEach((s, i) => paragraph(doc, `${i + 1}.  ${s}`, 9, C_DARK))
 
