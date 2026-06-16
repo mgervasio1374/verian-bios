@@ -142,6 +142,14 @@ export default async function AgentMonitorPage({ params }: PageProps) {
       </div>
 
       {/* All-agents roster + expected-vs-actual anomaly */}
+      <div className="flex justify-end">
+        <Link
+          href={`/${workspaceSlug}/settings/agent-monitor/map`}
+          className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+        >
+          View agent map →
+        </Link>
+      </div>
       {roster && <AgentRosterSection data={roster} workspaceSlug={workspaceSlug} />}
 
       {/* System Controls (read-only) */}
