@@ -13,6 +13,7 @@ import {
   type CopywritingSkillDefinitionInput,
 } from '@/modules/messaging/copywriting/copywriting-skill.resolver'
 import { extractAntiPatterns, type ExtractedPattern } from '@/modules/messaging/learning/anti-pattern-extraction.service'
+import { insertAntiPatternSources } from '@/modules/messaging/learning/anti-pattern-source.repo'
 
 export type ActionResult<T = void> =
   | { success: true; data: T }
@@ -64,9 +65,17 @@ function toDefinitionInput(def: Record<string, unknown>, categoryFallback: strin
   }
 }
 
+export interface ApprovedAntiPattern {
+  antiPatternRule: string
+  patternName?:    string
+  sourceExcerpt?:  string
+  rationale?:      string
+  confidence?:     string
+}
+
 export async function applyAntiPatternsAction(
   targetSlug: string,
-  approvedRules: string[],
+  approved: ApprovedAntiPattern[],
 ): Promise<ActionResult<{ appliedCount: number; totalAntiPatterns: number }>> {
   try {
     const supabase = await createSupabaseServerClient()
@@ -77,7 +86,13 @@ export async function applyAntiPatternsAction(
       return { success: false, error: 'Anti-Pattern Lab is disabled.' }
     }
 
-    const rules = approvedRules.map(r => r.trim()).filter(Boolean)
+    // Keep the first occurrence of each non-empty rule, preserving its provenance.
+    const byRule = new Map<string, ApprovedAntiPattern>()
+    for (const p of approved) {
+      const rule = p.antiPatternRule?.trim()
+      if (rule && !byRule.has(rule)) byRule.set(rule, { ...p, antiPatternRule: rule })
+    }
+    const rules = [...byRule.keys()]
     if (rules.length === 0) return { success: false, error: 'Approve at least one pattern to apply.' }
 
     // Resolve the CURRENT v1 definition: tenant learned row if present, else seed.
@@ -92,11 +107,12 @@ export async function applyAntiPatternsAction(
       input = toDefinitionInput(seed as unknown as Record<string, unknown>, seed.category)
     }
 
-    // APPEND (dedup) — never overwrite the other fields.
+    // APPEND (dedup) — never overwrite the other fields. Track the NEWLY-applied
+    // rules (not duplicates) so we record lineage only for genuinely new patterns.
     const existing = new Set(input.antiPatterns)
-    let appliedCount = 0
+    const newlyApplied: string[] = []
     for (const rule of rules) {
-      if (!existing.has(rule)) { existing.add(rule); appliedCount++ }
+      if (!existing.has(rule)) { existing.add(rule); newlyApplied.push(rule) }
     }
     const merged: CopywritingSkillDefinitionInput = { ...input, antiPatterns: [...existing] }
 
@@ -112,8 +128,31 @@ export async function applyAntiPatternsAction(
       createdByUserId: ctx.userId === 'system' ? null : ctx.userId,
     })
 
+    // Durable provenance: one lineage row per newly-applied rule. Best-effort —
+    // a lineage failure must never fail the apply.
+    if (newlyApplied.length > 0) {
+      try {
+        await insertAntiPatternSources(newlyApplied.map(rule => {
+          const p = byRule.get(rule)!
+          return {
+            tenantId:        ctx.tenantId,
+            workspaceId:     ctx.workspaceId,
+            family:          COPYWRITING_FAMILY,
+            slug:            targetSlug,
+            version:         1,
+            antiPatternRule: rule,
+            patternName:     p.patternName ?? null,
+            sourceExcerpt:   p.sourceExcerpt ?? null,
+            rationale:       p.rationale ?? null,
+            confidence:      p.confidence ?? null,
+            appliedByUserId: ctx.userId === 'system' ? null : ctx.userId,
+          }
+        }))
+      } catch { /* swallow — lineage is advisory; the skill update already succeeded */ }
+    }
+
     revalidatePath(PROFILE_PATH, 'page')
-    return { success: true, data: { appliedCount, totalAntiPatterns: merged.antiPatterns.length } }
+    return { success: true, data: { appliedCount: newlyApplied.length, totalAntiPatterns: merged.antiPatterns.length } }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }

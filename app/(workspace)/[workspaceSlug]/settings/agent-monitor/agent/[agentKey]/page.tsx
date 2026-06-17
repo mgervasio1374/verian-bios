@@ -10,6 +10,7 @@ import { listLearnedSkills } from '@/modules/messaging/skills/learned-skill.repo
 import { getBooleanControl } from '@/modules/intelligence/repositories/system-control.repo'
 import { SystemControlKey } from '@/modules/intelligence/types.agent'
 import { CANONICAL_COPYWRITING_SLUGS } from '@/modules/messaging/learning/anti-pattern-extraction.service'
+import { listAntiPatternSources } from '@/modules/messaging/learning/anti-pattern-source.repo'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, ArrowRight, Bot } from 'lucide-react'
@@ -67,6 +68,12 @@ export default async function AgentProfilePage({ params }: PageProps) {
   // Anti-Pattern Lab: copywriting agent + manager + control on (default off).
   const antiPatternLabOn = family === 'copywriting' && canManage
     && await getBooleanControl(SystemControlKey.ANTI_PATTERN_LAB_ENABLED, ctx.tenantId, false).catch(() => false)
+
+  // Learned anti-patterns changelog (glass box) — copywriting + manager; always
+  // reviewable regardless of the lab control. Best-effort.
+  const antiPatternSources = (family === 'copywriting' && canManage)
+    ? await listAntiPatternSources(ctx.tenantId, { family: 'copywriting' }).catch(() => [])
+    : []
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -179,6 +186,47 @@ export default async function AgentProfilePage({ params }: PageProps) {
       {/* Anti-Pattern Lab (copywriting agent + manager + control on) */}
       {antiPatternLabOn && (
         <AntiPatternLab targetSlugs={[...CANONICAL_COPYWRITING_SLUGS]} />
+      )}
+
+      {/* Learned anti-patterns changelog (glass box) — copywriting + manager */}
+      {family === 'copywriting' && canManage && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Learned anti-patterns</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {antiPatternSources.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No anti-patterns have been applied yet.</p>
+            ) : (
+              <div className="space-y-4">
+                {[...new Set(antiPatternSources.map(s => s.skill_slug))].map(slug => (
+                  <div key={slug}>
+                    <p className="text-xs font-semibold font-mono text-muted-foreground mb-1.5">{slug}</p>
+                    <div className="divide-y">
+                      {antiPatternSources.filter(s => s.skill_slug === slug).map(s => (
+                        <div key={s.id} className="py-2 first:pt-0 last:pb-0 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium">{s.anti_pattern_rule}</span>
+                            {s.confidence && <Badge variant="outline" className="text-xs">{s.confidence}</Badge>}
+                            <span className="text-xs text-muted-foreground ml-auto whitespace-nowrap">
+                              {new Date(s.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                          {s.source_excerpt && (
+                            <p className="text-xs italic text-muted-foreground">“{s.source_excerpt}”</p>
+                          )}
+                          {s.rationale && (
+                            <p className="text-xs text-foreground">{s.rationale}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Recent runs (most recent 25, NOT window-bounded) */}

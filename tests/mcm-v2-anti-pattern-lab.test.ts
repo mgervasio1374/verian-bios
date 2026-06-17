@@ -109,6 +109,9 @@ vi.mock('@/modules/messaging/skills/learned-skill.repo', () => ({
   getLearnedSkill: vi.fn(async () => h.learned),
   upsertLearnedSkill: vi.fn(async () => ({ id: 'ls-1' })),
 }))
+vi.mock('@/modules/messaging/learning/anti-pattern-source.repo', () => ({
+  insertAntiPatternSources: vi.fn(async () => undefined),
+}))
 vi.mock('@/modules/messaging/copywriting/copywriting-agent.skill-definitions', () => ({
   getSkillDefinition: vi.fn(() => ({
     skillSlug: 'cold_outreach', skillVersion: 1, category: 'context',
@@ -152,7 +155,10 @@ describe('TC-APL-06: apply APPENDS (dedup), v1, source learned, family copywriti
         examples: [], antiPatterns: ['Avoid A'],
       },
     }
-    const res = await applyAntiPatternsAction('cold_outreach', ['Avoid B', 'Avoid A']) // A is a dup
+    const res = await applyAntiPatternsAction('cold_outreach', [
+      { antiPatternRule: 'Avoid B' },
+      { antiPatternRule: 'Avoid A' }, // A is a dup
+    ])
     expect(res.success).toBe(true)
     const arg = vi.mocked(upsertLearnedSkill).mock.calls[0][0]
     expect(arg.family).toBe('copywriting')
@@ -167,7 +173,7 @@ describe('TC-APL-06: apply APPENDS (dedup), v1, source learned, family copywriti
 
   it('preserves other fields (does not overwrite)', async () => {
     h.learned = null // seed path
-    await applyAntiPatternsAction('cold_outreach', ['Avoid X'])
+    await applyAntiPatternsAction('cold_outreach', [{ antiPatternRule: 'Avoid X' }])
     const arg = vi.mocked(upsertLearnedSkill).mock.calls[0][0]
     const def = arg.definition as Record<string, unknown>
     expect(def.toneRules).toBe('t')
@@ -179,14 +185,14 @@ describe('TC-APL-07: both actions gate on permission + control', () => {
   it('permission failure blocks both, no write', async () => {
     h.permThrows = true
     const r1 = await runAntiPatternExtractionAction('cold_outreach', ['bad'])
-    const r2 = await applyAntiPatternsAction('cold_outreach', ['Avoid X'])
+    const r2 = await applyAntiPatternsAction('cold_outreach', [{ antiPatternRule: 'Avoid X' }])
     expect(r1.success).toBe(false)
     expect(r2.success).toBe(false)
     expect(vi.mocked(upsertLearnedSkill)).not.toHaveBeenCalled()
   })
   it('control off blocks apply', async () => {
     h.labOn = false
-    const res = await applyAntiPatternsAction('cold_outreach', ['Avoid X'])
+    const res = await applyAntiPatternsAction('cold_outreach', [{ antiPatternRule: 'Avoid X' }])
     expect(res.success).toBe(false)
     expect(vi.mocked(upsertLearnedSkill)).not.toHaveBeenCalled()
   })

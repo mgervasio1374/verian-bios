@@ -92,10 +92,13 @@ describe('TC-CTS-07: both pages fetch listCampaignTypes + pass campaignTypes to 
   })
 })
 
-describe('TC-CTS-08: TC-G5-S12-047 ceiling bumped to 20240066', () => {
-  it('guard source forbids >= 20240066', () => {
+describe('TC-CTS-08: TC-G5-S12-047 ceiling is above the A1 migration (20240065)', () => {
+  it('guard ceiling forbids migrations strictly above the latest applied', () => {
+    // The guard moves with each new migration; A1 added 20240065, P1b moved it to
+    // 20240067. The invariant for A1: the guard must NOT catch 20240065.
     const guard = read('tests/goal5-slice-12-bridge-intake-service.test.ts')
-    expect(guard).toContain('>= 20240066')
-    expect(guard).toContain('parseInt(match[1], 10) >= 20240066')
+    const m = guard.match(/parseInt\(match\[1\], 10\) >= (\d+)/)
+    expect(m).toBeTruthy()
+    expect(parseInt(m![1], 10)).toBeGreaterThan(20240065)
   })
 })

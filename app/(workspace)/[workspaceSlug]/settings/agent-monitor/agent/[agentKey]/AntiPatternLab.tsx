@@ -61,10 +61,18 @@ export function AntiPatternLab({ targetSlugs }: Props) {
   function handleApply() {
     setError(null)
     setSummary(null)
-    const rules = patterns.filter((_, i) => approved.has(i)).map(p => p.antiPatternRule)
-    if (rules.length === 0) { setError('Approve at least one pattern to apply.'); return }
+    const approvedPatterns = patterns
+      .filter((_, i) => approved.has(i))
+      .map(p => ({
+        antiPatternRule: p.antiPatternRule,
+        patternName:     p.patternName,
+        sourceExcerpt:   p.flaggedSnippet,
+        rationale:       p.rationale,
+        confidence:      p.confidence,
+      }))
+    if (approvedPatterns.length === 0) { setError('Approve at least one pattern to apply.'); return }
     startTransition(async () => {
-      const res = await applyAntiPatternsAction(targetSlug, rules)
+      const res = await applyAntiPatternsAction(targetSlug, approvedPatterns)
       if (!res.success) { setError(res.error); return }
       setSummary(`Applied ${res.data.appliedCount} new anti-pattern${res.data.appliedCount === 1 ? '' : 's'} (${res.data.totalAntiPatterns} total on "${targetSlug}").`)
       router.refresh()
