@@ -121,6 +121,11 @@ export const SystemControlKey = {
   // MCM v2 Agent Map 3b — consume per-tenant authored learned copywriting skills in
   // the rewrite loop (resolveCopywritingSkill). Default OFF → static seed lookup.
   LEARNED_SKILLS_ENABLED:                  'learned_skills_enabled',
+
+  // MCM v2 Learning Loop P1 — the Anti-Pattern Lab. Operators extract transferable
+  // failure patterns from sample bad emails and (after approval) append them to a
+  // copywriting skill the rewrite loop uses. Default OFF.
+  ANTI_PATTERN_LAB_ENABLED:                'anti_pattern_lab_enabled',
 } as const
 export type SystemControlKey = typeof SystemControlKey[keyof typeof SystemControlKey]
 

@@ -97,7 +97,7 @@ export function Sidebar({ workspaceSlug }: SidebarProps) {
     {
       label: 'INTELLIGENCE',
       items: [
-        { label: 'Agent Monitor',       href: `${base}/settings/agent-monitor`,       icon: <Bot className="h-4 w-4" /> },
+        { label: 'Agent Lab',           href: `${base}/settings/agent-monitor`,       icon: <Bot className="h-4 w-4" /> },
         { label: 'System Intelligence', href: `${base}/settings/system-intelligence`, icon: <Brain className="h-4 w-4" /> },
         { label: 'AI Usage',            href: `${base}/settings/ai-usage`,            icon: <Cpu className="h-4 w-4" /> },
         { label: 'Analytics',           href: `${base}/settings/analytics`,           icon: <BarChart2 className="h-4 w-4" /> },

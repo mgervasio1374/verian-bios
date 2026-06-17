@@ -59,6 +59,8 @@ const CONTROL_WARNINGS: Record<string, string> = {
     'Switches agent action-contract checks from advisory to fail-closed. BASE_BLOCKED is always enforced regardless.',
   'learned_skills_enabled':
     'When on, per-tenant authored copywriting skills override the built-in seed in the rewrite loop. Falls back to the seed when none are authored.',
+  'anti_pattern_lab_enabled':
+    'When on, operators can extract anti-patterns from sample bad emails and append them to copywriting skills the rewrite loop uses. Each pattern is human-approved before it is applied.',
 }
 
 const CONTROL_GROUP_DEFINITIONS = [
@@ -115,6 +117,7 @@ const CONTROL_GROUP_DEFINITIONS = [
       'quality_auto_approve_enabled',
       'agent_action_enforcement_enabled',
       'learned_skills_enabled',
+      'anti_pattern_lab_enabled',
     ],
   },
 ] as const

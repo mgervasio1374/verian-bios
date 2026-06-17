@@ -7,10 +7,14 @@ import { getAgentProfileData } from '@/modules/intelligence/actions/agent-monito
 import { AGENT_SKILL_FAMILY } from '@/modules/intelligence/agent-workflows'
 import { getAllSkillDefinitions } from '@/modules/messaging/copywriting/copywriting-agent.skill-definitions'
 import { listLearnedSkills } from '@/modules/messaging/skills/learned-skill.repo'
+import { getBooleanControl } from '@/modules/intelligence/repositories/system-control.repo'
+import { SystemControlKey } from '@/modules/intelligence/types.agent'
+import { CANONICAL_COPYWRITING_SLUGS } from '@/modules/messaging/learning/anti-pattern-extraction.service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, ArrowRight, Bot } from 'lucide-react'
 import { LearnedSkillEditor } from './LearnedSkillEditor'
+import { AntiPatternLab } from './AntiPatternLab'
 import {
   IMPL_VARIANT, IMPL_LABEL, CATEGORY_LABEL,
   fmtDate, fmtTokens, fmtCost,
@@ -60,6 +64,9 @@ export default async function AgentProfilePage({ params }: PageProps) {
   // The editor is available only for the editable copywriting family + managers.
   const canManage = hasPermission(ctx, 'messaging.manage_templates')
   const skillsEditable = family === 'copywriting' && canManage
+  // Anti-Pattern Lab: copywriting agent + manager + control on (default off).
+  const antiPatternLabOn = family === 'copywriting' && canManage
+    && await getBooleanControl(SystemControlKey.ANTI_PATTERN_LAB_ENABLED, ctx.tenantId, false).catch(() => false)
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -168,6 +175,11 @@ export default async function AgentProfilePage({ params }: PageProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Anti-Pattern Lab (copywriting agent + manager + control on) */}
+      {antiPatternLabOn && (
+        <AntiPatternLab targetSlugs={[...CANONICAL_COPYWRITING_SLUGS]} />
+      )}
 
       {/* Recent runs (most recent 25, NOT window-bounded) */}
       <Card>

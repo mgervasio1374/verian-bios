@@ -121,7 +121,7 @@ export default async function AgentMonitorPage({ params }: PageProps) {
       <div>
         <div className="flex items-center gap-2">
           <Bot className="h-6 w-6 text-muted-foreground" />
-          <h1 className="text-2xl font-bold">Agent Monitor</h1>
+          <h1 className="text-2xl font-bold">Agent Lab</h1>
         </div>
         <p className="text-muted-foreground text-sm mt-1">
           Inspect Verian agent runs, decisions, guardrails, and execution traces.
