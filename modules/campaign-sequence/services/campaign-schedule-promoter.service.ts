@@ -87,9 +87,15 @@ export async function promoteScheduleItemToDraft(
 
     const toName = [contact.first_name, contact.last_name].filter(Boolean).join(' ') || null
 
-    // Load company (non-fatal)
-    const company = item.company_id
-      ? await companyRepo.getCompanyByTenant(item.company_id, tenantId).catch(() => null)
+    // Load company (non-fatal). Resolve the company id from the item OR the resolved
+    // contact — contact-scoped assignments (the dominant path) have a null
+    // item.company_id, so without the contact fallback company_name fell back to
+    // its placeholder ("your company"). Contacts carry company_id (resolver selects '*').
+    const companyId = item.company_id
+      ?? ((contact as unknown as Record<string, unknown>).company_id as string | null)
+      ?? null
+    const company = companyId
+      ? await companyRepo.getCompanyByTenant(companyId, tenantId).catch(() => null)
       : null
 
     // V4: resolve the SEQUENCE's sender identity (migration 20240045), falling
@@ -106,10 +112,17 @@ export async function promoteScheduleItemToDraft(
         : null)
       ?? (await emailDraftRepo.getDefaultSenderIdentity(tenantId).catch(() => null))
 
-    // Build personalization fields for the renderer
+    // Build personalization fields for the renderer. Mirror the manual path
+    // (campaign-asset-draft.service): company-derived fields + contact-preferred
+    // location, all from the already-loaded contact + company. No invented values.
+    const contactRec = contact as unknown as Record<string, unknown>
+    const companyRec = (company ?? {}) as unknown as Record<string, unknown>
     const fields = {
       first_name:   contact.first_name ?? null,
       company_name: (company?.name ?? null) as string | null,
+      industry:     (companyRec.industry as string | null) ?? null,
+      city:         (contactRec.city as string | null) ?? (companyRec.city as string | null) ?? null,
+      state:        (contactRec.state as string | null) ?? (companyRec.state as string | null) ?? null,
       sender_name:  senderIdentity?.name ?? null,
       sender_email: senderIdentity?.email ?? null,
     }
