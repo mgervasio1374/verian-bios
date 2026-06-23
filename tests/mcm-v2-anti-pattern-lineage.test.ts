@@ -36,10 +36,15 @@ describe('TC-APLN-01: migration creates anti_pattern_sources (additive, RLS, CHE
   })
 })
 
-describe('TC-APLN-02: TC-G5-S12-047 ceiling bumped to 20240067', () => {
-  it('guard forbids >= 20240067', () => {
+describe('TC-APLN-02: TC-G5-S12-047 ceiling is above this slice migration (20240066)', () => {
+  it('guard forbids migrations strictly above the latest applied', () => {
+    // The guard moves with each new migration; lineage added 20240066, and later
+    // slices push it higher (P3.5 inbound reply capture moved it to 20240068).
+    // The invariant for P1b: the guard must NOT catch 20240066.
     const guard = read('tests/goal5-slice-12-bridge-intake-service.test.ts')
-    expect(guard).toContain('parseInt(match[1], 10) >= 20240067')
+    const m = guard.match(/parseInt\(match\[1\], 10\) >= (\d+)/)
+    expect(m).toBeTruthy()
+    expect(parseInt(m![1], 10)).toBeGreaterThan(20240066)
   })
 })
 

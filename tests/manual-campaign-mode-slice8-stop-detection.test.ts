@@ -134,10 +134,11 @@ describe('TC-MM8-05: stopAssignmentSchedule uses blocked with status_reason for 
 })
 
 // ---------------------------------------------------------------------------
-// TC-MM8-06: stopAssignmentSchedule never uses skipped or stopped_responded
+// TC-MM8-06: stopAssignmentSchedule never uses skipped; stopped_responded is set
+// only via the P3.5 'responded' mode (inbound reply capture).
 // ---------------------------------------------------------------------------
 
-describe('TC-MM8-06: stopAssignmentSchedule never transitions to skipped or stopped_responded (source-read)', () => {
+describe('TC-MM8-06: stopAssignmentSchedule never transitions to skipped; stopped_responded only via responded mode (source-read)', () => {
   const svc = read('modules/campaign-sequence/services/campaign-stop.service.ts')
 
   it('does not transition to skipped in the stop service', () => {
@@ -146,10 +147,15 @@ describe('TC-MM8-06: stopAssignmentSchedule never transitions to skipped or stop
     expect(codeLines.join('\n')).not.toContain("'skipped'")
   })
 
-  it('does not set stopped_responded in the stop service', () => {
-    // Check that stopped_responded is never passed as a transition target
+  it("sets stopped_responded for the 'responded' mode (P3.5 reply signal)", () => {
+    // P3.5 introduced the reply signal: a matched human reply transitions pending
+    // items to stopped_responded with response_detected_at + a response_detected reason.
     const codeLines = svc.split('\n').filter(l => !l.trimStart().startsWith('//'))
-    expect(codeLines.join('\n')).not.toContain("'stopped_responded'")
+    const code = codeLines.join('\n')
+    expect(code).toContain("'stopped_responded'")
+    expect(code).toContain("'responded'")
+    expect(code).toContain('response_detected_at')
+    expect(code).toContain('response_detected')
   })
 
   it('per-item catch block is present for isolation', () => {

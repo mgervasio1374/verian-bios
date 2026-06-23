@@ -92,6 +92,7 @@ export function Sidebar({ workspaceSlug }: SidebarProps) {
         { label: 'Voice Exemplars',    href: `${base}/settings/exemplars`,          icon: <Sparkles className="h-4 w-4" /> },
         { label: 'Email Signature',    href: `${base}/settings/email-signature`,    icon: <PenLine className="h-4 w-4" /> },
         { label: 'Campaign Queue',    href: `${base}/settings/campaign-queue`,     icon: <ListTodo className="h-4 w-4" /> },
+        { label: 'Replies',           href: `${base}/settings/replies`,            icon: <MailCheck className="h-4 w-4" /> },
       ],
     },
     {
