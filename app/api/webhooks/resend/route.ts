@@ -88,9 +88,13 @@ export async function POST(req: NextRequest) {
   const body = await req.text()
   const headersList = await headers()
 
-  const webhookId        = headersList.get('webhook-id') ?? ''
-  const webhookTimestamp = headersList.get('webhook-timestamp') ?? ''
-  const webhookSignature = headersList.get('webhook-signature') ?? ''
+  // Resend signs via Svix, which sends svix-* headers; the Standard Webhooks
+  // convention names them webhook-*. The HMAC content/format is identical — only
+  // the header names differ — so accept either (svix-* fallback). Without this
+  // every delivery 401'd on the presence check and Svix auto-disabled the endpoint.
+  const webhookId        = headersList.get('webhook-id')        ?? headersList.get('svix-id')        ?? ''
+  const webhookTimestamp = headersList.get('webhook-timestamp') ?? headersList.get('svix-timestamp') ?? ''
+  const webhookSignature = headersList.get('webhook-signature') ?? headersList.get('svix-signature') ?? ''
 
   // Signature verification (enforced only when secret is configured)
   const signingSecret = process.env.RESEND_WEBHOOK_SECRET
