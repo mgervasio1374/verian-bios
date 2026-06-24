@@ -7,6 +7,7 @@ import {
 } from '@/modules/intelligence/agent-workflows'
 import { VERIAN_BRIDGE_AGENT_REGISTRY } from '@/modules/verian-agent-bridge/agent-registry'
 import { getAllSkillDefinitions } from '@/modules/messaging/copywriting/copywriting-agent.skill-definitions'
+import { AGENT_SEED_SKILLS } from '@/modules/intelligence/skills/agent-seed-skills'
 import { listLearnedSkills } from '@/modules/messaging/skills/learned-skill.repo'
 import { AgentCatalog } from './AgentCatalog'
 
@@ -22,9 +23,12 @@ export default async function AgentMapPage({ params }: PageProps) {
   const ctx = await buildRequestContext(supabase)
   requirePermission(ctx, 'crm.companies.view')
 
-  // Skill counts: the copywriting seed + this tenant's learned rows by family.
-  // Best-effort — never break the map.
+  // Skill counts: the copywriting seed + every generic seed family + this tenant's
+  // learned rows by family. Best-effort — never break the map.
   const seedCountByFamily: Record<string, number> = { copywriting: getAllSkillDefinitions().length }
+  for (const [fam, provider] of Object.entries(AGENT_SEED_SKILLS)) {
+    seedCountByFamily[fam] = provider().length
+  }
   const learnedByFamily: Record<string, number> = {}
   try {
     const learned = await listLearnedSkills(ctx.tenantId)

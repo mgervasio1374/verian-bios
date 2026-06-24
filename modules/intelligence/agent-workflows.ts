@@ -92,7 +92,25 @@ export const AGENT_RESPONSIBILITY: Record<string, string> = {
   execution_gate_agent:   'Final execution gate placeholder — blocks production side effects.',
 }
 
-// Which skill family an agent draws on (today only copywriting). Drives the skills count.
+// Which skill family an agent draws on. Covers every Class A (learning) and
+// Class B (governance) agent; each family has a seed module (copywriting keeps
+// its own rich module, the rest live in AGENT_SEED_SKILLS). Drives the skills count.
 export const AGENT_SKILL_FAMILY: Record<string, string> = {
-  copywriting_agent: 'copywriting',
+  // Class A (learning) — messaging
+  copywriting_agent:      'copywriting',
+  message_strategy_agent: 'message_strategy',
+  quality_review_agent:   'quality_review',
+  subject_line_agent:     'subject_line',
+  personalization_agent:  'personalization',
+  // Class A (learning) — business intelligence
+  lead_scoring_agent:            'lead_scoring',
+  company_scoring_agent:         'company_scoring',
+  campaign_recommendation_agent: 'campaign_recommendation',
+  statement_extraction_agent:    'statement_extraction',
+  statement_review_agent:        'statement_review',
+  sales_ops_intelligence_agent:  'sales_ops_intelligence',
+  // Class B (governance)
+  prompt_policy_agent:    'prompt_policy',
+  risk_classifier_agent:  'risk_classifier',
+  approval_gate_agent:    'approval_gate',
 }

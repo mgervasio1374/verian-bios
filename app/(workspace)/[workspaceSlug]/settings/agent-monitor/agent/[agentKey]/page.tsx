@@ -6,6 +6,8 @@ import { requirePermission, hasPermission } from '@/lib/auth/permissions'
 import { getAgentProfileData } from '@/modules/intelligence/actions/agent-monitor.actions'
 import { AGENT_SKILL_FAMILY } from '@/modules/intelligence/agent-workflows'
 import { getAllSkillDefinitions } from '@/modules/messaging/copywriting/copywriting-agent.skill-definitions'
+import { AGENT_SEED_SKILLS, isNonLearnableFamily } from '@/modules/intelligence/skills/agent-seed-skills'
+import type { AgentSkillDefinition } from '@/modules/intelligence/skills/agent-skill.types'
 import { listLearnedSkills } from '@/modules/messaging/skills/learned-skill.repo'
 import { getBooleanControl } from '@/modules/intelligence/repositories/system-control.repo'
 import { SystemControlKey } from '@/modules/intelligence/types.agent'
@@ -54,14 +56,19 @@ export default async function AgentProfilePage({ params }: PageProps) {
   const { agg, hasTelemetry } = row
   const monitorBase = `/${workspaceSlug}/settings/agent-monitor`
 
-  // Skills: the curated seed (copywriting only today) + this tenant's learned rows
-  // for the agent's family. Best-effort — never break the profile.
+  // Skills: the curated seed for this agent's family + this tenant's learned rows.
+  // Copywriting keeps its rich static module + compact render; every other Class A/B
+  // family loads its starter skills from the generic seed registry. Best-effort.
   const family = AGENT_SKILL_FAMILY[agentKey]
-  const seedSkills = family === 'copywriting' ? getAllSkillDefinitions() : []
+  const isCopywritingFamily = family === 'copywriting'
+  const copywritingSeeds = isCopywritingFamily ? getAllSkillDefinitions() : []
+  const genericSeeds: AgentSkillDefinition[] =
+    !isCopywritingFamily && family && AGENT_SEED_SKILLS[family] ? AGENT_SEED_SKILLS[family]() : []
+  const governedFamily = isNonLearnableFamily(family)
   const learnedSkills = family
     ? await listLearnedSkills(ctx.tenantId, { family }).catch(() => [])
     : []
-  const totalSkills = seedSkills.length + learnedSkills.length
+  const totalSkills = copywritingSeeds.length + genericSeeds.length + learnedSkills.length
   // The editor is available only for the editable copywriting family + managers.
   const canManage = hasPermission(ctx, 'messaging.manage_templates')
   const skillsEditable = family === 'copywriting' && canManage
@@ -149,12 +156,36 @@ export default async function AgentProfilePage({ params }: PageProps) {
             <p className="text-sm text-muted-foreground">No skills defined for this agent yet.</p>
           ) : (
             <div className="divide-y">
-              {seedSkills.map(s => (
+              {copywritingSeeds.map(s => (
                 <div key={`seed-${s.skillSlug}-${s.skillVersion}`} className="flex items-center gap-2 py-2 first:pt-0 last:pb-0 flex-wrap">
                   <span className="font-mono text-xs">{s.skillSlug}</span>
                   <span className="text-xs text-muted-foreground">v{s.skillVersion}</span>
                   <Badge variant="outline" className="text-xs">{s.category}</Badge>
                   <Badge variant="secondary" className="text-xs">seed</Badge>
+                </div>
+              ))}
+              {genericSeeds.map(s => (
+                <div key={`seed-${s.skillSlug}-${s.skillVersion}`} className="py-3 first:pt-0 last:pb-0 space-y-1.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-medium">{s.name}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{s.skillSlug}</span>
+                    <span className="text-xs text-muted-foreground">v{s.skillVersion}</span>
+                    <Badge variant="outline" className="text-xs">{s.category}</Badge>
+                    <Badge variant="secondary" className="text-xs">seed</Badge>
+                    {governedFamily && (
+                      <Badge variant="outline" className="text-xs">Governed (not auto-learned)</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">{s.guidance}</p>
+                  {s.requiredElements.length > 0 && (
+                    <p className="text-xs"><span className="font-medium">Required:</span> {s.requiredElements.join('; ')}</p>
+                  )}
+                  {s.forbiddenElements.length > 0 && (
+                    <p className="text-xs"><span className="font-medium">Forbidden:</span> {s.forbiddenElements.join('; ')}</p>
+                  )}
+                  {s.antiPatterns.length > 0 && (
+                    <p className="text-xs text-muted-foreground"><span className="font-medium">Anti-patterns:</span> {s.antiPatterns.join('; ')}</p>
+                  )}
                 </div>
               ))}
               {learnedSkills.map(s => (

@@ -19,10 +19,13 @@ describe('TC-ASV-01: profile imports the skills sources + family map', () => {
   })
 })
 
-describe('TC-ASV-02: skills loaded by family — seed (copywriting) + learned', () => {
+describe('TC-ASV-02: skills loaded by family — seed (copywriting + registry) + learned', () => {
   it('resolves the family and loads both sources', () => {
     expect(profile).toContain('const family = AGENT_SKILL_FAMILY[agentKey]')
-    expect(profile).toContain("family === 'copywriting' ? getAllSkillDefinitions() : []")
+    // Copywriting keeps its rich module; every other family loads from the registry.
+    expect(profile).toContain("const isCopywritingFamily = family === 'copywriting'")
+    expect(profile).toContain('isCopywritingFamily ? getAllSkillDefinitions() : []')
+    expect(profile).toContain('AGENT_SEED_SKILLS[family]()')
     expect(profile).toContain('listLearnedSkills(ctx.tenantId, { family })')
   })
   it('learned load is best-effort (fail-open)', () => {

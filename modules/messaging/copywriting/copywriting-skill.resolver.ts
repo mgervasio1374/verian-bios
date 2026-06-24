@@ -18,7 +18,8 @@
 
 import type { CopywritingSkillDefinition, SkillCategory } from './copywriting-agent.types'
 import { getSkillDefinition } from './copywriting-agent.skill-definitions'
-import { getLearnedSkill, type LearnedSkillRow } from '@/modules/messaging/skills/learned-skill.repo'
+import type { LearnedSkillRow } from '@/modules/messaging/skills/learned-skill.repo'
+import { resolveSkillTiered } from '@/modules/intelligence/skills/agent-skill.resolver'
 
 const COPYWRITING_FAMILY = 'copywriting'
 
@@ -100,31 +101,20 @@ function parseDefinition(
   }
 }
 
-// Reads one DB tier (tenant-specific when tenantId is a string, global when null),
-// returning the parsed definition only when the row is active and well-formed.
-async function resolveDbTier(
-  tenantId: string | null,
-  slug: string,
-  version: number,
-): Promise<CopywritingSkillDefinition | null> {
-  const row = await getLearnedSkill(tenantId, COPYWRITING_FAMILY, slug, version)
-  if (!row || row.status !== 'active') return null
-  return parseDefinition(row, slug, version)
-}
-
-export async function resolveCopywritingSkill(
+// Delegates to the shared 3-tier plumbing (resolveSkillTiered) with copywriting's
+// own parser + static seed. Signature and behavior are intact: tenant DB row ->
+// global DB row -> static seed, malformed jsonb falls through, null if none.
+export function resolveCopywritingSkill(
   tenantId: string,
   slug:     string,
   version:  number,
 ): Promise<CopywritingSkillDefinition | null> {
-  // 1. DB tenant-specific active row
-  const tenantSkill = await resolveDbTier(tenantId, slug, version)
-  if (tenantSkill) return tenantSkill
-
-  // 2. DB global active row (tenant_id IS NULL)
-  const globalSkill = await resolveDbTier(null, slug, version)
-  if (globalSkill) return globalSkill
-
-  // 3. Static seed fallback
-  return getSkillDefinition(slug, version)
+  return resolveSkillTiered(
+    tenantId,
+    COPYWRITING_FAMILY,
+    slug,
+    version,
+    parseDefinition,
+    getSkillDefinition,
+  )
 }
