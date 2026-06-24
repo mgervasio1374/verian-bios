@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { formatCompanyName } from '@/lib/format'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import { countCompanies } from '@/modules/crm/services/company.service'
@@ -252,7 +253,7 @@ export default async function DashboardPage({ params }: PageProps) {
             <div className="divide-y">
               {intel.recommendations.map(rec => {
                 const actionTarget = resolveRecommendationTarget(rec, workspaceSlug)
-                const entityLabel  = rec.companyName ?? rec.leadName ?? null
+                const entityLabel  = formatCompanyName(rec.companyName) ?? rec.leadName ?? null
                 return (
                   <div key={rec.id} className="py-3 flex items-start justify-between gap-3 first:pt-0 last:pb-0">
                     <div className="flex-1 min-w-0">
@@ -363,7 +364,7 @@ export default async function DashboardPage({ params }: PageProps) {
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       {run.companyName && (
-                        <span className="text-muted-foreground truncate max-w-[80px]">{run.companyName}</span>
+                        <span className="text-muted-foreground truncate max-w-[80px]">{formatCompanyName(run.companyName)}</span>
                       )}
                       <Link
                         href={`/${workspaceSlug}/settings/agent-monitor/${run.id}`}
@@ -513,7 +514,7 @@ export default async function DashboardPage({ params }: PageProps) {
                               href={`/${workspaceSlug}/companies/${doc.company_id}`}
                               className="text-blue-600 hover:underline truncate"
                             >
-                              {doc.companyName}
+                              {formatCompanyName(doc.companyName)}
                             </Link>
                           </>
                         )}

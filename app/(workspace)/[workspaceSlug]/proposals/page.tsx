@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { formatCompanyName } from '@/lib/format'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import { requirePermission } from '@/lib/auth/permissions'
@@ -172,7 +173,7 @@ export default async function ProposalsDashboardPage({ params }: PageProps) {
               <tbody>
                 {recent.map(r => (
                   <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="p-3 font-medium">{r.companyName ?? '—'}</td>
+                    <td className="p-3 font-medium">{formatCompanyName(r.companyName) ?? '—'}</td>
                     <td className="p-3">
                       <Badge variant={STATUS_VARIANT[r.proposalStatus] ?? 'outline'}>{r.proposalStatus}</Badge>
                     </td>

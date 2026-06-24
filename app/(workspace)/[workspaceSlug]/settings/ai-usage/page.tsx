@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { formatCompanyName } from '@/lib/format'
 import { buildRequestContext } from '@/lib/auth/context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import * as aiUsageRepo from '@/modules/intelligence/repositories/ai-usage-event.repo'
@@ -167,7 +168,7 @@ export default async function AiUsagePage({ params: _params }: PageProps) {
                   <span className="flex-1 truncate">
                     {row.leadName ?? row.leadId}
                     {row.companyName && (
-                      <span className="text-muted-foreground ml-1">· {row.companyName}</span>
+                      <span className="text-muted-foreground ml-1">· {formatCompanyName(row.companyName)}</span>
                     )}
                   </span>
                   <span className="text-muted-foreground text-xs">

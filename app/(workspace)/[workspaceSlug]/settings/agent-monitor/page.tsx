@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { formatCompanyName } from '@/lib/format'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import { requirePermission } from '@/lib/auth/permissions'
@@ -223,7 +224,7 @@ export default async function AgentMonitorPage({ params }: PageProps) {
                       ? new Date(run.completed_at).getTime() - new Date(run.started_at).getTime()
                       : null
                     const subjectLabel = run.companyName
-                      ? run.companyName
+                      ? formatCompanyName(run.companyName)
                       : run.subject_id
                         ? `${run.subject_type} · ${run.subject_id.slice(0, 8)}…`
                         : run.subject_type ?? '—'

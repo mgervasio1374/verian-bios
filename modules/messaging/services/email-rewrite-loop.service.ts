@@ -1,4 +1,5 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
+import { formatCompanyName } from '@/lib/format'
 import { reviewEmailDraftQuality } from '@/modules/messaging/services/email-quality.service'
 import * as emailDraftVersionRepo from '@/modules/messaging/repositories/email-draft-version.repo'
 import * as emailQualityRepo from '@/modules/messaging/repositories/email-quality.repo'
@@ -622,7 +623,10 @@ export async function runEmailRewriteLoop(input: {
     // ---- Build context-appropriate candidate pool ----
 
     const first   = contactFirstName || 'there'
-    const company = context.companyName ?? 'your business'
+    // Title-case the company name fed to BOTH the deterministic generators and the
+    // LLM rewrite prompt, so rewrites match the rest of the app (formatCompanyName
+    // only reformats screaming/ALL-CAPS input; mixed-case names pass through).
+    const company = formatCompanyName(context.companyName) ?? 'your business'
 
     // Skill-grounded LLM rewrite (gated, default off → template behavior). When
     // the flag is on AND the LLM returns a non-empty, guardrail-passing set, we

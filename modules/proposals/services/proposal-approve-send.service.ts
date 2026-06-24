@@ -9,6 +9,7 @@ import { buildFollowUpCommitmentsFromRule, DEFAULT_SCHEDULE_RULE_KEY, getSchedul
 import { checkSendEligibility } from '@/modules/messaging/services/send-eligibility.service'
 import { buildComplianceFooter, appendFooter } from '@/modules/messaging/services/compliance-footer.service'
 import { composeProposalEmail } from '@/modules/proposals/lib/proposal-email'
+import { formatCompanyName } from '@/lib/format'
 import type { RequestContext } from '@/types/context'
 
 export interface ApproveAndSendInput {
@@ -87,7 +88,7 @@ export async function approveAndSendProposal(
 
   // 5. Compose + send the merchant email with the public /p/{token} link.
   const metadata    = (event.metadata ?? {}) as Record<string, unknown>
-  const companyName = typeof metadata.company_name === 'string' ? metadata.company_name : 'your business'
+  const companyName = typeof metadata.company_name === 'string' ? formatCompanyName(metadata.company_name)! : 'your business'
   const shareToken  = event.share_token
   if (!shareToken) return { ok: false, error: 'not_approvable' }
   const publicUrl   = `${appBaseUrl()}/p/${shareToken}`

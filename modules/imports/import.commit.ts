@@ -3,6 +3,7 @@
 // No email-sending, no messaging-pipeline writes.
 
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
+import { formatCompanyName } from '@/lib/format'
 import type { NormalizedImportRow, ImportBatchRow } from './import.types'
 import type { Database } from '@/types/database'
 
@@ -81,7 +82,9 @@ export async function findOrCreateCompany(
     .insert({
       tenant_id:    tenantId,
       workspace_id: workspaceId,
-      name:         normalized.companyName!,
+      // Normalize on import so newly stored data is clean. Dedup is case-insensitive
+      // (.ilike), so storing the title-cased form is dedup-safe.
+      name:         formatCompanyName(normalized.companyName)!,
       website:      normalized.website ?? undefined,
       phone:        normalized.phone ?? undefined,
       industry:     normalized.industry ?? undefined,

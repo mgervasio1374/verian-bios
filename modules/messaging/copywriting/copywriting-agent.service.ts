@@ -18,6 +18,7 @@ import { ActivityEventType, SystemControlKey }  from '@/modules/intelligence/typ
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 
 import { getSkillDefinition }       from './copywriting-agent.skill-definitions'
+import { formatCompanyName }         from '@/lib/format'
 import { buildVersionPlan }         from './copywriting-agent.version-planner'
 import { generateSubjectLine }      from './copywriting-agent.subjects'
 import { generateBodyText }         from './copywriting-agent.body'
@@ -138,7 +139,7 @@ async function loadLeadContext(
     leadId,
     tenantId,
     contactName,
-    companyName:            company?.name                    ?? null,
+    companyName:            formatCompanyName(company?.name ?? null),
     businessType:           null,
     city:                   null,
     state:                  null,

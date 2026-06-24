@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { formatCompanyName } from '@/lib/format'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import * as strategySvc from '@/modules/messaging/strategy/message-strategy.service'
@@ -107,7 +108,7 @@ export default async function MessageWorkspacePage({ params }: PageProps) {
         <div>
           <h1 className="text-xl font-semibold">Message Workspace</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {contactName ?? 'Unknown contact'}{companyName ? ` · ${companyName}` : ''}
+            {contactName ?? 'Unknown contact'}{companyName ? ` · ${formatCompanyName(companyName)}` : ''}
           </p>
         </div>
         <div className="text-xs text-muted-foreground">
@@ -127,7 +128,7 @@ export default async function MessageWorkspacePage({ params }: PageProps) {
               </div>
               <div>
                 <p className="text-muted-foreground">Company</p>
-                <p className="font-medium">{companyName ?? '—'}</p>
+                <p className="font-medium">{formatCompanyName(companyName) ?? '—'}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Source</p>

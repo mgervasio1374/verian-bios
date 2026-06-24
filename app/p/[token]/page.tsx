@@ -1,4 +1,5 @@
 import { getPublicProposalByToken } from '@/modules/proposals/services/public-proposal.service'
+import { formatCompanyName } from '@/lib/format'
 import { PrintButtons, ProposalContactForm, IntelligenceGuard } from './ProposalClient'
 import { deriveCostSavingsBridge } from '@/lib/statement/cost-bridge'
 import { getProposalPresentation } from '@/lib/config/proposal-presentation'
@@ -100,9 +101,9 @@ export default async function HostedProposalPage({ params, searchParams }: PageP
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Savings Proposal
                 </p>
-                <h1 className="text-2xl font-bold mt-1">{proposal.companyName ?? 'Your Business'}</h1>
+                <h1 className="text-2xl font-bold mt-1">{formatCompanyName(proposal.companyName) ?? 'Your Business'}</h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Prepared for {proposal.companyName ?? 'your business'}
+                  Prepared for {formatCompanyName(proposal.companyName) ?? 'your business'}
                   {a?.statement_period ? ` · Statement period: ${a.statement_period}` : ''}
                 </p>
 
@@ -183,7 +184,7 @@ export default async function HostedProposalPage({ params, searchParams }: PageP
                 <SectionBand>Statement Analysis</SectionBand>
                 <table className="w-full text-sm">
                   <tbody className="divide-y">
-                    <Row label="Merchant" value={proposal.companyName ?? '—'} />
+                    <Row label="Merchant" value={formatCompanyName(proposal.companyName) ?? '—'} />
                     <Row label="Processor" value={a.processor_name ?? '—'} />
                     <Row label="Statement period" value={a.statement_period ?? '—'} />
                     <Row label="Monthly volume" value={usd(volume, 0)} />

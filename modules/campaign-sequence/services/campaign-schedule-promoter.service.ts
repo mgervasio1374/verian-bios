@@ -6,6 +6,7 @@ import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asse
 import { getCampaignSequenceStepById } from '@/modules/campaign-sequence/repositories/campaign-sequence-step.repo'
 import { getCampaignSequenceById } from '@/modules/campaign-sequence/repositories/campaign-sequence.repo'
 import { renderCampaignAsset } from '@/modules/messaging/services/campaign-personalization.service'
+import { formatCompanyName } from '@/lib/format'
 import { updateScheduleItemStatus } from '@/modules/campaign-sequence/services/campaign-schedule-item.service'
 import { DRAFT_SOURCE_TYPE } from '@/modules/messaging/drafts/draft-source.constants'
 import { reviewAndPersistEmailDraftQuality } from '@/modules/messaging/services/email-quality-review-runner.service'
@@ -119,7 +120,7 @@ export async function promoteScheduleItemToDraft(
     const companyRec = (company ?? {}) as unknown as Record<string, unknown>
     const fields = {
       first_name:   contact.first_name ?? null,
-      company_name: (company?.name ?? null) as string | null,
+      company_name: formatCompanyName((company?.name ?? null) as string | null),
       industry:     (companyRec.industry as string | null) ?? null,
       city:         (contactRec.city as string | null) ?? (companyRec.city as string | null) ?? null,
       state:        (contactRec.state as string | null) ?? (companyRec.state as string | null) ?? null,

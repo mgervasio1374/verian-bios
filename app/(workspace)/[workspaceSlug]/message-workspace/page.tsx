@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { formatCompanyName } from '@/lib/format'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import { Brain } from 'lucide-react'
@@ -62,7 +63,7 @@ export default async function MessageWorkspaceIndexPage({ params }: PageProps) {
               >
                 <div>
                   <p className="text-sm font-medium">
-                    {lead.company_id ? (companyMap[lead.company_id] ?? 'Unknown Company') : 'Unknown Company'}
+                    {lead.company_id ? (formatCompanyName(companyMap[lead.company_id]) ?? 'Unknown Company') : 'Unknown Company'}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Stage: {lead.stage ?? '—'} · Source: {lead.source ?? '—'}

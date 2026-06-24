@@ -7,7 +7,7 @@ import { Users } from 'lucide-react'
 import Link from 'next/link'
 import { AddContactDialog } from './AddContactDialog'
 import { EditContactDialog } from './EditContactDialog'
-import { formatPhone } from '@/lib/format'
+import { formatPhone, formatCompanyName } from '@/lib/format'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -89,7 +89,7 @@ export default async function ContactsPage({ params, searchParams }: PageProps) 
                         href={`/${workspaceSlug}/companies/${c.company.id}`}
                         className="text-sm text-foreground hover:underline"
                       >
-                        {c.company.name}
+                        {formatCompanyName(c.company.name)}
                       </Link>
                     ) : (
                       <span className="text-muted-foreground">—</span>

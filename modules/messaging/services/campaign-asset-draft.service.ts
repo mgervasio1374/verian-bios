@@ -9,6 +9,7 @@ import * as activityEventService from '@/modules/intelligence/services/activity-
 import { renderCampaignAsset } from '@/modules/messaging/services/campaign-personalization.service'
 import { DRAFT_SOURCE_TYPE }   from '@/modules/messaging/drafts/draft-source.constants'
 import { ActivityEventType }   from '@/modules/intelligence/types.agent'
+import { formatCompanyName }   from '@/lib/format'
 
 export interface CreateDraftFromAssetInput {
   tenantId:              string
@@ -68,7 +69,7 @@ export async function createDraftFromAsset(
   const contactRecord = contact as Record<string, unknown>
   const fields = {
     first_name:        contact.first_name ?? null,
-    company_name:      (company?.name ?? lead.name) ?? null,
+    company_name:      formatCompanyName((company?.name ?? lead.name) ?? null),
     industry:          (companyRecord?.industry as string | undefined) ?? null,
     city:              (contactRecord.city as string | undefined) ?? (companyRecord?.city as string | undefined) ?? null,
     state:             (contactRecord.state as string | undefined) ?? (companyRecord?.state as string | undefined) ?? null,

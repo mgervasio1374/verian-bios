@@ -1,4 +1,5 @@
 import { getReviewPageData } from './actions'
+import { formatCompanyName } from '@/lib/format'
 import { ReviewForm } from './ReviewForm'
 import { AlertTriangle, CheckCircle2, XCircle, FileText, ExternalLink, Lightbulb } from 'lucide-react'
 import * as emailQualityRepo from '@/modules/messaging/repositories/email-quality.repo'
@@ -68,7 +69,7 @@ export default async function ApprovalReviewPage({ params }: PageProps) {
             {data.companyName && (
               <div>
                 <p className="text-xs text-muted-foreground">Company</p>
-                <p className="font-medium">{data.companyName}</p>
+                <p className="font-medium">{formatCompanyName(data.companyName)}</p>
               </div>
             )}
             {data.toEmail && (

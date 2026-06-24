@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatCompanyName } from '@/lib/format'
 import { addCompaniesToSegmentAction } from '@/modules/crm/actions/segment.actions'
 import { updateCompaniesCustomerStatusAction } from '@/modules/crm/actions/company.actions'
 import { bulkAssignCampaignAction } from '@/modules/messaging/actions/campaign-assignment.actions'
@@ -663,7 +664,7 @@ export function CompaniesTable({
                       href={`/${workspaceSlug}/companies/${c.id}`}
                       className="font-medium hover:underline"
                     >
-                      {c.name}
+                      {formatCompanyName(c.name)}
                     </Link>
                     {c.domain && (
                       <p className="text-xs text-muted-foreground">{c.domain}</p>

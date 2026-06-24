@@ -10,7 +10,7 @@ import { listProposalEventsForContact } from '@/modules/proposals/repositories/p
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Mail, Phone, Building2, FileText, ExternalLink } from 'lucide-react'
-import { formatPhone } from '@/lib/format'
+import { formatPhone, formatCompanyName } from '@/lib/format'
 import { DOCUMENT_TYPE_LABELS, DOCUMENT_SOURCE_LABELS } from '@/modules/artifacts/types'
 import { ProposalsCard } from '../../components/ProposalsCard'
 import { CompanyActivityTimeline } from '../../companies/[id]/CompanyActivityTimeline'
@@ -55,7 +55,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
                   href={`/${workspaceSlug}/companies/${company.id}`}
                   className="inline-flex items-center gap-1 text-blue-600 hover:underline"
                 >
-                  <Building2 className="h-3.5 w-3.5" />{company.name}
+                  <Building2 className="h-3.5 w-3.5" />{formatCompanyName(company.name)}
                 </Link>
               )}
               {contact.do_not_contact && (

@@ -29,7 +29,7 @@ import { PauseCampaignButton, ResumeCampaignButton } from './PauseResumeCampaign
 import { listSegmentsForWorkspace, listSegmentsForCompany } from '@/modules/crm/repositories/segment.repo'
 import { AddContactDialog } from '../../contacts/AddContactDialog'
 import { EditContactDialog } from '../../contacts/EditContactDialog'
-import { formatPhone } from '@/lib/format'
+import { formatPhone, formatCompanyName } from '@/lib/format'
 import { listAssignmentsForCompany } from '@/modules/messaging/repositories/campaign-assignment.repo'
 
 // Assignment status -> operator-facing label + badge style (Running = assigned)
@@ -89,7 +89,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
               {company.name.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h1 className="text-2xl font-bold">{company.name}</h1>
+              <h1 className="text-2xl font-bold">{formatCompanyName(company.name)}</h1>
               <div className="flex items-center gap-3 mt-1">
                 {company.industry && (
                   <span className="text-sm text-muted-foreground">{company.industry}</span>
