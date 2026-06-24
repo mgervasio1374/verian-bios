@@ -6,9 +6,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/llm/client', () => ({ chatComplete: vi.fn() }))
+// Slice 2: the adapter now resolves a skill gated on LEARNED_SKILLS_ENABLED. Keep
+// these contract tests DB-free: control OFF → static-seed path (no resolver/DB).
+vi.mock('@/modules/intelligence/repositories/system-control.repo', () => ({
+  getBooleanControl: vi.fn(async () => false),
+}))
 
 import { generateBodyWithLlm, parseLlmBodyText } from '@/modules/messaging/copywriting/copywriting-agent.llm'
 import { chatComplete } from '@/lib/llm/client'
+
+const TENANT = 't1'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const angle    = { strategyAngle: 'value_first', differentiationProfile: {} } as any
@@ -39,7 +46,7 @@ describe('TC-CL-02: generateBodyWithLlm', () => {
       text: '{"bodyText":"Hello {{company_name}}, quick question about your processing."}',
       promptTokens: 120, completionTokens: 60, modelName: 'gpt-4o-mini',
     } as never)
-    const out = await generateBodyWithLlm(angle, strategy, ctx)
+    const out = await generateBodyWithLlm(angle, strategy, ctx, TENANT)
     expect(out).not.toBeNull()
     expect(out!.result.bodyText).toContain('Hello')
     expect(out!.promptTokens).toBe(120)
@@ -49,11 +56,11 @@ describe('TC-CL-02: generateBodyWithLlm', () => {
 
   it('unparseable LLM output → null (caller falls back to deterministic)', async () => {
     vi.mocked(chatComplete).mockResolvedValue({ text: 'sorry, here is your email!', promptTokens: 5, completionTokens: 5, modelName: 'gpt-4o-mini' } as never)
-    expect(await generateBodyWithLlm(angle, strategy, ctx)).toBeNull()
+    expect(await generateBodyWithLlm(angle, strategy, ctx, TENANT)).toBeNull()
   })
 
   it('LLM client throws (config/timeout/etc) → null, never propagates', async () => {
     vi.mocked(chatComplete).mockRejectedValue(new Error('LlmConfigError'))
-    expect(await generateBodyWithLlm(angle, strategy, ctx)).toBeNull()
+    expect(await generateBodyWithLlm(angle, strategy, ctx, TENANT)).toBeNull()
   })
 })

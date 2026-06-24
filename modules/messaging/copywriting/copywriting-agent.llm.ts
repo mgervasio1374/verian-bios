@@ -9,7 +9,11 @@
 import { chatComplete } from '@/lib/llm/client'
 import { APPROVED_MERGE_FIELDS } from '@/modules/messaging/campaign-assets/campaign-asset.constants'
 import { applyHouseStyle } from '@/modules/messaging/house-style'
-import type { VersionAngle, CopywritingLeadContext } from './copywriting-agent.types'
+import { getSkillDefinition } from './copywriting-agent.skill-definitions'
+import { resolveCopywritingSkill } from './copywriting-skill.resolver'
+import { getBooleanControl } from '@/modules/intelligence/repositories/system-control.repo'
+import { SystemControlKey } from '@/modules/intelligence/types.agent'
+import type { VersionAngle, CopywritingLeadContext, CopywritingSkillDefinition } from './copywriting-agent.types'
 import type { MessageStrategy } from '@/modules/messaging/strategy/message-strategy.types'
 import type { BodyGenerationResult } from './copywriting-agent.body'
 
@@ -20,15 +24,36 @@ export interface LlmBodyOutcome {
   modelName:        string
 }
 
+// Skill guidance block — mirrors rewrite-llm.ts verbatim format. Injected only
+// when a skill resolves; absent → today's generic prompt (generation never breaks).
+function skillGuidanceLines(skill: CopywritingSkillDefinition): string[] {
+  return [
+    'Skill guidance for this context (follow it precisely):',
+    `- Tone: ${skill.toneRules}`,
+    `- Messaging: ${skill.messagingRules}`,
+    `- Required elements: ${skill.requiredElements.join('; ') || 'none'}`,
+    `- Forbidden elements: ${skill.forbiddenElements.join('; ') || 'none'}`,
+    `- CTA guidance: ${skill.ctaGuidance}`,
+    `- Compliance: ${skill.complianceNotes}`,
+    `- Anti-patterns to avoid: ${skill.antiPatterns.join('; ') || 'none'}`,
+    '',
+  ]
+}
+
 function buildPrompt(
   angle:    VersionAngle,
   strategy: MessageStrategy,
   ctx:      CopywritingLeadContext,
+  skill:    CopywritingSkillDefinition | null,
 ): { system: string; user: string } {
   const approved = Object.keys(APPROVED_MERGE_FIELDS).map(k => `{{${k}}}`).join(', ')
   const system = [
     'You are an expert B2B copywriter for 321 Swipe, a merchant payment-processing provider.',
     'Write ONLY the body of a short, professional outreach email (no subject line).',
+    '',
+    // Skill-grounded guidance (when resolved) sits ABOVE the hard rules, which
+    // always apply and are never relaxed by the skill block.
+    ...(skill ? skillGuidanceLines(skill) : []),
     'Hard rules:',
     `- Personalization: use ONLY these merge field tokens where needed: ${approved}. Never invent tokens.`,
     '- Do NOT use em dashes or en dashes.',
@@ -70,9 +95,23 @@ export async function generateBodyWithLlm(
   angle:    VersionAngle,
   strategy: MessageStrategy,
   ctx:      CopywritingLeadContext,
+  tenantId: string,
 ): Promise<LlmBodyOutcome | null> {
   try {
-    const { system, user } = buildPrompt(angle, strategy, ctx)
+    // Resolve the context skill the same way the deterministic path keys it: the
+    // context skill slug equals strategy.message_type. Learned-skills consumption
+    // (LEARNED_SKILLS_ENABLED, default OFF): off → static seed; on → DB-resolved
+    // (tenant → global → seed) with any resolver error falling back to the static
+    // seed. getBooleanControl is itself fail-safe (→ false). Identical to rewrite-llm.
+    // If no skill resolves (unknown slug), the prompt stays generic; generation
+    // never breaks.
+    const skillSlug = strategy.message_type
+    const learnedOn = await getBooleanControl(SystemControlKey.LEARNED_SKILLS_ENABLED, tenantId, false).catch(() => false)
+    const skill: CopywritingSkillDefinition | null = learnedOn
+      ? (await resolveCopywritingSkill(tenantId, skillSlug, 1).catch(() => null)) ?? getSkillDefinition(skillSlug, 1)
+      : getSkillDefinition(skillSlug, 1)
+
+    const { system, user } = buildPrompt(angle, strategy, ctx, skill)
     const res = await chatComplete({ system, user, maxTokens: 600, temperature: 0.7 })
     const body = parseLlmBodyText(res.text)
     if (!body) return null

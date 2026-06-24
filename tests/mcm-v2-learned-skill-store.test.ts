@@ -183,12 +183,20 @@ describe('TC-LSS-08: static seed module is unchanged (no learned-skill wiring, s
   })
 })
 
-describe('TC-LSS-09: existing copywriting callers do not reference the async resolver', () => {
-  it('copywriting-agent.service.ts and .llm.ts are not rewired in this slice', () => {
+describe('TC-LSS-09: the main copy path consumes the resolver via the LLM adapter (Slice 2)', () => {
+  // Originally this pinned that P1 left the main path unwired. Slice 2
+  // (copywriting-main-path-skill-wire) intentionally wires it: the LLM adapter
+  // resolves the skill gated on LEARNED_SKILLS_ENABLED, and the service threads
+  // tenantId into the adapter rather than calling the resolver itself.
+  it('the service threads tenantId into the adapter, not the resolver directly', () => {
     const svc = readFileSync(join(__dirname, '..', 'modules', 'messaging', 'copywriting', 'copywriting-agent.service.ts'), 'utf8')
-    const llm = readFileSync(join(__dirname, '..', 'modules', 'messaging', 'copywriting', 'copywriting-agent.llm.ts'), 'utf8')
     expect(svc).not.toContain('resolveCopywritingSkill')
-    expect(llm).not.toContain('resolveCopywritingSkill')
+    expect(svc).toContain('generateBodyWithLlm(angle, strategy, ctx, tenantId)')
+  })
+  it('the LLM adapter resolves the skill gated on LEARNED_SKILLS_ENABLED', () => {
+    const llm = readFileSync(join(__dirname, '..', 'modules', 'messaging', 'copywriting', 'copywriting-agent.llm.ts'), 'utf8')
+    expect(llm).toContain('resolveCopywritingSkill')
+    expect(llm).toContain('LEARNED_SKILLS_ENABLED')
   })
 })
 

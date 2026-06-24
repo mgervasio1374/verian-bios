@@ -482,7 +482,7 @@ export async function generateMessageVersions(
       let llmBody: BodyGenerationResult | undefined
       if (llmEnabled) {
         const angle = plan.angles[vn - 1]
-        const out = angle ? await generateBodyWithLlm(angle, strategy, ctx) : null
+        const out = angle ? await generateBodyWithLlm(angle, strategy, ctx, tenantId) : null
         if (out) {
           llmBody = out.result
           llmPromptTokens     += out.promptTokens
