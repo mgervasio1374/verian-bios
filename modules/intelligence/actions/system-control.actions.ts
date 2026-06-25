@@ -61,6 +61,8 @@ const CONTROL_WARNINGS: Record<string, string> = {
     'When on, per-tenant authored copywriting skills override the built-in seed in the rewrite loop. Falls back to the seed when none are authored.',
   'anti_pattern_lab_enabled':
     'When on, operators can extract anti-patterns from sample bad emails and append them to copywriting skills the rewrite loop uses. Each pattern is human-approved before it is applied.',
+  'campaign_send_dispatch_enabled':
+    'DANGER: When ON, the dispatcher sends approved Manual Campaign Mode emails to real recipients on the next cron tick (every 15 min). Leave OFF unless you are actively running a send.',
 }
 
 const CONTROL_GROUP_DEFINITIONS = [
@@ -82,6 +84,7 @@ const CONTROL_GROUP_DEFINITIONS = [
     keys: [
       'email_sending_enabled',
       'campaign_sending_enabled',
+      'campaign_send_dispatch_enabled',
     ],
   },
   {
