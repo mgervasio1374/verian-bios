@@ -29,6 +29,7 @@ import { PauseCampaignButton, ResumeCampaignButton } from './PauseResumeCampaign
 import { listSegmentsForWorkspace, listSegmentsForCompany } from '@/modules/crm/repositories/segment.repo'
 import { AddContactDialog } from '../../contacts/AddContactDialog'
 import { EditContactDialog } from '../../contacts/EditContactDialog'
+import { OptOutContactButton } from '../../contacts/OptOutContactButton'
 import { formatPhone, formatCompanyName } from '@/lib/format'
 import { listAssignmentsForCompany } from '@/modules/messaging/repositories/campaign-assignment.repo'
 
@@ -214,20 +215,26 @@ export default async function CompanyDetailPage({ params }: PageProps) {
                       {c.title && <p className="text-xs text-muted-foreground">{c.title}</p>}
                       {c.email && <p className="text-xs text-muted-foreground">{c.email}</p>}
                       {c.phone && <p className="text-xs text-muted-foreground">{formatPhone(c.phone)}</p>}
+                      {c.do_not_contact && (
+                        <span className="inline-block mt-0.5 text-[11px] bg-red-100 text-red-800 px-1.5 py-0.5 rounded">Do not contact</span>
+                      )}
                     </div>
-                    <EditContactDialog
-                      contact={{
-                        id:                 c.id,
-                        first_name:         c.first_name,
-                        last_name:          c.last_name,
-                        email:              c.email,
-                        phone:              c.phone,
-                        title:              c.title,
-                        company_id:         c.company_id,
-                        is_primary_contact: c.is_primary_contact,
-                      }}
-                      fixedCompany={{ id: company.id, name: company.name }}
-                    />
+                    <div className="flex items-center gap-3 shrink-0">
+                      <OptOutContactButton contactId={c.id} doNotContact={c.do_not_contact} />
+                      <EditContactDialog
+                        contact={{
+                          id:                 c.id,
+                          first_name:         c.first_name,
+                          last_name:          c.last_name,
+                          email:              c.email,
+                          phone:              c.phone,
+                          title:              c.title,
+                          company_id:         c.company_id,
+                          is_primary_contact: c.is_primary_contact,
+                        }}
+                        fixedCompany={{ id: company.id, name: company.name }}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { OptOutContactButton } from '../OptOutContactButton'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import * as companyService from '@/modules/crm/services/company.service'
@@ -76,6 +77,12 @@ export default async function ContactDetailPage({ params }: PageProps) {
             </div>
           </div>
         </div>
+        {/* Operator opt-out — hidden once the contact is already DNC (badge shows instead) */}
+        <OptOutContactButton
+          contactId={contact.id}
+          doNotContact={contact.do_not_contact}
+          className="text-sm font-medium text-red-600 hover:underline disabled:opacity-50"
+        />
       </div>
 
       {/* Two-column layout: proposals + documents (left) + activity rail (right) */}
