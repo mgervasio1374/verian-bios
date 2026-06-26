@@ -238,13 +238,15 @@ describe('TC-MM8-09: Resend webhook triggers schedule stop on hard bounce (sourc
     expect(webhook).toContain('stopAssignmentSchedule')
   })
 
-  it('hard-bounce branch calls stopCampaignScheduleForSend with bounced mode', () => {
-    // Anchor on the isHardBounce guard (replaces the old flat bounce_type === hard check)
+  it('hard-bounce branch runs the unified terminateOnHardBounce handler', () => {
+    // Anchor on the isHardBounce guard (replaces the old flat bounce_type === hard check).
+    // The draft-gated stopCampaignScheduleForSend was replaced by terminateOnHardBounce,
+    // which stops via stopAssignmentSchedule(mode 'bounced') internally AND covers
+    // planned-but-undrafted touches + suppression + contact/company marks.
     const bounceIdx  = webhook.indexOf("eventType === 'email.bounced' && isHardBounce")
     expect(bounceIdx).toBeGreaterThan(-1)
     const bounceBlock = webhook.slice(bounceIdx, bounceIdx + 1600)
-    expect(bounceBlock).toContain('stopCampaignScheduleForSend')
-    expect(bounceBlock).toContain("'bounced'")
+    expect(bounceBlock).toContain('terminateOnHardBounce')
   })
 
   it('stop call in bounce branch is non-fatal (wrapped with .catch)', () => {
@@ -312,8 +314,8 @@ describe('TC-MM8-12: bounce payload shape regression guards (source-read)', () =
 describe('TC-MM8-13: stop calls are awaited — not fire-and-forget (source-read)', () => {
   const webhook = read('app/api/webhooks/resend/route.ts')
 
-  it('bounce stop call is awaited (await stopCampaignScheduleForSend ... bounced)', () => {
-    expect(webhook).toContain('await stopCampaignScheduleForSend(bounceDraftId')
+  it('bounce termination call is awaited (await terminateOnHardBounce(...))', () => {
+    expect(webhook).toContain('await terminateOnHardBounce(')
   })
 
   it('complaint stop call is awaited (await stopCampaignScheduleForSend ... complained)', () => {
@@ -327,9 +329,9 @@ describe('TC-MM8-13: stop calls are awaited — not fire-and-forget (source-read
     expect(secondIdx).toBeGreaterThan(firstIdx)
   })
 
-  it('bounce stop appears after bounce structured-error in source order', () => {
+  it('bounce termination appears after bounce structured-error in source order', () => {
     const bounceErrorIdx = webhook.indexOf('EMAIL_PERMANENT_BOUNCE')
-    const bounceStopIdx  = webhook.indexOf('await stopCampaignScheduleForSend(bounceDraftId')
+    const bounceStopIdx  = webhook.indexOf('await terminateOnHardBounce(')
     expect(bounceStopIdx).toBeGreaterThan(bounceErrorIdx)
   })
 

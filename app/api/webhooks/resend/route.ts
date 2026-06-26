@@ -9,6 +9,7 @@ import * as etAudit from '@/modules/messaging/event-tracking/event-tracking.audi
 import * as structuredErrorRepo from '@/modules/intelligence/structured-errors/structured-error.repo'
 import { WEBHOOK_FAILURE_TYPE, SE_SEVERITY } from '@/modules/intelligence/structured-errors/structured-error.types'
 import { stopAssignmentSchedule } from '@/modules/campaign-sequence/services/campaign-stop.service'
+import { terminateOnHardBounce, markContactComplained } from '@/modules/messaging/services/bounce-termination.service'
 
 // ---- Types ----
 
@@ -298,7 +299,9 @@ async function processResendEvent(
   // The outer try/catch in POST guarantees 200 OK regardless.
 
   // Permanent bounce: hard bounces indicate an invalid address — surface in System Intelligence.
-  // Soft bounces (Transient) are temporary delivery failures; they do not stop the sequence.
+  // DELIBERATE: Soft/Transient bounces are NOT terminated, suppressed, or marked here. They are
+  // temporary, retryable delivery failures — only email_sends.status='bounced' is set (above, via
+  // EVENT_TO_SEND_STATUS). Termination (suppress + stop + contact/company marks) is Permanent-only.
   // Real Resend payload nests bounce info: data.bounce.type = 'Permanent'|'Transient'|'Undetermined'.
   // Legacy flat shape (data.bounce_type = 'hard') retained as a defensive fallback.
   // Idempotency: email.bounced fires once per message; the 23505 guard above ensures
@@ -324,14 +327,21 @@ async function processResendEvent(
       console.error('[resend-webhook] Failed to create EMAIL_PERMANENT_BOUNCE error:', err)
     })
 
-    // MCM Slice 8: stop pending schedule items for bounced address (best-effort, non-fatal)
-    const bounceDraftId     = emailSend.draft_id as string | null
-    const bounceWorkspaceId = emailSend.workspace_id as string | null
-    if (bounceDraftId && bounceWorkspaceId) {
-      await stopCampaignScheduleForSend(bounceDraftId, emailSend.tenant_id, bounceWorkspaceId, 'bounced').catch(err => {
-        console.error('[resend-webhook] stop-schedule-on-bounce error:', err)
-      })
-    }
+    // HARD-bounce termination (Permanent only): unified, draft-or-no-draft handler.
+    // Suppresses the address (blocks all future sends), stops the contact's pending
+    // touches INCLUDING planned-but-undrafted items, and marks the contact + company.
+    // Idempotent + non-throwing. Soft/Transient bounces never reach here (retryable).
+    await terminateOnHardBounce({
+      tenantId:    emailSend.tenant_id,
+      emailSendId: emailSend.id,
+      toEmail:     Array.isArray(payload.data?.to) ? (payload.data.to[0] as string) : null,
+      contactId:   (emailSend.contact_id as string | null) ?? null,
+      companyId:   (emailSend.company_id as string | null) ?? null,
+      draftId:     (emailSend.draft_id as string | null) ?? null,
+      workspaceId: (emailSend.workspace_id as string | null) ?? null,
+    }).catch(err => {
+      console.error('[resend-webhook] hard-bounce termination error:', err)
+    })
   }
 
   // Complaint: fires on eventType === 'email.complained'. Trigger is eventType only —
@@ -363,6 +373,18 @@ async function processResendEvent(
         console.error('[resend-webhook] stop-schedule-on-complaint error:', err)
       })
     }
+
+    // Mark the contact (email_status='complained', do_not_contact=true) + company
+    // deliverability flag. The unsubscribe above already blocks future sends;
+    // these marks make the complaint operator-visible. Idempotent + non-throwing.
+    await markContactComplained({
+      tenantId:  emailSend.tenant_id,
+      toEmail:   Array.isArray(payload.data?.to) ? (payload.data.to[0] as string) : null,
+      contactId: (emailSend.contact_id as string | null) ?? null,
+      companyId: (emailSend.company_id as string | null) ?? null,
+    }).catch(err => {
+      console.error('[resend-webhook] complaint contact-marking error:', err)
+    })
   }
 
   // Delivery delay: Resend may send multiple delay events for the same send (each with a
