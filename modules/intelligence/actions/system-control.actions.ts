@@ -63,6 +63,8 @@ const CONTROL_WARNINGS: Record<string, string> = {
     'When on, operators can extract anti-patterns from sample bad emails and append them to copywriting skills the rewrite loop uses. Each pattern is human-approved before it is applied.',
   'campaign_send_dispatch_enabled':
     'DANGER: When ON, the dispatcher sends approved Manual Campaign Mode emails to real recipients on the next cron tick (every 15 min). Leave OFF unless you are actively running a send.',
+  'campaign_scheduler_enabled':
+    'When ON, the scheduler promotes due Manual Campaign Mode schedule items into email drafts every 15 min. It does not send by itself — campaign_send_dispatch_enabled controls the actual send. This is the upstream automation that prepares drafts for dispatch.',
 }
 
 const CONTROL_GROUP_DEFINITIONS = [
@@ -84,6 +86,7 @@ const CONTROL_GROUP_DEFINITIONS = [
     keys: [
       'email_sending_enabled',
       'campaign_sending_enabled',
+      'campaign_scheduler_enabled',
       'campaign_send_dispatch_enabled',
     ],
   },

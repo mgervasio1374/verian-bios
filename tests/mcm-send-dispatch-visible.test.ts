@@ -1,6 +1,6 @@
-// mcm — Surface the campaign send-dispatch operational gate in the System Controls
-// UI catalog. The key/enum/action/dispatcher already exist; this only makes the
-// gate visible + toggleable. TC-SDV-01..03
+// mcm — Surface the campaign send-dispatch AND scheduler operational gates in the
+// System Controls UI catalog. The keys/enum/action/dispatcher already exist; this
+// only makes the gates visible + toggleable. TC-SDV-01..05
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
@@ -21,9 +21,10 @@ vi.mock('@/modules/intelligence/services/activity-event.service', () => ({
   recordActivity: vi.fn(async () => undefined),
 }))
 
-import { getSystemControlsAction } from '@/modules/intelligence/actions/system-control.actions'
+import { getSystemControlsAction, updateSystemControlValueAction } from '@/modules/intelligence/actions/system-control.actions'
 
 const KEY = 'campaign_send_dispatch_enabled'
+const SCHED_KEY = 'campaign_scheduler_enabled'
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -67,5 +68,28 @@ describe('TC-SDV-03: it is NOT flagged as a future control', () => {
     // and the group it lives in is not a future group
     const group = res.success ? res.data.find(g => g.controls.some(c => c.key === KEY)) : undefined
     expect(group!.isFuture).toBe(false)
+  })
+})
+
+describe('TC-SDV-04: campaign_scheduler_enabled is visible in the catalog', () => {
+  it('appears in the Email & Campaign Controls group, non-future, with a non-empty warning', async () => {
+    const res = await getSystemControlsAction()
+    expect(res.success).toBe(true)
+    const group = res.success ? res.data.find(g => g.group === 'Email & Campaign Controls') : undefined
+    expect(group!.controls.map(c => c.key)).toContain(SCHED_KEY)
+    const control = group!.controls.find(c => c.key === SCHED_KEY)
+    expect(control).toBeTruthy()
+    expect((control!.warning ?? '').length).toBeGreaterThan(0)
+    expect(control!.isFuture).toBe(false)
+  })
+})
+
+describe('TC-SDV-05: both MCM operational gates are toggleable (write path accepts the keys)', () => {
+  it('updateSystemControlValueAction does not reject either key as unknown', async () => {
+    for (const key of [KEY, SCHED_KEY]) {
+      const res = await updateSystemControlValueAction(key, true)
+      expect(res.success).toBe(true)
+      expect(res.success && res.data.newValue).toBe(true)
+    }
   })
 })
