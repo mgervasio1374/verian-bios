@@ -17,6 +17,13 @@ export interface ComplianceFooter {
 const FALLBACK_ADDRESS = '321 Swipe — [mailing address pending]'
 const FALLBACK_INQUIRY_EMAIL = 'sales@321swipe.com'
 
+// Universal brand line added to every footer (every segment, now and future) — a
+// link home distinct from the per-segment body CTA. UTM-tagged so click tracking
+// can tell a footer/brand click apart from a CTA click. Single shared constant so
+// the html + text variants can never drift. Raw `&` (matching the unsubscribe href
+// style) — do NOT entity-encode it.
+const BRAND_URL = 'https://www.321swipe.com?utm_source=email&utm_medium=footer&utm_content=brand'
+
 function appBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_APP_URL ?? 'https://verian-bios.vercel.app').replace(/\/$/, '')
 }
@@ -60,10 +67,11 @@ export function buildComplianceFooter(tenantId: string, email: string): Complian
     `color:#9ca3af;font-size:11px;line-height:1.5">` +
     `<p style="margin:0 0 4px">${optOutHtml} from these emails.</p>` +
     `<p style="margin:0">${escapeHtml(address)}</p>` +
+    `<p style="margin:4px 0 0">321 Swipe &middot; <a href="${BRAND_URL}">www.321swipe.com</a></p>` +
     `</div>`
 
   const text =
-    `\n\n----\n${optOutText}\n${address}\n`
+    `\n\n----\n${optOutText}\n${address}\n321 Swipe · ${BRAND_URL}\n`
 
   return { html, text, listUnsubscribeHeader, listUnsubscribePostHeader }
 }
