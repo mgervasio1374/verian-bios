@@ -14,9 +14,14 @@ import * as sysCtrlRepo from '@/modules/intelligence/repositories/system-control
 import * as agentDecisionRepo from '@/modules/intelligence/repositories/agent-decision.repo'
 import * as aiUsageRepo from '@/modules/intelligence/repositories/ai-usage-event.repo'
 import { preflightCheck } from '@/modules/intelligence/services/ai-budget-enforcer.service'
-import { ActivityEventType }       from '@/modules/intelligence/types.agent'
+import { ActivityEventType, SystemControlKey } from '@/modules/intelligence/types.agent'
 
 import { validateQualityReviewInputs } from './quality-review-agent.validation'
+import {
+  resolveQualityReviewSkill,
+  getQualityReviewScoringSeed,
+  QR_SCORING_SKILL_SLUG,
+} from './quality-review-skill.resolver'
 import {
   scoreStrategicFit,
   scoreComplianceConfidence,
@@ -239,6 +244,21 @@ export async function runQualityReview(input: {
   // ---- Build strategy scoring input ----
   const strategyScoringInput = strategyToScoringInput(strategy)
 
+  // ---- Resolve structured scoring params ONCE (Slice 2-style, gated on
+  // LEARNED_SKILLS_ENABLED exactly like copywriting): off -> static seed; on ->
+  // resolveQualityReviewSkill ?? seed; resolve error -> seed. The seed reproduces
+  // today's constants, so the off-path is byte-identical to pre-wiring behavior.
+  // scoringParams + recommendationMinScore are sourced here and threaded into the
+  // scoring loop AND the ranking/reasoning threshold so the gate cannot drift.
+  const learnedOn = await sysCtrlRepo
+    .getBooleanControl(SystemControlKey.LEARNED_SKILLS_ENABLED, tenantId, false)
+    .catch(() => false)
+  const qrSkill = learnedOn
+    ? (await resolveQualityReviewSkill(tenantId, QR_SCORING_SKILL_SLUG, 1).catch(() => null)) ?? getQualityReviewScoringSeed()
+    : getQualityReviewScoringSeed()
+  const scoringParams = qrSkill?.scoring
+  const recommendationMinScore = scoringParams?.recommendationMinScore ?? 70
+
   // ---- Budget preflight (fail-open) ----
   let _qraPreflight = { allowed: true }
   try {
@@ -291,13 +311,13 @@ export async function runQualityReview(input: {
     const siblings = siblingInputs.filter(s => s.id !== vInput.id)
 
     const strategicFitResult    = scoreStrategicFit(vInput, strategyScoringInput, siblings as Parameters<typeof scoreStrategicFit>[2])
-    const complianceResult      = scoreComplianceConfidence(vInput)
-    const ctaClarityResult      = scoreCTAClarity(vInput, strategyScoringInput)
-    const specificityResult     = scoreSpecificity(vInput, strategyScoringInput)
-    const toneFitResult         = scoreToneFit(vInput, strategyScoringInput)
+    const complianceResult      = scoreComplianceConfidence(vInput, scoringParams)
+    const ctaClarityResult      = scoreCTAClarity(vInput, strategyScoringInput, scoringParams)
+    const specificityResult     = scoreSpecificity(vInput, strategyScoringInput, scoringParams)
+    const toneFitResult         = scoreToneFit(vInput, strategyScoringInput, scoringParams)
     const differentiationResult = scoreDifferentiation(vInput, siblings as Parameters<typeof scoreDifferentiation>[1])
-    const subjectBodyResult     = scoreSubjectBodyConsistency(vInput, strategyScoringInput)
-    const readabilityResult     = scoreReadability(vInput, strategyScoringInput)
+    const subjectBodyResult     = scoreSubjectBodyConsistency(vInput, strategyScoringInput, scoringParams)
+    const readabilityResult     = scoreReadability(vInput, strategyScoringInput, scoringParams)
 
     const rawBreakdown: ScoreBreakdown = {
       strategicFit:           strategicFitResult.score,
@@ -469,7 +489,7 @@ export async function runQualityReview(input: {
     eligibleVersions.map(v => [v.id, { complianceNotesApplied: v.complianceNotesApplied }])
   )
   const rankedDraftsSorted = rankingResult.ranked.map(r => ({ ...r.draft, rankPosition: r.rankPosition }))
-  const recommendationResult = assignRecommendation(rankedDraftsSorted, versionDataMap)
+  const recommendationResult = assignRecommendation(rankedDraftsSorted, versionDataMap, recommendationMinScore)
 
   // Step 10: Generate reasoning
   const step10 = await logStep(QRA_AGENT_STEPS.GENERATE_REASONING, 10, {
@@ -492,7 +512,8 @@ export async function runQualityReview(input: {
       { compositeScore: d.compositeScore, scoreBand: d.scoreBand, rankPosition: d.rankPosition, isRecommended, versionLabel: d.versionLabel },
       d.strengths,
       d.weaknesses,
-      d.riskFlags
+      d.riskFlags,
+      recommendationMinScore
     )
 
     const comparisonSummary = generateComparisonSummary(

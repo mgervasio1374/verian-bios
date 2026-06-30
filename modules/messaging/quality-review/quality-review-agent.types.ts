@@ -217,6 +217,48 @@ export const QRA_COLD_SOURCES: ReadonlySet<string> = new Set([
   'referral',
 ])
 
+// ---- Scorer phrase lists (single source of truth for the scorers' defaults AND
+// the quality_review 'scoring-parameters' seed, so the two never drift) ----
+
+// compliance — near-urgency scan (scoreComplianceConfidence)
+export const QRA_URGENCY_PHRASES: readonly string[] = [
+  'limited time', 'expires soon', 'last chance', 'act now', "don't miss", 'time sensitive',
+] as const
+
+// cta — vague CTA phrases (scoreCTAClarity)
+export const QRA_VAGUE_CTA_PHRASES: readonly string[] = [
+  'let me know', 'reach out', 'feel free',
+] as const
+
+// specificity — generic language (scoreSpecificity)
+export const QRA_GENERIC_PHRASES: readonly string[] = [
+  'your business', 'businesses like yours',
+] as const
+
+// consistency — partner mentions (scoreSubjectBodyConsistency)
+export const QRA_PARTNER_PATTERNS: readonly string[] = [
+  'partner', 'bcsg', 'certainpath', 'blue collar',
+] as const
+
+// Default composite recommendation threshold (composite >= this is recommendable).
+export const QRA_RECOMMENDATION_MIN_SCORE = 70
+
+// Structured, skill-overridable scoring parameters. Every key is optional; an
+// absent key (or absent params object) means the scorer uses its hardcoded
+// constant — so behavior is byte-identical to today when no skill is wired.
+export interface QualityReviewScoringParams {
+  lengthTargets?: Record<string, { min: number; max: number }>
+  phrases?: {
+    urgency?:     readonly string[]
+    aiCorporate?: readonly string[]
+    guilt?:       readonly string[]
+    vagueCta?:    readonly string[]
+    generic?:     readonly string[]
+    partner?:     readonly string[]
+  }
+  recommendationMinScore?: number
+}
+
 // ---- Length targets by message type (word count ranges) ----
 
 export const QRA_LENGTH_TARGETS: Record<string, { min: number; max: number }> = {

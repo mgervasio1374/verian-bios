@@ -3,8 +3,56 @@
 // before they advance. House style: no em/en dashes, no unsupported claims.
 
 import type { AgentSkillDefinition } from '@/modules/intelligence/skills/agent-skill.types'
+import type { QualityReviewScoringParams } from '@/modules/messaging/quality-review/quality-review-agent.types'
+import {
+  QRA_LENGTH_TARGETS,
+  QRA_URGENCY_PHRASES,
+  QRA_AI_CORPORATE_PATTERNS,
+  QRA_GUILT_LANGUAGE_PATTERNS,
+  QRA_VAGUE_CTA_PHRASES,
+  QRA_GENERIC_PHRASES,
+  QRA_PARTNER_PATTERNS,
+  QRA_RECOMMENDATION_MIN_SCORE,
+} from '@/modules/messaging/quality-review/quality-review-agent.types'
+
+// The structured scoring parameters the Quality Review scorers read (Slice 2-style
+// wiring). The static seed reproduces TODAY'S EXACT constant values by importing
+// them directly, so the seed + the scorers' fallbacks can never drift.
+export type QualityReviewSkillDefinition = AgentSkillDefinition & { scoring?: QualityReviewScoringParams }
+
+export const QR_SCORING_SKILL_SLUG = 'scoring-parameters'
+
+const SCORING_PARAMETERS_SEED: QualityReviewSkillDefinition = {
+  skillSlug:    QR_SCORING_SKILL_SLUG,
+  skillVersion: 1,
+  category:     'scoring',
+  name:         'Scoring parameters',
+  guidance:     'Structured, overridable parameters the deterministic Quality Review scorers read: length bands per message type, the phrase lists each scorer flags, and the composite recommendation threshold. Values here mirror the built-in defaults; override per key to retune scoring without code changes.',
+  requiredElements:  [],
+  forbiddenElements: [],
+  examples:          [],
+  antiPatterns:      [],
+  scoring: {
+    lengthTargets: QRA_LENGTH_TARGETS,
+    phrases: {
+      urgency:     QRA_URGENCY_PHRASES,
+      aiCorporate: QRA_AI_CORPORATE_PATTERNS,
+      guilt:       QRA_GUILT_LANGUAGE_PATTERNS,
+      vagueCta:    QRA_VAGUE_CTA_PHRASES,
+      generic:     QRA_GENERIC_PHRASES,
+      partner:     QRA_PARTNER_PATTERNS,
+    },
+    recommendationMinScore: QRA_RECOMMENDATION_MIN_SCORE,
+  },
+}
+
+// The scoring seed for the resolver's static tier (and the control-off fallback).
+export function getQualityReviewScoringSeed(): QualityReviewSkillDefinition {
+  return SCORING_PARAMETERS_SEED
+}
 
 const SKILLS: AgentSkillDefinition[] = [
+  SCORING_PARAMETERS_SEED,
   {
     skillSlug:    'compliance_claim_check',
     skillVersion: 1,

@@ -8,8 +8,12 @@ import {
   QRA_AI_CORPORATE_PATTERNS,
   QRA_GUILT_LANGUAGE_PATTERNS,
   QRA_LENGTH_TARGETS,
+  QRA_URGENCY_PHRASES,
+  QRA_VAGUE_CTA_PHRASES,
+  QRA_GENERIC_PHRASES,
+  QRA_PARTNER_PATTERNS,
 } from './quality-review-agent.types'
-import type { DimensionScoreResult } from './quality-review-agent.types'
+import type { DimensionScoreResult, QualityReviewScoringParams } from './quality-review-agent.types'
 
 // ---- Local input interfaces ----
 
@@ -165,7 +169,8 @@ export function scoreStrategicFit(
 // ---- 2. Compliance Confidence ----
 
 export function scoreComplianceConfidence(
-  version: ScoringVersionInput
+  version: ScoringVersionInput,
+  params?: QualityReviewScoringParams
 ): DimensionScoreResult {
   // body_html invariant — always flag if set
   if (version.bodyHtml !== null) {
@@ -188,9 +193,9 @@ export function scoreComplianceConfidence(
     score = Math.max(score, 60)
   }
 
-  // Near-urgency scan
+  // Near-urgency scan — per-key skill override, else the constant.
   const combinedText = `${version.subjectLine} ${version.bodyText}`
-  const urgencyPhrases = ['limited time', 'expires soon', 'last chance', 'act now', "don't miss", 'time sensitive']
+  const urgencyPhrases = params?.phrases?.urgency ?? QRA_URGENCY_PHRASES
   for (const phrase of urgencyPhrases) {
     if (containsPhrase(combinedText, phrase)) {
       score -= 12
@@ -230,13 +235,14 @@ export function scoreComplianceConfidence(
 const CTA_IMPERATIVE_PHRASES = [
   'share your', 'schedule', 'reply', 'let me know', 'call', 'email', 'send', 'submit', 'forward',
 ]
-const VAGUE_CTA_PHRASES = ['let me know', 'reach out', 'feel free']
 const FRICTION_MESSAGE_TYPES = new Set(['proposal_follow_up', 'statement_review_follow_up'])
 
 export function scoreCTAClarity(
   version:  ScoringVersionInput,
-  strategy: ScoringStrategyInput
+  strategy: ScoringStrategyInput,
+  params?:  QualityReviewScoringParams
 ): DimensionScoreResult {
+  const vagueCtaPhrases = params?.phrases?.vagueCta ?? QRA_VAGUE_CTA_PHRASES
   const bodyLower = version.bodyText.toLowerCase()
   const reasons: string[] = []
   const suggestedFlags: string[] = []
@@ -258,7 +264,7 @@ export function scoreCTAClarity(
   }
 
   // Specificity check
-  const hasOnlyVague = detected.length > 0 && detected.every(p => VAGUE_CTA_PHRASES.some(v => p.includes(v)))
+  const hasOnlyVague = detected.length > 0 && detected.every(p => vagueCtaPhrases.some(v => p.includes(v)))
   if (hasOnlyVague) {
     score -= 20
     reasons.push('Only vague CTA phrases used.')
@@ -296,7 +302,8 @@ const SIGNIFICANT_GAPS = ['industry_segment', 'proof_point', 'partner_context']
 
 export function scoreSpecificity(
   version:  ScoringVersionInput,
-  strategy: ScoringStrategyInput
+  strategy: ScoringStrategyInput,
+  params?:  QualityReviewScoringParams
 ): DimensionScoreResult {
   let score = 65
   const reasons: string[] = []
@@ -334,9 +341,10 @@ export function scoreSpecificity(
     }
   }
 
-  // Generic language penalty
+  // Generic language penalty — per-key skill override, else the constant.
+  const genericPhrases = params?.phrases?.generic ?? QRA_GENERIC_PHRASES
   if (
-    (containsPhrase(version.bodyText, 'your business') || containsPhrase(version.bodyText, 'businesses like yours')) &&
+    containsAny(version.bodyText, genericPhrases) !== null &&
     version.personalizationUsed.length < 2
   ) {
     score -= 10
@@ -368,13 +376,17 @@ const TONE_WORD_LIMIT: Record<string, number> = {
 
 export function scoreToneFit(
   version:  ScoringVersionInput,
-  strategy: ScoringStrategyInput
+  strategy: ScoringStrategyInput,
+  params?:  QualityReviewScoringParams
 ): DimensionScoreResult {
   let score = 80
   const reasons: string[] = []
 
+  const aiCorporatePatterns = params?.phrases?.aiCorporate ?? QRA_AI_CORPORATE_PATTERNS
+  const guiltPatterns       = params?.phrases?.guilt       ?? QRA_GUILT_LANGUAGE_PATTERNS
+
   // AI/corporate language penalty
-  for (const pattern of QRA_AI_CORPORATE_PATTERNS) {
+  for (const pattern of aiCorporatePatterns) {
     if (containsPhrase(version.bodyText, pattern)) {
       score -= 15
       reasons.push(`AI/corporate phrase detected: "${pattern}"`)
@@ -389,7 +401,7 @@ export function scoreToneFit(
   ].includes(strategy.messageType)
 
   if (isFollowUp) {
-    for (const pattern of QRA_GUILT_LANGUAGE_PATTERNS) {
+    for (const pattern of guiltPatterns) {
       if (containsPhrase(version.bodyText, pattern)) {
         score -= 15
         reasons.push(`Guilt language detected: "${pattern}"`)
@@ -509,7 +521,8 @@ export function scoreDifferentiation(
 
 export function scoreSubjectBodyConsistency(
   version:  ScoringVersionInput,
-  strategy: ScoringStrategyInput
+  strategy: ScoringStrategyInput,
+  params?:  QualityReviewScoringParams
 ): DimensionScoreResult {
   let score = 85
   const reasons: string[] = []
@@ -534,8 +547,8 @@ export function scoreSubjectBodyConsistency(
     reasons.push('Subject implies savings but body does not address this.')
   }
 
-  // Subject mentions partner but body doesn't
-  const partnerPatterns = ['partner', 'bcsg', 'certainpath', 'blue collar']
+  // Subject mentions partner but body doesn't — per-key skill override, else const.
+  const partnerPatterns = params?.phrases?.partner ?? QRA_PARTNER_PATTERNS
   const subjectMentionsPartner = partnerPatterns.some(p => subjectLower.includes(p))
   const bodyMentionsPartner    = partnerPatterns.some(p => bodyLower.includes(p))
   if (subjectMentionsPartner && !bodyMentionsPartner) {
@@ -578,10 +591,14 @@ export function scoreSubjectBodyConsistency(
 
 export function scoreReadability(
   version:  ScoringVersionInput,
-  strategy: ScoringStrategyInput
+  strategy: ScoringStrategyInput,
+  params?:  QualityReviewScoringParams
 ): DimensionScoreResult {
   const wordCount = countWords(version.bodyText)
-  const target = QRA_LENGTH_TARGETS[strategy.messageType] ?? { min: 80, max: 200 }
+  // Per-key skill override of the length-band map, else the constant. An unknown
+  // message type still falls to the same {80,200} default as today.
+  const lengthTargets = params?.lengthTargets ?? QRA_LENGTH_TARGETS
+  const target = lengthTargets[strategy.messageType] ?? { min: 80, max: 200 }
   const reasons: string[] = []
   let score: number
 

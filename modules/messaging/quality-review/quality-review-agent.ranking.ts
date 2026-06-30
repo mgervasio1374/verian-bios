@@ -96,7 +96,8 @@ function hasComplianceFailure(notes: string[]): boolean {
 
 export function assignRecommendation(
   rankedDrafts: QualityReviewDraft[],
-  originalVersionsMap: Map<string, { complianceNotesApplied: string[] }>
+  originalVersionsMap: Map<string, { complianceNotesApplied: string[] }>,
+  minScore = 70
 ): RecommendationResult {
   if (rankedDrafts.length === 0) {
     return {
@@ -107,7 +108,7 @@ export function assignRecommendation(
 
   // Find the highest-scoring version that meets criteria
   const highestScore = rankedDrafts[0]?.compositeScore ?? 0
-  const hasVersionAbove70 = rankedDrafts.some(d => d.compositeScore >= 70)
+  const hasVersionAbove70 = rankedDrafts.some(d => d.compositeScore >= minScore)
 
   for (const draft of rankedDrafts) {
     const versionData = originalVersionsMap.get(draft.versionId)
@@ -115,8 +116,8 @@ export function assignRecommendation(
     // Block: any critical risk flag
     if (hasCriticalFlag(draft.riskFlags)) continue
 
-    // Block: compositeScore < 70 when another version scores >= 70
-    if (hasVersionAbove70 && draft.compositeScore < 70) continue
+    // Block: compositeScore below the recommendation threshold when another meets it
+    if (hasVersionAbove70 && draft.compositeScore < minScore) continue
 
     // Block: compliance failure
     if (versionData && hasComplianceFailure(versionData.complianceNotesApplied)) continue
@@ -131,7 +132,7 @@ export function assignRecommendation(
   const reason = rankedDrafts.every(d => hasCriticalFlag(d.riskFlags))
     ? 'All versions have critical risk flags.'
     : !hasVersionAbove70
-    ? `No version meets the minimum score threshold of 70 (highest: ${highestScore}).`
+    ? `No version meets the minimum score threshold of ${minScore} (highest: ${highestScore}).`
     : 'No version passed all recommendation criteria.'
 
   return {

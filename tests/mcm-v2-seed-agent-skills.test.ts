@@ -15,7 +15,7 @@ import { getAllSkillDefinitions } from '@/modules/messaging/copywriting/copywrit
 // Documented starter slugs per family (from the slice spec).
 const EXPECTED_SLUGS: Record<string, string[]> = {
   message_strategy:        ['relationship_stage_angle', 'customer_vs_prospect_framing', 'statement_evidence_angle', 'objection_preempt', 'channel_constraints'],
-  quality_review:          ['compliance_claim_check', 'truth_grounding', 'single_cta_check', 'personalization_presence', 'length_band', 'brand_voice_no_em_dash'],
+  quality_review:          ['compliance_claim_check', 'truth_grounding', 'single_cta_check', 'personalization_presence', 'length_band', 'brand_voice_no_em_dash', 'scoring-parameters'],
   subject_line:            ['specificity_over_curiosity', 'length_under_50', 'value_or_company_anchor', 'no_clickbait_or_spam_triggers'],
   personalization:         ['structured_fields_only', 'no_fabricated_claims', 'one_specific_detail', 'natural_not_templated'],
   lead_scoring:            ['fit_signals', 'urgency_signals', 'disqualifiers', 'score_band_definitions'],
@@ -56,11 +56,11 @@ describe('TC-SAS-02: every seed is well-formed (shape + v1)', () => {
       }
     }
   })
-  it('each family has 4-6 starter skills (sales_ops + governance may be smaller)', () => {
+  it('each family has 2-7 starter skills (sales_ops/governance smaller; quality_review carries an extra scoring-parameters seed)', () => {
     for (const provider of Object.values(AGENT_SEED_SKILLS)) {
       const n = provider().length
       expect(n).toBeGreaterThanOrEqual(2)
-      expect(n).toBeLessThanOrEqual(6)
+      expect(n).toBeLessThanOrEqual(7)
     }
   })
 })

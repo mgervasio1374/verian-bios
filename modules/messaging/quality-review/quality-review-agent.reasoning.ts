@@ -150,7 +150,8 @@ export function generateHumanReviewNotes(
   draft:     Pick<QualityReviewDraft, 'compositeScore' | 'scoreBand' | 'rankPosition' | 'isRecommended' | 'versionLabel'>,
   strengths: string[],
   weaknesses:string[],
-  riskFlags: RiskFlag[]
+  riskFlags: RiskFlag[],
+  minScore = 70
 ): string {
   const parts: string[] = []
 
@@ -175,7 +176,7 @@ export function generateHumanReviewNotes(
     parts.push('This is the recommended version.')
   } else if (draft.scoreBand === SCORE_BANDS.DO_NOT_USE) {
     parts.push('This version is not suitable for use.')
-  } else if (draft.compositeScore < 70) {
+  } else if (draft.compositeScore < minScore) {
     parts.push('This version does not meet the minimum quality threshold.')
   }
 
