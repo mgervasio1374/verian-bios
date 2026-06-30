@@ -102,6 +102,52 @@ export function validateAssetTemplate(
   }
 }
 
+// Body-integrity guard for asset SAVE. Rejects an asset that would send broken
+// email: an empty HTML body (e.g. "<p></p>", "<p> </p>", ""), an empty text body,
+// an empty subject, or HTML/text bodies whose {{token}} SETS disagree (the FT_02
+// case — text had the "Hi {{first_name}}," greeting, HTML did not, so the HTML
+// render showed no name). Uses the same token regex as the renderer so the guard
+// and the renderer always agree. subject_template tokens are NOT required to match
+// the bodies. Returns a single human-readable error naming the differing tokens.
+export function validateAssetBodies(content: {
+  subjectTemplate:  string
+  bodyTemplateHtml: string
+  bodyTemplateText: string
+}): { ok: true } | { ok: false; error: string } {
+  // 4. (light) subject non-empty.
+  if (!content.subjectTemplate || content.subjectTemplate.trim().length === 0) {
+    return { ok: false, error: 'subject_template must not be empty' }
+  }
+
+  // 1. HTML body must have visible content after stripping tags + whitespace.
+  const htmlVisible = (content.bodyTemplateHtml ?? '')
+    .replace(/<[^>]*>/g, '')   // strip tags
+    .replace(/&nbsp;/gi, ' ')  // common "blank" entity
+    .trim()
+  if (htmlVisible.length === 0) {
+    return { ok: false, error: 'body_template_html must not be empty (it renders no visible content)' }
+  }
+
+  // 2. Text body must be non-empty.
+  if (!content.bodyTemplateText || content.bodyTemplateText.trim().length === 0) {
+    return { ok: false, error: 'body_template_text must not be empty' }
+  }
+
+  // 3. HTML/text token SETS must agree (same regex the renderer uses).
+  const htmlTokens = new Set(extractMergeFields(content.bodyTemplateHtml))
+  const textTokens = new Set(extractMergeFields(content.bodyTemplateText))
+  const htmlMissing = [...textTokens].filter(t => !htmlTokens.has(t))
+  const textMissing = [...htmlTokens].filter(t => !textTokens.has(t))
+  if (htmlMissing.length > 0 || textMissing.length > 0) {
+    const parts: string[] = []
+    if (htmlMissing.length > 0) parts.push(`HTML missing tokens present in text: ${htmlMissing.join(', ')}`)
+    if (textMissing.length > 0) parts.push(`text missing tokens present in HTML: ${textMissing.join(', ')}`)
+    return { ok: false, error: parts.join('; ') }
+  }
+
+  return { ok: true }
+}
+
 export function validateActivationReadiness(asset: {
   requiredFields: string[]
   fallbackValues: Record<string, string>

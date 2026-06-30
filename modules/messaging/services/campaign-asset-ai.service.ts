@@ -7,7 +7,7 @@ import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asse
 import { APPROVED_MERGE_FIELDS, ASSET_CREATION_ESTIMATED_TOKENS } from '@/modules/messaging/campaign-assets/campaign-asset.constants'
 import { textToHtmlBody } from '@/modules/messaging/campaign-assets/template-html'
 import { applyHouseStyle } from '@/modules/messaging/house-style'
-import { extractMergeFields, validateAssetTemplate } from '@/modules/messaging/services/campaign-asset-validation.service'
+import { extractMergeFields, validateAssetTemplate, validateAssetBodies } from '@/modules/messaging/services/campaign-asset-validation.service'
 import { isLlmConfigured, chatComplete } from '@/lib/llm/client'
 import { getCampaignTypeById } from '@/modules/campaign-sequence/repositories/campaign-type.repo'
 import { insertCampaignSequence } from '@/modules/campaign-sequence/repositories/campaign-sequence.repo'
@@ -103,6 +103,12 @@ function postProcessDraft(subject: string, bodyText: string): GeneratedDraftCont
 
   const validation = validateAssetTemplate(content)
   if (!validation.valid) return null
+
+  // Body-integrity guard before persist — no empty HTML body, no HTML/text token
+  // mismatch. An invalid draft is treated as bad LLM output (caller retries/blocks),
+  // so a broken asset is never saved on the AI path.
+  if (!validateAssetBodies(content).ok) return null
+
   return content
 }
 

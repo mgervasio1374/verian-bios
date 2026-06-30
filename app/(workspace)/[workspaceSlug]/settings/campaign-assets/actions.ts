@@ -7,6 +7,7 @@ import { requirePermission } from '@/lib/auth/permissions'
 import type { AssetTemplateContent } from '@/modules/messaging/campaign-assets/campaign-asset.types'
 import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asset.repo'
 import * as assetService from '@/modules/messaging/services/campaign-asset.service'
+import { validateAssetBodies } from '@/modules/messaging/services/campaign-asset-validation.service'
 import * as aiService from '@/modules/messaging/services/campaign-asset-ai.service'
 import { createDraftFromAsset } from '@/modules/messaging/services/campaign-asset-draft.service'
 import { assetUsage } from '@/modules/campaign-sequence/services/sequence-usage.service'
@@ -40,6 +41,13 @@ export async function updateAssetContentAction(
   const usage = await assetUsage(assetId, ctx.tenantId, ctx.workspaceId)
   if (usage.activeAssignments > 0) {
     throw new Error('This asset is used by an active campaign. Stop the campaign first.')
+  }
+
+  // Body-integrity guard: reject empty HTML body or HTML/text token mismatch
+  // before persisting (matches this action's existing throw-on-error shape).
+  const bodies = validateAssetBodies(content)
+  if (!bodies.ok) {
+    throw new Error(bodies.error)
   }
 
   await assetRepo.updateAssetContent(ctx.tenantId, assetId, content)

@@ -9,6 +9,7 @@ import { renderCampaignAsset } from '@/modules/messaging/services/campaign-perso
 import * as repo from '@/modules/messaging/repositories/campaign-email-asset.repo'
 import {
   validateAssetTemplate,
+  validateAssetBodies,
   validateAssetTransition,
   validateActivationReadiness,
   extractMergeFields,
@@ -27,6 +28,12 @@ export async function createHumanAsset(
   const validation = validateAssetTemplate(input)
   if (!validation.valid) {
     throw new Error('createHumanAsset: ' + validation.errors.join('; '))
+  }
+
+  // Body-integrity guard: no empty HTML body, no HTML/text token mismatch.
+  const bodies = validateAssetBodies(input)
+  if (!bodies.ok) {
+    throw new Error('createHumanAsset: ' + bodies.error)
   }
 
   return repo.createAsset({
