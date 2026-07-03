@@ -54,6 +54,7 @@ vi.mock('@/modules/intelligence/services/activity-event.service', () => ({
 vi.mock('@/modules/messaging/event-tracking/event-tracking.attribution', () => ({
   RESEND_EVENT_TO_ET_TYPE: {},
   resolvePhase3bAttributionFromSend: () => null,
+  resolveMcmAttributionFromSend: () => null,
 }))
 vi.mock('@/modules/messaging/event-tracking/event-tracking.audit', () => ({
   buildWebhookOutcomePayload: () => ({}),

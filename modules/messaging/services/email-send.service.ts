@@ -46,7 +46,11 @@ export type SendResult =
  */
 export async function sendApprovedDraft(
   ctx: RequestContext,
-  draftId: string
+  draftId: string,
+  // MCM campaign context (threaded by the campaign send dispatcher). When present
+  // AND the draft is not a Phase 3B send, the send is attributed to the campaign
+  // schedule item so its outcomes flow into the same activity/outcome event stream.
+  mcmContext?: etAttribution.McmCampaignContext
 ): Promise<SendResult> {
   // ---- 0. Permission (synchronous — no DB) ----
   requirePermission(ctx, 'messaging.send_emails')
@@ -189,10 +193,37 @@ export async function sendApprovedDraft(
     send_initiated_by:   ctx.userId,
     draft_id:            draftId,
   }
+  // MCM campaign send: attributed only when it's NOT a Phase 3B send (Phase 3B
+  // takes precedence and its stamps are untouched).
+  const mcmActive = phase3bMeta === null && !!mcmContext
+
   // If Phase 3B send, enrich metadata with full provenance for webhook attribution.
+  // Else if MCM campaign send, stamp the campaign marker + ids (source='mcm_campaign').
+  // Else Phase 3A / manual — base metadata unchanged.
   const sendMetadata: Record<string, unknown> = phase3bMeta !== null
     ? etAttribution.buildPhase3bSendMetadata(phase3bMeta, ctx.userId, draftLeadId, baseMetadata)
-    : baseMetadata
+    : mcmActive
+      ? etAttribution.buildMcmSendMetadata(mcmContext!, ctx.userId, baseMetadata)
+      : baseMetadata
+
+  // Shared entity + metadata-extra for every ET_ send event below, so the whole
+  // MCM outcome stream keys consistently on the campaign schedule item (Phase 3B
+  // stays 'message_version'; Phase 3A stays 'email_draft' — both byte-identical).
+  const etEntityType = phase3bMeta !== null ? 'message_version' : (mcmActive ? 'campaign_schedule_item' : 'email_draft')
+  const etEntityId   = phase3bMeta !== null
+    ? (phase3bMeta.message_version_id ?? undefined)
+    : (mcmActive ? (mcmContext!.campaignScheduleItemId ?? draftId) : draftId)
+  const etNonPhase3bExtra: Record<string, unknown> = phase3bMeta !== null
+    ? {}
+    : mcmActive
+      ? {
+          send_path:                 'mcm_campaign',
+          campaign_assignment_id:    mcmContext!.campaignAssignmentId,
+          campaign_sequence_id:      mcmContext!.campaignSequenceId,
+          campaign_schedule_item_id: mcmContext!.campaignScheduleItemId,
+          campaign_sequence_step_id: mcmContext!.campaignSequenceStepId,
+        }
+      : { send_path: 'phase_3a_template' }
 
   let emailSend
   try {
@@ -225,10 +256,8 @@ export async function sendApprovedDraft(
     tenantId:     ctx.tenantId,
     workspaceId:  ctx.workspaceId,
     eventType:    'ET_SEND_INITIATED',
-    entityType:   phase3bMeta !== null ? 'message_version' : 'email_draft',
-    entityId:     phase3bMeta !== null
-      ? (phase3bMeta.message_version_id ?? undefined)
-      : draftId,
+    entityType:   etEntityType,
+    entityId:     etEntityId,
     eventSummary: phase3bMeta !== null
       ? `Send initiated for version ${phase3bMeta.version_label ?? '?'} to ${draft.to_email}`
       : `Send initiated for draft to ${draft.to_email}`,
@@ -244,7 +273,7 @@ export async function sendApprovedDraft(
         phase3bMeta,
         toEmail: draft.to_email,
       }) as unknown as Record<string, unknown>),
-      ...(phase3bMeta === null ? { send_path: 'phase_3a_template' } : {}),
+      ...etNonPhase3bExtra,
     },
   }).catch(() => {})
 
@@ -323,10 +352,8 @@ export async function sendApprovedDraft(
       tenantId:     ctx.tenantId,
       workspaceId:  ctx.workspaceId,
       eventType:    'ET_SEND_SUCCEEDED',
-      entityType:   phase3bMeta !== null ? 'message_version' : 'email_draft',
-      entityId:     phase3bMeta !== null
-        ? (phase3bMeta.message_version_id ?? undefined)
-        : draftId,
+      entityType:   etEntityType,
+      entityId:     etEntityId,
       eventSummary: phase3bMeta !== null
         ? `Send succeeded for version ${phase3bMeta.version_label ?? '?'}`
         : `Send succeeded for draft to ${draft.to_email}`,
@@ -343,7 +370,7 @@ export async function sendApprovedDraft(
           toEmail:        draft.to_email,
           resendMessageId,
         }) as unknown as Record<string, unknown>),
-        ...(phase3bMeta === null ? { send_path: 'phase_3a_template' } : {}),
+        ...etNonPhase3bExtra,
       },
     }).catch(() => {})
 
@@ -406,10 +433,8 @@ export async function sendApprovedDraft(
         tenantId:     ctx.tenantId,
         workspaceId:  ctx.workspaceId,
         eventType:    'ET_SEND_FAILED',
-        entityType:   phase3bMeta !== null ? 'message_version' : 'email_draft',
-        entityId:     phase3bMeta !== null
-          ? (phase3bMeta.message_version_id ?? undefined)
-          : draftId,
+        entityType:   etEntityType,
+        entityId:     etEntityId,
         eventSummary: phase3bMeta !== null
           ? `Send failed (local finalization) for version ${phase3bMeta.version_label ?? '?'}: ${errorMessage}`
           : `Send failed (local finalization) for draft to ${draft.to_email}: ${errorMessage}`,
@@ -431,7 +456,7 @@ export async function sendApprovedDraft(
           resend_message_id:                       resendMessageId,
           failure_reason:                          'local_finalization_failed_after_provider_success',
           local_finalization_failed_at:            failedAt,
-          ...(phase3bMeta === null ? { send_path: 'phase_3a_template' } : {}),
+          ...etNonPhase3bExtra,
         },
       }).catch(() => {})
 
@@ -458,10 +483,8 @@ export async function sendApprovedDraft(
         tenantId:     ctx.tenantId,
         workspaceId:  ctx.workspaceId,
         eventType:    'ET_SEND_FAILED',
-        entityType:   phase3bMeta !== null ? 'message_version' : 'email_draft',
-        entityId:     phase3bMeta !== null
-          ? (phase3bMeta.message_version_id ?? undefined)
-          : draftId,
+        entityType:   etEntityType,
+        entityId:     etEntityId,
         eventSummary: phase3bMeta !== null
           ? `Send failed for version ${phase3bMeta.version_label ?? '?'}: ${errorMessage}`
           : `Send failed for draft to ${draft.to_email}: ${errorMessage}`,
@@ -479,7 +502,7 @@ export async function sendApprovedDraft(
             errorReason:  errorMessage,
           }) as unknown as Record<string, unknown>),
           provider_success: false,
-          ...(phase3bMeta === null ? { send_path: 'phase_3a_template' } : {}),
+          ...etNonPhase3bExtra,
         },
       }).catch(() => {})
 

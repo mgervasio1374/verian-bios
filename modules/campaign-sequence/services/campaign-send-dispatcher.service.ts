@@ -52,7 +52,14 @@ export async function dispatchScheduleItemSend(
 
   try {
     const sendCtx = buildSystemContext(ctx.tenantId, ctx.workspaceId)
-    const result  = await sendApprovedDraft(sendCtx, item.email_draft_id)
+    // Stamp MCM campaign attribution at send time so delivery/open/click outcomes
+    // flow into the same activity/outcome event stream (Analytics + Learning Agent).
+    const result  = await sendApprovedDraft(sendCtx, item.email_draft_id, {
+      campaignAssignmentId:   item.campaign_assignment_id ?? null,
+      campaignSequenceId:     item.campaign_sequence_id ?? null,
+      campaignScheduleItemId: item.id,
+      campaignSequenceStepId: item.campaign_sequence_step_id ?? null,
+    })
     const classification = classifySendOutcome(result)
 
     if (classification === 'sent') {

@@ -7,7 +7,7 @@
 // absent — that event remains log-only with no activity event.
 // ============================================================
 
-import type { EtPhase3bMeta, EtActionType } from './event-tracking.types'
+import type { EtPhase3bMeta, EtActionType, EtMcmMeta } from './event-tracking.types'
 
 // ---- Resend event type → ET_ activity type mapping ----
 // email.delivery_delayed is absent — log-only, no activity event.
@@ -126,5 +126,56 @@ export function buildPhase3bSendMetadata(
     approved_by:        phase3bMeta.approved_by,
     send_initiated_by:  sendInitiatedBy,
     lead_id:            leadId,
+  }
+}
+
+// ============================================================
+// MCM campaign attribution — mirrors the Phase 3B helpers so MCM campaign sends
+// flow into the SAME activity/outcome event stream (Analytics + Learning Agent).
+// ============================================================
+
+// Send-time campaign context threaded from the MCM dispatcher into sendApprovedDraft.
+export interface McmCampaignContext {
+  campaignAssignmentId:   string | null
+  campaignSequenceId:     string | null
+  campaignScheduleItemId: string | null
+  campaignSequenceStepId: string | null
+}
+
+// ---- buildMcmSendMetadata ----
+// Merges the MCM campaign marker + ids into email_sends.metadata at send time, so
+// the webhook can attribute outcome events back to the campaign schedule item.
+export function buildMcmSendMetadata(
+  mcm:             McmCampaignContext,
+  sendInitiatedBy: string,
+  existingFields:  Record<string, unknown>
+): Record<string, unknown> {
+  return {
+    ...existingFields,
+    source:                    'mcm_campaign',
+    campaign_assignment_id:    mcm.campaignAssignmentId,
+    campaign_sequence_id:      mcm.campaignSequenceId,
+    campaign_schedule_item_id: mcm.campaignScheduleItemId,
+    campaign_sequence_step_id: mcm.campaignSequenceStepId,
+    send_initiated_by:         sendInitiatedBy,
+  }
+}
+
+// ---- resolveMcmAttributionFromSend ----
+// Webhook-time resolver: returns MCM attribution when email_sends.metadata.source
+// === 'mcm_campaign', else null. Pure — no I/O. Called only when the Phase 3B
+// resolver returns null, so Phase 3B behavior is untouched.
+export function resolveMcmAttributionFromSend(
+  send: { metadata: Record<string, unknown> | null | undefined }
+): EtMcmMeta | null {
+  const m = send.metadata
+  if (!m || m['source'] !== 'mcm_campaign') return null
+  const str = (k: string): string | null => (typeof m[k] === 'string' ? (m[k] as string) : null)
+  return {
+    source:                    'mcm_campaign',
+    campaign_assignment_id:    str('campaign_assignment_id'),
+    campaign_sequence_id:      str('campaign_sequence_id'),
+    campaign_schedule_item_id: str('campaign_schedule_item_id'),
+    campaign_sequence_step_id: str('campaign_sequence_step_id'),
   }
 }

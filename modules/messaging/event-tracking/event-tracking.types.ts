@@ -40,6 +40,19 @@ export interface EtPhase3bMeta {
   send_initiated_by:  string | null    // ctx.userId at send time
 }
 
+// ---- MCM campaign metadata shape ----
+// Stamped onto email_sends.metadata at MCM dispatch time (source='mcm_campaign')
+// and read back at webhook time to attribute outcome events to the campaign
+// schedule item. Mirrors EtPhase3bMeta's role for the MCM send path.
+
+export interface EtMcmMeta {
+  source:                    string          // 'mcm_campaign'
+  campaign_assignment_id:    string | null
+  campaign_sequence_id:      string | null
+  campaign_schedule_item_id: string | null
+  campaign_sequence_step_id: string | null
+}
+
 // ---- Internal send event payload ----
 // Written to activity_events.metadata for ET_SEND_INITIATED, ET_SEND_SUCCEEDED, ET_SEND_FAILED
 

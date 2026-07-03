@@ -264,6 +264,43 @@ async function processResendEvent(
         }) as unknown as Record<string, unknown>,
       }).catch(() => {})
     }
+  } else {
+    // MCM campaign send: attribute the outcome to the campaign schedule item so it
+    // flows into the SAME activity/outcome stream (Analytics + Learning Agent).
+    // Only runs when Phase 3B attribution is null, so Phase 3B behavior is untouched.
+    // Unattributed (manual / Phase 3A) sends fall through to a no-op.
+    const mcmMeta = etAttribution.resolveMcmAttributionFromSend({
+      metadata: (emailSend.metadata ?? {}) as Record<string, unknown>,
+    })
+    if (mcmMeta) {
+      const etType = RESEND_EVENT_TO_ET_TYPE[eventType]
+      if (etType) {
+        activityEventService.recordActivity({
+          tenantId:     emailSend.tenant_id,
+          workspaceId:  (emailSend.workspace_id as string | null) ?? undefined,
+          eventType:    etType,
+          entityType:   'campaign_schedule_item',
+          entityId:     mcmMeta.campaign_schedule_item_id ?? undefined,
+          eventSummary: `${etType} for campaign schedule item ${mcmMeta.campaign_schedule_item_id ?? '?'}`,
+          contactId:    (emailSend.contact_id as string | null) ?? undefined,
+          companyId:    (emailSend.company_id as string | null) ?? undefined,
+          metadata: {
+            action_type:               etType,
+            email_send_id:             emailSend.id,
+            draft_id:                  (emailSend.draft_id as string | null) ?? null,
+            source:                    'mcm_campaign',
+            campaign_assignment_id:    mcmMeta.campaign_assignment_id,
+            campaign_sequence_id:      mcmMeta.campaign_sequence_id,
+            campaign_schedule_item_id: mcmMeta.campaign_schedule_item_id,
+            campaign_sequence_step_id: mcmMeta.campaign_sequence_step_id,
+            resend_message_id:         resendMessageId,
+            resend_event_type:         eventType,
+            occurred_at:               occurredAt,
+            timestamp:                 new Date().toISOString(),
+          },
+        }).catch(() => {})
+      }
+    }
   }
 
   // ---- Update email_send status (terminal delivery states only) ----
