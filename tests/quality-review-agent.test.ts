@@ -589,8 +589,7 @@ describe('Quality Review Agent — Pure Function Tests', () => {
         humanReviewNotes: null, recommendedEdits: [],
         comparedAgainstVersionIds: [], comparisonSummary: '',
         supersededAt: null, createdByAgent: 'quality_review_agent',
-        versionNumber, riskScore: risk, strategicFitScore: stratFit,
-        ctaClarityScore: 75, specificityScore: 70,
+        versionNumber,
       }
     }
 

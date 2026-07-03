@@ -73,17 +73,18 @@ describe('Phase 3H — ET_SEND_* emitted for all sends', () => {
     // The old guard was: if (phase3bMeta !== null) { ... ET_SEND_INITIATED ...}
     // Phase 3H removes it — the event emission is now unconditional.
     // Verify no guarded block contains ET_SEND_INITIATED.
-    const guardedPattern = /if\s*\(\s*phase3bMeta\s*!==\s*null\s*\)[^}]*ET_SEND_INITIATED/s
+    // No `.` in this pattern, so the es2018 `s` flag was a no-op — removed for ES2017 target
+    const guardedPattern = /if\s*\(\s*phase3bMeta\s*!==\s*null\s*\)[^}]*ET_SEND_INITIATED/
     expect(guardedPattern.test(src)).toBe(false)
   })
 
   it('TC-3H-008: ET_SEND_SUCCEEDED not inside a phase3bMeta !== null guard', () => {
-    const guardedPattern = /if\s*\(\s*phase3bMeta\s*!==\s*null\s*\)[^}]*ET_SEND_SUCCEEDED/s
+    const guardedPattern = /if\s*\(\s*phase3bMeta\s*!==\s*null\s*\)[^}]*ET_SEND_SUCCEEDED/
     expect(guardedPattern.test(src)).toBe(false)
   })
 
   it('TC-3H-009: ET_SEND_FAILED not inside a phase3bMeta !== null guard', () => {
-    const guardedPattern = /if\s*\(\s*phase3bMeta\s*!==\s*null\s*\)[^}]*ET_SEND_FAILED/s
+    const guardedPattern = /if\s*\(\s*phase3bMeta\s*!==\s*null\s*\)[^}]*ET_SEND_FAILED/
     expect(guardedPattern.test(src)).toBe(false)
   })
 

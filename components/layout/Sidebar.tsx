@@ -44,6 +44,9 @@ export function Sidebar({ workspaceSlug }: SidebarProps) {
   useEffect(() => {
     if (pathSection === 'dashboard') {
       const stored = localStorage.getItem(SECTION_STORAGE_KEY)
+      // Intentional setState-in-effect: localStorage is only readable after mount,
+      // and lazy state init would cause an SSR/client hydration mismatch.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (isSectionKey(stored)) setOpenSection(stored)
     }
     if (localStorage.getItem(COLLAPSED_STORAGE_KEY) === '1') setCollapsed(true)

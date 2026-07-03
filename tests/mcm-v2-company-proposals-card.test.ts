@@ -3,6 +3,8 @@
 // TC-CPC-01..04
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 // ---- listProposalEventsForCompany query shape -----------------------------
 
@@ -98,8 +100,8 @@ describe('TC-CPC-03: empty state', () => {
 
 describe('TC-CPC-04: company page wires the card + fetch', () => {
   it('imports the card + fetch and renders it with proposals', () => {
-    const src = require('node:fs').readFileSync(
-      require('node:path').join(process.cwd(), 'app', '(workspace)', '[workspaceSlug]', 'companies', '[id]', 'page.tsx'),
+    const src = readFileSync(
+      join(process.cwd(), 'app', '(workspace)', '[workspaceSlug]', 'companies', '[id]', 'page.tsx'),
       'utf8',
     )
     expect(src).toContain('listProposalEventsForCompany(ctx.tenantId, ctx.workspaceId, id, { limit: 20 })')

@@ -78,7 +78,7 @@ export function AgentRosterSection({ data, workspaceSlug }: { data: AgentRosterD
           </tbody>
         </table>
         <p className="text-xs text-muted-foreground">
-          "no telemetry" = the agent is defined/gated but does not yet log runs. Aggregated in-app at pilot volume.
+          &ldquo;no telemetry&rdquo; = the agent is defined/gated but does not yet log runs. Aggregated in-app at pilot volume.
         </p>
       </CardContent>
     </Card>

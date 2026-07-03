@@ -117,7 +117,6 @@ export function SendFollowUpDraftButton({
         <div className="flex gap-1">
           <button
             onClick={handleConfirm}
-            disabled={inFlightRef.current}
             className="text-[10px] font-medium text-white bg-blue-600 hover:bg-blue-700
                        rounded px-2 py-0.5 transition-colors whitespace-nowrap
                        disabled:opacity-50 disabled:cursor-not-allowed"

@@ -55,7 +55,7 @@ export default async function CampaignAssetsPage({ params }: PageProps) {
         <div className="grid gap-2 sm:grid-cols-2 text-xs text-foreground">
           <div>
             <span className="font-semibold">Campaign Type</span>
-            <span className="text-muted-foreground"> — A named sequence template (e.g. "Initial Contact"). Defines the intent, number of touchpoints, and send cadence.</span>
+            <span className="text-muted-foreground"> — A named sequence template (e.g. &ldquo;Initial Contact&rdquo;). Defines the intent, number of touchpoints, and send cadence.</span>
           </div>
           <div>
             <span className="font-semibold">Campaign Asset</span>

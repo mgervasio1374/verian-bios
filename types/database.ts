@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       accounts: {
@@ -316,88 +341,88 @@ export type Database = {
       }
       agent_decisions: {
         Row: {
-          id: string
-          tenant_id: string
-          workspace_id: string | null
           agent_name: string
           agent_version: string | null
-          decision_type: string
-          decision_status: string
-          entity_type: string | null
-          entity_id: string | null
-          lead_id: string | null
-          contact_id: string | null
-          company_id: string | null
-          draft_id: string | null
-          recommendation_id: string | null
-          campaign_id: string | null
-          workflow_run_id: string | null
           ai_usage_event_id: string | null
-          confidence: number | null
-          recommended_action: string | null
           approval_required: boolean
-          human_override: boolean
-          short_reason: string | null
-          input_snapshot: Json | null
-          output_summary: Json | null
-          learning_tags: string[] | null
+          campaign_id: string | null
+          company_id: string | null
+          confidence: number | null
+          contact_id: string | null
           created_at: string
+          decision_status: string
+          decision_type: string
+          draft_id: string | null
+          entity_id: string | null
+          entity_type: string | null
+          human_override: boolean
+          id: string
+          input_snapshot: Json | null
+          lead_id: string | null
+          learning_tags: string[] | null
+          output_summary: Json | null
+          recommendation_id: string | null
+          recommended_action: string | null
+          short_reason: string | null
+          tenant_id: string
+          workflow_run_id: string | null
+          workspace_id: string | null
         }
         Insert: {
-          id?: string
-          tenant_id: string
-          workspace_id?: string | null
           agent_name: string
           agent_version?: string | null
-          decision_type: string
-          decision_status?: string
-          entity_type?: string | null
-          entity_id?: string | null
-          lead_id?: string | null
-          contact_id?: string | null
-          company_id?: string | null
-          draft_id?: string | null
-          recommendation_id?: string | null
-          campaign_id?: string | null
-          workflow_run_id?: string | null
           ai_usage_event_id?: string | null
-          confidence?: number | null
-          recommended_action?: string | null
           approval_required?: boolean
-          human_override?: boolean
-          short_reason?: string | null
-          input_snapshot?: Json | null
-          output_summary?: Json | null
-          learning_tags?: string[] | null
+          campaign_id?: string | null
+          company_id?: string | null
+          confidence?: number | null
+          contact_id?: string | null
           created_at?: string
+          decision_status?: string
+          decision_type: string
+          draft_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          human_override?: boolean
+          id?: string
+          input_snapshot?: Json | null
+          lead_id?: string | null
+          learning_tags?: string[] | null
+          output_summary?: Json | null
+          recommendation_id?: string | null
+          recommended_action?: string | null
+          short_reason?: string | null
+          tenant_id: string
+          workflow_run_id?: string | null
+          workspace_id?: string | null
         }
         Update: {
-          id?: string
-          tenant_id?: string
-          workspace_id?: string | null
           agent_name?: string
           agent_version?: string | null
-          decision_type?: string
-          decision_status?: string
-          entity_type?: string | null
-          entity_id?: string | null
-          lead_id?: string | null
-          contact_id?: string | null
-          company_id?: string | null
-          draft_id?: string | null
-          recommendation_id?: string | null
-          campaign_id?: string | null
-          workflow_run_id?: string | null
           ai_usage_event_id?: string | null
-          confidence?: number | null
-          recommended_action?: string | null
           approval_required?: boolean
-          human_override?: boolean
-          short_reason?: string | null
-          input_snapshot?: Json | null
-          output_summary?: Json | null
-          learning_tags?: string[] | null
+          campaign_id?: string | null
+          company_id?: string | null
+          confidence?: number | null
+          contact_id?: string | null
           created_at?: string
+          decision_status?: string
+          decision_type?: string
+          draft_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          human_override?: boolean
+          id?: string
+          input_snapshot?: Json | null
+          lead_id?: string | null
+          learning_tags?: string[] | null
+          output_summary?: Json | null
+          recommendation_id?: string | null
+          recommended_action?: string | null
+          short_reason?: string | null
+          tenant_id?: string
+          workflow_run_id?: string | null
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -745,171 +770,234 @@ export type Database = {
       }
       ai_budget_events: {
         Row: {
-          id: string
-          tenant_id: string
-          event_type: string
           agent_name: string
-          budget_level: string
-          policy_id: string | null
-          limit_usd: number | null
-          consumed_usd: number | null
           blocked_call_context: Json | null
-          lead_id: string | null
+          budget_level: string
           campaign_id: string | null
-          override_approved_by: string | null
+          consumed_usd: number | null
           created_at: string
+          event_type: string
+          id: string
+          lead_id: string | null
+          limit_usd: number | null
+          override_approved_by: string | null
+          policy_id: string | null
+          tenant_id: string
         }
         Insert: {
-          id?: string
-          tenant_id: string
-          event_type: string
           agent_name: string
-          budget_level: string
-          policy_id?: string | null
-          limit_usd?: number | null
-          consumed_usd?: number | null
           blocked_call_context?: Json | null
-          lead_id?: string | null
+          budget_level: string
           campaign_id?: string | null
-          override_approved_by?: string | null
+          consumed_usd?: number | null
           created_at?: string
+          event_type: string
+          id?: string
+          lead_id?: string | null
+          limit_usd?: number | null
+          override_approved_by?: string | null
+          policy_id?: string | null
+          tenant_id: string
         }
         Update: {
-          id?: string
-          tenant_id?: string
-          event_type?: string
           agent_name?: string
-          budget_level?: string
-          policy_id?: string | null
-          limit_usd?: number | null
-          consumed_usd?: number | null
           blocked_call_context?: Json | null
-          lead_id?: string | null
+          budget_level?: string
           campaign_id?: string | null
-          override_approved_by?: string | null
+          consumed_usd?: number | null
           created_at?: string
+          event_type?: string
+          id?: string
+          lead_id?: string | null
+          limit_usd?: number | null
+          override_approved_by?: string | null
+          policy_id?: string | null
+          tenant_id?: string
         }
         Relationships: []
       }
       ai_budget_policies: {
         Row: {
-          id: string
-          tenant_id: string
-          workspace_id: string | null
-          budget_level: string
-          scope_key: string | null
-          limit_usd: number
-          warn_threshold_pct: number
           alert_threshold_pct: number
-          is_active: boolean
-          override_requires_approval: boolean
+          budget_level: string
           created_at: string
+          id: string
+          is_active: boolean
+          limit_usd: number
+          override_requires_approval: boolean
+          scope_key: string | null
+          tenant_id: string
           updated_at: string
+          warn_threshold_pct: number
+          workspace_id: string | null
         }
         Insert: {
-          id?: string
-          tenant_id: string
-          workspace_id?: string | null
-          budget_level: string
-          scope_key?: string | null
-          limit_usd: number
-          warn_threshold_pct?: number
           alert_threshold_pct?: number
-          is_active?: boolean
-          override_requires_approval?: boolean
+          budget_level: string
           created_at?: string
+          id?: string
+          is_active?: boolean
+          limit_usd: number
+          override_requires_approval?: boolean
+          scope_key?: string | null
+          tenant_id: string
           updated_at?: string
+          warn_threshold_pct?: number
+          workspace_id?: string | null
         }
         Update: {
-          id?: string
-          tenant_id?: string
-          workspace_id?: string | null
-          budget_level?: string
-          scope_key?: string | null
-          limit_usd?: number
-          warn_threshold_pct?: number
           alert_threshold_pct?: number
-          is_active?: boolean
-          override_requires_approval?: boolean
+          budget_level?: string
           created_at?: string
+          id?: string
+          is_active?: boolean
+          limit_usd?: number
+          override_requires_approval?: boolean
+          scope_key?: string | null
+          tenant_id?: string
           updated_at?: string
+          warn_threshold_pct?: number
+          workspace_id?: string | null
         }
         Relationships: []
       }
       ai_usage_events: {
         Row: {
-          id: string
-          tenant_id: string
-          workspace_id: string | null
           agent_name: string
+          campaign_asset_id: string | null
+          campaign_id: string | null
+          completion_tokens: number | null
+          created_at: string
+          decision_id: string | null
+          draft_id: string | null
+          error_reason: string | null
+          estimated_cost_usd: number | null
           feature_name: string | null
-          provider: string
+          id: string
+          lead_id: string | null
           model_name: string
           prompt_tokens: number | null
-          completion_tokens: number | null
-          total_tokens: number | null
-          estimated_cost_usd: number | null
+          provider: string
           provider_request_id: string | null
-          decision_id: string | null
-          related_entity_type: string | null
           related_entity_id: string | null
-          lead_id: string | null
-          draft_id: string | null
-          campaign_id: string | null
-          campaign_asset_id: string | null
+          related_entity_type: string | null
           success: boolean
-          error_reason: string | null
-          created_at: string
+          tenant_id: string
+          total_tokens: number | null
+          workspace_id: string | null
         }
         Insert: {
-          id?: string
-          tenant_id: string
-          workspace_id?: string | null
           agent_name: string
+          campaign_asset_id?: string | null
+          campaign_id?: string | null
+          completion_tokens?: number | null
+          created_at?: string
+          decision_id?: string | null
+          draft_id?: string | null
+          error_reason?: string | null
+          estimated_cost_usd?: number | null
           feature_name?: string | null
-          provider?: string
+          id?: string
+          lead_id?: string | null
           model_name: string
           prompt_tokens?: number | null
-          completion_tokens?: number | null
-          total_tokens?: number | null
-          estimated_cost_usd?: number | null
+          provider?: string
           provider_request_id?: string | null
-          decision_id?: string | null
-          related_entity_type?: string | null
           related_entity_id?: string | null
-          lead_id?: string | null
-          draft_id?: string | null
-          campaign_id?: string | null
-          campaign_asset_id?: string | null
+          related_entity_type?: string | null
           success?: boolean
-          error_reason?: string | null
-          created_at?: string
+          tenant_id: string
+          total_tokens?: number | null
+          workspace_id?: string | null
         }
         Update: {
-          id?: string
-          tenant_id?: string
-          workspace_id?: string | null
           agent_name?: string
+          campaign_asset_id?: string | null
+          campaign_id?: string | null
+          completion_tokens?: number | null
+          created_at?: string
+          decision_id?: string | null
+          draft_id?: string | null
+          error_reason?: string | null
+          estimated_cost_usd?: number | null
           feature_name?: string | null
-          provider?: string
+          id?: string
+          lead_id?: string | null
           model_name?: string
           prompt_tokens?: number | null
-          completion_tokens?: number | null
-          total_tokens?: number | null
-          estimated_cost_usd?: number | null
+          provider?: string
           provider_request_id?: string | null
-          decision_id?: string | null
-          related_entity_type?: string | null
           related_entity_id?: string | null
-          lead_id?: string | null
-          draft_id?: string | null
-          campaign_id?: string | null
-          campaign_asset_id?: string | null
+          related_entity_type?: string | null
           success?: boolean
-          error_reason?: string | null
-          created_at?: string
+          tenant_id?: string
+          total_tokens?: number | null
+          workspace_id?: string | null
         }
         Relationships: []
+      }
+      anti_pattern_sources: {
+        Row: {
+          anti_pattern_rule: string
+          applied_by_user_id: string | null
+          confidence: string | null
+          created_at: string
+          id: string
+          pattern_name: string | null
+          rationale: string | null
+          skill_family: string
+          skill_slug: string
+          skill_version: number
+          source_excerpt: string | null
+          tenant_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          anti_pattern_rule: string
+          applied_by_user_id?: string | null
+          confidence?: string | null
+          created_at?: string
+          id?: string
+          pattern_name?: string | null
+          rationale?: string | null
+          skill_family: string
+          skill_slug: string
+          skill_version?: number
+          source_excerpt?: string | null
+          tenant_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          anti_pattern_rule?: string
+          applied_by_user_id?: string | null
+          confidence?: string | null
+          created_at?: string
+          id?: string
+          pattern_name?: string | null
+          rationale?: string | null
+          skill_family?: string
+          skill_slug?: string
+          skill_version?: number
+          source_excerpt?: string | null
+          tenant_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anti_pattern_sources_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anti_pattern_sources_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       approval_requests: {
         Row: {
@@ -1345,6 +1433,13 @@ export type Database = {
             columns: ["workflow_run_id"]
             isOneToOne: false
             referencedRelation: "workflow_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_failures_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -1795,122 +1890,234 @@ export type Database = {
         }
         Relationships: []
       }
-      campaign_email_assets: {
+      campaign_assignments: {
         Row: {
-          id: string
-          tenant_id: string
-          workspace_id: string | null
+          assigned_by_agent_name: string | null
+          assigned_by_user_id: string | null
+          assignment_reason: string | null
+          assignment_source: string
+          assignment_status: string
+          auto_approve_first_touch: boolean
+          campaign_asset_id: string | null
+          campaign_sequence_id: string | null
           campaign_type: string
-          asset_name: string
-          subject_template: string
-          body_template_html: string
-          body_template_text: string
-          personalization_fields: string[]
-          required_fields: string[]
-          fallback_values: Json
-          status: string
-          llm_generated: boolean
-          ai_usage_event_id: string | null
-          decision_id: string | null
-          approved_by: string | null
-          approved_at: string | null
-          performance_summary: Json | null
+          confidence: number | null
+          contact_id: string | null
           created_at: string
+          eligibility_snapshot: Json
+          id: string
+          lead_id: string | null
+          retired_at: string | null
+          starts_at: string | null
+          tenant_id: string
           updated_at: string
+          workspace_id: string
         }
         Insert: {
-          id?: string
-          tenant_id: string
-          workspace_id?: string | null
+          assigned_by_agent_name?: string | null
+          assigned_by_user_id?: string | null
+          assignment_reason?: string | null
+          assignment_source: string
+          assignment_status?: string
+          auto_approve_first_touch?: boolean
+          campaign_asset_id?: string | null
+          campaign_sequence_id?: string | null
           campaign_type: string
-          asset_name: string
-          subject_template: string
-          body_template_html: string
-          body_template_text: string
-          personalization_fields?: string[]
-          required_fields?: string[]
-          fallback_values?: Json
-          status?: string
-          llm_generated?: boolean
-          ai_usage_event_id?: string | null
-          decision_id?: string | null
-          approved_by?: string | null
-          approved_at?: string | null
-          performance_summary?: Json | null
+          confidence?: number | null
+          contact_id?: string | null
           created_at?: string
+          eligibility_snapshot?: Json
+          id?: string
+          lead_id?: string | null
+          retired_at?: string | null
+          starts_at?: string | null
+          tenant_id: string
           updated_at?: string
+          workspace_id: string
         }
         Update: {
-          id?: string
-          tenant_id?: string
-          workspace_id?: string | null
+          assigned_by_agent_name?: string | null
+          assigned_by_user_id?: string | null
+          assignment_reason?: string | null
+          assignment_source?: string
+          assignment_status?: string
+          auto_approve_first_touch?: boolean
+          campaign_asset_id?: string | null
+          campaign_sequence_id?: string | null
           campaign_type?: string
-          asset_name?: string
-          subject_template?: string
-          body_template_html?: string
-          body_template_text?: string
+          confidence?: number | null
+          contact_id?: string | null
+          created_at?: string
+          eligibility_snapshot?: Json
+          id?: string
+          lead_id?: string | null
+          retired_at?: string | null
+          starts_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_assignments_campaign_asset_id_fkey"
+            columns: ["campaign_asset_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_email_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_assignments_campaign_sequence_id_fkey"
+            columns: ["campaign_sequence_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_sequences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_assignments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_assignments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_assignments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_email_assets: {
+        Row: {
+          ai_usage_event_id: string | null
+          approved_at: string | null
+          approved_by: string | null
+          asset_name: string
+          body_template_html: string
+          body_template_text: string
+          campaign_type: string
+          created_at: string
+          decision_id: string | null
+          fallback_values: Json
+          id: string
+          llm_generated: boolean
+          performance_summary: Json | null
+          personalization_fields: string[]
+          required_fields: string[]
+          status: string
+          subject_template: string
+          tenant_id: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          ai_usage_event_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          asset_name: string
+          body_template_html: string
+          body_template_text: string
+          campaign_type: string
+          created_at?: string
+          decision_id?: string | null
+          fallback_values?: Json
+          id?: string
+          llm_generated?: boolean
+          performance_summary?: Json | null
           personalization_fields?: string[]
           required_fields?: string[]
-          fallback_values?: Json
           status?: string
-          llm_generated?: boolean
-          ai_usage_event_id?: string | null
-          decision_id?: string | null
-          approved_by?: string | null
-          approved_at?: string | null
-          performance_summary?: Json | null
-          created_at?: string
+          subject_template: string
+          tenant_id: string
           updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          ai_usage_event_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          asset_name?: string
+          body_template_html?: string
+          body_template_text?: string
+          campaign_type?: string
+          created_at?: string
+          decision_id?: string | null
+          fallback_values?: Json
+          id?: string
+          llm_generated?: boolean
+          performance_summary?: Json | null
+          personalization_fields?: string[]
+          required_fields?: string[]
+          status?: string
+          subject_template?: string
+          tenant_id?: string
+          updated_at?: string
+          workspace_id?: string | null
         }
         Relationships: []
       }
       campaign_email_sends: {
         Row: {
-          id: string
-          tenant_id: string
           asset_id: string
-          lead_id: string
           contact_id: string | null
-          rendered_subject: string
+          created_at: string
+          email_send_id: string | null
+          id: string
+          lead_id: string
+          missing_required_fields: string[] | null
+          personalization_snapshot: Json
           rendered_body_html: string | null
           rendered_body_text: string | null
-          personalization_snapshot: Json
-          missing_required_fields: string[] | null
+          rendered_subject: string
           send_status: string
-          email_send_id: string | null
-          created_at: string
+          tenant_id: string
           updated_at: string
         }
         Insert: {
-          id?: string
-          tenant_id: string
           asset_id: string
-          lead_id: string
           contact_id?: string | null
-          rendered_subject: string
+          created_at?: string
+          email_send_id?: string | null
+          id?: string
+          lead_id: string
+          missing_required_fields?: string[] | null
+          personalization_snapshot: Json
           rendered_body_html?: string | null
           rendered_body_text?: string | null
-          personalization_snapshot: Json
-          missing_required_fields?: string[] | null
+          rendered_subject: string
           send_status?: string
-          email_send_id?: string | null
-          created_at?: string
+          tenant_id: string
           updated_at?: string
         }
         Update: {
-          id?: string
-          tenant_id?: string
           asset_id?: string
-          lead_id?: string
           contact_id?: string | null
-          rendered_subject?: string
+          created_at?: string
+          email_send_id?: string | null
+          id?: string
+          lead_id?: string
+          missing_required_fields?: string[] | null
+          personalization_snapshot?: Json
           rendered_body_html?: string | null
           rendered_body_text?: string | null
-          personalization_snapshot?: Json
-          missing_required_fields?: string[] | null
+          rendered_subject?: string
           send_status?: string
-          email_send_id?: string | null
-          created_at?: string
+          tenant_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -1923,311 +2130,72 @@ export type Database = {
           },
         ]
       }
-      campaign_types: {
-        Row: {
-          id: string
-          tenant_id: string
-          workspace_id: string
-          name: string
-          slug: string
-          description: string | null
-          status: string
-          default_stop_condition: string
-          default_requires_approval: boolean
-          created_by_user_id: string | null
-          created_at: string
-          updated_at: string
-          retired_at: string | null
-        }
-        Insert: {
-          id?: string
-          tenant_id: string
-          workspace_id: string
-          name: string
-          slug: string
-          description?: string | null
-          status?: string
-          default_stop_condition?: string
-          default_requires_approval?: boolean
-          created_by_user_id?: string | null
-          created_at?: string
-          updated_at?: string
-          retired_at?: string | null
-        }
-        Update: {
-          id?: string
-          tenant_id?: string
-          workspace_id?: string
-          name?: string
-          slug?: string
-          description?: string | null
-          status?: string
-          default_stop_condition?: string
-          default_requires_approval?: boolean
-          created_by_user_id?: string | null
-          created_at?: string
-          updated_at?: string
-          retired_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "campaign_types_created_by_user_id_fkey"
-            columns: ["created_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "campaign_types_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "campaign_types_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      campaign_sequences: {
-        Row: {
-          id: string
-          tenant_id: string
-          workspace_id: string
-          campaign_type_id: string
-          name: string
-          description: string | null
-          status: string
-          version: number
-          is_default: boolean
-          requires_approval: boolean
-          stop_on_response: boolean
-          response_trigger_behavior: string
-          created_by_user_id: string | null
-          created_at: string
-          updated_at: string
-          retired_at: string | null
-        }
-        Insert: {
-          id?: string
-          tenant_id: string
-          workspace_id: string
-          campaign_type_id: string
-          name: string
-          description?: string | null
-          status?: string
-          version?: number
-          is_default?: boolean
-          requires_approval?: boolean
-          stop_on_response?: boolean
-          response_trigger_behavior?: string
-          created_by_user_id?: string | null
-          created_at?: string
-          updated_at?: string
-          retired_at?: string | null
-        }
-        Update: {
-          id?: string
-          tenant_id?: string
-          workspace_id?: string
-          campaign_type_id?: string
-          name?: string
-          description?: string | null
-          status?: string
-          version?: number
-          is_default?: boolean
-          requires_approval?: boolean
-          stop_on_response?: boolean
-          response_trigger_behavior?: string
-          created_by_user_id?: string | null
-          created_at?: string
-          updated_at?: string
-          retired_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "campaign_sequences_campaign_type_id_fkey"
-            columns: ["campaign_type_id"]
-            isOneToOne: false
-            referencedRelation: "campaign_types"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "campaign_sequences_created_by_user_id_fkey"
-            columns: ["created_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "campaign_sequences_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "campaign_sequences_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      campaign_sequence_steps: {
-        Row: {
-          id: string
-          tenant_id: string
-          workspace_id: string
-          campaign_sequence_id: string
-          step_number: number
-          touch_label: string | null
-          day_offset: number | null
-          recurring_interval_days: number | null
-          is_recurring: boolean
-          campaign_email_asset_id: string | null
-          channel: string
-          requires_approval: boolean
-          status: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          tenant_id: string
-          workspace_id: string
-          campaign_sequence_id: string
-          step_number: number
-          touch_label?: string | null
-          day_offset?: number | null
-          recurring_interval_days?: number | null
-          is_recurring?: boolean
-          campaign_email_asset_id?: string | null
-          channel?: string
-          requires_approval?: boolean
-          status?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          tenant_id?: string
-          workspace_id?: string
-          campaign_sequence_id?: string
-          step_number?: number
-          touch_label?: string | null
-          day_offset?: number | null
-          recurring_interval_days?: number | null
-          is_recurring?: boolean
-          campaign_email_asset_id?: string | null
-          channel?: string
-          requires_approval?: boolean
-          status?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "campaign_sequence_steps_campaign_email_asset_id_fkey"
-            columns: ["campaign_email_asset_id"]
-            isOneToOne: false
-            referencedRelation: "campaign_email_assets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "campaign_sequence_steps_campaign_sequence_id_fkey"
-            columns: ["campaign_sequence_id"]
-            isOneToOne: false
-            referencedRelation: "campaign_sequences"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "campaign_sequence_steps_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "campaign_sequence_steps_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       campaign_schedule_items: {
         Row: {
-          id: string
-          tenant_id: string
-          workspace_id: string
+          approval_request_id: string | null
           campaign_assignment_id: string
           campaign_sequence_id: string
           campaign_sequence_step_id: string
-          lead_id: string | null
-          contact_id: string | null
           company_id: string | null
+          contact_id: string | null
+          created_at: string
+          email_draft_id: string | null
+          id: string
+          lead_id: string | null
+          response_detected_at: string | null
           scheduled_for: string
+          sent_event_id: string | null
           status: string
           status_reason: string | null
-          approval_request_id: string | null
-          email_draft_id: string | null
-          sent_event_id: string | null
           stopped_at: string | null
           stopped_reason: string | null
-          response_detected_at: string | null
-          created_at: string
+          tenant_id: string
           updated_at: string
+          workspace_id: string
         }
         Insert: {
-          id?: string
-          tenant_id: string
-          workspace_id: string
+          approval_request_id?: string | null
           campaign_assignment_id: string
           campaign_sequence_id: string
           campaign_sequence_step_id: string
-          lead_id?: string | null
-          contact_id?: string | null
           company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          email_draft_id?: string | null
+          id?: string
+          lead_id?: string | null
+          response_detected_at?: string | null
           scheduled_for: string
+          sent_event_id?: string | null
           status?: string
           status_reason?: string | null
-          approval_request_id?: string | null
-          email_draft_id?: string | null
-          sent_event_id?: string | null
           stopped_at?: string | null
           stopped_reason?: string | null
-          response_detected_at?: string | null
-          created_at?: string
+          tenant_id: string
           updated_at?: string
+          workspace_id: string
         }
         Update: {
-          id?: string
-          tenant_id?: string
-          workspace_id?: string
+          approval_request_id?: string | null
           campaign_assignment_id?: string
           campaign_sequence_id?: string
           campaign_sequence_step_id?: string
-          lead_id?: string | null
-          contact_id?: string | null
           company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          email_draft_id?: string | null
+          id?: string
+          lead_id?: string | null
+          response_detected_at?: string | null
           scheduled_for?: string
+          sent_event_id?: string | null
           status?: string
           status_reason?: string | null
-          approval_request_id?: string | null
-          email_draft_id?: string | null
-          sent_event_id?: string | null
           stopped_at?: string | null
           stopped_reason?: string | null
-          response_detected_at?: string | null
-          created_at?: string
+          tenant_id?: string
           updated_at?: string
+          workspace_id?: string
         }
         Relationships: [
           {
@@ -2295,6 +2263,253 @@ export type Database = {
           },
           {
             foreignKeyName: "campaign_schedule_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_sequence_steps: {
+        Row: {
+          campaign_email_asset_id: string | null
+          campaign_sequence_id: string
+          channel: string
+          created_at: string
+          day_offset: number | null
+          id: string
+          is_recurring: boolean
+          recurring_interval_days: number | null
+          requires_approval: boolean
+          status: string
+          step_number: number
+          tenant_id: string
+          touch_label: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          campaign_email_asset_id?: string | null
+          campaign_sequence_id: string
+          channel?: string
+          created_at?: string
+          day_offset?: number | null
+          id?: string
+          is_recurring?: boolean
+          recurring_interval_days?: number | null
+          requires_approval?: boolean
+          status?: string
+          step_number: number
+          tenant_id: string
+          touch_label?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          campaign_email_asset_id?: string | null
+          campaign_sequence_id?: string
+          channel?: string
+          created_at?: string
+          day_offset?: number | null
+          id?: string
+          is_recurring?: boolean
+          recurring_interval_days?: number | null
+          requires_approval?: boolean
+          status?: string
+          step_number?: number
+          tenant_id?: string
+          touch_label?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_sequence_steps_campaign_email_asset_id_fkey"
+            columns: ["campaign_email_asset_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_email_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_sequence_steps_campaign_sequence_id_fkey"
+            columns: ["campaign_sequence_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_sequences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_sequence_steps_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_sequence_steps_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_sequences: {
+        Row: {
+          authoring_mode: string
+          campaign_type_id: string
+          created_at: string
+          created_by_user_id: string | null
+          description: string | null
+          id: string
+          is_default: boolean
+          name: string
+          requires_approval: boolean
+          response_trigger_behavior: string
+          retired_at: string | null
+          send_time: string | null
+          sender_identity_id: string | null
+          skip_weekends: boolean
+          status: string
+          stop_on_response: boolean
+          tenant_id: string
+          timezone: string | null
+          updated_at: string
+          version: number
+          workspace_id: string
+        }
+        Insert: {
+          authoring_mode?: string
+          campaign_type_id: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          requires_approval?: boolean
+          response_trigger_behavior?: string
+          retired_at?: string | null
+          send_time?: string | null
+          sender_identity_id?: string | null
+          skip_weekends?: boolean
+          status?: string
+          stop_on_response?: boolean
+          tenant_id: string
+          timezone?: string | null
+          updated_at?: string
+          version?: number
+          workspace_id: string
+        }
+        Update: {
+          authoring_mode?: string
+          campaign_type_id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          requires_approval?: boolean
+          response_trigger_behavior?: string
+          retired_at?: string | null
+          send_time?: string | null
+          sender_identity_id?: string | null
+          skip_weekends?: boolean
+          status?: string
+          stop_on_response?: boolean
+          tenant_id?: string
+          timezone?: string | null
+          updated_at?: string
+          version?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_sequences_campaign_type_id_fkey"
+            columns: ["campaign_type_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_sequences_sender_identity_id_fkey"
+            columns: ["sender_identity_id"]
+            isOneToOne: false
+            referencedRelation: "sender_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_sequences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_sequences_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_types: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          default_requires_approval: boolean
+          default_stop_condition: string
+          description: string | null
+          id: string
+          name: string
+          retired_at: string | null
+          slug: string
+          status: string
+          tenant_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          default_requires_approval?: boolean
+          default_stop_condition?: string
+          description?: string | null
+          id?: string
+          name: string
+          retired_at?: string | null
+          slug: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          default_requires_approval?: boolean
+          default_stop_condition?: string
+          description?: string | null
+          id?: string
+          name?: string
+          retired_at?: string | null
+          slug?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_types_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -2385,6 +2600,7 @@ export type Database = {
           deleted_by: string | null
           domain: string | null
           employee_count: number | null
+          has_deliverability_issue: boolean
           id: string
           industry: string | null
           metadata: Json
@@ -2415,6 +2631,7 @@ export type Database = {
           deleted_by?: string | null
           domain?: string | null
           employee_count?: number | null
+          has_deliverability_issue?: boolean
           id?: string
           industry?: string | null
           metadata?: Json
@@ -2445,6 +2662,7 @@ export type Database = {
           deleted_by?: string | null
           domain?: string | null
           employee_count?: number | null
+          has_deliverability_issue?: boolean
           id?: string
           industry?: string | null
           metadata?: Json
@@ -2562,6 +2780,49 @@ export type Database = {
           },
         ]
       }
+      company_segments: {
+        Row: {
+          company_id: string
+          created_at: string
+          segment_id: string
+          tenant_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          segment_id: string
+          tenant_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          segment_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_segments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_segments_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "segments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_segments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           company_id: string | null
@@ -2572,6 +2833,7 @@ export type Database = {
           department: string | null
           do_not_contact: boolean
           email: string | null
+          email_status: string
           first_name: string
           id: string
           is_primary_contact: boolean
@@ -2597,6 +2859,7 @@ export type Database = {
           department?: string | null
           do_not_contact?: boolean
           email?: string | null
+          email_status?: string
           first_name: string
           id?: string
           is_primary_contact?: boolean
@@ -2622,6 +2885,7 @@ export type Database = {
           department?: string | null
           do_not_contact?: boolean
           email?: string | null
+          email_status?: string
           first_name?: string
           id?: string
           is_primary_contact?: boolean
@@ -2762,6 +3026,72 @@ export type Database = {
           },
           {
             foreignKeyName: "conversations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      copy_exemplars: {
+        Row: {
+          body_text: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          is_active: boolean
+          relationship_context: string | null
+          skill_slug: string
+          source: string
+          source_version_id: string | null
+          subject: string
+          tenant_id: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          body_text: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_active?: boolean
+          relationship_context?: string | null
+          skill_slug: string
+          source: string
+          source_version_id?: string | null
+          subject: string
+          tenant_id: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          body_text?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_active?: boolean
+          relationship_context?: string | null
+          skill_slug?: string
+          source?: string
+          source_version_id?: string | null
+          subject?: string
+          tenant_id?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copy_exemplars_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "copy_exemplars_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -3243,6 +3573,13 @@ export type Database = {
             columns: ["sender_identity_id"]
             isOneToOne: false
             referencedRelation: "sender_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_drafts_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_email_assets"
             referencedColumns: ["id"]
           },
           {
@@ -4161,6 +4498,313 @@ export type Database = {
           },
         ]
       }
+      import_batches: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          canceled_at: string | null
+          column_mapping: Json
+          committed_at: string | null
+          committed_rows: number
+          created_at: string
+          default_lead_status: string
+          default_workflow_status: string
+          deleted_at: string | null
+          duplicate_rows: number
+          failed_at: string | null
+          failed_commit_rows: number
+          id: string
+          invalid_rows: number
+          metadata: Json
+          original_filename: string | null
+          parsed_rows: number
+          source_name: string | null
+          source_type: string
+          status: string
+          tenant_id: string
+          total_rows: number
+          uploaded_by: string
+          valid_rows: number
+          validated_at: string | null
+          workflow_enabled_default: boolean
+          workspace_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          canceled_at?: string | null
+          column_mapping?: Json
+          committed_at?: string | null
+          committed_rows?: number
+          created_at?: string
+          default_lead_status?: string
+          default_workflow_status?: string
+          deleted_at?: string | null
+          duplicate_rows?: number
+          failed_at?: string | null
+          failed_commit_rows?: number
+          id?: string
+          invalid_rows?: number
+          metadata?: Json
+          original_filename?: string | null
+          parsed_rows?: number
+          source_name?: string | null
+          source_type: string
+          status?: string
+          tenant_id: string
+          total_rows?: number
+          uploaded_by: string
+          valid_rows?: number
+          validated_at?: string | null
+          workflow_enabled_default?: boolean
+          workspace_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          canceled_at?: string | null
+          column_mapping?: Json
+          committed_at?: string | null
+          committed_rows?: number
+          created_at?: string
+          default_lead_status?: string
+          default_workflow_status?: string
+          deleted_at?: string | null
+          duplicate_rows?: number
+          failed_at?: string | null
+          failed_commit_rows?: number
+          id?: string
+          invalid_rows?: number
+          metadata?: Json
+          original_filename?: string | null
+          parsed_rows?: number
+          source_name?: string | null
+          source_type?: string
+          status?: string
+          tenant_id?: string
+          total_rows?: number
+          uploaded_by?: string
+          valid_rows?: number
+          validated_at?: string | null
+          workflow_enabled_default?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_batches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_batches_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_rows: {
+        Row: {
+          commit_error: string | null
+          commit_status: string
+          committed_at: string | null
+          created_at: string
+          duplicate_matches: Json
+          duplicate_status: string
+          id: string
+          import_batch_id: string
+          normalized_data: Json
+          raw_data: Json
+          row_number: number
+          target_company_id: string | null
+          target_contact_id: string | null
+          target_lead_id: string | null
+          tenant_id: string
+          validated_at: string | null
+          validation_errors: Json
+          validation_status: string
+          workspace_id: string
+        }
+        Insert: {
+          commit_error?: string | null
+          commit_status?: string
+          committed_at?: string | null
+          created_at?: string
+          duplicate_matches?: Json
+          duplicate_status?: string
+          id?: string
+          import_batch_id: string
+          normalized_data?: Json
+          raw_data?: Json
+          row_number: number
+          target_company_id?: string | null
+          target_contact_id?: string | null
+          target_lead_id?: string | null
+          tenant_id: string
+          validated_at?: string | null
+          validation_errors?: Json
+          validation_status?: string
+          workspace_id: string
+        }
+        Update: {
+          commit_error?: string | null
+          commit_status?: string
+          committed_at?: string | null
+          created_at?: string
+          duplicate_matches?: Json
+          duplicate_status?: string
+          id?: string
+          import_batch_id?: string
+          normalized_data?: Json
+          raw_data?: Json
+          row_number?: number
+          target_company_id?: string | null
+          target_contact_id?: string | null
+          target_lead_id?: string | null
+          tenant_id?: string
+          validated_at?: string | null
+          validation_errors?: Json
+          validation_status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_rows_import_batch_id_fkey"
+            columns: ["import_batch_id"]
+            isOneToOne: false
+            referencedRelation: "import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_rows_target_company_id_fkey"
+            columns: ["target_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_rows_target_contact_id_fkey"
+            columns: ["target_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_rows_target_lead_id_fkey"
+            columns: ["target_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_rows_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_rows_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inbound_email_replies: {
+        Row: {
+          body_excerpt: string | null
+          created_at: string
+          forwarded_at: string | null
+          from_email: string
+          id: string
+          in_reply_to: string | null
+          is_auto_reply: boolean
+          match_status: string
+          matched_assignment_id: string | null
+          matched_contact_id: string | null
+          matched_email_send_id: string | null
+          matched_lead_id: string | null
+          message_id: string | null
+          optout_detected: boolean
+          optout_suppressed: boolean
+          received_at: string | null
+          references: string | null
+          subject: string | null
+          tenant_id: string
+          to_email: string | null
+          touches_stopped: number
+          workspace_id: string | null
+        }
+        Insert: {
+          body_excerpt?: string | null
+          created_at?: string
+          forwarded_at?: string | null
+          from_email: string
+          id?: string
+          in_reply_to?: string | null
+          is_auto_reply?: boolean
+          match_status?: string
+          matched_assignment_id?: string | null
+          matched_contact_id?: string | null
+          matched_email_send_id?: string | null
+          matched_lead_id?: string | null
+          message_id?: string | null
+          optout_detected?: boolean
+          optout_suppressed?: boolean
+          received_at?: string | null
+          references?: string | null
+          subject?: string | null
+          tenant_id: string
+          to_email?: string | null
+          touches_stopped?: number
+          workspace_id?: string | null
+        }
+        Update: {
+          body_excerpt?: string | null
+          created_at?: string
+          forwarded_at?: string | null
+          from_email?: string
+          id?: string
+          in_reply_to?: string | null
+          is_auto_reply?: boolean
+          match_status?: string
+          matched_assignment_id?: string | null
+          matched_contact_id?: string | null
+          matched_email_send_id?: string | null
+          matched_lead_id?: string | null
+          message_id?: string | null
+          optout_detected?: boolean
+          optout_suppressed?: boolean
+          received_at?: string | null
+          references?: string | null
+          subject?: string | null
+          tenant_id?: string
+          to_email?: string | null
+          touches_stopped?: number
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_email_replies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_email_replies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       industry_profiles: {
         Row: {
           created_at: string
@@ -4271,237 +4915,6 @@ export type Database = {
             columns: ["workflow_run_id"]
             isOneToOne: false
             referencedRelation: "workflow_runs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      import_batches: {
-        Row: {
-          id: string
-          tenant_id: string
-          workspace_id: string
-          source_type: string
-          source_name: string | null
-          original_filename: string | null
-          uploaded_by: string
-          approved_by: string | null
-          status: string
-          total_rows: number
-          parsed_rows: number
-          valid_rows: number
-          invalid_rows: number
-          duplicate_rows: number
-          committed_rows: number
-          failed_commit_rows: number
-          default_lead_status: string
-          default_workflow_status: string
-          workflow_enabled_default: boolean
-          column_mapping: Json
-          metadata: Json
-          created_at: string
-          validated_at: string | null
-          approved_at: string | null
-          committed_at: string | null
-          failed_at: string | null
-          canceled_at: string | null
-          deleted_at: string | null
-        }
-        Insert: {
-          id?: string
-          tenant_id: string
-          workspace_id: string
-          source_type: string
-          source_name?: string | null
-          original_filename?: string | null
-          uploaded_by: string
-          approved_by?: string | null
-          status?: string
-          total_rows?: number
-          parsed_rows?: number
-          valid_rows?: number
-          invalid_rows?: number
-          duplicate_rows?: number
-          committed_rows?: number
-          failed_commit_rows?: number
-          default_lead_status?: string
-          default_workflow_status?: string
-          workflow_enabled_default?: boolean
-          column_mapping?: Json
-          metadata?: Json
-          created_at?: string
-          validated_at?: string | null
-          approved_at?: string | null
-          committed_at?: string | null
-          failed_at?: string | null
-          canceled_at?: string | null
-          deleted_at?: string | null
-        }
-        Update: {
-          id?: string
-          tenant_id?: string
-          workspace_id?: string
-          source_type?: string
-          source_name?: string | null
-          original_filename?: string | null
-          uploaded_by?: string
-          approved_by?: string | null
-          status?: string
-          total_rows?: number
-          parsed_rows?: number
-          valid_rows?: number
-          invalid_rows?: number
-          duplicate_rows?: number
-          committed_rows?: number
-          failed_commit_rows?: number
-          default_lead_status?: string
-          default_workflow_status?: string
-          workflow_enabled_default?: boolean
-          column_mapping?: Json
-          metadata?: Json
-          created_at?: string
-          validated_at?: string | null
-          approved_at?: string | null
-          committed_at?: string | null
-          failed_at?: string | null
-          canceled_at?: string | null
-          deleted_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "import_batches_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "import_batches_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "import_batches_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "import_batches_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      import_rows: {
-        Row: {
-          id: string
-          import_batch_id: string
-          tenant_id: string
-          workspace_id: string
-          row_number: number
-          raw_data: Json
-          normalized_data: Json
-          validation_status: string
-          validation_errors: Json
-          duplicate_status: string
-          duplicate_matches: Json
-          commit_status: string
-          commit_error: string | null
-          target_company_id: string | null
-          target_contact_id: string | null
-          target_lead_id: string | null
-          created_at: string
-          validated_at: string | null
-          committed_at: string | null
-        }
-        Insert: {
-          id?: string
-          import_batch_id: string
-          tenant_id: string
-          workspace_id: string
-          row_number: number
-          raw_data?: Json
-          normalized_data?: Json
-          validation_status?: string
-          validation_errors?: Json
-          duplicate_status?: string
-          duplicate_matches?: Json
-          commit_status?: string
-          commit_error?: string | null
-          target_company_id?: string | null
-          target_contact_id?: string | null
-          target_lead_id?: string | null
-          created_at?: string
-          validated_at?: string | null
-          committed_at?: string | null
-        }
-        Update: {
-          id?: string
-          import_batch_id?: string
-          tenant_id?: string
-          workspace_id?: string
-          row_number?: number
-          raw_data?: Json
-          normalized_data?: Json
-          validation_status?: string
-          validation_errors?: Json
-          duplicate_status?: string
-          duplicate_matches?: Json
-          commit_status?: string
-          commit_error?: string | null
-          target_company_id?: string | null
-          target_contact_id?: string | null
-          target_lead_id?: string | null
-          created_at?: string
-          validated_at?: string | null
-          committed_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "import_rows_import_batch_id_fkey"
-            columns: ["import_batch_id"]
-            isOneToOne: false
-            referencedRelation: "import_batches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "import_rows_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "import_rows_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "import_rows_target_company_id_fkey"
-            columns: ["target_company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "import_rows_target_contact_id_fkey"
-            columns: ["target_contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "import_rows_target_lead_id_fkey"
-            columns: ["target_lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
@@ -4619,6 +5032,150 @@ export type Database = {
           },
         ]
       }
+      learned_skills: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by_user_id: string | null
+          definition: Json
+          id: string
+          skill_family: string
+          skill_slug: string
+          skill_version: number
+          source: string
+          status: string
+          tenant_id: string | null
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          definition: Json
+          id?: string
+          skill_family: string
+          skill_slug: string
+          skill_version?: number
+          source?: string
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          definition?: Json
+          id?: string
+          skill_family?: string
+          skill_slug?: string
+          skill_version?: number
+          source?: string
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learned_skills_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learned_skills_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_snapshots: {
+        Row: {
+          advisory: boolean
+          computed_at: string
+          confidence: string
+          deleted_at: string | null
+          denominator: number
+          dimension: string
+          dimension_value: string
+          id: string
+          lookback_days: number
+          notes: string | null
+          numerator: number
+          rate: number | null
+          run_id: string
+          sample_n: number
+          signal_name: string
+          tenant_id: string
+          window_end: string
+          window_start: string
+          workspace_id: string | null
+        }
+        Insert: {
+          advisory?: boolean
+          computed_at?: string
+          confidence: string
+          deleted_at?: string | null
+          denominator?: number
+          dimension: string
+          dimension_value: string
+          id?: string
+          lookback_days?: number
+          notes?: string | null
+          numerator?: number
+          rate?: number | null
+          run_id: string
+          sample_n?: number
+          signal_name: string
+          tenant_id: string
+          window_end: string
+          window_start: string
+          workspace_id?: string | null
+        }
+        Update: {
+          advisory?: boolean
+          computed_at?: string
+          confidence?: string
+          deleted_at?: string | null
+          denominator?: number
+          dimension?: string
+          dimension_value?: string
+          id?: string
+          lookback_days?: number
+          notes?: string | null
+          numerator?: number
+          rate?: number | null
+          run_id?: string
+          sample_n?: number
+          signal_name?: string
+          tenant_id?: string
+          window_end?: string
+          window_start?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       memberships: {
         Row: {
           created_at: string
@@ -4679,6 +5236,332 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_strategies: {
+        Row: {
+          agent_run_id: string | null
+          alternative_angles: Json
+          audience_context: string
+          avoid: Json
+          campaign_id: string | null
+          company_id: string | null
+          compliance_notes: Json
+          confidence_score: number
+          created_at: string
+          created_by: string
+          cta: string
+          days_since_last_contact: number | null
+          has_statement_artifact: boolean
+          id: string
+          industry_segment: string | null
+          invalid_reasons: Json
+          last_engagement_signal: string | null
+          lead_id: string
+          lead_score: number | null
+          lead_source: string
+          lead_stage: string
+          lead_urgency_score: number | null
+          length_target: string
+          message_type: string
+          offer_angle: string
+          override_log: Json
+          pain_point_hypothesis: string
+          partner_membership: Json | null
+          personalization_level: string
+          primary_goal: string
+          prior_touch_count: number
+          processing_volume_tier: string | null
+          proof_point: string | null
+          reasoning: string
+          required_inclusions: Json
+          requires_human_review: boolean
+          secondary_goal: string | null
+          selected_skills: Json
+          sequence_position: number
+          skill_reasoning: Json
+          status: string
+          tenant_id: string
+          tone: string
+          trust_angle: string
+          updated_at: string
+        }
+        Insert: {
+          agent_run_id?: string | null
+          alternative_angles?: Json
+          audience_context?: string
+          avoid?: Json
+          campaign_id?: string | null
+          company_id?: string | null
+          compliance_notes?: Json
+          confidence_score?: number
+          created_at?: string
+          created_by?: string
+          cta?: string
+          days_since_last_contact?: number | null
+          has_statement_artifact?: boolean
+          id?: string
+          industry_segment?: string | null
+          invalid_reasons?: Json
+          last_engagement_signal?: string | null
+          lead_id: string
+          lead_score?: number | null
+          lead_source?: string
+          lead_stage?: string
+          lead_urgency_score?: number | null
+          length_target?: string
+          message_type: string
+          offer_angle?: string
+          override_log?: Json
+          pain_point_hypothesis?: string
+          partner_membership?: Json | null
+          personalization_level?: string
+          primary_goal: string
+          prior_touch_count?: number
+          processing_volume_tier?: string | null
+          proof_point?: string | null
+          reasoning?: string
+          required_inclusions?: Json
+          requires_human_review?: boolean
+          secondary_goal?: string | null
+          selected_skills?: Json
+          sequence_position?: number
+          skill_reasoning?: Json
+          status?: string
+          tenant_id: string
+          tone?: string
+          trust_angle?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_run_id?: string | null
+          alternative_angles?: Json
+          audience_context?: string
+          avoid?: Json
+          campaign_id?: string | null
+          company_id?: string | null
+          compliance_notes?: Json
+          confidence_score?: number
+          created_at?: string
+          created_by?: string
+          cta?: string
+          days_since_last_contact?: number | null
+          has_statement_artifact?: boolean
+          id?: string
+          industry_segment?: string | null
+          invalid_reasons?: Json
+          last_engagement_signal?: string | null
+          lead_id?: string
+          lead_score?: number | null
+          lead_source?: string
+          lead_stage?: string
+          lead_urgency_score?: number | null
+          length_target?: string
+          message_type?: string
+          offer_angle?: string
+          override_log?: Json
+          pain_point_hypothesis?: string
+          partner_membership?: Json | null
+          personalization_level?: string
+          primary_goal?: string
+          prior_touch_count?: number
+          processing_volume_tier?: string | null
+          proof_point?: string | null
+          reasoning?: string
+          required_inclusions?: Json
+          requires_human_review?: boolean
+          secondary_goal?: string | null
+          selected_skills?: Json
+          sequence_position?: number
+          skill_reasoning?: Json
+          status?: string
+          tenant_id?: string
+          tone?: string
+          trust_angle?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_strategies_agent_run_id_fkey"
+            columns: ["agent_run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_strategies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_strategies_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_strategies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_versions: {
+        Row: {
+          agent_run_id: string | null
+          approval_status: string
+          avoided_elements_checked: Json
+          body_html: string | null
+          body_text: string
+          campaign_id: string | null
+          company_id: string | null
+          compliance_notes_applied: Json
+          copy_constraints: Json
+          created_at: string
+          created_by_agent: string
+          final_body_text: string | null
+          final_subject_line: string | null
+          generation_notes: string | null
+          id: string
+          lead_id: string
+          message_type: string
+          personalization_gaps: Json
+          personalization_used: Json
+          preview_text: string
+          rejection_reason: string | null
+          required_inclusions_satisfied: Json
+          reviewed_at: string | null
+          reviewed_by: string | null
+          selected_skills: Json
+          skill_versions: Json
+          source_strategy_snapshot: Json
+          strategy_angle: string
+          strategy_id: string
+          subject_line: string
+          tenant_id: string
+          updated_at: string
+          user_edit_summary: string | null
+          user_edited: boolean
+          version_label: string
+          version_number: number
+        }
+        Insert: {
+          agent_run_id?: string | null
+          approval_status?: string
+          avoided_elements_checked?: Json
+          body_html?: string | null
+          body_text: string
+          campaign_id?: string | null
+          company_id?: string | null
+          compliance_notes_applied?: Json
+          copy_constraints?: Json
+          created_at?: string
+          created_by_agent?: string
+          final_body_text?: string | null
+          final_subject_line?: string | null
+          generation_notes?: string | null
+          id?: string
+          lead_id: string
+          message_type: string
+          personalization_gaps?: Json
+          personalization_used?: Json
+          preview_text: string
+          rejection_reason?: string | null
+          required_inclusions_satisfied?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          selected_skills?: Json
+          skill_versions?: Json
+          source_strategy_snapshot?: Json
+          strategy_angle: string
+          strategy_id: string
+          subject_line: string
+          tenant_id: string
+          updated_at?: string
+          user_edit_summary?: string | null
+          user_edited?: boolean
+          version_label: string
+          version_number: number
+        }
+        Update: {
+          agent_run_id?: string | null
+          approval_status?: string
+          avoided_elements_checked?: Json
+          body_html?: string | null
+          body_text?: string
+          campaign_id?: string | null
+          company_id?: string | null
+          compliance_notes_applied?: Json
+          copy_constraints?: Json
+          created_at?: string
+          created_by_agent?: string
+          final_body_text?: string | null
+          final_subject_line?: string | null
+          generation_notes?: string | null
+          id?: string
+          lead_id?: string
+          message_type?: string
+          personalization_gaps?: Json
+          personalization_used?: Json
+          preview_text?: string
+          rejection_reason?: string | null
+          required_inclusions_satisfied?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          selected_skills?: Json
+          skill_versions?: Json
+          source_strategy_snapshot?: Json
+          strategy_angle?: string
+          strategy_id?: string
+          subject_line?: string
+          tenant_id?: string
+          updated_at?: string
+          user_edit_summary?: string | null
+          user_edited?: boolean
+          version_label?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_versions_agent_run_id_fkey"
+            columns: ["agent_run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_versions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_versions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_versions_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "message_strategies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -5435,13 +6318,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "proposal_captures_matched_by_user_id_fkey"
-            columns: ["matched_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "proposal_captures_matched_company_id_fkey"
             columns: ["matched_company_id"]
             isOneToOne: false
@@ -5467,13 +6343,6 @@ export type Database = {
             columns: ["resolved_event_id"]
             isOneToOne: false
             referencedRelation: "proposal_events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "proposal_captures_reviewed_by_user_id_fkey"
-            columns: ["reviewed_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -5556,6 +6425,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "proposal_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "proposal_events_capture_id_fkey"
             columns: ["capture_id"]
             isOneToOne: false
@@ -5588,13 +6464,6 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "opportunities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "proposal_events_sender_user_id_fkey"
-            columns: ["sender_user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -5665,20 +6534,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "proposal_follow_up_commitments_assigned_to_user_id_fkey"
-            columns: ["assigned_to_user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "proposal_follow_up_commitments_completed_by_user_id_fkey"
-            columns: ["completed_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "proposal_follow_up_commitments_draft_id_fkey"
             columns: ["draft_id"]
             isOneToOne: false
@@ -5699,11 +6554,170 @@ export type Database = {
             referencedRelation: "proposal_events"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      quality_reviews: {
+        Row: {
+          agent_run_id: string | null
+          campaign_id: string | null
+          company_id: string | null
+          compared_against_version_ids: string[]
+          comparison_summary: string
+          compliance_confidence_score: number
+          compliance_flags: Json
+          composite_score: number
+          created_at: string
+          created_by_agent: string
+          cta_clarity_score: number
+          differentiation_score: number
+          human_review_notes: string | null
+          id: string
+          is_recommended: boolean
+          lead_id: string
+          message_type: string
+          rank_position: number
+          readability_score: number
+          recommended_edits: string[]
+          risk_flags: Json
+          risk_score: number
+          score_band: string
+          score_breakdown: Json
+          scoring_reasoning: Json
+          specificity_score: number
+          strategic_fit_score: number
+          strategy_angle: string
+          strategy_id: string
+          strengths: string[]
+          subject_body_consistency_score: number
+          superseded_at: string | null
+          tenant_id: string
+          tone_fit_score: number
+          updated_at: string
+          version_id: string
+          version_label: string
+          weaknesses: string[]
+        }
+        Insert: {
+          agent_run_id?: string | null
+          campaign_id?: string | null
+          company_id?: string | null
+          compared_against_version_ids?: string[]
+          comparison_summary?: string
+          compliance_confidence_score?: number
+          compliance_flags?: Json
+          composite_score?: number
+          created_at?: string
+          created_by_agent?: string
+          cta_clarity_score?: number
+          differentiation_score?: number
+          human_review_notes?: string | null
+          id?: string
+          is_recommended?: boolean
+          lead_id: string
+          message_type: string
+          rank_position?: number
+          readability_score?: number
+          recommended_edits?: string[]
+          risk_flags?: Json
+          risk_score?: number
+          score_band?: string
+          score_breakdown?: Json
+          scoring_reasoning?: Json
+          specificity_score?: number
+          strategic_fit_score?: number
+          strategy_angle: string
+          strategy_id: string
+          strengths?: string[]
+          subject_body_consistency_score?: number
+          superseded_at?: string | null
+          tenant_id: string
+          tone_fit_score?: number
+          updated_at?: string
+          version_id: string
+          version_label: string
+          weaknesses?: string[]
+        }
+        Update: {
+          agent_run_id?: string | null
+          campaign_id?: string | null
+          company_id?: string | null
+          compared_against_version_ids?: string[]
+          comparison_summary?: string
+          compliance_confidence_score?: number
+          compliance_flags?: Json
+          composite_score?: number
+          created_at?: string
+          created_by_agent?: string
+          cta_clarity_score?: number
+          differentiation_score?: number
+          human_review_notes?: string | null
+          id?: string
+          is_recommended?: boolean
+          lead_id?: string
+          message_type?: string
+          rank_position?: number
+          readability_score?: number
+          recommended_edits?: string[]
+          risk_flags?: Json
+          risk_score?: number
+          score_band?: string
+          score_breakdown?: Json
+          scoring_reasoning?: Json
+          specificity_score?: number
+          strategic_fit_score?: number
+          strategy_angle?: string
+          strategy_id?: string
+          strengths?: string[]
+          subject_body_consistency_score?: number
+          superseded_at?: string | null
+          tenant_id?: string
+          tone_fit_score?: number
+          updated_at?: string
+          version_id?: string
+          version_label?: string
+          weaknesses?: string[]
+        }
+        Relationships: [
           {
-            foreignKeyName: "proposal_follow_up_commitments_skipped_by_user_id_fkey"
-            columns: ["skipped_by_user_id"]
+            foreignKeyName: "quality_reviews_agent_run_id_fkey"
+            columns: ["agent_run_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_reviews_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_reviews_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_reviews_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "message_strategies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_reviews_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_reviews_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "message_versions"
             referencedColumns: ["id"]
           },
         ]
@@ -5907,6 +6921,54 @@ export type Database = {
           },
         ]
       }
+      segments: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          description: string | null
+          id: string
+          name: string
+          tenant_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          tenant_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "segments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "segments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sender_identities: {
         Row: {
           created_at: string
@@ -5922,6 +6984,7 @@ export type Database = {
           name: string
           reply_to: string | null
           resend_identity_id: string | null
+          signature: string | null
           status: string
           tenant_id: string
           updated_at: string
@@ -5941,6 +7004,7 @@ export type Database = {
           name: string
           reply_to?: string | null
           resend_identity_id?: string | null
+          signature?: string | null
           status?: string
           tenant_id: string
           updated_at?: string
@@ -5960,6 +7024,7 @@ export type Database = {
           name?: string
           reply_to?: string | null
           resend_identity_id?: string | null
+          signature?: string | null
           status?: string
           tenant_id?: string
           updated_at?: string
@@ -5982,6 +7047,105 @@ export type Database = {
           },
           {
             foreignKeyName: "sender_identities_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      statement_analysis_reviews: {
+        Row: {
+          agent_run_id: string | null
+          company_id: string | null
+          confidence: number | null
+          created_at: string
+          document_extraction_id: string
+          field_grades: Json | null
+          findings: Json
+          id: string
+          model_used: string | null
+          proposal_event_id: string | null
+          quality_score: number | null
+          review_type: string
+          reviewer_user_id: string | null
+          source: string
+          tenant_id: string
+          updated_at: string
+          verdict: string
+          workspace_id: string | null
+        }
+        Insert: {
+          agent_run_id?: string | null
+          company_id?: string | null
+          confidence?: number | null
+          created_at?: string
+          document_extraction_id: string
+          field_grades?: Json | null
+          findings?: Json
+          id?: string
+          model_used?: string | null
+          proposal_event_id?: string | null
+          quality_score?: number | null
+          review_type?: string
+          reviewer_user_id?: string | null
+          source?: string
+          tenant_id: string
+          updated_at?: string
+          verdict: string
+          workspace_id?: string | null
+        }
+        Update: {
+          agent_run_id?: string | null
+          company_id?: string | null
+          confidence?: number | null
+          created_at?: string
+          document_extraction_id?: string
+          field_grades?: Json | null
+          findings?: Json
+          id?: string
+          model_used?: string | null
+          proposal_event_id?: string | null
+          quality_score?: number | null
+          review_type?: string
+          reviewer_user_id?: string | null
+          source?: string
+          tenant_id?: string
+          updated_at?: string
+          verdict?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "statement_analysis_reviews_agent_run_id_fkey"
+            columns: ["agent_run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "statement_analysis_reviews_document_extraction_id_fkey"
+            columns: ["document_extraction_id"]
+            isOneToOne: false
+            referencedRelation: "document_extractions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "statement_analysis_reviews_proposal_event_id_fkey"
+            columns: ["proposal_event_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "statement_analysis_reviews_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "statement_analysis_reviews_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -6831,6 +7995,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

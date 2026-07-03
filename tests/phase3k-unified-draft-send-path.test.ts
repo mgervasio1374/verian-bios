@@ -178,7 +178,8 @@ describe('TC-3K-026–032: Campaign asset render draft path — safety guardrail
 
   it('TC-3K-030: sets sourceAssetId to input.assetId', () => {
     const src = read(svcFile)
-    expect(src).toContain('sourceAssetId:    input.assetId')
+    // Whitespace-tolerant: alignment padding in the object literal is not the contract
+    expect(src).toMatch(/sourceAssetId:\s+input\.assetId/)
   })
 
   it('TC-3K-031: sets generatedByAi to false', () => {

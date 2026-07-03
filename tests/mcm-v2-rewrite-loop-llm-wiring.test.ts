@@ -38,7 +38,7 @@ vi.mock('@/lib/supabase/service', () => {
         Object.assign(b, {
           select: () => b, eq: () => b, is: () => b, in: () => b, limit: () => b, order: () => b,
           single: () => Promise.resolve(SINGLE[table] ?? { data: null, error: null }),
-          then: (res: any, rej: any) => Promise.resolve(AWAIT[table] ?? { data: null, error: null, count: 0 }).then(res, rej),
+          then: (res: (v: unknown) => unknown, rej: (e: unknown) => unknown) => Promise.resolve(AWAIT[table] ?? { data: null, error: null, count: 0 }).then(res, rej),
         })
         return b
       },
