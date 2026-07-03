@@ -25,10 +25,14 @@ import {
 
 // Ops Watchdog v1 orchestration. Runs the five silent-failure checks per active
 // tenant, composes ONE digest email per run from the failing, non-throttled
-// checks (throttle key `watchdog:<check>` — an ongoing failure re-alerts at
-// most hourly), and always records WATCHDOG_RAN so the watchdog itself is
-// observable. All collaborators are injectable so the digest behavior is
-// testable without a database.
+// failures (throttle key `watchdog:<check>:<tenantId>` — an ongoing failure
+// re-alerts at most hourly PER TENANT, so one tenant's alert never suppresses
+// another's), and always records WATCHDOG_RAN so the watchdog itself is
+// observable. A tenant whose monitoring queries fail surfaces as a
+// `monitoringFailed` failure instead of silently reading healthy. All
+// collaborators are injectable so the digest behavior is testable without a
+// database. Tenant checks run sequentially by design — fine at current tenant
+// counts; partition the work before scaling this to many tenants.
 
 export const WATCHDOG_CHECK_NAMES = [
   'dispatcherStalled',
@@ -39,6 +43,9 @@ export const WATCHDOG_CHECK_NAMES = [
 ] as const
 
 export type WatchdogCheckName = (typeof WATCHDOG_CHECK_NAMES)[number]
+
+// The five checks plus the meta-failure: monitoring itself broke for a tenant.
+export type WatchdogFailureKind = WatchdogCheckName | 'monitoringFailed'
 
 export interface TenantWatchdogData {
   staleApprovedItems: { id: string }[]
@@ -51,7 +58,7 @@ export interface TenantWatchdogData {
 
 export interface WatchdogFailure {
   tenantId: string
-  check: WatchdogCheckName
+  check: WatchdogFailureKind
   detail: string
 }
 
@@ -60,8 +67,8 @@ export interface WatchdogRunSummary {
   checksRun: number
   failures: WatchdogFailure[]
   alertSent: boolean
-  alertedChecks: WatchdogCheckName[]
-  throttledChecks: WatchdogCheckName[]
+  alertedChecks: WatchdogFailureKind[]
+  throttledChecks: WatchdogFailureKind[]
   alertingEnabled: boolean
 }
 
@@ -73,6 +80,7 @@ export interface OpsWatchdogDeps {
   sendOpsEmail: (subject: string, body: string) => Promise<boolean>
   markAlertSent: (tenantId: string | undefined, key: string, subject: string) => Promise<void>
   recordActivity: (input: RecordActivityInput) => Promise<unknown>
+  pingDeadman: () => Promise<void>
   now: Date
 }
 
@@ -178,16 +186,38 @@ async function defaultFetchTenantData(tenantId: string, now: Date): Promise<Tena
         .limit(ERROR_SPIKE_THRESHOLD),
     ])
 
-  const rows = (res: { data: { id: string }[] | null; error: { message: string } | null }) =>
-    res.error ? [] : (res.data ?? [])
+  // A failed query must THROW, not read as an empty (healthy-looking) result —
+  // otherwise a database problem silently disables the very monitoring that
+  // should catch it. The caller surfaces this as a `monitoringFailed` failure.
+  const rows = (
+    label: string,
+    res: { data: { id: string }[] | null; error: { message: string } | null },
+  ) => {
+    if (res.error) throw new Error(`ops-watchdog ${label} query failed: ${res.error.message}`)
+    return res.data ?? []
+  }
 
   return {
-    staleApprovedItems:   rows(staleApproved),
-    stalePlannedItems:    rows(stalePlanned),
-    stuckSentSends:       rows(stuckSent),
-    recentEmailEvents:    rows(recentEvents),
-    recentLearningEvents: rows(recentLearning),
-    recentSevereErrors:   rows(severeErrors),
+    staleApprovedItems:   rows('staleApproved', staleApproved),
+    stalePlannedItems:    rows('stalePlanned', stalePlanned),
+    stuckSentSends:       rows('stuckSent', stuckSent),
+    recentEmailEvents:    rows('recentEvents', recentEvents),
+    recentLearningEvents: rows('recentLearning', recentLearning),
+    recentSevereErrors:   rows('severeErrors', severeErrors),
+  }
+}
+
+// Dead-man hook: GET the configured monitor URL after every completed run.
+// External services (healthchecks.io-style) alert when the ping STOPS arriving
+// — the one failure mode the watchdog cannot self-report (its cron dying).
+// No-op when OPS_DEADMAN_PING_URL is unset; never throws.
+export async function pingDeadmanMonitor(): Promise<void> {
+  const url = process.env.OPS_DEADMAN_PING_URL
+  if (!url) return
+  try {
+    await fetch(url, { method: 'GET', signal: AbortSignal.timeout(5_000) })
+  } catch (err) {
+    console.error('[ops-watchdog] dead-man ping failed:', err instanceof Error ? err.message : String(err))
   }
 }
 
@@ -202,6 +232,7 @@ export async function runOpsWatchdog(
     sendOpsEmail,
     markAlertSent,
     recordActivity,
+    pingDeadman: pingDeadmanMonitor,
     now: new Date(),
     ...overrides,
   }
@@ -213,35 +244,46 @@ export async function runOpsWatchdog(
     try {
       const data = await deps.fetchTenantData(tenantId, deps.now)
       failures.push(...evaluateTenantChecks(tenantId, data))
-    } catch {
-      // One tenant's fetch failing must not blind the watchdog to the rest.
+    } catch (err) {
+      // One tenant's fetch failing must not blind the watchdog to the rest —
+      // but it is NOT healthy either. Surface it as its own alertable failure.
+      failures.push({
+        tenantId,
+        check: 'monitoringFailed',
+        detail: err instanceof Error ? err.message : String(err),
+      })
     }
   }
 
   const checksRun = tenantIds.length * WATCHDOG_CHECK_NAMES.length
   const alertingEnabled = deps.isAlertingEnabled()
-  const alertedChecks: WatchdogCheckName[] = []
-  const throttledChecks: WatchdogCheckName[] = []
+  const alertedChecks: WatchdogFailureKind[] = []
+  const throttledChecks: WatchdogFailureKind[] = []
   let alertSent = false
 
   if (failures.length > 0 && alertingEnabled) {
-    // Throttle per check key so an ongoing failure re-alerts at most hourly.
-    const failingChecks = [...new Set(failures.map((f) => f.check))]
-    const includedChecks: WatchdogCheckName[] = []
-    for (const check of failingChecks) {
-      if (await deps.isAlertThrottled(`watchdog:${check}`)) throttledChecks.push(check)
-      else includedChecks.push(check)
+    // Throttle per (check, tenant) so an ongoing failure re-alerts at most
+    // hourly WITHOUT one tenant's alert suppressing the same check elsewhere.
+    const includedFailures: WatchdogFailure[] = []
+    for (const failure of failures) {
+      if (await deps.isAlertThrottled(`watchdog:${failure.check}:${failure.tenantId}`)) {
+        if (!throttledChecks.includes(failure.check)) throttledChecks.push(failure.check)
+      } else {
+        includedFailures.push(failure)
+      }
     }
 
-    if (includedChecks.length > 0) {
-      const includedFailures = failures.filter((f) => includedChecks.includes(f.check))
+    if (includedFailures.length > 0) {
       const { subject, body } = composeWatchdogDigest(includedFailures)
       alertSent = await deps.sendOpsEmail(subject, body)
       if (alertSent) {
-        alertedChecks.push(...includedChecks)
-        for (const check of includedChecks) {
-          const firstFailure = includedFailures.find((f) => f.check === check)
-          await deps.markAlertSent(firstFailure?.tenantId, `watchdog:${check}`, subject)
+        for (const failure of includedFailures) {
+          if (!alertedChecks.includes(failure.check)) alertedChecks.push(failure.check)
+          await deps.markAlertSent(
+            failure.tenantId,
+            `watchdog:${failure.check}:${failure.tenantId}`,
+            subject,
+          )
         }
       }
     }
@@ -270,6 +312,10 @@ export async function runOpsWatchdog(
       // heartbeat is best-effort — never fail the run over it
     }
   }
+
+  // Dead-man ping LAST: it asserts "a full watchdog run completed". An external
+  // monitor alerting on missing pings covers the cron-death blind spot.
+  await deps.pingDeadman()
 
   return {
     tenantsChecked: tenantIds.length,

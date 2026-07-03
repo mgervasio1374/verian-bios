@@ -265,7 +265,7 @@ describe('TC-OPS-D: watchdog digest', () => {
     expect(sent).toHaveLength(1)
     expect(sent[0].body).toContain('webhookSilent')
     expect(sent[0].body).toContain('learningRunMissed')
-    expect(marked.sort()).toEqual(['watchdog:learningRunMissed', 'watchdog:webhookSilent'])
+    expect(marked.sort()).toEqual(['watchdog:learningRunMissed:t-1', 'watchdog:webhookSilent:t-1'])
     expect(summary.alertSent).toBe(true)
 
     const heartbeat = recorded.find((r) => r.eventType === 'WATCHDOG_RAN')
@@ -286,13 +286,13 @@ describe('TC-OPS-D: watchdog digest', () => {
 
   it('a throttled check is excluded from the digest; the other still alerts', async () => {
     const { deps, sent, marked } = makeDeps(failingData)
-    deps.isAlertThrottled = async (key) => key === 'watchdog:webhookSilent'
+    deps.isAlertThrottled = async (key) => key === 'watchdog:webhookSilent:t-1'
     await runOpsWatchdog(deps)
 
     expect(sent).toHaveLength(1)
     expect(sent[0].body).toContain('learningRunMissed')
     expect(sent[0].body).not.toContain('webhookSilent')
-    expect(marked).toEqual(['watchdog:learningRunMissed'])
+    expect(marked).toEqual(['watchdog:learningRunMissed:t-1'])
   })
 
   it('alerting disabled → no email and no throttle reads, WATCHDOG_RAN still recorded', async () => {
