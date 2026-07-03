@@ -3,6 +3,7 @@
 // emission failure never breaks the 200. TC-OAW-01..05
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import crypto from 'node:crypto'
 
 const cfg = vi.hoisted(() => ({
   // the email_sends row returned for the resend_message_id
@@ -11,8 +12,14 @@ const cfg = vi.hoisted(() => ({
   recordThrows: false,
 }))
 
+// Mutable header store so requests can carry real Standard-Webhooks signatures
+// (the route is fail-closed: unsigned deliveries are rejected).
+const hdrs = vi.hoisted(() => ({ store: {} as Record<string, string> }))
 vi.mock('next/headers', () => ({
-  headers: async () => ({ get: () => null, entries: () => [][Symbol.iterator]() }),
+  headers: async () => ({
+    get: (k: string) => hdrs.store[k.toLowerCase()] ?? null,
+    entries: () => Object.entries(hdrs.store)[Symbol.iterator](),
+  }),
 }))
 
 vi.mock('@/lib/supabase/service', () => {
@@ -53,8 +60,22 @@ vi.mock('@/modules/campaign-sequence/services/campaign-stop.service', () => ({
 import { POST } from '@/app/api/webhooks/resend/route'
 import { NextRequest } from 'next/server'
 
+const TEST_KEY = 'testsecret'
+const TEST_SECRET = 'whsec_' + Buffer.from(TEST_KEY).toString('base64')
+
+// Sign the exact body per the Standard Webhooks spec (HMAC-SHA256 of id.ts.body)
+function signBody(body: string): void {
+  const id = 'msg_test'
+  const ts = String(Math.floor(Date.now() / 1000))
+  const sig = crypto.createHmac('sha256', Buffer.from(TEST_KEY)).update(`${id}.${ts}.${body}`, 'utf8').digest('base64')
+  hdrs.store['webhook-id'] = id
+  hdrs.store['webhook-timestamp'] = ts
+  hdrs.store['webhook-signature'] = `v1,${sig}`
+}
+
 function post(type: string): NextRequest {
   const body = JSON.stringify({ type, created_at: '2026-07-03T00:00:00Z', data: { email_id: 'msg-1', to: ['bob@x.com'] } })
+  signBody(body)
   return new NextRequest('https://app.test/api/webhooks/resend', { method: 'POST', body, headers: { 'content-type': 'application/json' } })
 }
 
@@ -69,7 +90,8 @@ beforeEach(() => {
   cfg.events = []
   cfg.recordThrows = false
   cfg.send = { ...MCM_SEND }
-  delete process.env.RESEND_WEBHOOK_SECRET
+  hdrs.store = {}
+  process.env.RESEND_WEBHOOK_SECRET = TEST_SECRET
 })
 
 describe('TC-OAW-01: MCM send delivered → ET_EMAIL_DELIVERED on the campaign schedule item', () => {

@@ -3,11 +3,18 @@
 // ONLY (no termination). TC-HBR-01..02
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import crypto from 'node:crypto'
 
 const cap = vi.hoisted(() => ({ statusUpdates: [] as string[] }))
 
+// Mutable header store so requests can carry real Standard-Webhooks signatures
+// (the route is fail-closed: unsigned deliveries are rejected).
+const hdrs = vi.hoisted(() => ({ store: {} as Record<string, string> }))
 vi.mock('next/headers', () => ({
-  headers: async () => ({ get: () => null, entries: () => [][Symbol.iterator]() }),
+  headers: async () => ({
+    get: (k: string) => hdrs.store[k.toLowerCase()] ?? null,
+    entries: () => Object.entries(hdrs.store)[Symbol.iterator](),
+  }),
 }))
 
 vi.mock('@/lib/supabase/service', () => {
@@ -67,12 +74,26 @@ import { POST } from '@/app/api/webhooks/resend/route'
 import { NextRequest } from 'next/server'
 import { terminateOnHardBounce } from '@/modules/messaging/services/bounce-termination.service'
 
+const TEST_KEY = 'testsecret'
+const TEST_SECRET = 'whsec_' + Buffer.from(TEST_KEY).toString('base64')
+
+// Sign the exact body per the Standard Webhooks spec (HMAC-SHA256 of id.ts.body)
+function signBody(body: string): void {
+  const id = 'msg_test'
+  const ts = String(Math.floor(Date.now() / 1000))
+  const sig = crypto.createHmac('sha256', Buffer.from(TEST_KEY)).update(`${id}.${ts}.${body}`, 'utf8').digest('base64')
+  hdrs.store['webhook-id'] = id
+  hdrs.store['webhook-timestamp'] = ts
+  hdrs.store['webhook-signature'] = `v1,${sig}`
+}
+
 function bouncePost(bounceType: string): NextRequest {
   const body = JSON.stringify({
     type: 'email.bounced',
     created_at: new Date().toISOString(),
     data: { email_id: 'msg-1', to: ['x@y.com'], bounce: { type: bounceType } },
   })
+  signBody(body)
   return new NextRequest('https://app.test/api/webhooks/resend', {
     method: 'POST', body, headers: { 'content-type': 'application/json' },
   })
@@ -83,7 +104,8 @@ beforeEach(() => {
   cap.statusUpdates = []
   term.hard = 0
   term.complaint = 0
-  delete process.env.RESEND_WEBHOOK_SECRET // skip signature verification
+  hdrs.store = {}
+  process.env.RESEND_WEBHOOK_SECRET = TEST_SECRET // requests are genuinely signed
 })
 
 describe('TC-HBR-01: Permanent bounce -> status=bounced + termination', () => {

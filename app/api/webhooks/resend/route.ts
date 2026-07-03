@@ -42,7 +42,8 @@ const RESEND_EVENT_TO_ET_TYPE = etAttribution.RESEND_EVENT_TO_ET_TYPE
 
 // ---- Signature verification ----
 // Uses Standard Webhooks HMAC-SHA256 spec (same as Resend/svix).
-// Only enforced when RESEND_WEBHOOK_SECRET is set in the environment.
+// ALWAYS enforced: a missing RESEND_WEBHOOK_SECRET rejects the delivery (503)
+// rather than accepting unsigned events — fail closed.
 
 function verifyResendSignature(
   body: string,
@@ -97,23 +98,29 @@ export async function POST(req: NextRequest) {
   const webhookTimestamp = headersList.get('webhook-timestamp') ?? headersList.get('svix-timestamp') ?? ''
   const webhookSignature = headersList.get('webhook-signature') ?? headersList.get('svix-signature') ?? ''
 
-  // Signature verification (enforced only when secret is configured)
+  // Signature verification — FAIL CLOSED.
+  // A missing signing secret is a deployment misconfiguration, never a license to
+  // process unsigned provider events. 503 (not 401) so Svix keeps retrying while
+  // the operator fixes the environment, and the failure is visible in logs.
   const signingSecret = process.env.RESEND_WEBHOOK_SECRET
-  if (signingSecret) {
-    if (!webhookId || !webhookTimestamp || !webhookSignature) {
-      return NextResponse.json({ error: 'Missing webhook signature headers' }, { status: 401 })
-    }
+  if (!signingSecret) {
+    console.error('[resend-webhook] RESEND_WEBHOOK_SECRET is not set — rejecting delivery (fail closed)')
+    return NextResponse.json({ error: 'Webhook signing secret not configured' }, { status: 503 })
+  }
 
-    // Reject stale webhooks (> 5 minutes old)
-    const now = Math.floor(Date.now() / 1000)
-    const webhookTs = parseInt(webhookTimestamp, 10)
-    if (isNaN(webhookTs) || Math.abs(now - webhookTs) > 300) {
-      return NextResponse.json({ error: 'Webhook timestamp out of tolerance' }, { status: 401 })
-    }
+  if (!webhookId || !webhookTimestamp || !webhookSignature) {
+    return NextResponse.json({ error: 'Missing webhook signature headers' }, { status: 401 })
+  }
 
-    if (!verifyResendSignature(body, webhookId, webhookTimestamp, webhookSignature, signingSecret)) {
-      return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 })
-    }
+  // Reject stale webhooks (> 5 minutes old)
+  const now = Math.floor(Date.now() / 1000)
+  const webhookTs = parseInt(webhookTimestamp, 10)
+  if (isNaN(webhookTs) || Math.abs(now - webhookTs) > 300) {
+    return NextResponse.json({ error: 'Webhook timestamp out of tolerance' }, { status: 401 })
+  }
+
+  if (!verifyResendSignature(body, webhookId, webhookTimestamp, webhookSignature, signingSecret)) {
+    return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 })
   }
 
   // Parse payload
