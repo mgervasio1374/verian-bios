@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Verian BIOS
 
-## Getting Started
+321 Swipe's Business Intelligence Operating System — a revenue-operations platform combining CRM, proposal/statement intelligence, campaign orchestration, gated email delivery, agent-assisted copywriting, learning signals, and operational monitoring.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Next.js 16** (App Router) + **React 19**, deployed on Vercel
+- **Supabase/PostgreSQL** — auth, persistence, RLS, storage
+- **Inngest** — event-driven background work (campaign scheduling/approvals/sends, imports, learning, reconciliation, ops watchdog)
+- **Resend** — outbound email + delivery webhooks; inbound reply capture endpoint
+- Provider-agnostic **LLM layer** (`lib/llm/`) with retry/fallback chains
+
+## Architecture
+
+```
+UI / server components → server actions → domain services → repositories → Supabase
+External + scheduled events → webhooks / Inngest → the same services + repositories
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Domain modules live under `modules/`: `crm`, `proposals`, `messaging`, `campaign-sequence`, `intelligence`, `workflow`, `import`, `verian-agent-bridge` (dry-run only), `verian-policy`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Key invariants:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Tenant isolation is explicit.** The service-role Supabase client (`lib/supabase/service.ts`) bypasses RLS by design; every repository must filter by `tenant_id`.
+- **Human approval and delivery are separated.** Campaign scheduling, approval, and sending are distinct stages, each behind its own kill switch (`system_controls`: `campaign_scheduler_enabled`, `campaign_send_dispatch_enabled`, `email_sending_enabled`).
+- **Webhooks are fail-closed and durable.** The Resend webhook rejects deliveries when the signing secret is missing; inbound email is written to the `webhook_events` ledger before processing.
+- **Agents are honest about maturity.** `modules/intelligence/agent-roster.ts` distinguishes live / gated / skeletal / definition-only; the Agent Bridge is enforced dry-run-only.
 
-## Learn More
+## Environments
 
-To learn more about Next.js, take a look at the following resources:
+| | Vercel project | Supabase ref | Deploys |
+|---|---|---|---|
+| **Staging** | `verian-bios-staging` (verian-bios-staging.vercel.app) | `smbausuyetlgxflyhmfg` | auto on push to `master` |
+| **Production** | `verian-bios` (verian-bios.vercel.app) | `kxrplupzbsmujjznzhpy` | **manual** `vercel --prod` only |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Release discipline: migrate-then-deploy.** Apply migrations to the target database (`npx supabase migration up --linked`) and verify **before** deploying code that needs them. Production migrations are a deliberate step — never casual. The repo's Supabase CLI link should normally point at staging.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Development
 
-## Deploy on Vercel
+```bash
+npm install
+npm run dev        # local dev server
+npx vitest run     # full test suite
+npx tsc --noEmit   # typecheck
+npx eslint .       # lint (errors block CI)
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+CI (`.github/workflows/ci.yml`) runs lint + typecheck + the full suite on every push/PR to `master`. The suite includes behavioral tests and source-pin "tripwire" tests; when a pin fails because implementation legitimately changed, update it faithfully (assert the new truth, never delete the guard).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Migrations are sequential files in `supabase/migrations/` — the highest number is the schema version.
+
+## Documentation map
+
+- `AGENTS.md` / `CLAUDE.md` — AI-agent context recovery protocol
+- `docs/ai-context/` — canonical status + locked decisions (00 explains how to derive **current** state from the repo rather than trusting snapshots)
+- `docs/roadmap/` — design docs, slice plans, audit and release reports
