@@ -5,6 +5,7 @@ import * as commitmentRepo from '@/modules/proposals/repositories/proposal-follo
 import { buildFollowUpCommitmentsFromRule } from '@/modules/proposals/lib/schedule-rules'
 import { isFutureDate } from '@/modules/proposals/lib/date-math'
 import { PROPOSAL_ACTIVITY_EVENTS } from '@/modules/proposals/constants/proposal-activity-events'
+import { recordActivity } from '@/modules/intelligence/services/activity-event.service'
 
 // DEFAULT_SCHEDULE_RULE_KEY value — imported inline to avoid circular lib deps.
 const DEFAULT_RULE_KEY = 'standard_3_5_10'
@@ -224,12 +225,29 @@ export async function convertCaptureToProposalEvent(
     return { ok: false, error: 'create_failed' }
   }
 
-  // TODO: emit audit events once activity logging is integrated:
-  //   PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_SENT_RECORDED    (proposal event created from capture)
-  //   PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_FOLLOW_UP_CREATED (commitments created)
-  // Pattern: activityEventService.recordActivity(...).catch(() => null)
-  void PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_SENT_RECORDED    // reference for tree-shaking safety
-  void PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_FOLLOW_UP_CREATED // reference for tree-shaking safety
+  // Audit events — awaited but non-fatal (.catch): a telemetry failure never
+  // rolls back the conversion, and awaiting (vs fire-and-forget) prevents a
+  // serverless freeze from dropping trailing emits (ISSUE-008 pattern).
+  await recordActivity({
+    tenantId,
+    workspaceId,
+    eventType:    PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_SENT_RECORDED,
+    eventSource:  'proposal_capture_conversion',
+    entityType:   'proposal_event',
+    entityId:     eventRow.id,
+    eventSummary: 'Proposal event created from matched capture',
+    metadata:     { capture_id: capture.id },
+  }).catch(() => null)
+  await recordActivity({
+    tenantId,
+    workspaceId,
+    eventType:    PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_FOLLOW_UP_CREATED,
+    eventSource:  'proposal_capture_conversion',
+    entityType:   'proposal_event',
+    entityId:     eventRow.id,
+    eventSummary: `Created ${commitmentCount} follow-up commitment(s) from capture conversion`,
+    metadata:     { capture_id: capture.id, commitment_count: commitmentCount },
+  }).catch(() => null)
 
   return {
     ok: true,

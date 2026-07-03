@@ -728,8 +728,14 @@ describe('Slice 8: migration 20240039 — proposal_follow_up_commitments skip fi
     expect(src).toContain('skipped_by_user_id')
   })
 
-  it('TC-3R-119: types/database.ts includes skipped_by_user_id FK relationship entry', () => {
-    expect(readSrc('types/database.ts')).toContain('proposal_follow_up_commitments_skipped_by_user_id_fkey')
+  it('TC-3R-119: the skipped_by_user_id FK exists in the migration (types regen note)', () => {
+    // Originally pinned the FK relationship entry inside types/database.ts.
+    // Supabase CLI ≥2.9x no longer emits Relationships entries for FKs that
+    // reference other schemas (this FK targets auth.users), so the generated
+    // file legitimately lacks the entry. The durable contract is the FK itself,
+    // pinned against the migration; TC-3R-118 still pins the typed column.
+    expect(readSrc('supabase/migrations/20240039_phase3r_follow_up_skip_fields.sql'))
+      .toContain('proposal_follow_up_commitments_skipped_by_user_id_fkey')
   })
 
   it('TC-3R-120: Skip repository function exists (Slice 3R-9 complete)', () => {

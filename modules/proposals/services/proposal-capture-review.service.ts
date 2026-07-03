@@ -1,6 +1,7 @@
 import * as captureRepo from '@/modules/proposals/repositories/proposal-captures.repo'
 import * as leadRepo from '@/modules/crm/repositories/lead.repo'
 import { PROPOSAL_ACTIVITY_EVENTS } from '@/modules/proposals/constants/proposal-activity-events'
+import { recordActivity } from '@/modules/intelligence/services/activity-event.service'
 import type { Database } from '@/types/database'
 
 type ProposalCaptureRow = Database['public']['Tables']['proposal_captures']['Row']
@@ -71,10 +72,17 @@ export async function reviewProposalCapture(
       return { ok: false, error: 'review_failed' }
     }
 
-    // TODO: emit audit event once activity logging is integrated:
-    //   PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_CAPTURE_REVIEWED
-    // Pattern: activityEventService.recordActivity(...).catch(() => null)
-    void PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_CAPTURE_REVIEWED  // reference for tree-shaking safety
+    // Audit event — awaited but non-fatal (.catch): telemetry never blocks the review.
+    await recordActivity({
+      tenantId,
+      workspaceId,
+      eventType:    PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_CAPTURE_REVIEWED,
+      eventSource:  'proposal_capture_review',
+      entityType:   'proposal_capture',
+      entityId:     input.captureId,
+      eventSummary: 'Proposal capture dismissed by operator review',
+      metadata:     { action: 'dismissed', reviewer_user_id: reviewerId },
+    }).catch(() => null)
 
     return { ok: true, captureId: input.captureId, status: 'dismissed' }
   }
@@ -116,12 +124,30 @@ export async function reviewProposalCapture(
       return { ok: false, error: 'review_failed' }
     }
 
-    // TODO: emit audit events once activity logging is integrated:
-    //   PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_CAPTURE_MATCHED  (capture linked to lead)
-    //   PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_CAPTURE_REVIEWED (reviewed by operator)
-    // Pattern: activityEventService.recordActivity(...).catch(() => null)
-    void PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_CAPTURE_MATCHED   // reference for tree-shaking safety
-    void PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_CAPTURE_REVIEWED  // reference for tree-shaking safety
+    // Audit events — awaited but non-fatal (.catch): telemetry never blocks the review.
+    await recordActivity({
+      tenantId,
+      workspaceId,
+      eventType:    PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_CAPTURE_MATCHED,
+      eventSource:  'proposal_capture_review',
+      entityType:   'proposal_capture',
+      entityId:     input.captureId,
+      eventSummary: 'Proposal capture matched to lead',
+      leadId:       input.leadId,
+      contactId:    input.contactId ?? undefined,
+      companyId:    companyId ?? undefined,
+      metadata:     { reviewer_user_id: reviewerId },
+    }).catch(() => null)
+    await recordActivity({
+      tenantId,
+      workspaceId,
+      eventType:    PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_CAPTURE_REVIEWED,
+      eventSource:  'proposal_capture_review',
+      entityType:   'proposal_capture',
+      entityId:     input.captureId,
+      eventSummary: 'Proposal capture reviewed by operator',
+      metadata:     { action: 'matched', reviewer_user_id: reviewerId },
+    }).catch(() => null)
 
     return { ok: true, captureId: input.captureId, status: 'matched' }
   }

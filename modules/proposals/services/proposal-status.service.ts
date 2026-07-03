@@ -2,6 +2,7 @@ import * as eventRepo from '@/modules/proposals/repositories/proposal-events.rep
 import * as commitmentRepo from '@/modules/proposals/repositories/proposal-follow-up-commitments.repo'
 import { isClosedProposalStatus } from '@/modules/proposals/lib/open-proposal'
 import { PROPOSAL_ACTIVITY_EVENTS } from '@/modules/proposals/constants/proposal-activity-events'
+import { recordActivity } from '@/modules/intelligence/services/activity-event.service'
 import type { ProposalStatus } from '@/modules/proposals/repositories/proposal-events.repo'
 
 const ALLOWED_STATUSES = ['sent', 'viewed', 'accepted', 'rejected', 'expired', 'withdrawn'] as const
@@ -65,12 +66,36 @@ export async function updateProposalStatus(
     }
   }
 
-  // TODO: emit audit events once activity logging is integrated:
-  //   PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_STATUS_UPDATED      (status changed)
-  //   PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_FOLLOW_UP_COMPLETED (commitments closed on terminal transition)
-  //   PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_FOLLOW_UP_SKIPPED   (open commitments bypassed without completion)
-  // Pattern: activityEventService.recordActivity(...).catch(() => null)
-  void PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_STATUS_UPDATED  // reference for tree-shaking safety
+  // Audit events — awaited but non-fatal (.catch): telemetry never blocks the
+  // status update. PROPOSAL_FOLLOW_UP_SKIPPED is deliberately not emitted here:
+  // this path closes commitments on terminal transitions (completed), and the
+  // skip flow lives in the follow-up service.
+  await recordActivity({
+    tenantId,
+    workspaceId,
+    eventType:    PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_STATUS_UPDATED,
+    eventSource:  'proposal_status',
+    entityType:   'proposal_event',
+    entityId:     input.proposalEventId,
+    eventSummary: `Proposal status updated to ${input.status}`,
+    metadata: {
+      status:                  input.status,
+      previous_status:         event.proposal_status ?? null,
+      closed_commitment_count: closedCommitmentIds.length,
+    },
+  }).catch(() => null)
+  if (closedCommitmentIds.length > 0) {
+    await recordActivity({
+      tenantId,
+      workspaceId,
+      eventType:    PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_FOLLOW_UP_COMPLETED,
+      eventSource:  'proposal_status',
+      entityType:   'proposal_event',
+      entityId:     input.proposalEventId,
+      eventSummary: `${closedCommitmentIds.length} open commitment(s) closed on terminal status ${input.status}`,
+      metadata:     { commitment_ids: closedCommitmentIds, status: input.status },
+    }).catch(() => null)
+  }
 
   return {
     ok: true,

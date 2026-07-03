@@ -1024,9 +1024,12 @@ describe('Slice 5: activity event readiness', () => {
     ).toBe(true)
   })
 
-  it('TC-3N-164: service has TODO comment for audit event emission', () => {
+  it('TC-3N-164: audit events are emitted (supersedes the TODO placeholder)', () => {
+    // Originally pinned a TODO comment; ops-hardening completed the TODO, so
+    // the pin now asserts the real emission and that no TODO remains.
     const src = readSrc(SERVICE_FILE)
-    expect(src.toUpperCase()).toContain('TODO')
+    expect(src).toContain('recordActivity')
+    expect(src.toUpperCase()).not.toContain('TODO')
   })
 })
 

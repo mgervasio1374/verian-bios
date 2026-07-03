@@ -5,6 +5,7 @@ import * as commitmentRepo from '@/modules/proposals/repositories/proposal-follo
 import { buildFollowUpCommitmentsFromRule } from '@/modules/proposals/lib/schedule-rules'
 import { isFutureDate } from '@/modules/proposals/lib/date-math'
 import { PROPOSAL_ACTIVITY_EVENTS } from '@/modules/proposals/constants/proposal-activity-events'
+import { recordActivity } from '@/modules/intelligence/services/activity-event.service'
 
 // DEFAULT_SCHEDULE_RULE_KEY value — imported inline to avoid circular lib deps.
 const DEFAULT_RULE_KEY = 'standard_3_5_10'
@@ -182,11 +183,29 @@ export async function createManualProposalCapture(
     return { ok: false, error: 'create_failed' }
   }
 
-  // TODO: emit audit events once activity logging is integrated:
-  //   PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_SENT_RECORDED  (proposal event created)
-  //   PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_FOLLOW_UP_CREATED  (commitments created)
-  // Pattern: activityEventService.recordActivity(...).catch(() => null)
-  void PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_SENT_RECORDED  // reference for tree-shaking safety
+  // Audit events — awaited but non-fatal (.catch): a telemetry failure never
+  // rolls back the capture, and awaiting (vs fire-and-forget) prevents a
+  // serverless freeze from dropping trailing emits (ISSUE-008 pattern).
+  await recordActivity({
+    tenantId,
+    workspaceId,
+    eventType:    PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_SENT_RECORDED,
+    eventSource:  'manual_proposal_capture',
+    entityType:   'proposal_event',
+    entityId:     eventRow.id,
+    eventSummary: 'Proposal event created from manual capture',
+    metadata:     { capture_id: captureRow.id },
+  }).catch(() => null)
+  await recordActivity({
+    tenantId,
+    workspaceId,
+    eventType:    PROPOSAL_ACTIVITY_EVENTS.PROPOSAL_FOLLOW_UP_CREATED,
+    eventSource:  'manual_proposal_capture',
+    entityType:   'proposal_event',
+    entityId:     eventRow.id,
+    eventSummary: `Created ${commitmentIds.length} follow-up commitment(s) from manual capture`,
+    metadata:     { capture_id: captureRow.id, commitment_count: commitmentIds.length },
+  }).catch(() => null)
 
   return {
     ok: true,
