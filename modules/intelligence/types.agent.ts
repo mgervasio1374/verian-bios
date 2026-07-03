@@ -303,5 +303,10 @@ export const ActivityEventType = {
 
   // Phase 3T — Proposal Follow-Up Approved Send (additive)
   PROPOSAL_FOLLOW_UP_DRAFT_SENT: 'proposal_follow_up_draft_sent',
+
+  // Ops Alerting v1 (additive) — alert dedup + watchdog heartbeat live in
+  // activity_events so alerting needs no new tables.
+  OPS_ALERT_SENT: 'OPS_ALERT_SENT',
+  WATCHDOG_RAN:   'WATCHDOG_RAN',
 } as const
 export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType]

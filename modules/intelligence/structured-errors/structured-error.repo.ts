@@ -1,4 +1,5 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
+import { sendOpsAlert } from '@/modules/intelligence/alerting/alerting.service'
 import type { Database } from '@/types/database'
 import type {
   CreateStructuredErrorInput,
@@ -36,6 +37,30 @@ export async function createStructuredError(
     .select()
     .single()
   if (error) throw new Error(`createStructuredError: ${error.message}`)
+
+  // Ops Alerting v1: severe errors page a human. Fire-and-forget — alerting
+  // must never break the code path that errored (sendOpsAlert also never
+  // throws by contract; the .catch is belt-and-braces). Keyed by error code /
+  // failure type so a repeating error alerts at most once per throttle window.
+  if (data.severity === 'critical' || data.severity === 'error') {
+    const code = input.errorCode ?? input.failureType
+    const refs = [
+      `failure id: ${data.id}`,
+      `tenant: ${input.tenantId}`,
+      input.module          ? `module: ${input.module}`                     : null,
+      input.route           ? `route: ${input.route}`                       : null,
+      input.correlationId   ? `correlation id: ${input.correlationId}`      : null,
+      input.workflowRunId   ? `workflow run: ${input.workflowRunId}`        : null,
+      input.jobExecutionId  ? `job execution: ${input.jobExecutionId}`      : null,
+    ].filter(Boolean)
+    sendOpsAlert({
+      tenantId: input.tenantId,
+      key: `structured_error:${code}`,
+      subject: `[Verian ${data.severity}] structured error: ${code}`,
+      body: [input.errorMessage ?? '(no error message)', '', ...refs].join('\n'),
+    }).catch(() => {})
+  }
+
   return data
 }
 

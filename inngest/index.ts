@@ -11,6 +11,7 @@ import { processCampaignApprovals } from './functions/process-campaign-approvals
 import { processCampaignSends } from './functions/process-campaign-sends'
 import { onCampaignAssignmentActivated } from './functions/on-campaign-assignment-activated'
 import { generateAiSequenceJob } from './functions/generate-ai-sequence'
+import { opsWatchdog } from './functions/ops-watchdog'
 
 export const inngestFunctions = [
   dispatchOutbox,
@@ -27,4 +28,5 @@ export const inngestFunctions = [
   processCampaignSends,            // Manual Campaign Mode Slice 5: send dispatcher (approved -> sent via sendApprovedDraft)
   onCampaignAssignmentActivated,   // Manual Campaign Mode Slice 7: materialize schedule items on assignment activation
   generateAiSequenceJob,           // MCM v2: background N-touch AI sequence generation
+  opsWatchdog,                     // Ops Alerting v1: 30-min silent-failure watchdog + digest alerts
 ]
