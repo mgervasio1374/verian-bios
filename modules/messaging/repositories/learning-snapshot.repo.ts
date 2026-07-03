@@ -170,19 +170,35 @@ export async function loadPhase3bActivityEvents(params: {
       continue
     }
 
-    // ET_ events: filter to Phase 3B sends only
+    // ET_ events: accept Phase 3B sends (rich version attribution) AND MCM
+    // campaign sends (campaign-keyed entity, no version attribution). Send-time
+    // MCM emissions mark metadata.send_path='mcm_campaign'; webhook outcome
+    // emissions mark metadata.source='mcm_campaign' — accept either. All other
+    // sources (manual/3A) are skipped, as before.
     const phase3bMeta = extractPhase3bMeta(meta)
-    if (!phase3bMeta) continue
-
-    records.push({
-      entityId:        row.entity_id as string,
-      eventType,
-      strategyId:      phase3bMeta.strategy_id,
-      qualityReviewId: phase3bMeta.quality_review_id,
-      versionLabel:    phase3bMeta.version_label,
-      compositeScore:  phase3bMeta.composite_score,
-      occurredAt:      row.occurred_at,
-    })
+    if (phase3bMeta) {
+      records.push({
+        entityId:        row.entity_id as string,
+        eventType,
+        strategyId:      phase3bMeta.strategy_id,
+        qualityReviewId: phase3bMeta.quality_review_id,
+        versionLabel:    phase3bMeta.version_label,
+        compositeScore:  phase3bMeta.composite_score,
+        occurredAt:      row.occurred_at,
+      })
+      continue
+    }
+    if (meta['source'] === 'mcm_campaign' || meta['send_path'] === 'mcm_campaign') {
+      records.push({
+        entityId:        row.entity_id as string,
+        eventType,
+        strategyId:      null,
+        qualityReviewId: null,
+        versionLabel:    null,
+        compositeScore:  null,
+        occurredAt:      row.occurred_at,
+      })
+    }
   }
 
   return records
