@@ -25,9 +25,11 @@ describe('TC-APL-01: ANTI_PATTERN_LAB_ENABLED control surfaced', () => {
 
 describe('TC-APL-02: Agent Lab rename (label only, route intact)', () => {
   it('sidebar shows Agent Lab and still links agent-monitor', () => {
-    const src = read('components/layout/Sidebar.tsx')
+    // Nav data was extracted to sidebar-nav.config.ts (nav-rail-breakout);
+    // paths are plain strings there, not template literals.
+    const src = read('components/layout/sidebar-nav.config.ts')
     expect(src).toContain("label: 'Agent Lab'")
-    expect(src).toContain('/settings/agent-monitor`')
+    expect(src).toContain("'/settings/agent-monitor'")
     expect(src).not.toContain("label: 'Agent Monitor'")
   })
   it('page H1 renamed to Agent Lab', () => {

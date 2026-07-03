@@ -255,7 +255,8 @@ describe('TC-3M campaign-queue page', () => {
 // ---------------------------------------------------------------------------
 
 describe('TC-3M sidebar navigation', () => {
-  const src = read('components/layout/Sidebar.tsx')
+  // Nav data was extracted to sidebar-nav.config.ts (nav-rail-breakout).
+  const src = read('components/layout/Sidebar.tsx') + read('components/layout/sidebar-nav.config.ts')
 
   it('TC-3M-046: imports ListTodo from lucide-react', () => {
     expect(src).toContain('ListTodo')

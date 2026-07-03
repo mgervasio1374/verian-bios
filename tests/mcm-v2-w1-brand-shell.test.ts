@@ -73,12 +73,15 @@ describe('TC-W1-02: Sidebar brand block uses the official vector lockup (source-
     expect(src).toContain('bg-primary')
   })
 
-  it('nav structure is untouched (spot-check section labels and links)', () => {
-    for (const label of ['WORKFLOW', 'OUTREACH', 'INTELLIGENCE', 'ADMIN']) {
-      expect(src).toContain(label)
+  it('nav structure is preserved (spot-check section labels and links)', () => {
+    // Nav data was extracted to sidebar-nav.config.ts in the nav-rail-breakout;
+    // section labels are title-case there and rendered uppercase via CSS.
+    const nav = read('components/layout/sidebar-nav.config.ts')
+    for (const label of ["'Workflow'", "'Outreach'", "'Intelligence'", "'Admin'"]) {
+      expect(nav).toContain(label)
     }
-    expect(src).toContain('/settings/segments')
-    expect(src).toContain('/settings/user-management')
+    expect(nav).toContain('/settings/segments')
+    expect(nav).toContain('/settings/user-management')
   })
 })
 

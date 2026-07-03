@@ -115,7 +115,8 @@ describe('TC-3X-S3-004: User Management visibility is planning-only', () => {
   })
 
   it('sidebar links to user management', () => {
-    expect(readSrc(SIDEBAR)).toContain('/settings/user-management')
+    // Nav data was extracted to sidebar-nav.config.ts (nav-rail-breakout).
+    expect(readSrc(SIDEBAR) + readSrc('components/layout/sidebar-nav.config.ts')).toContain('/settings/user-management')
   })
 
   it('user management page names planned areas without implementing them', () => {

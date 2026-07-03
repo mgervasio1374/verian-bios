@@ -64,12 +64,14 @@ describe('TC-3X-S2-001/002: Sidebar logo is larger and "Verian BIOS" text is rem
 // TC-3X-S2-003: Sidebar preserved features from Slice 1
 // ---------------------------------------------------------------------------
 describe('TC-3X-S2-003: Sidebar Slice 1 features preserved', () => {
+  // Nav data was extracted to sidebar-nav.config.ts (nav-rail-breakout);
+  // assertions read the sidebar implementation across both files.
   it('Sidebar still contains Operations nav item', () => {
-    expect(readSrc(SIDEBAR)).toContain('Operations')
+    expect(readSrc(SIDEBAR) + readSrc('components/layout/sidebar-nav.config.ts')).toContain('Operations')
   })
 
   it('Sidebar still contains /operations route', () => {
-    expect(readSrc(SIDEBAR)).toContain('/operations')
+    expect(readSrc(SIDEBAR) + readSrc('components/layout/sidebar-nav.config.ts')).toContain('/operations')
   })
 
   it('Sidebar does not reference EMAIL_SENDING_ENABLED', () => {

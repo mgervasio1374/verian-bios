@@ -30,6 +30,9 @@ const QUEUE_PAGE    = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/page.
 const ROW_ACTIONS   = 'app/(workspace)/[workspaceSlug]/proposal-follow-ups/FollowUpRowActions.tsx'
 const QUEUE_ACTION  = 'modules/proposals/actions/proposal-follow-up-queue.actions.ts'
 const SIDEBAR       = 'components/layout/Sidebar.tsx'
+// Nav data was extracted to a pure config module (nav-rail-breakout);
+// nav assertions read the sidebar implementation across both files.
+const navSrc = () => readSrc(SIDEBAR) + readSrc('components/layout/sidebar-nav.config.ts')
 
 // ---------------------------------------------------------------------------
 // Slice 6 — read-only follow-up queue UI
@@ -164,15 +167,15 @@ describe('Slice 6: follow-up queue UI page', () => {
 describe('Slice 6: follow-up queue sidebar navigation', () => {
 
   it('TC-3Q-121: sidebar includes Follow-Up Queue nav item', () => {
-    expect(readSrc(SIDEBAR)).toContain('Follow-Ups')
+    expect(navSrc()).toContain('Follow-Ups')
   })
 
   it('TC-3Q-122: sidebar links to proposal-follow-ups route', () => {
-    expect(readSrc(SIDEBAR)).toContain('proposal-follow-ups')
+    expect(navSrc()).toContain('proposal-follow-ups')
   })
 
   it('TC-3Q-123: sidebar imports ListChecks icon for the Follow-Up Queue item', () => {
-    expect(readSrc(SIDEBAR)).toContain('ListChecks')
+    expect(navSrc()).toContain('ListChecks')
   })
 
   it('TC-3Q-124: action file still exists and is unchanged in structure (regression guard)', () => {

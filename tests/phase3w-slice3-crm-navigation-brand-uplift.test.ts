@@ -72,16 +72,19 @@ describe('TC-3W-S3-002: Sidebar uses sidebar tokens, logo, section labels, and c
     expect(src).not.toContain('/brand/verian-logo.png')
   })
 
-  it('Sidebar contains WORKFLOW, OUTREACH, INTELLIGENCE, ADMIN section labels', () => {
-    const src = readSrc(SIDEBAR)
-    expect(src).toContain('WORKFLOW')
-    expect(src).toContain('OUTREACH')
-    expect(src).toContain('INTELLIGENCE')
-    expect(src).toContain('ADMIN')
+  // Section labels moved to sidebar-nav.config.ts as title-case in the
+  // nav-rail-breakout; the panel still renders them uppercase via CSS.
+  it('Sidebar contains Workflow, Outreach, Intelligence, Admin section labels', () => {
+    const src = readSrc('components/layout/sidebar-nav.config.ts')
+    expect(src).toContain("'Workflow'")
+    expect(src).toContain("'Outreach'")
+    expect(src).toContain("'Intelligence'")
+    expect(src).toContain("'Admin'")
+    expect(readSrc(SIDEBAR)).toContain('uppercase')
   })
 
   it('Sidebar uses cleaned-up labels: Message Workspace, System Intelligence, Follow-Ups', () => {
-    const src = readSrc(SIDEBAR)
+    const src = readSrc(SIDEBAR) + readSrc('components/layout/sidebar-nav.config.ts')
     expect(src).toContain('Message Workspace')
     expect(src).toContain('System Intelligence')
     expect(src).toContain('Follow-Ups')

@@ -251,7 +251,8 @@ describe('TC-MM9-05: campaign-sequences page exists and renders builder + list (
 // ---------------------------------------------------------------------------
 
 describe('TC-MM9-06: Sidebar nav link added for Campaign Sequences (source-read)', () => {
-  const sidebar = read('components/layout/Sidebar.tsx')
+  // Nav data was extracted to sidebar-nav.config.ts (nav-rail-breakout).
+  const sidebar = read('components/layout/sidebar-nav.config.ts')
 
   it('sidebar contains campaign-sequences route', () => {
     expect(sidebar).toContain('/settings/campaign-sequences')

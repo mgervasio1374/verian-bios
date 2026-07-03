@@ -134,7 +134,8 @@ describe('TC-AUX-05: account page server component (source-read)', () => {
 // ---------------------------------------------------------------------------
 
 describe('TC-AUX-06: Sidebar Account entry under ADMIN (source-read)', () => {
-  const src = read(SIDEBAR)
+  // Nav data was extracted to sidebar-nav.config.ts (nav-rail-breakout).
+  const src = read('components/layout/sidebar-nav.config.ts')
 
   it('adds an Account nav item to /settings/account with the UserCircle icon', () => {
     expect(src).toContain("label: 'Account'")

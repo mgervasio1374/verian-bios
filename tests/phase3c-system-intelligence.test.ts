@@ -405,7 +405,11 @@ describe('Phase 3C.1 — Admin Page: system-intelligence', () => {
 // Sidebar
 // -------------------------------------------------------
 describe('Phase 3C.1 — Sidebar: System Intelligence nav link', () => {
-  const sidebarSource = readProjectFile('components/layout/Sidebar.tsx')
+  // Nav data was extracted to sidebar-nav.config.ts (nav-rail-breakout);
+  // assertions read the sidebar implementation across both files.
+  const sidebarSource =
+    readProjectFile('components/layout/Sidebar.tsx') +
+    readProjectFile('components/layout/sidebar-nav.config.ts')
 
   it('sidebar includes system-intelligence link', () => {
     expect(sidebarSource).toContain('system-intelligence')

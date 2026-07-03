@@ -23,6 +23,9 @@ function readSrc(relPath: string): string {
 
 const LOGO_PNG        = 'public/brand/verian-logo.png'
 const SIDEBAR         = 'components/layout/Sidebar.tsx'
+// Nav data was extracted to a pure config module (nav-rail-breakout);
+// nav assertions read the sidebar implementation across both files.
+const navSrc = () => readSrc(SIDEBAR) + readSrc('components/layout/sidebar-nav.config.ts')
 const GLOBALS_CSS     = 'app/globals.css'
 const LOGIN_PAGE      = 'app/(auth)/login/page.tsx'
 const LEADS_PAGE      = 'app/(workspace)/[workspaceSlug]/leads/page.tsx'
@@ -61,11 +64,11 @@ describe('TC-3X-S1-002: Sidebar references official logo', () => {
   })
 
   it('Sidebar imports CalendarDays from lucide-react', () => {
-    expect(readSrc(SIDEBAR)).toContain('CalendarDays')
+    expect(navSrc()).toContain('CalendarDays')
   })
 
   it('Sidebar contains Operations nav item', () => {
-    expect(readSrc(SIDEBAR)).toContain('Operations')
+    expect(navSrc()).toContain('Operations')
   })
 })
 
@@ -218,11 +221,11 @@ describe('TC-3X-S1-013/014: Campaign Assets page terminology', () => {
 // ---------------------------------------------------------------------------
 describe('TC-3X-S1-015/016: Sidebar Operations nav and CalendarDays import', () => {
   it('Sidebar contains Operations label', () => {
-    expect(readSrc(SIDEBAR)).toContain("'Operations'")
+    expect(navSrc()).toContain("'Operations'")
   })
 
   it('Sidebar contains /operations route', () => {
-    expect(readSrc(SIDEBAR)).toContain('/operations')
+    expect(navSrc()).toContain('/operations')
   })
 })
 

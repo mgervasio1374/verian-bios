@@ -218,7 +218,9 @@ describe('TC-S1-05: segments settings page (source-read)', () => {
 // ---------------------------------------------------------------------------
 
 describe('TC-S1-06: sidebar contains the Segments link (source-read)', () => {
-  const sidebar = read(SIDEBAR)
+  // Nav data was extracted to sidebar-nav.config.ts in the nav-rail-breakout;
+  // items reference lucide components as `icon: Name`, not inline JSX.
+  const sidebar = read('components/layout/sidebar-nav.config.ts')
 
   it('has a Segments nav item pointing at settings/segments', () => {
     expect(sidebar).toContain("label: 'Segments'")
@@ -227,6 +229,6 @@ describe('TC-S1-06: sidebar contains the Segments link (source-read)', () => {
 
   it('uses the Tags lucide icon', () => {
     expect(sidebar).toContain('Tags')
-    expect(sidebar).toContain('<Tags className="h-4 w-4" />')
+    expect(sidebar).toContain('icon: Tags')
   })
 })

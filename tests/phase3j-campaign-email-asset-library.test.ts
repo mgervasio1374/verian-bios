@@ -36,13 +36,15 @@ describe('Phase 3J — Campaign assets route', () => {
 // ============================================================
 
 describe('Phase 3J — Sidebar navigation', () => {
+  // Nav data was extracted to sidebar-nav.config.ts (nav-rail-breakout);
+  // assertions read the sidebar implementation across both files.
   it('TC-3J-003: Sidebar.tsx contains "Campaign Assets" label', () => {
-    const src = read('components/layout/Sidebar.tsx')
+    const src = read('components/layout/Sidebar.tsx') + read('components/layout/sidebar-nav.config.ts')
     expect(src).toContain('Campaign Assets')
   })
 
   it('TC-3J-004: Sidebar.tsx imports BookOpen from lucide-react', () => {
-    const src = read('components/layout/Sidebar.tsx')
+    const src = read('components/layout/Sidebar.tsx') + read('components/layout/sidebar-nav.config.ts')
     expect(src).toContain('BookOpen')
   })
 })

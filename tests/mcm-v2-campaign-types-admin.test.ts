@@ -100,7 +100,8 @@ describe('TC-A2-05: page renders form + list; slug shown read-only', () => {
 
 describe('TC-A2-06: sidebar links to campaign-types', () => {
   it('nav link present', () => {
-    expect(read('components/layout/Sidebar.tsx')).toContain('/settings/campaign-types')
+    // Nav data was extracted to sidebar-nav.config.ts (nav-rail-breakout).
+    expect(read('components/layout/sidebar-nav.config.ts')).toContain('/settings/campaign-types')
   })
 })
 

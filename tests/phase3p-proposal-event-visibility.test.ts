@@ -490,12 +490,14 @@ describe('Slice 3: proposal events inbox page', () => {
 
 describe('Slice 3: sidebar navigation', () => {
 
+  // Nav data was extracted to sidebar-nav.config.ts (nav-rail-breakout);
+  // assertions read the sidebar implementation across both files.
   it('TC-3P-069: sidebar includes Proposal Events nav item', () => {
-    expect(readSrc(SIDEBAR)).toContain('Proposal Events')
+    expect(readSrc(SIDEBAR) + readSrc('components/layout/sidebar-nav.config.ts')).toContain('Proposal Events')
   })
 
   it('TC-3P-070: sidebar Proposal Events link points to /proposal-events', () => {
-    expect(readSrc(SIDEBAR)).toContain('proposal-events')
+    expect(readSrc(SIDEBAR) + readSrc('components/layout/sidebar-nav.config.ts')).toContain('proposal-events')
   })
 
   it('TC-3P-071: sidebar does not add sending or campaign language for Proposal Events', () => {
