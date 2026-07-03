@@ -190,7 +190,7 @@ export async function generateManualCampaignDraft(input: {
   let bodyText:     string
   let bodyHtml:     string
   let templateId:   string | null = null
-  let templateSlug: string | null = campaign.templateSlug
+  const templateSlug: string | null = campaign.templateSlug
 
   if (campaign.templateSlug) {
     const tpl = await emailDraftRepo.getTemplateBySlug(input.tenantId, campaign.templateSlug)

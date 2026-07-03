@@ -74,7 +74,7 @@ export async function getAgentMonitorListData(
   const companyIds = [
     ...new Set(runs.filter(r => r.subject_type === 'company' && r.subject_id).map(r => r.subject_id!))
   ]
-  let companyNameMap: Record<string, string> = {}
+  const companyNameMap: Record<string, string> = {}
   if (companyIds.length > 0) {
     const { data: companies } = await supabase
       .from('companies')
