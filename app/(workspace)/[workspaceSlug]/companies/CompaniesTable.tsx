@@ -115,6 +115,7 @@ export function CompaniesTable({
   const inCampaign = useMemo(() => new Set(inCampaignIds), [inCampaignIds])
 
   const [selectedIds,     setSelectedIds]     = useState<Set<string>>(new Set())
+  const [searchInput,     setSearchInput]     = useState(search)
   const [targetSegmentId, setTargetSegmentId] = useState('')
   const [customerStatusValue, setCustomerStatusValue] = useState('')
   const [error,           setError]           = useState<string | null>(null)
@@ -339,6 +340,37 @@ export function CompaniesTable({
     <div className="space-y-3">
       {/* Filter row */}
       <div className="flex items-center gap-4 flex-wrap">
+        {/* Search — server-driven via the same navigate() as the filters, so it
+            composes with segment/status/industry instead of clearing them. */}
+        <form
+          onSubmit={e => { e.preventDefault(); setSelectedIds(new Set()); navigate({ search: searchInput.trim() }) }}
+          className="flex items-center gap-2"
+        >
+          <input
+            type="search"
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            placeholder="Search companies…"
+            className="rounded border px-2 py-1.5 text-sm bg-background w-52"
+            aria-label="Search companies"
+          />
+          <button
+            type="submit"
+            className="rounded border px-2.5 py-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
+            Search
+          </button>
+          {search && (
+            <button
+              type="button"
+              onClick={() => { setSearchInput(''); setSelectedIds(new Set()); navigate({ search: '' }) }}
+              className="text-xs text-muted-foreground hover:text-foreground underline"
+            >
+              Clear
+            </button>
+          )}
+        </form>
+
         <div className="flex items-center gap-2">
           <label className="text-xs font-medium text-muted-foreground" htmlFor="segment-filter">
             Segment

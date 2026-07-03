@@ -51,6 +51,14 @@ export async function deleteAuthUser(userId: string): Promise<void> {
   if (error) throw new Error(`auth.admin.deleteUser: ${error.message}`)
 }
 
+// Set a new password on an existing auth user (operator-driven reset — no
+// SMTP-dependent email flow required).
+export async function setAuthUserPassword(userId: string, password: string): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const { error } = await supabase.auth.admin.updateUserById(userId, { password })
+  if (error) throw new Error(`auth.admin.updateUserById: ${error.message}`)
+}
+
 // GoTrue's listUsers has no email filter — page through and match locally.
 // Fine at internal-team scale; revisit before thousands of auth users.
 export async function findAuthUserByEmail(email: string): Promise<AuthUserSummary | null> {

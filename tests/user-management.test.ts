@@ -46,6 +46,7 @@ const auth = vi.hoisted(() => ({
   deleted: [] as string[],
   existingByEmail: null as { id: string; email: string } | null,
   emailMap: new Map<string, { id: string; email: string | null; createdAt: string | null; lastSignInAt: string | null }>(),
+  passwordSets: [] as Array<{ userId: string; password: string }>,
 }))
 vi.mock('@/lib/auth/admin-users', () => ({
   createAuthUser: vi.fn(async (email: string, password: string) => {
@@ -58,6 +59,9 @@ vi.mock('@/lib/auth/admin-users', () => ({
     ? { ...auth.existingByEmail, createdAt: null, lastSignInAt: null }
     : null),
   listAuthUsersByIds: vi.fn(async () => auth.emailMap),
+  setAuthUserPassword: vi.fn(async (userId: string, password: string) => {
+    auth.passwordSets.push({ userId, password })
+  }),
 }))
 
 const audit = vi.hoisted(() => ({ events: [] as Array<Record<string, unknown>> }))
@@ -70,6 +74,7 @@ import {
   createWorkspaceUser,
   changeMemberRole,
   removeMember,
+  resetMemberPassword,
   generateTempPassword,
   MANAGE_MEMBERS_PERMISSION,
 } from '@/modules/platform/services/member-management.service'
@@ -119,6 +124,7 @@ beforeEach(() => {
   auth.deleted = []
   auth.existingByEmail = null
   auth.emailMap = new Map()
+  auth.passwordSets = []
   audit.events = []
 })
 
@@ -261,6 +267,35 @@ describe('TC-UM-09: removal is a soft revoke', () => {
     await removeMember(ADMIN_CTX(), { membershipId: 'mem-1' })
     expect(repo.updates).toEqual([{ membershipId: 'mem-1', patch: { status: 'revoked' } }])
     expect(audit.events.some((e) => e.eventType === 'member_removed')).toBe(true)
+  })
+})
+
+describe('TC-UM-11: operator password reset', () => {
+  it('sets a fresh temp password via the GoTrue admin API and returns it once', async () => {
+    repo.membershipById = membership()
+    auth.emailMap = new Map([['user-other', { id: 'user-other', email: 'other@b.com', createdAt: null, lastSignInAt: null }]])
+    const result = await resetMemberPassword(ADMIN_CTX(), { membershipId: 'mem-1' })
+    expect(auth.passwordSets).toHaveLength(1)
+    expect(auth.passwordSets[0].userId).toBe('user-other')
+    expect(result.tempPassword).toBe(auth.passwordSets[0].password)
+    expect(result.tempPassword).toMatch(/^Verian-/)
+    expect(result.email).toBe('other@b.com')
+    expect(audit.events.some((e) => e.eventType === 'member_password_reset')).toBe(true)
+  })
+
+  it('shares the mutation guards: self and protected roles are blocked', async () => {
+    repo.membershipById = membership({ user_id: 'user-me' })
+    await expect(resetMemberPassword(ADMIN_CTX(), { membershipId: 'mem-1' }))
+      .rejects.toThrow('cannot_modify_self')
+    repo.membershipById = membership({ role_slug: 'platform_admin' })
+    await expect(resetMemberPassword(ADMIN_CTX(), { membershipId: 'mem-1' }))
+      .rejects.toThrow('protected_role')
+    expect(auth.passwordSets).toHaveLength(0)
+  })
+
+  it('requires the manage-members permission', async () => {
+    await expect(resetMemberPassword(NO_PERM_CTX(), { membershipId: 'mem-1' }))
+      .rejects.toThrow('workspace.manage_members')
   })
 })
 

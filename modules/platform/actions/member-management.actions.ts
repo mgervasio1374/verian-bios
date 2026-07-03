@@ -59,6 +59,19 @@ export async function changeMemberRoleAction(
   }
 }
 
+export async function resetMemberPasswordAction(
+  membershipId: string,
+): Promise<ActionResult<{ email: string | null; tempPassword: string }>> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const ctx = await buildRequestContext(supabase)
+    const result = await memberService.resetMemberPassword(ctx, { membershipId })
+    return { success: true, data: result }
+  } catch (err) {
+    return { success: false, error: toActionError(err) }
+  }
+}
+
 export async function removeMemberAction(membershipId: string): Promise<ActionResult> {
   try {
     const supabase = await createSupabaseServerClient()

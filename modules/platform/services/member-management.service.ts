@@ -243,6 +243,41 @@ export async function changeMemberRole(
   }).catch(() => null)
 }
 
+// Operator-driven password reset: generates a fresh one-time temp password for
+// an existing member (covers "re-added user, original password lost" and plain
+// forgot-password without needing Supabase SMTP). Same mutation guards as role
+// change/removal — you cannot reset your own or a platform/tenant admin's
+// password from this surface.
+export async function resetMemberPassword(
+  ctx: RequestContext,
+  input: { membershipId: string },
+): Promise<{ email: string | null; tempPassword: string }> {
+  requirePermission(ctx, MANAGE_MEMBERS_PERMISSION)
+  const membership = await loadMutableMembership(ctx, input.membershipId)
+
+  const tempPassword = generateTempPassword()
+  await adminUsers.setAuthUserPassword(membership.user_id, tempPassword)
+
+  const emailMap = await adminUsers.listAuthUsersByIds([membership.user_id])
+  const email = emailMap.get(membership.user_id)?.email ?? null
+
+  await recordActivity({
+    tenantId: ctx.tenantId,
+    workspaceId: ctx.workspaceId,
+    eventType: 'member_password_reset',
+    eventSource: 'member_management',
+    entityType: 'membership',
+    entityId: membership.id,
+    eventSummary: `Temporary password issued for workspace member${email ? ` ${email}` : ''}`,
+    metadata: {
+      member_user_id: membership.user_id,
+      acted_by: ctx.userId,
+    },
+  }).catch(() => null)
+
+  return { email, tempPassword }
+}
+
 export async function removeMember(
   ctx: RequestContext,
   input: { membershipId: string },

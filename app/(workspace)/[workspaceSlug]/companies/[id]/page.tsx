@@ -22,6 +22,8 @@ import { DeleteDocumentButton } from './DeleteDocumentButton'
 import { GenerateSavingsAnalysisForm } from './GenerateSavingsAnalysisForm'
 import { IngestStatementForm } from './IngestStatementForm'
 import { CompanyActivityTimeline } from './CompanyActivityTimeline'
+import { CompanyNotesCard } from './CompanyNotesCard'
+import { listCompanyNotes } from '@/modules/crm/services/company-note.service'
 import { ProposalsCard } from '../../components/ProposalsCard'
 import { CompanySegmentsRow } from './CompanySegmentsRow'
 import { StopCampaignButton } from './StopCampaignButton'
@@ -50,15 +52,25 @@ import { DOCUMENT_TYPE_LABELS, DOCUMENT_SOURCE_LABELS } from '@/modules/artifact
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string; id: string }>
+  searchParams: Promise<{ panel?: string }>
 }
+
+// The four workbench sections live behind header pills (?panel=) so the
+// default page stays clean — operator feedback 2026-07-03.
+const PANELS = ['savings', 'proposals', 'statements', 'documents'] as const
+type PanelKey = (typeof PANELS)[number]
 
 // Manual statement ingest (IngestStatementForm → ingestStatementAction) generates
 // a proposal PDF + uploads, which can be slow. Server Actions inherit their
 // invoking route's segment config, so this governs that call.
 export const maxDuration = 60
 
-export default async function CompanyDetailPage({ params }: PageProps) {
+export default async function CompanyDetailPage({ params, searchParams }: PageProps) {
   const { workspaceSlug, id } = await params
+  const { panel: rawPanel } = await searchParams
+  const panel: PanelKey | null = (PANELS as readonly string[]).includes(rawPanel ?? '')
+    ? (rawPanel as PanelKey)
+    : null
   const supabase = await createSupabaseServerClient()
   const ctx = await buildRequestContext(supabase)
 
@@ -74,11 +86,20 @@ export default async function CompanyDetailPage({ params }: PageProps) {
 
   if (!company) notFound()
 
-  const [campaignRollup, workspaceSegments, companySegments] = await Promise.all([
+  const [campaignRollup, workspaceSegments, companySegments, notes] = await Promise.all([
     listAssignmentsForCompany(ctx.tenantId, ctx.workspaceId, id).catch(() => []),
     listSegmentsForWorkspace(ctx.tenantId, ctx.workspaceId).catch(() => []),
     listSegmentsForCompany(id, ctx.tenantId).catch(() => []),
+    listCompanyNotes(ctx, id).catch(() => []),
   ])
+
+  // Header pill definitions — counts make the links informative even when closed.
+  const panelLinks: Array<{ key: PanelKey; label: string }> = [
+    { key: 'savings',    label: 'Savings Analysis' },
+    { key: 'proposals',  label: `Proposals${proposals.length ? ` (${proposals.length})` : ''}` },
+    { key: 'statements', label: 'Statements' },
+    { key: 'documents',  label: `Documents${documents.length ? ` (${documents.length})` : ''}` },
+  ]
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -122,6 +143,25 @@ export default async function CompanyDetailPage({ params }: PageProps) {
                   }
                   return null
                 })()}
+                {/* Workbench panel pills — clicking the active pill closes it */}
+                <span className="inline-flex items-center gap-1.5 flex-wrap">
+                  {panelLinks.map(({ key, label }) => (
+                    <Link
+                      key={key}
+                      href={panel === key
+                        ? `/${workspaceSlug}/companies/${id}`
+                        : `/${workspaceSlug}/companies/${id}?panel=${key}`}
+                      className={cn(
+                        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border transition-colors',
+                        panel === key
+                          ? 'bg-teal-600 text-white border-teal-600'
+                          : 'bg-background text-muted-foreground border-border hover:text-foreground hover:border-foreground/30',
+                      )}
+                    >
+                      {label}
+                    </Link>
+                  ))}
+                </span>
               </div>
             </div>
           </div>
@@ -334,7 +374,8 @@ export default async function CompanyDetailPage({ params }: PageProps) {
         </Card>
       </div>
 
-      {/* Savings Analysis — operator-entered statement figures → certificate PDF */}
+      {/* Workbench panels — rendered one at a time via the header pills (?panel=) */}
+      {panel === 'savings' && (
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-semibold">Savings Analysis</CardTitle>
@@ -343,12 +384,13 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           <GenerateSavingsAnalysisForm companyId={id} />
         </CardContent>
       </Card>
+      )}
 
-      {/* Proposals — the company's proposal pipeline (status + savings + link) */}
+      {panel === 'proposals' && (
       <ProposalsCard proposals={proposals} workspaceSlug={workspaceSlug} />
+      )}
 
-      {/* Ingest Statement → Build Proposal — operator ingests an inbox statement
-          against a contact-with-email; builds the draft proposal for Approve & Send */}
+      {panel === 'statements' && (
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-semibold">Ingest Statement → Build Proposal</CardTitle>
@@ -363,8 +405,9 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           />
         </CardContent>
       </Card>
+      )}
 
-      {/* Document Vault */}
+      {panel === 'documents' && (
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -437,10 +480,12 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           )}
         </CardContent>
       </Card>
+      )}
         </div>
 
-        {/* Right rail — company activity */}
-        <aside className="xl:col-span-1 xl:sticky xl:top-6 self-start">
+        {/* Right rail — notes + company activity */}
+        <aside className="xl:col-span-1 xl:sticky xl:top-6 self-start space-y-4">
+          <CompanyNotesCard companyId={id} notes={notes} />
           <CompanyActivityTimeline events={activityEvents} />
         </aside>
       </div>

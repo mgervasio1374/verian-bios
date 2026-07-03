@@ -109,7 +109,7 @@ export function AddUserForm({ roles }: AddUserFormProps) {
           <div className="flex items-center gap-2 text-sm font-medium text-green-800">
             <CheckCircle2 className="h-4 w-4" />
             {state.result.reactivated
-              ? `${state.result.email} re-added to the workspace as ${state.result.roleSlug}.`
+              ? `${state.result.email} re-added to the workspace as ${state.result.roleSlug}. Their existing password still works — use "Reset password" on their row if it's lost.`
               : state.result.tempPassword
                 ? `${state.result.email} created as ${state.result.roleSlug}.`
                 : `Existing account ${state.result.email} added to the workspace as ${state.result.roleSlug}.`}
