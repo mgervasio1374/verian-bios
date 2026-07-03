@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Building2 } from 'lucide-react'
@@ -209,6 +209,21 @@ export function CompaniesTable({
     navigate({ [key]: value })
   }
 
+  // Live search: each keystroke re-queries the server after a short settle, so
+  // results narrow letter-by-letter across the WHOLE dataset (not just the
+  // loaded page). The guard makes the effect a no-op once the URL catches up.
+  useEffect(() => {
+    if (searchInput.trim() === search) return
+    const timer = setTimeout(() => {
+      setSelectedIds(new Set())
+      navigate({ search: searchInput.trim() })
+    }, 350)
+    return () => clearTimeout(timer)
+    // navigate is re-created per render but only closes over current props —
+    // including it would reset the debounce timer on every unrelated render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput, search])
+
   function handleSort(column: string) {
     const nextDir = activeSort === column && activeDir === 'asc' ? 'desc' : 'asc'
     navigate({ sort: column, dir: nextDir })
@@ -340,8 +355,9 @@ export function CompaniesTable({
     <div className="space-y-3">
       {/* Filter row */}
       <div className="flex items-center gap-4 flex-wrap">
-        {/* Search — server-driven via the same navigate() as the filters, so it
-            composes with segment/status/industry instead of clearing them. */}
+        {/* Search — live (debounced) server search via the same navigate() as the
+            filters, so it composes with segment/status/industry. Supports * as a
+            wildcard: "b*" = starts with b, "*son" = ends with son. */}
         <form
           onSubmit={e => { e.preventDefault(); setSelectedIds(new Set()); navigate({ search: searchInput.trim() }) }}
           className="flex items-center gap-2"
@@ -350,16 +366,11 @@ export function CompaniesTable({
             type="search"
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
-            placeholder="Search companies…"
-            className="rounded border px-2 py-1.5 text-sm bg-background w-52"
-            aria-label="Search companies"
+            placeholder="Search companies…  (b* = starts with B)"
+            className="rounded border px-2 py-1.5 text-sm bg-background w-64"
+            aria-label="Search companies — * acts as a wildcard"
+            title="Filters as you type. Use * as a wildcard: b* matches names starting with B, *son matches names ending in son."
           />
-          <button
-            type="submit"
-            className="rounded border px-2.5 py-1.5 text-sm text-muted-foreground hover:text-foreground"
-          >
-            Search
-          </button>
           {search && (
             <button
               type="button"

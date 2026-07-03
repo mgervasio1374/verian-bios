@@ -8,6 +8,19 @@ type CompanyUpdate = Database['public']['Tables']['companies']['Update']
 // Sorting whitelist — never interpolate unvalidated input into .order()
 const COMPANY_ORDERABLE_COLUMNS = ['name', 'industry', 'city', 'status', 'source', 'created_at'] as const
 
+// Operator search → ilike pattern. Default is contains-matching; a `*` in the
+// term switches to explicit-wildcard mode anchored exactly as typed:
+//   "brick"  → %brick%   (contains — unchanged default)
+//   "b*"     → b%        (starts with b)
+//   "*son"   → %son      (ends with son)
+//   "b*s"    → b%s
+// Literal % and _ in the input are escaped so they never act as wildcards.
+export function buildNameSearchPattern(search: string): string {
+  const escaped = search.replace(/([%_\\])/g, '\\$1')
+  if (escaped.includes('*')) return escaped.replace(/\*/g, '%')
+  return `%${escaped}%`
+}
+
 export interface ListCompaniesOptions {
   tenantId: string
   workspaceId: string
@@ -44,7 +57,7 @@ export async function listCompanies(opts: ListCompaniesOptions): Promise<Company
   if (opts.status) query = query.eq('status', opts.status)
   if (opts.industry) query = query.eq('industry', opts.industry)
   if (opts.customerStatus) query = query.eq('customer_status', opts.customerStatus)
-  if (opts.search) query = query.ilike('name', `%${opts.search}%`)
+  if (opts.search) query = query.ilike('name', buildNameSearchPattern(opts.search))
   if (opts.ids) query = query.in('id', opts.ids)
 
   const { data, error } = await query
@@ -157,7 +170,7 @@ export async function countCompaniesFiltered(opts: ListCompaniesOptions): Promis
   if (opts.status) query = query.eq('status', opts.status)
   if (opts.industry) query = query.eq('industry', opts.industry)
   if (opts.customerStatus) query = query.eq('customer_status', opts.customerStatus)
-  if (opts.search) query = query.ilike('name', `%${opts.search}%`)
+  if (opts.search) query = query.ilike('name', buildNameSearchPattern(opts.search))
   if (opts.ids) query = query.in('id', opts.ids)
 
   const { count, error } = await query
