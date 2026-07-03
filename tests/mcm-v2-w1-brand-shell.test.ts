@@ -140,10 +140,13 @@ describe('TC-W1-04: PageStatusBanner is a calm presentational strip (source-read
 // ---------------------------------------------------------------------------
 
 describe('TC-W1-05: honest page states applied (source-read)', () => {
-  it('user-management carries the planned-release banner', () => {
+  it('user-management is now a real page (banner superseded by the implemented feature)', () => {
+    // W1 pinned the honest planned-release banner; the user-management slice
+    // implemented the page, so the pin now asserts the real surface replaced it.
     const src = read(USER_MANAGEMENT)
-    expect(src).toContain('PageStatusBanner')
-    expect(src).toContain('Workspace members, roles, and invitations will be managed here.')
+    expect(src).not.toContain('PageStatusBanner')
+    expect(src).toContain('listWorkspaceMembers')
+    expect(src).toContain('MANAGE_MEMBERS_PERMISSION')
   })
 
   it('settings hub replaced the "coming in Phase 3" footer with the banner', () => {

@@ -1,24 +1,34 @@
 import Link from 'next/link'
-import { ArrowLeft, UserCog } from 'lucide-react'
-import { PageStatusBanner } from '@/components/PageStatusBanner'
+import { ArrowLeft, UserCog, Lock } from 'lucide-react'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { buildRequestContext } from '@/lib/auth/context'
+import { hasPermission } from '@/lib/auth/permissions'
+import {
+  listWorkspaceMembers,
+  listAssignableRoles,
+  MANAGE_MEMBERS_PERMISSION,
+} from '@/modules/platform/services/member-management.service'
+import { AddUserForm } from './AddUserForm'
+import { MembersTable } from './MembersTable'
+
+// User Management — replaces the read-only planning stub. Users are created
+// via the GoTrue admin API with a one-time temp password; roles resolve
+// through memberships (the app's only permission source). Gated on
+// workspace.manage_members (migration 20240069).
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
 }
 
-const plannedAreas = [
-  ['Users', 'Workspace member list, account status, and last activity visibility.'],
-  ['Admins', 'Tenant and workspace administrator review with elevated-permission warnings.'],
-  ['Invites', 'Pending invitation visibility and resend/revoke controls after auth/RLS design approval.'],
-  ['Roles', 'Role assignments and role-change audit trail after a dedicated permission slice.'],
-  ['Permissions', 'Permission catalog visibility with read-only role-to-permission mapping first.'],
-]
-
-export default async function UserManagementPlanningPage({ params }: PageProps) {
+export default async function UserManagementPage({ params }: PageProps) {
   const { workspaceSlug } = await params
+  const supabase = await createSupabaseServerClient()
+  const ctx = await buildRequestContext(supabase)
 
-  return (
-    <div className="space-y-6 max-w-3xl">
+  const canManage = hasPermission(ctx, MANAGE_MEMBERS_PERMISSION)
+
+  const header = (
+    <>
       <Link
         href={`/${workspaceSlug}/settings`}
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
@@ -32,35 +42,47 @@ export default async function UserManagementPlanningPage({ params }: PageProps) 
         <div>
           <h1 className="text-2xl font-bold">User Management</h1>
           <p className="text-sm text-muted-foreground">
-            Planning surface for users, admins, invites, roles, and permissions.
+            Workspace members, roles, and access.
           </p>
         </div>
       </div>
+    </>
+  )
 
-      <PageStatusBanner purpose="Workspace members, roles, and invitations will be managed here." />
-
-      <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Read-Only Planning Boundary</p>
-        <p className="text-sm text-muted-foreground">
-          This page does not manage authentication, invitations, roles, or permissions yet. It marks the intended
-          operator surface so the product has a visible admin destination while the required auth, RLS, audit, and
-          permission model work remains deferred to a separately reviewed implementation slice.
-        </p>
-      </div>
-
-      <div className="grid gap-3">
-        {plannedAreas.map(([label, description]) => (
-          <div key={label} className="rounded-lg border bg-background p-4">
-            <p className="text-sm font-semibold">{label}</p>
-            <p className="text-xs text-muted-foreground mt-1">{description}</p>
+  if (!canManage) {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        {header}
+        <div className="flex items-start gap-3 rounded-lg border bg-muted/30 p-4">
+          <Lock className="h-4 w-4 mt-0.5 text-muted-foreground" />
+          <div>
+            <p className="text-sm font-medium">Admin access required</p>
+            <p className="text-sm text-muted-foreground">
+              Managing members requires the <code className="text-xs">workspace.manage_members</code>{' '}
+              permission (workspace admin or above). Ask an administrator to update your role.
+            </p>
           </div>
-        ))}
+        </div>
       </div>
+    )
+  }
 
-      <div className="rounded-lg border border-dashed p-4 text-xs text-muted-foreground space-y-1">
-        <p className="font-semibold text-foreground">Future implementation requirements</p>
-        <p>No invite form, role selector, permission editor, or user mutation is available in this slice.</p>
-        <p>Any future writable implementation requires explicit schema/auth/RLS/permission review before UI wiring.</p>
+  const [members, roles] = await Promise.all([
+    listWorkspaceMembers(ctx),
+    listAssignableRoles(ctx),
+  ])
+
+  return (
+    <div className="space-y-6 max-w-4xl">
+      {header}
+
+      <AddUserForm roles={roles} />
+
+      <div className="space-y-2">
+        <h2 className="text-sm font-semibold">
+          Members <span className="text-muted-foreground font-normal">({members.length})</span>
+        </h2>
+        <MembersTable members={members} roles={roles} />
       </div>
     </div>
   )

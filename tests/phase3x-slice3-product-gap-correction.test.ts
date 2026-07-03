@@ -119,21 +119,26 @@ describe('TC-3X-S3-004: User Management visibility is planning-only', () => {
     expect(readSrc(SIDEBAR) + readSrc('components/layout/sidebar-nav.config.ts')).toContain('/settings/user-management')
   })
 
-  it('user management page names planned areas without implementing them', () => {
+  // SUPERSEDED (user-management slice): these two pins enforced the
+  // planning-only boundary until a reviewed implementation slice landed.
+  // That slice shipped (migration 20240069 + modules/platform member
+  // management), so the pins now assert the REAL surface with its guards.
+  it('user management page is implemented and permission-gated (supersedes planning-only pin)', () => {
     const src = readSrc(USER_MANAGEMENT_PAGE)
-    for (const label of ['Users', 'Admins', 'Invites', 'Roles', 'Permissions']) {
-      expect(src).toContain(label)
-    }
-    expect(src).toContain('Read-Only Planning Boundary')
-    expect(src).toContain('No invite form, role selector, permission editor, or user mutation')
+    expect(src).not.toContain('Read-Only Planning Boundary')
+    expect(src).toContain('MANAGE_MEMBERS_PERMISSION')
+    expect(src).toContain('hasPermission')
+    expect(src).toContain('listWorkspaceMembers')
   })
 
-  it('user management page contains no forms or server actions', () => {
-    const src = readSrc(USER_MANAGEMENT_PAGE)
-    expect(src).not.toContain('<form')
-    expect(src).not.toContain("'use server'")
-    expect(src).not.toContain('createSupabase')
-    expect(src).not.toContain('requirePermission')
+  it('user management mutations flow through the gated service module', () => {
+    const actions = readSrc('modules/platform/actions/member-management.actions.ts')
+    expect(actions).toContain("'use server'")
+    expect(actions).toContain('buildRequestContext')
+    const service = readSrc('modules/platform/services/member-management.service.ts')
+    expect(service).toContain("requirePermission(ctx, MANAGE_MEMBERS_PERMISSION)")
+    // Creation must go through the GoTrue admin API wrapper, never raw SQL.
+    expect(service).toContain("from '@/lib/auth/admin-users'")
   })
 })
 
