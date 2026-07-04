@@ -56,6 +56,8 @@ export function IngestStatementForm({ companyId, workspaceSlug, contacts }: Prop
   // Phase 1b — carried extraction-agent proposal + UI feedback.
   const [agentExtraction, setAgentExtraction] = useState<AgentExtraction | null>(null)
   const [extractHint, setExtractHint] = useState<string | null>(null)
+  // Names of fields extracted below the confidence threshold (not prefilled).
+  const [lowConfidenceNote, setLowConfidenceNote] = useState<string | null>(null)
   const [extractPending, startExtract] = useTransition()
 
   const noContacts = contacts.length === 0
@@ -66,6 +68,7 @@ export function IngestStatementForm({ companyId, workspaceSlug, contacts }: Prop
     setFile(next)
     setAgentExtraction(null)
     setExtractHint(null)
+    setLowConfidenceNote(null)
   }
 
   function setIfPresent(setter: (v: string) => void, v: unknown) {
@@ -75,9 +78,19 @@ export function IngestStatementForm({ companyId, workspaceSlug, contacts }: Prop
 
   // "Extract figures with AI": runs the advisory extraction agent over the chosen
   // file and pre-fills the inputs. All values remain editable. Never blocks manual entry.
+  // Human labels for the low-confidence note.
+  const FIELD_LABELS: Record<string, string> = {
+    monthlyVolume:      'monthly volume',
+    currentMonthlyFees: 'current monthly fees',
+    transactionCount:   'transaction count',
+    processor:          'processor',
+    statementPeriod:    'statement period',
+  }
+
   function handleExtract() {
     if (!file) { setError('Choose a statement file first.'); return }
     setExtractHint(null)
+    setLowConfidenceNote(null)
     const fd = new FormData()
     fd.set('companyId', companyId)
     fd.set('file', file)
@@ -91,15 +104,39 @@ export function IngestStatementForm({ companyId, workspaceSlug, contacts }: Prop
         setExtractHint("Couldn't read text from this PDF — enter figures manually.")
         return
       }
-      const fields = res.data.fields
-      if (!fields) return
+      const rawFields = res.data.fields
+      if (!rawFields) return
+
+      // Confidence gate (statement-extraction-guard): only fields the server
+      // marked prefillable reach the inputs; the rest stay blank and are named
+      // in an amber note. Absent map (legacy response) → prefill everything.
+      const prefillable = res.data.prefillable
+      const fields = prefillable
+        ? (Object.fromEntries(
+            Object.entries(rawFields).map(([k, v]) => [k, prefillable[k] ? v : null]),
+          ) as typeof rawFields)
+        : rawFields
+
       setIfPresent(setMonthlyVolume,      fields.monthlyVolume)
       setIfPresent(setCurrentMonthlyFees, fields.currentMonthlyFees)
       setIfPresent(setTransactionCount,   fields.transactionCount)
       setIfPresent(setProcessor,          fields.processor)
       setIfPresent(setStatementPeriod,    fields.statementPeriod)
-      setAgentExtraction({ fields: fields as unknown as Record<string, unknown>, fieldConfidence: res.data.fieldConfidence ?? undefined })
-      setExtractHint('AI-filled — confirm the figures below before building the proposal.')
+      // Carry the FULL (grounded) extraction for accuracy grading, not the gated view.
+      setAgentExtraction({ fields: rawFields as unknown as Record<string, unknown>, fieldConfidence: res.data.fieldConfidence ?? undefined })
+
+      const skipped = prefillable
+        ? Object.entries(rawFields)
+            .filter(([k, v]) => v !== null && !prefillable[k])
+            .map(([k]) => FIELD_LABELS[k] ?? k)
+        : []
+      if (skipped.length > 0) {
+        setLowConfidenceNote(`Couldn't confidently extract: ${skipped.join(', ')} — enter manually.`)
+      }
+      const anyPrefilled = Object.values(fields).some(v => v !== null)
+      if (anyPrefilled) {
+        setExtractHint('AI-filled — confirm the figures below before building the proposal.')
+      }
     })
   }
 
@@ -209,6 +246,9 @@ export function IngestStatementForm({ companyId, workspaceSlug, contacts }: Prop
                 </button>
                 {extractHint && <span className="text-[11px] text-muted-foreground">{extractHint}</span>}
               </div>
+            )}
+            {lowConfidenceNote && (
+              <p className="mt-1 text-[11px] text-amber-700">{lowConfidenceNote}</p>
             )}
           </div>
 

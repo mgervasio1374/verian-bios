@@ -15,6 +15,7 @@ import { createDecision } from '@/modules/intelligence/repositories/agent-decisi
 import { chatComplete, isLlmConfigured } from '@/lib/llm/client'
 import { extractPdfText } from '@/lib/pdf/extract-text'
 import { parseExtractedFigures, type ExtractedFigures } from '@/lib/statement/extraction-parse'
+import { groundExtractedFields, computePrefillable } from '@/lib/statement/extraction-grounding'
 
 const AGENT_NAME = 'statement_extraction_agent'
 // Below this many characters the text layer is effectively empty (scanned PDF).
@@ -34,6 +35,9 @@ export interface ExtractStatementResult {
   skipped?:         boolean
   fields?:          ExtractedFigures
   fieldConfidence?: Record<string, number>
+  // Per-field prefill eligibility: value survived grounding AND confidence
+  // cleared EXTRACTION_PREFILL_MIN_CONFIDENCE (statement-extraction-guard).
+  prefillable?:     Record<string, boolean>
   modelUsed?:       string
   warning?:         string
 }
@@ -120,6 +124,25 @@ export async function extractStatementFigures(
     }
 
     const result = parsed ?? { fields: { ...ALL_NULL }, fieldConfidence: { ...ZERO_CONF } }
+
+    // Grounding guard (statement-extraction-guard): a figure that does not
+    // literally appear in the statement text is hard-nulled — a hallucinated
+    // number can never reach the ingest form. Deterministic; the LLM's own
+    // confidence is irrelevant to this check.
+    const grounding = groundExtractedFields(result.fields, text)
+    const grounded: string[] = []
+    const droppedUngrounded: string[] = []
+    for (const key of Object.keys(result.fields) as (keyof ExtractedFigures)[]) {
+      if (result.fields[key] === null) continue
+      if (grounding[key].grounded) {
+        grounded.push(key)
+      } else {
+        droppedUngrounded.push(key)
+        ;(result.fields as unknown as Record<string, unknown>)[key] = null
+        result.fieldConfidence[key] = 0
+      }
+    }
+
     const confAvg = avgConfidence(result.fieldConfidence)
 
     await createDecision({
@@ -134,12 +157,22 @@ export async function extractStatementFigures(
       confidence:        confAvg,
       recommendedAction: 'prefill_statement_figures',
       shortReason:       `Extracted statement figures (avg confidence ${confAvg.toFixed(2)})`,
-      outputSummary:     { fields: result.fields, fieldConfidence: result.fieldConfidence },
+      outputSummary:     {
+        fields:             result.fields,
+        fieldConfidence:    result.fieldConfidence,
+        grounded,
+        dropped_ungrounded: droppedUngrounded,
+      },
       learningTags:      ['statement_extraction'],
     })
 
     await completeAgentRun(agentRunId, {
-      outputSnapshot:   { fields: result.fields, fieldConfidence: result.fieldConfidence },
+      outputSnapshot:   {
+        fields:             result.fields,
+        fieldConfidence:    result.fieldConfidence,
+        grounded,
+        dropped_ungrounded: droppedUngrounded,
+      },
       confidence:       confAvg,
       promptTokens,
       completionTokens,
@@ -149,6 +182,7 @@ export async function extractStatementFigures(
       ok:              true,
       fields:          result.fields,
       fieldConfidence: result.fieldConfidence,
+      prefillable:     computePrefillable(result.fields, result.fieldConfidence),
       modelUsed,
     }
   } catch (err) {

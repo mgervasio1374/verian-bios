@@ -51,6 +51,8 @@ const CONTROL_WARNINGS: Record<string, string> = {
     'Requires follow_up_accountability_enabled to be active.',
   'statement_review_agent_enabled':
     'Advisory, deterministic (no LLM/token cost). Writes a plausibility review of each statement analysis on ingest/certificate generation.',
+  'statement_extraction_agent_enabled':
+    'Spends LLM tokens per extraction (~fractions of a cent). Advisory prefill only — extracted figures are grounded against the statement text and always operator-editable.',
   'copywriting_agent_llm_enabled':
     'Spends OpenRouter tokens on user-triggered copy generation/rewrites. No background loop.',
   'quality_auto_approve_enabled':
@@ -124,6 +126,7 @@ const CONTROL_GROUP_DEFINITIONS = [
       'agent_action_enforcement_enabled',
       'learned_skills_enabled',
       'anti_pattern_lab_enabled',
+      'statement_extraction_agent_enabled',
     ],
   },
 ] as const

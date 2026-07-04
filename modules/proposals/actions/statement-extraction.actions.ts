@@ -23,7 +23,13 @@ const MAX_FILE_BYTES = 20 * 1024 * 1024 // 20 MB
 // Advisory + gated default-off in the service. Gated crm.companies.edit here.
 export async function extractStatementFiguresAction(
   formData: FormData
-): Promise<ActionResult<{ fields: ExtractedFigures | null; fieldConfidence: Record<string, number> | null; modelUsed?: string; warning?: string }>> {
+): Promise<ActionResult<{
+  fields: ExtractedFigures | null
+  fieldConfidence: Record<string, number> | null
+  prefillable: Record<string, boolean> | null
+  modelUsed?: string
+  warning?: string
+}>> {
   try {
     const supabase = await createSupabaseServerClient()
     const ctx      = await buildRequestContext(supabase)
@@ -60,6 +66,7 @@ export async function extractStatementFiguresAction(
       data: {
         fields:          result.fields ?? null,
         fieldConfidence: result.fieldConfidence ?? null,
+        prefillable:     result.prefillable ?? null,
         modelUsed:       result.modelUsed,
         warning:         result.warning,
       },
