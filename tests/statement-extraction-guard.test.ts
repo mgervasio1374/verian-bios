@@ -139,7 +139,7 @@ vi.mock('@/lib/llm/client', () => ({
     promptTokens: 100, completionTokens: 40, modelName: 'gpt-4o-mini',
   })),
 }))
-vi.mock('@/lib/pdf/extract-text', () => ({ extractPdfText: vi.fn(async () => h.text) }))
+vi.mock('@/lib/pdf/extract-text', () => ({ extractPdfText: vi.fn(async () => ({ text: h.text, error: null })) }))
 vi.mock('@/modules/intelligence/repositories/agent-run.repo', () => ({
   createAgentRun:   vi.fn(async () => ({ id: 'run-1' })),
   completeAgentRun: vi.fn(async () => undefined),

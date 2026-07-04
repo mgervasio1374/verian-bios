@@ -91,7 +91,7 @@ vi.mock('@/lib/llm/client', () => ({
     promptTokens: 100, completionTokens: 40, modelName: 'gpt-4o-mini',
   })),
 }))
-vi.mock('@/lib/pdf/extract-text', () => ({ extractPdfText: vi.fn(async () => h.text) }))
+vi.mock('@/lib/pdf/extract-text', () => ({ extractPdfText: vi.fn(async () => ({ text: h.text, error: null })) }))
 vi.mock('@/modules/intelligence/repositories/agent-run.repo', () => ({
   createAgentRun:   vi.fn(async () => ({ id: 'run-1' })),
   completeAgentRun: vi.fn(async () => undefined),
@@ -130,14 +130,17 @@ describe('TC-SEA-08: LLM not configured → warning, no fabrication', () => {
   })
 })
 
-describe('TC-SEA-09: no extractable text → all-null + no_extractable_text (no run, no fabrication)', () => {
+describe('TC-SEA-09: no extractable text → all-null + no_extractable_text (no LLM, no fabrication)', () => {
   it('scanned PDF path', async () => {
     h.enabled = true; h.configured = true; h.text = '   ' // too short
     const res = await extractStatementFigures('t-1', { fileBytes, fileName: 's.pdf' })
     expect(res.ok).toBe(true)
     expect(res.warning).toBe('no_extractable_text')
     expect(res.fields).toEqual({ monthlyVolume: null, currentMonthlyFees: null, transactionCount: null, processor: null, statementPeriod: null })
-    expect(vi.mocked(createAgentRun)).not.toHaveBeenCalled()
+    // pdf-extract-unmask: the empty path now records a completed agent_run so
+    // every attempt is visible in Agent Lab — but still never calls the LLM.
+    expect(vi.mocked(createAgentRun)).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(completeAgentRun)).toHaveBeenCalledTimes(1)
     expect(vi.mocked(chatComplete)).not.toHaveBeenCalled()
   })
 })

@@ -31,8 +31,8 @@ describe('TC-PDFLZ-01: extract-text.ts imports pdf-parse lazily, not at top leve
   })
 })
 
-describe('TC-PDFLZ-02: extractPdfText still fails soft (returns "" on parse failure)', () => {
-  it('a thrown parse error degrades to "" rather than propagating', async () => {
+describe('TC-PDFLZ-02: extractPdfText still fails soft (empty text on parse failure)', () => {
+  it('a thrown parse error degrades to empty text (now with the error surfaced)', async () => {
     vi.resetModules()
     // Make the lazily-imported module throw on construction — stands in for the
     // DOMMatrix ReferenceError that occurs in the serverless runtime.
@@ -41,7 +41,10 @@ describe('TC-PDFLZ-02: extractPdfText still fails soft (returns "" on parse fail
     }))
     const { extractPdfText } = await import('@/lib/pdf/extract-text')
     const result = await extractPdfText(new Uint8Array([1, 2, 3]))
-    expect(result).toBe('')
+    // pdf-extract-unmask: still never throws, still empty text — but the
+    // failure is no longer indistinguishable from a scanned PDF.
+    expect(result.text).toBe('')
+    expect(result.error).toContain('DOMMatrix is not defined')
     vi.doUnmock('pdf-parse')
     vi.resetModules()
   })

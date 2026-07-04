@@ -14,6 +14,7 @@ import { createAgentRun, completeAgentRun, failAgentRun } from '@/modules/intell
 import { createDecision } from '@/modules/intelligence/repositories/agent-decision.repo'
 import { chatComplete, isLlmConfigured } from '@/lib/llm/client'
 import { extractPdfText } from '@/lib/pdf/extract-text'
+import { createStructuredError } from '@/modules/intelligence/structured-errors/structured-error.repo'
 import { parseExtractedFigures, type ExtractedFigures } from '@/lib/statement/extraction-parse'
 import { groundExtractedFields, computePrefillable } from '@/lib/statement/extraction-grounding'
 
@@ -85,9 +86,48 @@ export async function extractStatementFigures(
   // No LLM configured → do not fabricate.
   if (!isLlmConfigured()) return { ok: false, warning: 'llm_not_configured' }
 
-  // Extract the PDF text layer. Empty/too short ⇒ likely scanned → report, no guess.
-  const text = await extractPdfText(input.fileBytes)
+  // Extract the PDF text layer. Empty/too short ⇒ likely scanned → report, no
+  // guess. UNMASKED (pdf-extract-unmask): a pdf-parse runtime failure now
+  // surfaces via extraction.error instead of masquerading as a scanned PDF,
+  // and every empty attempt records an agent_run — prod was double-blind here.
+  const extraction = await extractPdfText(input.fileBytes)
+  const text = extraction.text
   if (text.length < MIN_TEXT_LENGTH) {
+    // Telemetry first (best-effort): visible in Agent Lab even for empty runs.
+    try {
+      const run = await createAgentRun({
+        tenantId,
+        workspaceId:   input.workspaceId ?? undefined,
+        agentName:     AGENT_NAME,
+        runType:       'analysis',
+        subjectType:   'company',
+        subjectId:     input.companyId ?? undefined,
+        inputSnapshot: { file_name: input.fileName, text_chars: text.length },
+      })
+      await completeAgentRun(run.id, {
+        outputSnapshot: {
+          warning:     'no_extractable_text',
+          text_length: text.length,
+          parse_error: extraction.error,
+        },
+      })
+    } catch { /* telemetry must not change the caller-facing contract */ }
+
+    // A runtime parse/import failure is an ops event (emails via the existing
+    // structured-error alert hook). A genuinely scanned PDF (error null) is not.
+    if (extraction.error) {
+      await createStructuredError({
+        tenantId,
+        workspaceId:  input.workspaceId ?? undefined,
+        failureType:  'pdf_parse_runtime_failure',
+        errorCode:    'PDF_PARSE_RUNTIME_FAILURE',
+        errorMessage: `statement-extraction pdf-parse failed at runtime: ${extraction.error}`,
+        severity:     'error',
+        module:       'statement_extraction',
+        context:      { file_name: input.fileName, text_length: text.length },
+      }).catch(() => {})
+    }
+
     return { ok: true, fields: { ...ALL_NULL }, fieldConfidence: { ...ZERO_CONF }, warning: 'no_extractable_text' }
   }
 
