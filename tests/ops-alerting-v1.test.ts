@@ -147,7 +147,10 @@ describe('TC-OPS-B: createStructuredError alert hook', () => {
     db.single['automation_failures'] = failureRow('critical')
     const row = await createStructuredError(errorInput as never)
     expect(row).toMatchObject({ id: 'af-1', severity: 'critical' })
-    await vi.waitFor(() => expect(resendMock.send).toHaveBeenCalledTimes(1))
+    // AWAITED hook (Vercel kills unawaited promises at response freeze — proven
+    // 2026-07-04: error row existed, no email): the alert must have completed
+    // BEFORE createStructuredError resolved. No waitFor.
+    expect(resendMock.send).toHaveBeenCalledTimes(1)
     const call = resendMock.send.mock.calls[0][0] as { subject: string; text: string }
     expect(call.subject).toContain('SEND_GATE_STUCK')
     expect(call.subject).toContain('critical')

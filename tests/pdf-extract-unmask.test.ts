@@ -180,3 +180,48 @@ describe('TC-PXU-05: next.config ships the full pdf packages with the function t
     expect(cfg).toContain("serverExternalPackages: ['pdf-parse', 'pdfjs-dist']")
   })
 })
+
+// ---------------------------------------------------------------------------
+// DOMMatrix polyfill — the actual prod failure (verified via unmasked agent_run:
+// "Failed to load external module pdf-parse: ReferenceError: DOMMatrix is not
+// defined"). The polyfill must be installed BEFORE the dynamic import evaluates.
+// ---------------------------------------------------------------------------
+
+describe('TC-PXU-06: DOMMatrix polyfill installed before pdf-parse import', () => {
+  it('an import that requires DOMMatrix at eval succeeds via the guarded stub', async () => {
+    vi.resetModules()
+    const g = globalThis as Record<string, unknown>
+    const original = g.DOMMatrix
+    delete g.DOMMatrix
+    vi.doMock('pdf-parse', () => {
+      // Simulates pdfjs-dist referencing DOMMatrix during module evaluation.
+      if (typeof (globalThis as Record<string, unknown>).DOMMatrix === 'undefined') {
+        throw new ReferenceError('DOMMatrix is not defined')
+      }
+      return { PDFParse: class { async getText() { return { text: 'Elavon statement text OK' } } } }
+    })
+    const { extractPdfText } = await vi.importActual<typeof import('@/lib/pdf/extract-text')>('@/lib/pdf/extract-text')
+    const result = await extractPdfText(new Uint8Array([1, 2, 3]))
+    expect(result).toEqual({ text: 'Elavon statement text OK', error: null })
+    vi.doUnmock('pdf-parse')
+    vi.resetModules()
+    if (original !== undefined) g.DOMMatrix = original
+    else delete g.DOMMatrix
+  })
+
+  it('the stub does not clobber an existing DOMMatrix', async () => {
+    vi.resetModules()
+    const g = globalThis as Record<string, unknown>
+    const original = g.DOMMatrix
+    const sentinel = class Sentinel {}
+    g.DOMMatrix = sentinel
+    vi.doMock('pdf-parse', () => ({ PDFParse: class { async getText() { return { text: 'x'.repeat(50) } } } }))
+    const { extractPdfText } = await vi.importActual<typeof import('@/lib/pdf/extract-text')>('@/lib/pdf/extract-text')
+    await extractPdfText(new Uint8Array([1]))
+    expect(g.DOMMatrix).toBe(sentinel)
+    vi.doUnmock('pdf-parse')
+    vi.resetModules()
+    if (original !== undefined) g.DOMMatrix = original
+    else delete g.DOMMatrix
+  })
+})

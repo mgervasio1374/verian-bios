@@ -38,10 +38,13 @@ export async function createStructuredError(
     .single()
   if (error) throw new Error(`createStructuredError: ${error.message}`)
 
-  // Ops Alerting v1: severe errors page a human. Fire-and-forget — alerting
-  // must never break the code path that errored (sendOpsAlert also never
-  // throws by contract; the .catch is belt-and-braces). Keyed by error code /
-  // failure type so a repeating error alerts at most once per throttle window.
+  // Ops Alerting v1: severe errors page a human. AWAITED — on Vercel the
+  // function freezes at response time and an unawaited promise is killed, which
+  // silently dropped the alert email (proven 2026-07-04: structured error row
+  // existed, no OPS_ALERT_SENT, no email). sendOpsAlert never throws by
+  // contract and the .catch is belt-and-braces, so awaiting cannot break the
+  // code path that errored — it only adds ~100ms to error paths. Keyed by
+  // error code / failure type so a repeat alerts at most once per throttle window.
   if (data.severity === 'critical' || data.severity === 'error') {
     const code = input.errorCode ?? input.failureType
     const refs = [
@@ -53,7 +56,7 @@ export async function createStructuredError(
       input.workflowRunId   ? `workflow run: ${input.workflowRunId}`        : null,
       input.jobExecutionId  ? `job execution: ${input.jobExecutionId}`      : null,
     ].filter(Boolean)
-    sendOpsAlert({
+    await sendOpsAlert({
       tenantId: input.tenantId,
       key: `structured_error:${code}`,
       subject: `[Verian ${data.severity}] structured error: ${code}`,
