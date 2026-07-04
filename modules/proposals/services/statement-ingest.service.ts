@@ -98,10 +98,20 @@ export async function captureExtractionAccuracy(args: {
   } catch { /* swallow — accuracy capture is advisory only */ }
 }
 
+// Advisory statement-review verdict surfaced to the operator at the ingest
+// moment (statement-review-surface). Absent when the gate is off, the agent
+// skipped, or the review call failed — never blocks or changes the ingest.
+export interface StatementReviewSummary {
+  verdict:      'pass' | 'flagged' | 'fail'
+  qualityScore: number
+  findings:     Array<{ level: 'warn' | 'fail'; message: string }>
+}
+
 export interface IngestStatementResult {
   proposalEventId:        string
   shareToken:             string
   estimatedSavingsMonthly: number
+  statementReview?:        StatementReviewSummary
 }
 
 // Orchestrates a manual operator statement ingest against an EXISTING company +
@@ -284,14 +294,26 @@ export async function ingestStatementAndBuildProposal(
   // Phase 0 statement review (advisory, gated default-off). Best-effort but AWAITED
   // (per the ISSUE-008 lesson — must complete on Vercel, never fire-and-forget) and
   // wrapped so a review failure never fails the ingest. No-op when the control is off.
+  // A completed review's verdict is threaded into the success payload so the
+  // operator sees it before approving the proposal (statement-review-surface).
+  let statementReview: StatementReviewSummary | undefined
   if (documentExtractionId) {
     try {
-      await reviewAnalysisForExtraction(ctx.tenantId, {
+      const review = await reviewAnalysisForExtraction(ctx.tenantId, {
         documentExtractionId,
         workspaceId:     ctx.workspaceId,
         proposalEventId: proposalEvent.id,
         companyId:       input.companyId,
       })
+      if (review.ok && !review.skipped && review.verdict && typeof review.qualityScore === 'number') {
+        statementReview = {
+          verdict:      review.verdict,
+          qualityScore: review.qualityScore,
+          findings:     (review.findings ?? [])
+            .filter((f) => f.status !== 'ok')
+            .map((f) => ({ level: f.status as 'warn' | 'fail', message: f.detail })),
+        }
+      }
     } catch { /* swallow — advisory only */ }
   }
 
@@ -320,5 +342,6 @@ export async function ingestStatementAndBuildProposal(
     proposalEventId:         proposalEvent.id,
     shareToken,
     estimatedSavingsMonthly,
+    ...(statementReview ? { statementReview } : {}),
   }
 }

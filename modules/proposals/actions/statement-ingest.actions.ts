@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import { ingestStatementAndBuildProposal } from '@/modules/proposals/services/statement-ingest.service'
+import type { StatementReviewSummary } from '@/modules/proposals/services/statement-ingest.service'
 
 export type ActionResult<T = void> =
   | { success: true; data: T }
@@ -53,7 +54,11 @@ function parseAgentExtraction(
 
 export async function ingestStatementAction(
   formData: FormData,
-): Promise<ActionResult<{ proposalEventId: string; shareToken: string }>> {
+): Promise<ActionResult<{
+  proposalEventId: string
+  shareToken: string
+  statementReview?: StatementReviewSummary
+}>> {
   try {
     const supabase = await createSupabaseServerClient()
     const ctx      = await buildRequestContext(supabase)
@@ -96,7 +101,16 @@ export async function ingestStatementAction(
     revalidatePath('/[workspaceSlug]/companies/[id]', 'page')
     revalidatePath('/[workspaceSlug]/proposals', 'page')
 
-    return { success: true, data: { proposalEventId: result.proposalEventId, shareToken: result.shareToken } }
+    return {
+      success: true,
+      data: {
+        proposalEventId: result.proposalEventId,
+        shareToken:      result.shareToken,
+        // Advisory review verdict threaded through unchanged (absent when the
+        // gate is off / agent skipped / review failed).
+        ...(result.statementReview ? { statementReview: result.statementReview } : {}),
+      },
+    }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }

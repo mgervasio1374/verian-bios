@@ -15,6 +15,7 @@ import { createDecision } from '@/modules/intelligence/repositories/agent-decisi
 import { getDocumentExtractionById } from '@/modules/proposals/repositories/savings-analysis.repo'
 import { recordAnalysisReview } from '@/modules/proposals/repositories/statement-analysis-review.repo'
 import { reviewStatementAnalysis } from '@/lib/statement/analysis-review'
+import type { ReviewFinding } from '@/lib/statement/analysis-review'
 
 const AGENT_NAME = 'statement_review_agent'
 
@@ -29,7 +30,11 @@ export interface ReviewAnalysisResult {
   ok:       boolean
   skipped?: boolean
   reviewId?: string
-  verdict?: string
+  verdict?: 'pass' | 'flagged' | 'fail'
+  // Exposed so the ingest chokepoint can surface the verdict to the operator
+  // (statement-review-surface). Present only on a completed review.
+  qualityScore?: number
+  findings?:     ReviewFinding[]
 }
 
 // Reviews the statement analysis stored on a document_extraction. Gated default-off;
@@ -95,7 +100,13 @@ export async function reviewAnalysisForExtraction(
       outputSnapshot: { verdict: result.verdict, score: result.score, findingCount: result.findings.length },
     })
 
-    return { ok: true, reviewId: review.id, verdict: result.verdict }
+    return {
+      ok:           true,
+      reviewId:     review.id,
+      verdict:      result.verdict,
+      qualityScore: result.score,
+      findings:     result.findings,
+    }
   } catch (err) {
     if (agentRunId) {
       await failAgentRun(agentRunId, err instanceof Error ? err.message : String(err)).catch(() => undefined)

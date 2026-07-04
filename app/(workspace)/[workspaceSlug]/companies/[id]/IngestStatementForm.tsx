@@ -24,9 +24,17 @@ interface Props {
   contacts:      ContactOption[]
 }
 
+interface StatementReviewSummary {
+  verdict:      'pass' | 'flagged' | 'fail'
+  qualityScore: number
+  findings:     Array<{ level: 'warn' | 'fail'; message: string }>
+}
+
 interface SuccessState {
-  proposalEventId: string
-  shareToken:      string
+  proposalEventId:  string
+  shareToken:       string
+  // Advisory statement-review verdict (absent when the review gate is off).
+  statementReview?: StatementReviewSummary
 }
 
 export function IngestStatementForm({ companyId, workspaceSlug, contacts }: Props) {
@@ -268,28 +276,71 @@ export function IngestStatementForm({ companyId, workspaceSlug, contacts }: Prop
       {error && <p className="text-xs text-red-600">{error}</p>}
 
       {result && (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm space-y-1.5">
-          <p className="font-semibold text-emerald-700">Draft proposal created.</p>
-          <div className="flex flex-wrap items-center gap-3">
-            <a
-              href={`/${workspaceSlug}/proposal-events/${result.proposalEventId}`}
-              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
-            >
-              Open proposal event <ExternalLink className="h-3 w-3" />
-            </a>
-            <a
-              href={`/p/${result.shareToken}?preview=1`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
-            >
-              Preview proposal page <ExternalLink className="h-3 w-3" />
-            </a>
+        <>
+          <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm space-y-1.5">
+            <p className="font-semibold text-emerald-700">Draft proposal created.</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <a
+                href={`/${workspaceSlug}/proposal-events/${result.proposalEventId}`}
+                className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
+              >
+                Open proposal event <ExternalLink className="h-3 w-3" />
+              </a>
+              <a
+                href={`/p/${result.shareToken}?preview=1`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
+              >
+                Preview proposal page <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Approve &amp; Send is available on the proposal event.
+            </p>
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            Approve &amp; Send is available on the proposal event.
-          </p>
-        </div>
+
+          {/* Advisory statement-review verdict (statement-review-surface). The
+              proposal draft already exists — this informs the operator BEFORE
+              they Approve & Send; it never blocks. Absent field ⇒ no output. */}
+          {result.statementReview?.verdict === 'flagged' && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm space-y-1.5">
+              <p className="font-semibold text-amber-700">
+                Statement review flagged {result.statementReview.findings.length} item(s)
+              </p>
+              <ul className="list-disc pl-4 space-y-0.5 text-xs text-amber-800">
+                {result.statementReview.findings.map((f, i) => (
+                  <li key={i}>{f.message}</li>
+                ))}
+              </ul>
+              <p className="text-[11px] text-amber-700">
+                Quality score: {result.statementReview.qualityScore}/100. Review the figures before
+                approving the proposal.
+              </p>
+            </div>
+          )}
+          {result.statementReview?.verdict === 'fail' && (
+            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm space-y-1.5">
+              <p className="font-semibold text-red-700">
+                Statement review failed — the figures look implausible
+              </p>
+              <ul className="list-disc pl-4 space-y-0.5 text-xs text-red-800">
+                {result.statementReview.findings.map((f, i) => (
+                  <li key={i}>{f.message}</li>
+                ))}
+              </ul>
+              <p className="text-[11px] text-red-700">
+                Quality score: {result.statementReview.qualityScore}/100. Correct the figures before
+                approving the proposal.
+              </p>
+            </div>
+          )}
+          {result.statementReview?.verdict === 'pass' && (
+            <p className="text-[11px] text-muted-foreground">
+              Statement review: pass (score {result.statementReview.qualityScore})
+            </p>
+          )}
+        </>
       )}
     </div>
   )
