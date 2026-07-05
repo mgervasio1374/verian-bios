@@ -142,3 +142,34 @@ describe('nav-rail-breakout: rail shape', () => {
     expect(dashboard.groups).toEqual([])
   })
 })
+
+// ---------------------------------------------------------------------------
+// nav-focus-fix (source-read): rail focus follows the CLICKED/open section,
+// not the stale route section. Regression for: clicking Outreach while on a
+// CRM page left CRM highlighted with the blue bar.
+// ---------------------------------------------------------------------------
+
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+describe('nav-focus-fix: one active rail signal, following the open panel', () => {
+  const src = readFileSync(join(__dirname, '..', 'components', 'layout', 'Sidebar.tsx'), 'utf8')
+
+  it('active derivation: open section wins while a panel is open; route otherwise', () => {
+    expect(src).toContain('const isActive = section.directPath')
+    expect(src).toContain('? section.key === pathSection')
+    expect(src).toContain('? section.key === openSection')
+  })
+
+  it('accent and blue bar both key off the single isActive signal', () => {
+    expect(src).toContain('{isActive && (')
+    // the old dual-signal condition is gone
+    expect(src).not.toContain('isOpen || isRouteSection')
+    expect(src).not.toContain('const isRouteSection')
+  })
+
+  it('route navigation re-pins the panel to the new section (pathname-keyed effect)', () => {
+    expect(src).toContain("pathSection !== 'dashboard' && pathSection !== openSection")
+    expect(src).toContain('}, [pathname])')
+  })
+})

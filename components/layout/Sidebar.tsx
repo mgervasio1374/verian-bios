@@ -54,6 +54,19 @@ export function Sidebar({ workspaceSlug }: SidebarProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Focus follows navigation: when the ROUTE moves to a different section (an
+  // in-page link, TopNav, back/forward), the panel + rail focus follow it.
+  // Keyed on pathname so a bare rail click (panel swap, no navigation) is never
+  // fought — that pin holds until you actually go somewhere else.
+  useEffect(() => {
+    if (pathSection !== 'dashboard' && pathSection !== openSection) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOpenSection(pathSection)
+      localStorage.setItem(SECTION_STORAGE_KEY, pathSection)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
+
   function pinSection(key: SectionKey) {
     setOpenSection(key)
     localStorage.setItem(SECTION_STORAGE_KEY, key)
@@ -81,17 +94,24 @@ export function Sidebar({ workspaceSlug }: SidebarProps) {
   const adminSection = NAV_SECTIONS.find((s) => s.key === 'admin')!
 
   function railEntry(section: NavSection) {
-    const isRouteSection = section.key === pathSection
-    const isOpen = panelOpen && section.key === openSection
+    // ONE active signal per rail (nav-focus-fix): while a panel is open, focus
+    // (accent + bar) belongs to the OPEN section — what the operator clicked —
+    // never to the stale route section. Direct links (Dashboard) and collapsed
+    // rail-only mode follow the current route instead.
+    const isActive = section.directPath
+      ? section.key === pathSection
+      : panelOpen
+        ? section.key === openSection
+        : section.key === pathSection
     const railClasses = cn(
       'relative flex w-full flex-col items-center gap-1 rounded-md px-1 py-2 transition-colors',
-      isOpen || isRouteSection
+      isActive
         ? 'bg-sidebar-accent text-sidebar-accent-foreground'
         : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
     )
     const inner = (
       <>
-        {isRouteSection && (
+        {isActive && (
           <span
             aria-hidden="true"
             className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary"
