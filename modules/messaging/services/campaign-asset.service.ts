@@ -10,6 +10,7 @@ import * as repo from '@/modules/messaging/repositories/campaign-email-asset.rep
 import {
   validateAssetTemplate,
   validateAssetBodies,
+  validateAssetHasLink,
   validateAssetTransition,
   validateActivationReadiness,
   extractMergeFields,
@@ -34,6 +35,13 @@ export async function createHumanAsset(
   const bodies = validateAssetBodies(input)
   if (!bodies.ok) {
     throw new Error('createHumanAsset: ' + bodies.error)
+  }
+
+  // Conversion-path guard: an asset with no link gives the recipient nothing to
+  // act on and click tracking nothing to measure.
+  const link = validateAssetHasLink(input)
+  if (!link.ok) {
+    throw new Error('createHumanAsset: ' + link.error)
   }
 
   return repo.createAsset({

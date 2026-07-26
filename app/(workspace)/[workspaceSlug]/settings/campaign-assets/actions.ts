@@ -7,7 +7,7 @@ import { requirePermission } from '@/lib/auth/permissions'
 import type { AssetTemplateContent } from '@/modules/messaging/campaign-assets/campaign-asset.types'
 import * as assetRepo from '@/modules/messaging/repositories/campaign-email-asset.repo'
 import * as assetService from '@/modules/messaging/services/campaign-asset.service'
-import { validateAssetBodies } from '@/modules/messaging/services/campaign-asset-validation.service'
+import { validateAssetBodies, validateAssetHasLink } from '@/modules/messaging/services/campaign-asset-validation.service'
 import * as aiService from '@/modules/messaging/services/campaign-asset-ai.service'
 import { createDraftFromAsset } from '@/modules/messaging/services/campaign-asset-draft.service'
 import { assetUsage } from '@/modules/campaign-sequence/services/sequence-usage.service'
@@ -48,6 +48,13 @@ export async function updateAssetContentAction(
   const bodies = validateAssetBodies(content)
   if (!bodies.ok) {
     throw new Error(bodies.error)
+  }
+
+  // Conversion-path guard: every authored asset needs a link the recipient can
+  // act on (and click tracking can measure).
+  const link = validateAssetHasLink(content)
+  if (!link.ok) {
+    throw new Error(link.error)
   }
 
   await assetRepo.updateAssetContent(ctx.tenantId, assetId, content)

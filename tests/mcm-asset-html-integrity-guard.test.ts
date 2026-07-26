@@ -115,8 +115,11 @@ describe('TC-AHIG-08: createHumanAsset persists a consistent asset', () => {
       campaignType:          'cold_outreach',
       assetName:             'FT_01 ok',
       subjectTemplate:       'A look at your processing costs',
-      bodyTemplateText:      'Hi {{first_name}}, worth a quick review.',
-      bodyTemplateHtml:      '<p>Hi {{first_name}}, worth a quick review.</p>',
+      // Carries a CTA link: createHumanAsset also enforces validateAssetHasLink
+      // (asset-cta-link-guard), so a link-less fixture no longer represents a
+      // valid asset. The token/body-integrity intent of this case is unchanged.
+      bodyTemplateText:      'Hi {{first_name}}, worth a quick review: https://www.321swipe.com',
+      bodyTemplateHtml:      '<p>Hi {{first_name}}, worth a <a href="https://www.321swipe.com">quick review</a>.</p>',
       personalizationFields: ['first_name'],
       requiredFields:        [],
       fallbackValues:        { first_name: 'there' },

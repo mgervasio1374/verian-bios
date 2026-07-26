@@ -148,6 +148,37 @@ export function validateAssetBodies(content: {
   return { ok: true }
 }
 
+// Conversion-path guard for OPERATOR-AUTHORED asset saves. An outbound asset with
+// no link at all gives the recipient nothing to act on and gives us nothing to
+// measure — CP-Outreach 1 shipped exactly that way ("just reply here", no anchor),
+// so click tracking had only the injected footer brand link to report on.
+//
+// Deliberately permissive about WHICH link: an http(s) URL is the measurable
+// conversion path, but a mailto: anchor is a legitimate explicit response
+// mechanism for a reply-only touch. Either satisfies the guard; nothing at all
+// does not. The send-time compliance footer is NOT considered — it is appended
+// after authoring and would mask a body with no call to action.
+//
+// Applied to the manual create/update paths only. The AI draft path is left
+// alone on purpose: the generation prompt does not yet instruct the model to
+// include a link, so enforcing here would turn ordinary generations into
+// llm_bad_output. Teaching the prompt first, then enforcing, is its own slice —
+// and AI drafts still pass through this guard the moment an operator edits them.
+const BODY_LINK_REGEX = /<a\s[^>]*href\s*=\s*["'](?:https?:|mailto:)[^"']*["']/i
+
+export function validateAssetHasLink(content: {
+  bodyTemplateHtml: string
+}): { ok: true } | { ok: false; error: string } {
+  if (BODY_LINK_REGEX.test(content.bodyTemplateHtml ?? '')) return { ok: true }
+  return {
+    ok: false,
+    error:
+      'body_template_html has no link — add a call-to-action link (an https:// URL, ' +
+      'or a mailto: link for a reply-only touch) so the recipient has a path to act on ' +
+      'and clicks are measurable.',
+  }
+}
+
 export function validateActivationReadiness(asset: {
   requiredFields: string[]
   fallbackValues: Record<string, string>
