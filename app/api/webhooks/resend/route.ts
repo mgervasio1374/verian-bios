@@ -10,6 +10,7 @@ import * as structuredErrorRepo from '@/modules/intelligence/structured-errors/s
 import { WEBHOOK_FAILURE_TYPE, SE_SEVERITY } from '@/modules/intelligence/structured-errors/structured-error.types'
 import { stopAssignmentSchedule } from '@/modules/campaign-sequence/services/campaign-stop.service'
 import { terminateOnHardBounce, markContactComplained } from '@/modules/messaging/services/bounce-termination.service'
+import { checkSendCircuitBreaker } from '@/modules/messaging/services/send-circuit-breaker.service'
 
 // ---- Types ----
 
@@ -319,6 +320,17 @@ async function processResendEvent(
       .eq('id', emailSend.id)
   }
   // email.opened, email.clicked → no status update (events are recorded above)
+
+  // ---- Send circuit breaker ----
+  // Evaluated on every bounce/complaint, immediately after the status write so
+  // this event is counted. Kills campaign dispatch tenant-wide if the rolling
+  // bounce or complaint rate breaches its limit — before a stale list can get
+  // the domain blocked or the Resend account suspended. Awaited (Vercel kills
+  // unawaited promises at response freeze) and never throws by contract, so it
+  // cannot turn this webhook into a non-200.
+  if (eventType === 'email.bounced' || eventType === 'email.complained') {
+    await checkSendCircuitBreaker(emailSend.tenant_id as string)
+  }
 
   // ---- Complaint → auto-unsubscribe ----
   if (eventType === 'email.complained') {

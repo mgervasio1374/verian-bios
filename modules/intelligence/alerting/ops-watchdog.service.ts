@@ -2,6 +2,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { recordActivity } from '@/modules/intelligence/services/activity-event.service'
 import type { RecordActivityInput } from '@/modules/intelligence/services/activity-event.service'
 import { ActivityEventType } from '@/modules/intelligence/types.agent'
+import { checkSendCircuitBreaker } from '@/modules/messaging/services/send-circuit-breaker.service'
 import {
   isAlertingEnabled,
   isAlertThrottled,
@@ -81,6 +82,12 @@ export interface OpsWatchdogDeps {
   markAlertSent: (tenantId: string | undefined, key: string, subject: string) => Promise<void>
   recordActivity: (input: RecordActivityInput) => Promise<unknown>
   pingDeadman: () => Promise<void>
+  // Backstop for the send circuit breaker. The primary trigger is the Resend
+  // webhook on each bounce/complaint, but that path is only as reliable as the
+  // webhook itself — which Svix auto-disabled once already (6/25). Re-evaluating
+  // here every 30 minutes means a deliverability breach still stops sending even
+  // with the webhook dead. Idempotent: a no-op once dispatch is already off.
+  checkCircuitBreaker: (tenantId: string, now: Date) => Promise<unknown>
   now: Date
 }
 
@@ -233,6 +240,7 @@ export async function runOpsWatchdog(
     markAlertSent,
     recordActivity,
     pingDeadman: pingDeadmanMonitor,
+    checkCircuitBreaker: checkSendCircuitBreaker,
     now: new Date(),
     ...overrides,
   }
@@ -241,6 +249,9 @@ export async function runOpsWatchdog(
   const failures: WatchdogFailure[] = []
 
   for (const tenantId of tenantIds) {
+    // Backstop the webhook-driven circuit breaker. Never throws by contract;
+    // guarded anyway so it can't cost us the rest of the run.
+    await deps.checkCircuitBreaker(tenantId, deps.now).catch(() => {})
     try {
       const data = await deps.fetchTenantData(tenantId, deps.now)
       failures.push(...evaluateTenantChecks(tenantId, data))

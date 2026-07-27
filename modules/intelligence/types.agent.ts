@@ -308,5 +308,6 @@ export const ActivityEventType = {
   // activity_events so alerting needs no new tables.
   OPS_ALERT_SENT: 'OPS_ALERT_SENT',
   WATCHDOG_RAN:   'WATCHDOG_RAN',
+  SEND_CIRCUIT_BREAKER_TRIPPED: 'SEND_CIRCUIT_BREAKER_TRIPPED',
 } as const
 export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType]
