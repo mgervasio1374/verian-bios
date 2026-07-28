@@ -4,6 +4,14 @@ import { getBooleanControl } from '@/modules/intelligence/repositories/system-co
 import { SystemControlKey } from '@/modules/intelligence/types.agent'
 import { listSendableScheduleItems } from '@/modules/campaign-sequence/repositories/campaign-schedule-item.repo'
 import { dispatchScheduleItemSend } from '@/modules/campaign-sequence/services/campaign-send-dispatcher.service'
+import {
+  evaluateAndAdvanceStage,
+  getRemainingAllowance,
+} from '@/modules/messaging/services/send-velocity.service'
+import {
+  dispatchBroadcast,
+  resumeQueuedBroadcast,
+} from '@/modules/messaging/services/broadcast.service'
 
 interface TenantSendResult {
   tenantId:      string
@@ -15,6 +23,10 @@ interface TenantSendResult {
   deferred?:     number
   failed?:       number
   itemsSkipped?: number
+  // Warmup governor telemetry — null limit means uncapped (no policy configured).
+  dailyLimit?:    number | null
+  sentToday?:     number
+  broadcastSent?: number
 }
 
 interface CampaignSendRunResult {
@@ -28,6 +40,11 @@ interface CampaignSendRunResult {
  * Runs every 15 minutes. For each tenant with CAMPAIGN_SEND_DISPATCH_ENABLED=true,
  * finds due 'approved' campaign_schedule_items (scheduled_for <= now, email_draft_id set)
  * and dispatches each to the email-send service, advancing approved -> sent.
+ *
+ * Before dispatching it consults the send velocity governor: the warmup ramp is
+ * advanced if earned, then the day's remaining allowance caps how many items are
+ * even fetched. With no policy row configured the allowance is unlimited and this
+ * function behaves exactly as it did before the governor existed.
  *
  * GUARDRAILS:
  *   Sends ONLY via dispatchScheduleItemSend (which delegates to the email-send service).
@@ -87,8 +104,29 @@ export const processCampaignSends = inngest.createFunction(
             return { tenantId, workspaceId, skipped: true, reason: 'dispatch_disabled' }
           }
 
+          // Warmup governor: advance the ramp first (so a stage earned overnight
+          // takes effect on this tick), then take today's remaining allowance.
+          await evaluateAndAdvanceStage(tenantId)
+          const allowance = await getRemainingAllowance(tenantId)
+          if (allowance.remaining <= 0) {
+            logger.info(
+              `Campaign send dispatch capped for tenant ${tenantId}: ` +
+              `${allowance.sentToday}/${allowance.limit} sent today (${allowance.reason})`,
+            )
+            return {
+              tenantId, workspaceId, skipped: true,
+              reason:    `daily_cap_reached (${allowance.reason})`,
+              dailyLimit: allowance.limit,
+              sentToday:  allowance.sentToday,
+            }
+          }
+
           const now = new Date().toISOString()
-          const sendableItems = await listSendableScheduleItems(tenantId, workspaceId, now, 100)
+          // Never fetch more than the allowance permits. Slicing here rather than
+          // breaking mid-loop keeps unsent items in 'approved' for the next tick
+          // instead of marking them failed.
+          const fetchLimit = Math.min(100, allowance.remaining)
+          const sendableItems = await listSendableScheduleItems(tenantId, workspaceId, now, fetchLimit)
 
           let sent         = 0
           let deferred     = 0
@@ -117,6 +155,32 @@ export const processCampaignSends = inngest.createFunction(
             `sent=${sent} deferred=${deferred} failed=${failed} skipped=${itemsSkipped}`,
           )
 
+          // Priority 2: whatever the day's allowance has left after campaigns
+          // goes to the active broadcast. Nothing has to detect a "pivot" — a
+          // campaign launched mid-blast simply consumes the allowance first and
+          // the broadcast slows to whatever remains.
+          let broadcastSent = 0
+          try {
+            await resumeQueuedBroadcast(tenantId, workspaceId)
+            const leftover = Math.max(0, allowance.remaining - sent)
+            if (leftover > 0) {
+              const b = await dispatchBroadcast(tenantId, workspaceId, leftover)
+              broadcastSent = b.sent
+              if (b.sent || b.failed || b.completed) {
+                logger.info(
+                  `Broadcast dispatch tenant ${tenantId}: sent=${b.sent} failed=${b.failed} ` +
+                  `skipped=${b.skipped} completed=${b.completed}`,
+                )
+              }
+            }
+          } catch (err) {
+            // A broadcast failure must never abort campaign dispatch, which is
+            // the higher-priority workload and has already succeeded above.
+            logger.error(`Broadcast dispatch failed for tenant ${tenantId}`, {
+              error: err instanceof Error ? err.message : String(err),
+            })
+          }
+
           return {
             tenantId,
             workspaceId,
@@ -125,6 +189,9 @@ export const processCampaignSends = inngest.createFunction(
             deferred,
             failed,
             itemsSkipped,
+            dailyLimit:    allowance.limit,
+            sentToday:     allowance.sentToday + sent + broadcastSent,
+            broadcastSent,
           }
         },
       )

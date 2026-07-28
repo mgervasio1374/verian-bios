@@ -9,6 +9,13 @@ import { formatCompanyName } from '@/lib/format'
 import { addCompaniesToSegmentAction } from '@/modules/crm/actions/segment.actions'
 import { updateCompaniesCustomerStatusAction } from '@/modules/crm/actions/company.actions'
 import { bulkAssignCampaignAction } from '@/modules/messaging/actions/campaign-assignment.actions'
+import {
+  checkActiveBroadcastAction,
+  createBroadcastAction,
+  startBroadcastAction,
+  queueBroadcastAction,
+  terminateBroadcastAction,
+} from '@/modules/messaging/actions/broadcast.actions'
 // V5: pure timing helpers for the live touch-schedule preview (no DB, client-safe)
 import {
   computeTouchSchedule,
@@ -72,10 +79,13 @@ const SORTABLE_COLUMNS: { label: string; column: string }[] = [
   { label: 'Source',   column: 'source' },
 ]
 
+interface BroadcastAssetOption { id: string; name: string }
+
 interface Props {
   companies:       CompanyRow[]
   segments:        SegmentWithCount[]
   sequences:       SequenceOption[]
+  broadcastAssets: BroadcastAssetOption[]
   inCampaignIds:   string[]
   workspaceSlug:   string
   activeSegmentId: string
@@ -95,6 +105,7 @@ export function CompaniesTable({
   companies,
   segments,
   sequences,
+  broadcastAssets,
   inCampaignIds,
   workspaceSlug,
   activeSegmentId,
@@ -123,6 +134,10 @@ export function CompaniesTable({
 
   const [showAssignPanel,  setShowAssignPanel]  = useState(false)
   const [assignSequenceId, setAssignSequenceId] = useState('')
+  const [showBlastPanel,   setShowBlastPanel]   = useState(false)
+  const [blastName,        setBlastName]        = useState('')
+  const [blastAssetId,     setBlastAssetId]     = useState('')
+  const [blastGraceDays,   setBlastGraceDays]   = useState('7')
   const [preApproved,      setPreApproved]      = useState(false)
   const [startMode,        setStartMode]        = useState<'now' | 'date'>('now')
   const [startDate,        setStartDate]        = useState('')
@@ -289,6 +304,63 @@ export function CompaniesTable({
     })
   }
 
+  function handleCreateBroadcast() {
+    setError(null)
+    setSuccessMessage(null)
+
+    const asset = broadcastAssets.find(a => a.id === blastAssetId)
+    if (!blastName.trim()) { setError('Give the one-time email a name.'); return }
+    if (!asset)            { setError('Pick the email to send.'); return }
+
+    const count = selectedIds.size
+    const confirmed = window.confirm(
+      `Send a one-time email to the contacts of ${count} ${count === 1 ? 'company' : 'companies'}?\n\n` +
+      `Email: ${asset.name}\n` +
+      'It goes out at the current sending velocity, not all at once, and yields ' +
+      'to any campaign that starts while it runs.\n\n' +
+      'Customers, former customers, suppressed addresses, and duplicate inboxes are excluded.'
+    )
+    if (!confirmed) return
+
+    const ids = Array.from(selectedIds)
+    startTransition(async () => {
+      const created = await createBroadcastAction({
+        name:                 blastName.trim(),
+        campaignEmailAssetId: blastAssetId,
+        companyIds:           ids,
+        gracePeriodDays:      Number(blastGraceDays) || 7,
+      })
+      if (!created.success) { setError(created.error); return }
+
+      const r = created.data
+      if (r.totalRecipients === 0) {
+        setError('No sendable recipients after exclusions. Nothing was started.')
+        return
+      }
+      const started = await startBroadcastAction(r.broadcastId)
+      if (!started.success) { setError(started.error); return }
+
+      const excluded = [
+        r.skippedDuplicateEmail  > 0 ? `${r.skippedDuplicateEmail} duplicate inboxes` : null,
+        r.skippedSuppressed      > 0 ? `${r.skippedSuppressed} suppressed` : null,
+        r.skippedCustomers       > 0 ? `${r.skippedCustomers} customers` : null,
+        r.skippedFormerCustomers > 0 ? `${r.skippedFormerCustomers} former customers` : null,
+        r.skippedDoNotContact    > 0 ? `${r.skippedDoNotContact} do-not-contact` : null,
+        r.skippedNoEmail         > 0 ? `${r.skippedNoEmail} without email` : null,
+      ].filter(Boolean).join(', ')
+
+      setSuccessMessage(
+        `One-time email started: ${r.totalRecipients} recipients.` +
+        (excluded ? ` Excluded: ${excluded}.` : '')
+      )
+      setSelectedIds(new Set())
+      setShowBlastPanel(false)
+      setBlastName('')
+      setBlastAssetId('')
+      router.refresh()
+    })
+  }
+
   function handleBulkAssign() {
     setError(null)
     setSuccessMessage(null)
@@ -320,6 +392,36 @@ export function CompaniesTable({
 
     const ids = Array.from(selectedIds)
     startTransition(async () => {
+      // A campaign automatically outranks a running broadcast for the daily
+      // send allowance, but the operator still owns the choice the automatic
+      // yield cannot make: hold the blast, let it trickle alongside, or drop it.
+      const active = await checkActiveBroadcastAction()
+      if (active.success && active.data) {
+        const b = active.data
+        const hold = window.confirm(
+          `A one-time email is ${b.status}: "${b.name}", ${b.remaining} recipients left.\n\n` +
+          'This campaign takes priority for the daily send allowance either way.\n\n' +
+          `OK: hold the one-time email and resume it ${b.gracePeriodDays} days after this campaign finishes.\n` +
+          'Cancel: decide between keeping it running or dropping it.'
+        )
+        if (hold) {
+          if (b.status === 'active') {
+            const queued = await queueBroadcastAction(b.broadcastId)
+            if (!queued.success) { setError(queued.error); return }
+          }
+        } else {
+          const keep = window.confirm(
+            `Keep "${b.name}" running alongside this campaign?\n\n` +
+            'OK: keep it running. It sends only what the campaign leaves of the daily allowance.\n' +
+            'Cancel: terminate it. Remaining recipients will never be emailed.'
+          )
+          if (!keep) {
+            const terminated = await terminateBroadcastAction(b.broadcastId)
+            if (!terminated.success) { setError(terminated.error); return }
+          }
+        }
+      }
+
       const result = await bulkAssignCampaignAction(ids, assignSequenceId, preApproved, undefined, startsAt)
       if (!result.success) {
         setError(result.error)
@@ -337,8 +439,16 @@ export function CompaniesTable({
       const customerSuffix = t.skippedCustomers > 0
         ? ` Skipped ${t.skippedCustomers} customer${t.skippedCustomers === 1 ? '' : 's'} — excluded from campaigns.`
         : ''
+      // Both of these read as missing assignments unless we say why, so they get
+      // their own sentence rather than joining the terse skipped list.
+      const formerSuffix = t.skippedFormerCustomers > 0
+        ? ` Skipped ${t.skippedFormerCustomers} former customer${t.skippedFormerCustomers === 1 ? '' : 's'} — they need a win-back campaign, not cold copy.`
+        : ''
+      const sharedInboxSuffix = t.skippedDuplicateRecipient > 0
+        ? ` Skipped ${t.skippedDuplicateRecipient} contact${t.skippedDuplicateRecipient === 1 ? '' : 's'} already in this campaign — one person can own several locations, and they get one email.`
+        : ''
       setSuccessMessage(
-        `Created ${t.created} assignment${t.created === 1 ? '' : 's'}.${skipped ? ` Skipped: ${skipped}.` : ''}${customerSuffix}${warningSuffix}`
+        `Created ${t.created} assignment${t.created === 1 ? '' : 's'}.${skipped ? ` Skipped: ${skipped}.` : ''}${customerSuffix}${formerSuffix}${sharedInboxSuffix}${warningSuffix}`
       )
       setSelectedIds(new Set())
       setShowAssignPanel(false)
@@ -494,6 +604,14 @@ export function CompaniesTable({
             >
               Assign campaign
             </button>
+            <button
+              type="button"
+              onClick={() => setShowBlastPanel(prev => !prev)}
+              disabled={pending}
+              className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+            >
+              One-time email
+            </button>
             <span className="h-5 w-px bg-border" aria-hidden="true" />
             <select
               value={customerStatusValue}
@@ -516,6 +634,77 @@ export function CompaniesTable({
             </button>
           </div>
         </div>
+      )}
+
+      {/* One-time email panel — a single send to the whole selection, dripped
+          at the current velocity and yielding to any campaign. */}
+      {selectedIds.size > 0 && showBlastPanel && (
+        broadcastAssets.length === 0 ? (
+          <div className="rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+            No activated email assets exist yet.{' '}
+            <Link href={`/${workspaceSlug}/settings/campaign-assets`} className="text-primary hover:underline">
+              Create and activate one
+            </Link>
+            {' '}first. Only reviewed, active copy can go out as a one-time email.
+          </div>
+        ) : (
+          <div className="space-y-3 rounded-md border bg-muted/20 px-3 py-3">
+            <div className="text-xs font-medium">
+              One-time email to {selectedIds.size} {selectedIds.size === 1 ? 'company' : 'companies'}
+            </div>
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="flex flex-col gap-1 text-xs">
+                <span className="font-medium">Name</span>
+                <input
+                  type="text"
+                  value={blastName}
+                  onChange={e => setBlastName(e.target.value)}
+                  placeholder="e.g. Fall rate review offer"
+                  className="w-56 rounded border px-2 py-1.5 text-sm"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs">
+                <span className="font-medium">Email</span>
+                <select
+                  value={blastAssetId}
+                  onChange={e => setBlastAssetId(e.target.value)}
+                  className="w-56 rounded border bg-background px-2 py-1.5 text-sm"
+                >
+                  <option value="">Choose an active asset…</option>
+                  {broadcastAssets.map(a => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-xs">
+                <span className="font-medium">Grace period</span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    min={0}
+                    value={blastGraceDays}
+                    onChange={e => setBlastGraceDays(e.target.value)}
+                    className="w-16 rounded border px-2 py-1.5 text-sm"
+                  />
+                  <span className="text-muted-foreground">days</span>
+                </div>
+              </label>
+              <button
+                type="button"
+                onClick={handleCreateBroadcast}
+                disabled={pending || !blastAssetId || !blastName.trim()}
+                className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                {pending ? 'Starting…' : 'Start sending'}
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Sends at the current velocity until the rotation finishes. If a campaign starts
+              meanwhile it takes priority, and you can hold this email and resume it after the
+              grace period rather than losing the list.
+            </p>
+          </div>
+        )
       )}
 
       {/* Assign-campaign panel (MCM v2 Slice S3) */}

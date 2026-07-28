@@ -130,8 +130,10 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         label: 'Sending',
         items: [
-          { label: 'Segments',       path: '/settings/segments',       icon: Tags },
-          { label: 'Campaign Queue', path: '/settings/campaign-queue', icon: ListTodo },
+          { label: 'Segments',         path: '/settings/segments',       icon: Tags },
+          { label: 'Campaign Queue',   path: '/settings/campaign-queue', icon: ListTodo },
+          { label: 'One-time Emails',  path: '/settings/broadcasts',     icon: Send },
+          { label: 'Sending Velocity', path: '/settings/warmup',         icon: Gauge },
         ],
       },
       {

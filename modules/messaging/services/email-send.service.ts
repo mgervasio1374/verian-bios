@@ -6,6 +6,7 @@ import * as emailDraftRepo from '@/modules/messaging/repositories/email-draft.re
 import * as suppressionRepo from '@/modules/messaging/repositories/suppression.repo'
 import { buildComplianceFooter, appendFooter } from '@/modules/messaging/services/compliance-footer.service'
 import * as rateLimitService from '@/modules/messaging/services/rate-limit.service'
+import * as campaignRecipientGuard from '@/modules/messaging/services/campaign-recipient-guard.service'
 import * as contactRepo from '@/modules/crm/repositories/contact.repo'
 import * as approvalRepo from '@/modules/workflow/repositories/approval.repo'
 import * as activityEventService from '@/modules/intelligence/services/activity-event.service'
@@ -36,6 +37,7 @@ export type SendResult =
  *   4. Idempotency guard: block if a queued/sent send already exists
  *   5. Recipient validation: email present, do_not_contact false
  *   6. Suppression checks: unsubscribes, suppression_rules (email + domain)
+ *   6b. Campaign recipient duplicate: one inbox, one enrollment per sequence
  *   7. Rate limit policy check
  *   8. Sender identity present
  *
@@ -142,6 +144,23 @@ export async function sendApprovedDraft(
   const suppression = await suppressionRepo.checkEmailSuppression(ctx.tenantId, draft.to_email)
   if (suppression.blocked) {
     return { ok: false, reason: `suppression_blocked (${suppression.reason})` }
+  }
+
+  // ---- 6b. Campaign recipient duplicate ----
+  // One inbox, one enrollment per sequence. Blocks the case where the same
+  // address was enrolled through two assignments (one owner, several company
+  // records). Later touches of the SAME assignment are unaffected.
+  const recipientGuard = await campaignRecipientGuard.checkCampaignRecipientDuplicate({
+    tenantId:             ctx.tenantId,
+    toEmail:              draft.to_email,
+    campaignSequenceId:   mcmContext?.campaignSequenceId ?? null,
+    campaignAssignmentId: mcmContext?.campaignAssignmentId ?? null,
+  })
+  if (recipientGuard.blocked) {
+    return {
+      ok: false,
+      reason: `recipient_already_in_campaign (assignment ${recipientGuard.conflictingAssignmentId})`,
+    }
   }
 
   // ---- 7. Rate limit ----

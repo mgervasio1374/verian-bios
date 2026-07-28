@@ -250,8 +250,12 @@ describe('TC-S3-07: CompaniesTable assign-campaign UI (source-read)', () => {
   })
 
   it('clears selection and refreshes on success', () => {
+    // Bounded by the next handler declaration rather than a character count: the
+    // fixed 3000-char window silently stopped covering the whole function once
+    // the broadcast prompt was added ahead of the assign call.
     const idx  = table.indexOf('function handleBulkAssign')
-    const body = table.slice(idx, idx + 3000)
+    const next = table.indexOf('\n  function ', idx + 1)
+    const body = table.slice(idx, next === -1 ? undefined : next)
     expect(body).toContain('setSelectedIds(new Set())')
     expect(body).toContain('router.refresh()')
   })

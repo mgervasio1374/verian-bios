@@ -309,5 +309,12 @@ export const ActivityEventType = {
   OPS_ALERT_SENT: 'OPS_ALERT_SENT',
   WATCHDOG_RAN:   'WATCHDOG_RAN',
   SEND_CIRCUIT_BREAKER_TRIPPED: 'SEND_CIRCUIT_BREAKER_TRIPPED',
+  // Warmup governor — the ramp moved to a higher daily cap. Paired with the
+  // breaker event above so the timeline shows both directions of volume change.
+  SEND_VELOCITY_STAGE_ADVANCED: 'SEND_VELOCITY_STAGE_ADVANCED',
+  // One-time broadcasts — lifecycle transitions an operator needs on the timeline.
+  BROADCAST_QUEUED:     'BROADCAST_QUEUED',
+  BROADCAST_TERMINATED: 'BROADCAST_TERMINATED',
+  BROADCAST_COMPLETED:  'BROADCAST_COMPLETED',
 } as const
 export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType]

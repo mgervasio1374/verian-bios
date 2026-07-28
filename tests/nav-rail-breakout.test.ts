@@ -31,6 +31,8 @@ const LEGACY_HREFS = [
   '/acme/settings/exemplars',
   '/acme/settings/email-signature',
   '/acme/settings/campaign-queue',
+  '/acme/settings/broadcasts',
+  '/acme/settings/warmup',
   '/acme/settings/replies',
   '/acme/settings/agent-monitor',
   '/acme/settings/system-intelligence',
@@ -45,10 +47,10 @@ const LEGACY_HREFS = [
 ]
 
 describe('nav-rail-breakout: route preservation', () => {
-  it('flattened config contains exactly the 33 legacy hrefs — none lost, none altered', () => {
+  it('flattened config contains exactly the 35 known hrefs — none lost, none altered', () => {
     const configHrefs = allNavPaths().map((p) => `/acme${p}`)
-    expect(configHrefs).toHaveLength(33)
-    expect(LEGACY_HREFS).toHaveLength(33)
+    expect(configHrefs).toHaveLength(35)
+    expect(LEGACY_HREFS).toHaveLength(35)
     expect([...configHrefs].sort()).toEqual([...LEGACY_HREFS].sort())
   })
 
@@ -122,7 +124,9 @@ describe('nav-rail-breakout: outreach panel partition', () => {
       'Voice Exemplars',
       'Email Signature',
     ])
-    expect(labels('Sending')).toEqual(['Segments', 'Campaign Queue'])
+    expect(labels('Sending')).toEqual([
+      'Segments', 'Campaign Queue', 'One-time Emails', 'Sending Velocity',
+    ])
     expect(labels('Responses')).toEqual(['Replies'])
   })
 })

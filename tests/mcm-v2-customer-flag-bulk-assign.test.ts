@@ -10,6 +10,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 const h = vi.hoisted(() => ({
   inserted:   [] as Array<Record<string, unknown>>,
   activations: 0,
+  preEnrolled: [] as string[],
 }))
 
 // Sequence + type + steps: a valid sequence with no steps (no assets to load).
@@ -40,10 +41,12 @@ vi.mock('@/modules/crm/repositories/contact.repo', () => ({
   ]),
 }))
 
-// Assignment repo: no duplicates; capture each insert.
+// Assignment repo: no duplicates; capture each insert. enrolledEmails starts
+// empty so every company in the cohort is a fresh recipient.
 vi.mock('@/modules/messaging/repositories/campaign-assignment.repo', () => ({
   getActiveDuplicateAssignment: () => Promise.resolve(null),
   getActiveDuplicateAssignmentContact: () => Promise.resolve(null),
+  listActiveAssignmentEmailsForSequence: () => Promise.resolve(new Set(h.preEnrolled)),
   insertCampaignAssignment: (row: Record<string, unknown>) => {
     const persisted = { ...row, id: `asg-${h.inserted.length + 1}`, starts_at: null }
     h.inserted.push(persisted)
@@ -70,10 +73,11 @@ import { bulkAssignCampaignToCompanies } from '@/modules/messaging/services/camp
 beforeEach(() => {
   h.inserted    = []
   h.activations = 0
+  h.preEnrolled = []
 })
 
 describe('TC-CF-07: bulk-assign hard-skips customers (behavioral)', () => {
-  it('creates assignments for prospect + former only; tallies the skipped customer', async () => {
+  it('creates assignments for prospects only; tallies customer and former separately', async () => {
     const tally = await bulkAssignCampaignToCompanies({
       tenantId:    't1',
       workspaceId: 'w1',
@@ -82,21 +86,21 @@ describe('TC-CF-07: bulk-assign hard-skips customers (behavioral)', () => {
       autoApproveFirstTouch: false,
     })
 
-    expect(tally.created).toBe(2)
+    expect(tally.created).toBe(1)
     expect(tally.skippedCustomers).toBe(1)
+    expect(tally.skippedFormerCustomers).toBe(1)
 
-    // The customer's contact never reached assignment creation.
+    // Neither the customer's nor the former customer's contact reached creation.
     const contactIds = h.inserted.map(r => r.contact_id)
     expect(contactIds).toContain('contact-co-prospect')
-    expect(contactIds).toContain('contact-co-former')
     expect(contactIds).not.toContain('contact-co-customer')
+    expect(contactIds).not.toContain('contact-co-former')
 
-    // No activation event (→ no schedule materialization) for the customer:
-    // exactly two activations, one per created assignment.
-    expect(h.activations).toBe(2)
+    // No activation event (→ no schedule materialization) for either skip.
+    expect(h.activations).toBe(1)
   })
 
-  it('former_customer stays eligible (win-back) — not counted as a skip', async () => {
+  it('former_customer is skipped by default — cold copy must not reach someone who left', async () => {
     const tally = await bulkAssignCampaignToCompanies({
       tenantId:    't1',
       workspaceId: 'w1',
@@ -104,7 +108,35 @@ describe('TC-CF-07: bulk-assign hard-skips customers (behavioral)', () => {
       campaignSequenceId:    'seq1',
       autoApproveFirstTouch: false,
     })
+    expect(tally.created).toBe(0)
+    expect(tally.skippedFormerCustomers).toBe(1)
+    expect(tally.skippedCustomers).toBe(0)   // counted as former, not as an active customer
+    expect(h.activations).toBe(0)
+  })
+
+  it('former_customer becomes eligible when the caller opts in (win-back)', async () => {
+    const tally = await bulkAssignCampaignToCompanies({
+      tenantId:    't1',
+      workspaceId: 'w1',
+      companyIds:  ['co-former'],
+      campaignSequenceId:    'seq1',
+      autoApproveFirstTouch: false,
+      includeFormerCustomers: true,
+    })
     expect(tally.created).toBe(1)
-    expect(tally.skippedCustomers).toBe(0)
+    expect(tally.skippedFormerCustomers).toBe(0)
+  })
+
+  it('the opt-in never reaches an active customer', async () => {
+    const tally = await bulkAssignCampaignToCompanies({
+      tenantId:    't1',
+      workspaceId: 'w1',
+      companyIds:  ['co-customer'],
+      campaignSequenceId:    'seq1',
+      autoApproveFirstTouch: false,
+      includeFormerCustomers: true,
+    })
+    expect(tally.created).toBe(0)
+    expect(tally.skippedCustomers).toBe(1)
   })
 })

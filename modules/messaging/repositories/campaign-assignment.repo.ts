@@ -334,6 +334,51 @@ export async function countActiveAssignmentsForSequence(
   return count ?? 0
 }
 
+// Lowercased email addresses that already hold a live assignment on this
+// sequence. Bulk assign uses it to keep one inbox from being enrolled once per
+// company it owns: the imported book has 147 addresses spread across multiple
+// company records (multi-location franchise operators share a single address),
+// and company dedupe correctly keeps those companies distinct. Without this,
+// one owner receives every touch of the sequence once per location.
+export async function listActiveAssignmentEmailsForSequence(
+  sequenceId:  string,
+  tenantId:    string,
+  workspaceId: string,
+): Promise<Set<string>> {
+  const supabase = createSupabaseServiceClient()
+  const { data, error } = await supabase
+    .from('campaign_assignments')
+    .select('contact_id')
+    .eq('tenant_id', tenantId)
+    .eq('workspace_id', workspaceId)
+    .eq('campaign_sequence_id', sequenceId)
+    .in('assignment_status', ['proposed', 'assigned'])
+
+  if (error) throw new Error('listActiveAssignmentEmailsForSequence: ' + error.message)
+
+  const contactIds = [...new Set(
+    (data ?? []).map(r => r.contact_id as string | null).filter((id): id is string => !!id),
+  )]
+  if (contactIds.length === 0) return new Set()
+
+  // Chunked so a large sequence cannot build an oversized IN list.
+  const emails = new Set<string>()
+  for (let i = 0; i < contactIds.length; i += 500) {
+    const { data: contacts, error: contactError } = await supabase
+      .from('contacts')
+      .select('email')
+      .eq('tenant_id', tenantId)
+      .in('id', contactIds.slice(i, i + 500))
+
+    if (contactError) throw new Error('listActiveAssignmentEmailsForSequence: ' + contactError.message)
+    for (const c of contacts ?? []) {
+      const email = (c.email as string | null)?.trim().toLowerCase()
+      if (email) emails.add(email)
+    }
+  }
+  return emails
+}
+
 export async function countActiveAssignmentsForSequences(
   sequenceIds: string[],
   tenantId:    string,

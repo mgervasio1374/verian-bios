@@ -7,6 +7,7 @@ import { listManualSequencesForWorkspace } from '@/modules/campaign-sequence/rep
 import { listCampaignSequenceStepsForSequence } from '@/modules/campaign-sequence/repositories/campaign-sequence-step.repo'
 import { listCampaignTypes } from '@/modules/campaign-sequence/repositories/campaign-type.repo'
 import { getCompaniesInActiveCampaigns } from '@/modules/messaging/repositories/campaign-assignment.repo'
+import { listAssetsByStatus } from '@/modules/messaging/repositories/campaign-email-asset.repo'
 import { sequencesWithPromptRisk } from '@/modules/campaign-sequence/services/sequence-usage.service'
 import { AddCompanyDialog } from './AddCompanyDialog'
 import { CompaniesTable } from './CompaniesTable'
@@ -76,6 +77,12 @@ export default async function CompaniesPage({ params, searchParams }: PageProps)
     listCampaignTypes({ tenantId: ctx.tenantId, workspaceId: ctx.workspaceId }).catch(() => []),
   ])
 
+  // One-time broadcast picks a single reviewed asset. Only 'active' qualifies:
+  // a blast is the largest send the system makes and is the worst place to
+  // discover unreviewed copy.
+  const broadcastAssets = await listAssetsByStatus(ctx.tenantId, ctx.workspaceId, 'active')
+    .catch(() => [])
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   const typeSlugById = new Map(campaignTypes.map(t => [t.id, t.slug]))
@@ -124,6 +131,7 @@ export default async function CompaniesPage({ params, searchParams }: PageProps)
         companies={companies}
         segments={segments}
         sequences={sequences}
+        broadcastAssets={broadcastAssets.map(a => ({ id: a.id, name: a.asset_name }))}
         inCampaignIds={[...inCampaign]}
         workspaceSlug={workspaceSlug}
         activeSegmentId={segment ?? ''}

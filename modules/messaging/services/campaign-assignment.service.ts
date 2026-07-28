@@ -199,6 +199,10 @@ export interface BulkAssignInput {
   assignedByUserId?:     string
   assignmentReason?:     string
   startsAt?:             string // ISO; omitted = start immediately
+  // Win-back opt-in. Cold campaigns must not reach a merchant who already left
+  // us — the copy reads as though we never met. Defaults false; a deliberate
+  // win-back campaign sets it true.
+  includeFormerCustomers?: boolean
 }
 
 export interface BulkAssignTally {
@@ -207,6 +211,9 @@ export interface BulkAssignTally {
   skippedNoEmail:          number
   skippedDoNotContact:     number
   skippedCustomers:        number
+  skippedFormerCustomers:  number
+  // One inbox, one enrollment per sequence — see listActiveAssignmentEmailsForSequence.
+  skippedDuplicateRecipient: number
   companiesWithNoContacts: number
   failed:                  number
   // V1 prompt-leak heuristic — warnings only, the assignment still proceeds
@@ -278,19 +285,35 @@ export async function bulkAssignCampaignToCompanies(
   }
 
   const tally: BulkAssignTally = {
-    created:                 0,
-    skippedDuplicate:        0,
-    skippedNoEmail:          0,
-    skippedDoNotContact:     0,
-    skippedCustomers:        0,
-    companiesWithNoContacts: 0,
-    failed:                  0,
+    created:                   0,
+    skippedDuplicate:          0,
+    skippedNoEmail:            0,
+    skippedDoNotContact:       0,
+    skippedCustomers:          0,
+    skippedFormerCustomers:    0,
+    skippedDuplicateRecipient: 0,
+    companiesWithNoContacts:   0,
+    failed:                    0,
   }
+
+  // One inbox, one enrollment per sequence. Seeded with the addresses already
+  // enrolled so re-running a bulk assign cannot double-enroll, then extended as
+  // this batch assigns. Multi-location operators own several company records but
+  // share one address; without this each location enrolls that address again and
+  // the owner receives every touch of the sequence once per location. Complaints
+  // suspend a Resend account around 0.1%, an order of magnitude below the bounce
+  // limit, so duplicate delivery is the more dangerous of the two failures.
+  // Deliberately NOT wrapped in a catch: if we cannot establish who is already
+  // enrolled we must not guess. Failing the assignment is recoverable; sending
+  // one person five copies of the same campaign is not.
+  const enrolledEmails = await assignmentRepo.listActiveAssignmentEmailsForSequence(
+    input.campaignSequenceId, input.tenantId, input.workspaceId,
+  )
 
   // Customer-status exclusion gate: cold campaigns must never email existing
   // customers (deliverability + trust risk). Build a status map up front so the
-  // per-company skip is a cheap lookup. 'former_customer' stays eligible —
-  // former customers are valid win-back targets.
+  // per-company skip is a cheap lookup. 'former_customer' is skipped too unless
+  // the caller opted in, so a win-back campaign remains possible.
   const companiesForStatus = await listCompanies({
     tenantId:    input.tenantId,
     workspaceId: input.workspaceId,
@@ -328,8 +351,16 @@ export async function bulkAssignCampaignToCompanies(
 
   for (const companyId of input.companyIds) {
     // Hard-skip existing customers — never cold-email them.
-    if (customerStatusById.get(companyId) === 'customer') {
+    const status = customerStatusById.get(companyId)
+    if (status === 'customer') {
       tally.skippedCustomers++
+      continue
+    }
+    // Former customers left for a reason (pricing, service, sale of the
+    // business). Cold copy addressed to them as strangers invites a complaint,
+    // so they are opt-in only and belong in a win-back sequence of their own.
+    if (status === 'former_customer' && !input.includeFormerCustomers) {
+      tally.skippedFormerCustomers++
       continue
     }
 
@@ -355,6 +386,13 @@ export async function bulkAssignCampaignToCompanies(
         continue
       }
 
+      // One inbox, one enrollment per sequence.
+      const normalizedEmail = contact.email.trim().toLowerCase()
+      if (enrolledEmails.has(normalizedEmail)) {
+        tally.skippedDuplicateRecipient++
+        continue
+      }
+
       // Per-contact try/catch — one bad contact must not abort the batch.
       try {
         const result = await createCampaignAssignment({
@@ -372,6 +410,9 @@ export async function bulkAssignCampaignToCompanies(
 
         if (result.ok) {
           tally.created++
+          // Claim the address for the rest of this batch, so two companies
+          // sharing an owner cannot both enroll them in the same run.
+          enrolledEmails.add(normalizedEmail)
         } else if (result.reason === 'duplicate') {
           tally.skippedDuplicate++
         } else {
