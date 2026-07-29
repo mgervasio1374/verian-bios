@@ -3,6 +3,9 @@ import { buildRequestContext } from '@/lib/auth/context'
 import { getWorkflowHealth } from '@/modules/workflow/services/health.service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { getSendHaltStatus } from '@/modules/messaging/services/send-halt-status.service'
+import { SendHaltBanner } from '@/components/messaging/SendHaltBanner'
+import { AlertChannelTest } from './AlertChannelTest'
 
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
@@ -12,10 +15,13 @@ export default async function WorkflowHealthPage({ params }: PageProps) {
   await params
   const supabase = await createSupabaseServerClient()
   const ctx = await buildRequestContext(supabase)
-  const health = await getWorkflowHealth(ctx)
+  const health     = await getWorkflowHealth(ctx)
+  const haltStatus = await getSendHaltStatus(ctx.tenantId)
 
   return (
     <div className="space-y-6 max-w-5xl">
+      <SendHaltBanner status={haltStatus} />
+      <AlertChannelTest />
       <div>
         <h1 className="text-2xl font-bold">Workflow Health</h1>
         <p className="text-muted-foreground text-sm">

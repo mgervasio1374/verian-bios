@@ -53,22 +53,43 @@ export async function isAlertThrottled(key: string, now: Date = new Date()): Pro
 // throws without RESEND_API_KEY, and this module is reached from the
 // createStructuredError chokepoint — loading it eagerly would make every
 // importer (and every test) depend on Resend env/mocks.
-export async function sendOpsEmail(subject: string, body: string): Promise<boolean> {
-  const to = process.env.ALERT_EMAIL
+export type OpsEmailOutcome =
+  | { ok: true;  to: string; from: string }
+  | { ok: false
+      reason: 'missing_alert_email' | 'missing_alert_from_email' | 'provider_rejected' | 'threw'
+      detail?: string }
+
+/**
+ * Diagnostic variant.
+ *
+ * sendOpsEmail collapses every failure to `false`, which made a silent alerting
+ * channel indistinguishable from a misconfigured one: an unset env var and a
+ * Resend rejection looked identical from the outside. That ambiguity is exactly
+ * what left the question "has an alert email ever actually been delivered?"
+ * unanswerable. This reports which failure it was so the operator can act.
+ */
+export async function sendOpsEmailDiagnostic(
+  subject: string,
+  body: string,
+): Promise<OpsEmailOutcome> {
+  const to   = process.env.ALERT_EMAIL
   const from = process.env.ALERT_FROM_EMAIL
-  if (!to || !from) return false
+  if (!to)   return { ok: false, reason: 'missing_alert_email' }
+  if (!from) return { ok: false, reason: 'missing_alert_from_email' }
   try {
     const { resend } = await import('@/lib/resend/client')
-    const { error } = await resend.emails.send({
-      from,
-      to: [to],
-      subject,
-      text: body,
-    })
-    return !error
-  } catch {
-    return false
+    const { error } = await resend.emails.send({ from, to: [to], subject, text: body })
+    if (error) {
+      return { ok: false, reason: 'provider_rejected', detail: error.message ?? String(error) }
+    }
+    return { ok: true, to, from }
+  } catch (err) {
+    return { ok: false, reason: 'threw', detail: err instanceof Error ? err.message : String(err) }
   }
+}
+
+export async function sendOpsEmail(subject: string, body: string): Promise<boolean> {
+  return (await sendOpsEmailDiagnostic(subject, body)).ok
 }
 
 // Durable throttle marker. Without a tenantId there is nothing to attribute
