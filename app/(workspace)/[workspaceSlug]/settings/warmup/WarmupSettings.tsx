@@ -86,7 +86,13 @@ export function WarmupSettings({ snapshot }: { snapshot: WarmupSnapshot }) {
                   }}
                 />
               </div>
-              <p className="text-xs text-muted-foreground">{snapshot.stageLabel}</p>
+              {p && !p.warmupEnabled ? (
+                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  {snapshot.stageLabel}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">{snapshot.stageLabel}</p>
+              )}
               {snapshot.todayLimit === 0 && (
                 <p className="text-xs text-muted-foreground">
                   Nothing sends today. Weekday-only sending is on and this is a weekend.

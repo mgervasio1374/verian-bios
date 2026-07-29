@@ -48,9 +48,19 @@ export async function getWarmupSnapshotAction(): Promise<ActionResult<WarmupSnap
         todayLimit: limit,
         sentToday,
         remaining:  limit === null ? -1 : Math.max(0, limit - sentToday),
-        stageLabel: stage
-          ? `Stage ${(policy?.currentStageIndex ?? 0) + 1} of ${policy?.stages.length} — ${stage.cap}/day`
-          : 'No stage configured',
+        // Never name a stage unless that stage is actually governing. With the
+        // ramp off the stage list is inert and only the plan ceiling applies;
+        // showing "Stage 1 of 5, 20/day" beside a 100/day cap reads as though
+        // the warmup were running, which is the one misreading that matters —
+        // it would send 100 on day one from a cold domain.
+        stageLabel: !policy
+          ? 'No policy saved'
+          : !policy.warmupEnabled
+            ? `Warmup ramp OFF. Plan ceiling only: ${policy.hardDailyCeiling}/day. ` +
+              'Turn on "Follow the warmup ramp" below to use the stages.'
+            : stage
+              ? `Stage ${policy.currentStageIndex + 1} of ${policy.stages.length}, ${Math.min(stage.cap, policy.hardDailyCeiling)}/day`
+              : 'No stage configured',
       },
     }
   } catch (err) {
