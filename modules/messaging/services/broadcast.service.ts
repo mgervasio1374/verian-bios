@@ -194,15 +194,21 @@ export async function createBroadcast(input: CreateBroadcastInput): Promise<Crea
     skippedCustomers: 0, skippedFormerCustomers: 0, skippedDuplicateEmail: 0,
   }
 
-  // Company status, to apply the same cold-campaign exclusions.
-  const { data: companies } = await supabase
-    .from('companies')
-    .select('id, customer_status')
-    .eq('tenant_id', input.tenantId)
-    .in('id', input.companyIds.slice(0, 5000))
-  const statusById = new Map(
-    (companies ?? []).map(c => [c.id as string, c.customer_status as string | null]),
-  )
+  // Company status, to apply the same cold-campaign exclusions. Chunked rather
+  // than truncated: a missing entry reads as "no status", which would silently
+  // let customers and former customers through on any cohort past the cutoff.
+  const statusById = new Map<string, string | null>()
+  for (let i = 0; i < input.companyIds.length; i += 500) {
+    const { data: companies, error } = await supabase
+      .from('companies')
+      .select('id, customer_status')
+      .eq('tenant_id', input.tenantId)
+      .in('id', input.companyIds.slice(i, i + 500))
+    if (error) throw new Error(`createBroadcast company status: ${error.message}`)
+    for (const c of companies ?? []) {
+      statusById.set(c.id as string, c.customer_status as string | null)
+    }
+  }
 
   const seenEmails = new Set<string>()
   const rows: Array<Record<string, unknown>> = []

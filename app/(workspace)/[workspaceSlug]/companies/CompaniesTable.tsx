@@ -138,6 +138,11 @@ export function CompaniesTable({
   const [blastName,        setBlastName]        = useState('')
   const [blastAssetId,     setBlastAssetId]     = useState('')
   const [blastGraceDays,   setBlastGraceDays]   = useState('7')
+  // 'selected' = the checked rows on this page; 'filtered' = every company
+  // matching the current filters, resolved server-side. The table paginates at
+  // 50 and clears selection when paging, so 'filtered' is the only way to
+  // address a whole book in one send.
+  const [blastScope,       setBlastScope]       = useState<'selected' | 'filtered'>('selected')
   const [preApproved,      setPreApproved]      = useState(false)
   const [startMode,        setStartMode]        = useState<'now' | 'date'>('now')
   const [startDate,        setStartDate]        = useState('')
@@ -312,9 +317,11 @@ export function CompaniesTable({
     if (!blastName.trim()) { setError('Give the one-time email a name.'); return }
     if (!asset)            { setError('Pick the email to send.'); return }
 
-    const count = selectedIds.size
+    const scopeLabel = blastScope === 'filtered'
+      ? `all ${total} ${total === 1 ? 'company' : 'companies'} matching the current filters`
+      : `${selectedIds.size} selected ${selectedIds.size === 1 ? 'company' : 'companies'}`
     const confirmed = window.confirm(
-      `Send a one-time email to the contacts of ${count} ${count === 1 ? 'company' : 'companies'}?\n\n` +
+      `Send a one-time email to the contacts of ${scopeLabel}?\n\n` +
       `Email: ${asset.name}\n` +
       'It goes out at the current sending velocity, not all at once, and yields ' +
       'to any campaign that starts while it runs.\n\n' +
@@ -322,12 +329,22 @@ export function CompaniesTable({
     )
     if (!confirmed) return
 
-    const ids = Array.from(selectedIds)
     startTransition(async () => {
       const created = await createBroadcastAction({
         name:                 blastName.trim(),
         campaignEmailAssetId: blastAssetId,
-        companyIds:           ids,
+        ...(blastScope === 'filtered'
+          ? {
+              filter: {
+                search:         search || undefined,
+                segmentId:      activeSegmentId || undefined,
+                status:         activeStatus || undefined,
+                industry:       activeIndustry || undefined,
+                customerStatus: (activeCustomer || undefined) as
+                  'prospect' | 'customer' | 'former_customer' | undefined,
+              },
+            }
+          : { companyIds: Array.from(selectedIds) }),
         gracePeriodDays:      Number(blastGraceDays) || 7,
       })
       if (!created.success) { setError(created.error); return }
@@ -606,7 +623,7 @@ export function CompaniesTable({
             </button>
             <button
               type="button"
-              onClick={() => setShowBlastPanel(prev => !prev)}
+              onClick={() => { setBlastScope('selected'); setShowBlastPanel(true) }}
               disabled={pending}
               className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
             >
@@ -636,9 +653,25 @@ export function CompaniesTable({
         </div>
       )}
 
-      {/* One-time email panel — a single send to the whole selection, dripped
-          at the current velocity and yielding to any campaign. */}
-      {selectedIds.size > 0 && showBlastPanel && (
+      {/* Always-available entry point. The bulk toolbar only appears once rows
+          are checked, but a whole-book send is defined by the FILTER, not by a
+          selection, so it must be reachable with nothing checked. */}
+      {!showBlastPanel && (
+        <div className="flex items-center justify-end">
+          <button
+            type="button"
+            onClick={() => { setBlastScope(selectedIds.size > 0 ? 'selected' : 'filtered'); setShowBlastPanel(true) }}
+            disabled={pending}
+            className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+          >
+            Send a one-time email
+          </button>
+        </div>
+      )}
+
+      {/* One-time email panel — a single send to the chosen cohort, dripped at
+          the current velocity and yielding to any campaign. */}
+      {showBlastPanel && (
         broadcastAssets.length === 0 ? (
           <div className="rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
             No activated email assets exist yet.{' '}
@@ -649,8 +682,51 @@ export function CompaniesTable({
           </div>
         ) : (
           <div className="space-y-3 rounded-md border bg-muted/20 px-3 py-3">
-            <div className="text-xs font-medium">
-              One-time email to {selectedIds.size} {selectedIds.size === 1 ? 'company' : 'companies'}
+            <div className="flex items-center justify-between">
+              <div className="text-xs font-medium">One-time email</div>
+              <button
+                type="button"
+                onClick={() => setShowBlastPanel(false)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="text-xs font-medium">Who it goes to</div>
+              <label className="flex items-start gap-2 text-xs">
+                <input
+                  type="radio"
+                  name="blast-scope"
+                  checked={blastScope === 'filtered'}
+                  onChange={() => setBlastScope('filtered')}
+                  className="mt-0.5"
+                />
+                <span>
+                  All {total} {total === 1 ? 'company' : 'companies'} matching the current filters
+                  <span className="block text-muted-foreground">
+                    Resolved on the server, so it covers every page, not just this one.
+                    Narrow it first with search, segment, industry, or status.
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2 text-xs">
+                <input
+                  type="radio"
+                  name="blast-scope"
+                  checked={blastScope === 'selected'}
+                  onChange={() => setBlastScope('selected')}
+                  disabled={selectedIds.size === 0}
+                  className="mt-0.5"
+                />
+                <span className={selectedIds.size === 0 ? 'text-muted-foreground' : ''}>
+                  Only the {selectedIds.size} checked on this page
+                  {selectedIds.size === 0 && (
+                    <span className="block">Check some rows to use this.</span>
+                  )}
+                </span>
+              </label>
             </div>
             <div className="flex flex-wrap items-end gap-3">
               <label className="flex flex-col gap-1 text-xs">
@@ -692,7 +768,11 @@ export function CompaniesTable({
               <button
                 type="button"
                 onClick={handleCreateBroadcast}
-                disabled={pending || !blastAssetId || !blastName.trim()}
+                disabled={
+                  pending || !blastAssetId || !blastName.trim() ||
+                  (blastScope === 'selected' && selectedIds.size === 0) ||
+                  (blastScope === 'filtered' && total === 0)
+                }
                 className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
                 {pending ? 'Starting…' : 'Start sending'}

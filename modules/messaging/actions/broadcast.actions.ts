@@ -5,6 +5,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { buildRequestContext } from '@/lib/auth/context'
 import { requirePermission } from '@/lib/auth/permissions'
+import * as companyService from '@/modules/crm/services/company.service'
+import * as segmentService from '@/modules/crm/services/segment.service'
 import {
   createBroadcast,
   startBroadcast,
@@ -21,10 +23,53 @@ export type ActionResult<T = void> =
 
 const BROADCASTS_PATH = '/[workspaceSlug]/settings/broadcasts'
 
+/** Upper bound on a single cohort. Well above the current book; exists so a
+ *  mis-specified filter cannot materialize an unbounded recipient table. */
+const MAX_BROADCAST_COMPANIES = 25_000
+
+export interface BroadcastCohortFilter {
+  search?:         string
+  segmentId?:      string
+  status?:         string
+  industry?:       string
+  customerStatus?: 'prospect' | 'customer' | 'former_customer'
+}
+
+/**
+ * Resolve the cohort server-side.
+ *
+ * The Companies table paginates at 50 and clears its selection when you page,
+ * so an explicit id list can only ever describe one screen. A broadcast to the
+ * whole book has to be expressed as the FILTER the operator is looking at, and
+ * expanded here against the same query the page itself runs.
+ */
+async function resolveCohortCompanyIds(
+  ctx: Awaited<ReturnType<typeof buildRequestContext>>,
+  filter: BroadcastCohortFilter,
+): Promise<string[]> {
+  let ids: string[] | undefined
+  if (filter.segmentId) {
+    ids = await segmentService.listCompanyIdsForSegment(ctx, filter.segmentId).catch(() => [])
+    if (ids.length === 0) return []
+  }
+  const companies = await companyService.listCompanies(ctx, {
+    search:         filter.search || undefined,
+    ids,
+    status:         filter.status || undefined,
+    industry:       filter.industry || undefined,
+    customerStatus: filter.customerStatus,
+    limit:          MAX_BROADCAST_COMPANIES,
+  })
+  return companies.map(c => c.id)
+}
+
 export async function createBroadcastAction(input: {
   name:                    string
   campaignEmailAssetId:    string
-  companyIds:              string[]
+  /** Explicit selection. Ignored when `filter` is supplied. */
+  companyIds?:             string[]
+  /** Whole-cohort mode: every company matching what the operator is filtered to. */
+  filter?:                 BroadcastCohortFilter
   gracePeriodDays?:        number
   includeFormerCustomers?: boolean
 }): Promise<ActionResult<CreateBroadcastResult>> {
@@ -35,7 +80,22 @@ export async function createBroadcastAction(input: {
 
     if (!input.name.trim())          return { success: false, error: 'Give the broadcast a name.' }
     if (!input.campaignEmailAssetId) return { success: false, error: 'Choose the email to send.' }
-    if (input.companyIds.length === 0) return { success: false, error: 'Select at least one company.' }
+
+    const companyIds = input.filter
+      ? await resolveCohortCompanyIds(ctx, input.filter)
+      : (input.companyIds ?? [])
+
+    if (companyIds.length === 0) {
+      return {
+        success: false,
+        error: input.filter
+          ? 'No companies match the current filters.'
+          : 'Select at least one company.',
+      }
+    }
+    if (companyIds.length > MAX_BROADCAST_COMPANIES) {
+      return { success: false, error: `A single one-time email covers at most ${MAX_BROADCAST_COMPANIES} companies.` }
+    }
 
     // One at a time per workspace: two blasts competing for the same daily
     // allowance would make neither's pace predictable.
@@ -52,7 +112,7 @@ export async function createBroadcastAction(input: {
       workspaceId:            ctx.workspaceId,
       name:                   input.name.trim(),
       campaignEmailAssetId:   input.campaignEmailAssetId,
-      companyIds:             input.companyIds,
+      companyIds,
       gracePeriodDays:        input.gracePeriodDays,
       includeFormerCustomers: input.includeFormerCustomers,
       createdBy:              ctx.userId === 'system' ? null : ctx.userId,
