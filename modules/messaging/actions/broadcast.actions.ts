@@ -7,6 +7,9 @@ import { buildRequestContext } from '@/lib/auth/context'
 import { requirePermission } from '@/lib/auth/permissions'
 import * as companyService from '@/modules/crm/services/company.service'
 import * as segmentService from '@/modules/crm/services/segment.service'
+import { localDateTimeToUtc, DEFAULT_TIMEZONE } from '@/modules/campaign-sequence/schedule-timing'
+
+const HHMM = /^([01][0-9]|2[0-3]):[0-5][0-9]$/
 import {
   createBroadcast,
   startBroadcast,
@@ -72,6 +75,12 @@ export async function createBroadcastAction(input: {
   filter?:                 BroadcastCohortFilter
   gracePeriodDays?:        number
   includeFormerCustomers?: boolean
+  /** Local wall-clock date 'YYYY-MM-DD' and time 'HH:MM' in `timeZone`. */
+  startDate?:              string
+  startTime?:              string
+  sendWindowStart?:        string
+  sendWindowEnd?:          string
+  timeZone?:               string
 }): Promise<ActionResult<CreateBroadcastResult>> {
   try {
     const supabase = await createSupabaseServerClient()
@@ -97,6 +106,26 @@ export async function createBroadcastAction(input: {
       return { success: false, error: `A single one-time email covers at most ${MAX_BROADCAST_COMPANIES} companies.` }
     }
 
+    const timeZone        = input.timeZone        || DEFAULT_TIMEZONE
+    const sendWindowStart = input.sendWindowStart || '09:00'
+    const sendWindowEnd   = input.sendWindowEnd   || '17:00'
+
+    if (!HHMM.test(sendWindowStart) || !HHMM.test(sendWindowEnd)) {
+      return { success: false, error: 'Send window times must be 24-hour HH:MM.' }
+    }
+    if (sendWindowStart >= sendWindowEnd) {
+      return { success: false, error: 'The send window must end after it starts.' }
+    }
+
+    // Interpreted as wall-clock in the chosen zone, so "tomorrow 10:00" means
+    // 10am there regardless of where the server or the operator is.
+    let startsAt: string | null = null
+    if (input.startDate) {
+      const time = input.startTime || '09:00'
+      if (!HHMM.test(time)) return { success: false, error: 'Start time must be 24-hour HH:MM.' }
+      startsAt = localDateTimeToUtc(input.startDate, time, timeZone).toISOString()
+    }
+
     // One at a time per workspace: two blasts competing for the same daily
     // allowance would make neither's pace predictable.
     const existing = await getActiveOrQueuedBroadcast(ctx.tenantId, ctx.workspaceId)
@@ -115,6 +144,10 @@ export async function createBroadcastAction(input: {
       companyIds,
       gracePeriodDays:        input.gracePeriodDays,
       includeFormerCustomers: input.includeFormerCustomers,
+      startsAt,
+      sendWindowStart,
+      sendWindowEnd,
+      timeZone,
       createdBy:              ctx.userId === 'system' ? null : ctx.userId,
     })
 

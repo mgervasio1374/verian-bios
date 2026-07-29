@@ -34,12 +34,17 @@ export {
   addDaysKey,
   evaluateResume,
   broadcastAllowance,
+  evaluateSendTiming,
+  localMinutesOfDay,
 } from './broadcast.scheduling'
-export type { BroadcastStatus, ResumeDecision } from './broadcast.scheduling'
+export type {
+  BroadcastStatus, ResumeDecision, BroadcastSchedule, SendTimingVerdict,
+} from './broadcast.scheduling'
 
 import {
   toDateKey,
   evaluateResume,
+  evaluateSendTiming,
   BROADCAST_PRIORITY,
   type BroadcastStatus,
   type ResumeDecision,
@@ -57,6 +62,10 @@ export interface Broadcast {
   resumeAfter:          string | null
   totalRecipients:      number
   sentCount:            number
+  startsAt:             string | null
+  sendWindowStart:      string
+  sendWindowEnd:        string
+  timeZone:             string
 }
 
 // ---------------------------------------------------------------------------
@@ -76,6 +85,10 @@ function toBroadcast(row: Record<string, unknown>): Broadcast {
     resumeAfter:          (row.resume_after as string | null) ?? null,
     totalRecipients:      Number(row.total_recipients ?? 0),
     sentCount:            Number(row.sent_count ?? 0),
+    startsAt:             (row.starts_at as string | null) ?? null,
+    sendWindowStart:      (row.send_window_start as string | null) ?? '09:00',
+    sendWindowEnd:        (row.send_window_end   as string | null) ?? '17:00',
+    timeZone:             (row.time_zone         as string | null) ?? 'America/New_York',
   }
 }
 
@@ -147,6 +160,11 @@ export interface CreateBroadcastInput {
   gracePeriodDays?:       number
   includeFormerCustomers?: boolean
   createdBy?:             string | null
+  /** Earliest instant sending may begin. Null starts on the next tick. */
+  startsAt?:              string | null
+  sendWindowStart?:       string
+  sendWindowEnd?:         string
+  timeZone?:              string
 }
 
 export interface CreateBroadcastResult {
@@ -181,6 +199,10 @@ export async function createBroadcast(input: CreateBroadcastInput): Promise<Crea
       priority:                BROADCAST_PRIORITY,
       grace_period_days:       input.gracePeriodDays ?? 7,
       created_by:              input.createdBy ?? null,
+      starts_at:               input.startsAt ?? null,
+      send_window_start:       input.sendWindowStart ?? '09:00',
+      send_window_end:         input.sendWindowEnd   ?? '17:00',
+      time_zone:               input.timeZone        ?? 'America/New_York',
     })
     .select()
     .single()
@@ -371,7 +393,7 @@ export interface BroadcastDispatchResult {
  * kill switch all apply exactly as they do for campaign mail.
  */
 export async function dispatchBroadcast(
-  tenantId: string, workspaceId: string, limit: number,
+  tenantId: string, workspaceId: string, limit: number, now: Date = new Date(),
 ): Promise<BroadcastDispatchResult> {
   if (limit <= 0) return { sent: 0, failed: 0, skipped: 0, completed: false, reason: 'no_allowance' }
 
@@ -379,6 +401,23 @@ export async function dispatchBroadcast(
   if (!broadcast) return { sent: 0, failed: 0, skipped: 0, completed: false, reason: 'no_broadcast' }
   if (broadcast.status !== 'active') {
     return { sent: 0, failed: 0, skipped: 0, completed: false, reason: `status_${broadcast.status}` }
+  }
+
+  // Start time and daily business-hours window. Checked before any recipient is
+  // read so an out-of-hours tick is a cheap no-op, and so nothing can be marked
+  // sent outside the window.
+  const timing = evaluateSendTiming({
+    startsAt:        broadcast.startsAt,
+    sendWindowStart: broadcast.sendWindowStart,
+    sendWindowEnd:   broadcast.sendWindowEnd,
+    timeZone:        broadcast.timeZone,
+  }, now)
+  if (!timing.canSend) {
+    return {
+      broadcastId: broadcast.id,
+      sent: 0, failed: 0, skipped: 0, completed: false,
+      reason: timing.reason,
+    }
   }
 
   const supabase = createSupabaseServiceClient()

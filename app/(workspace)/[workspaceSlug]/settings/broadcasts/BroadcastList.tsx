@@ -17,6 +17,10 @@ export interface BroadcastRow {
   sentCount:       number
   gracePeriodDays: number
   resumeAfter:     string | null
+  startsAt:        string | null
+  sendWindowStart: string
+  sendWindowEnd:   string
+  timeZone:        string
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -94,6 +98,15 @@ export function BroadcastList({ broadcasts }: { broadcasts: BroadcastRow[] }) {
               {b.status === 'active' && (
                 <p className="text-xs text-muted-foreground">
                   Sending at the current velocity, using only what campaigns leave of the daily allowance.
+                </p>
+              )}
+
+              {(b.status === 'active' || b.status === 'draft' || b.status === 'queued') && (
+                <p className="text-xs text-muted-foreground">
+                  {b.startsAt && new Date(b.startsAt) > new Date()
+                    ? `Waiting until ${new Date(b.startsAt).toLocaleString('en-US', { timeZone: b.timeZone })} (${b.timeZone}). `
+                    : ''}
+                  Sends only between {b.sendWindowStart} and {b.sendWindowEnd} {b.timeZone}, each day it runs.
                 </p>
               )}
 

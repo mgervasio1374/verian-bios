@@ -59,3 +59,75 @@ export function broadcastAllowance(params: {
   if (params.broadcastStatus !== 'active') return 0
   return Math.max(0, params.remainingAfterCampaigns)
 }
+
+// ---------------------------------------------------------------------------
+// Send schedule
+// ---------------------------------------------------------------------------
+
+export interface BroadcastSchedule {
+  startsAt:         string | null   // ISO instant, or null for "as soon as active"
+  sendWindowStart:  string          // 'HH:MM' local
+  sendWindowEnd:    string          // 'HH:MM' local
+  timeZone:         string          // IANA
+}
+
+export type SendTimingVerdict =
+  | { canSend: true }
+  | { canSend: false; reason: 'before_start'; startsAt: string }
+  | { canSend: false; reason: 'outside_window'; window: string }
+  | { canSend: false; reason: 'bad_window' }
+
+/** Minutes past local midnight, or null if the value is not 'HH:MM'. */
+function minutesOfDay(hhmm: string): number | null {
+  const m = /^([01][0-9]|2[0-3]):([0-5][0-9])$/.exec(hhmm)
+  if (!m) return null
+  return Number(m[1]) * 60 + Number(m[2])
+}
+
+/** Local wall-clock minutes past midnight for an instant in a zone. */
+export function localMinutesOfDay(instant: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone, hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(instant)
+  const get = (t: string) => Number(parts.find(p => p.type === t)?.value ?? '0')
+  let hour = get('hour')
+  if (hour === 24) hour = 0            // some ICU versions render midnight as 24
+  return hour * 60 + get('minute')
+}
+
+/**
+ * May the broadcast send at this instant?
+ *
+ * Two independent gates. `startsAt` governs only the first send; the window
+ * governs every day after, which is the one that actually matters for a drip
+ * lasting weeks. Without the window the governor's allowance would reset at
+ * UTC midnight (7-8pm Eastern) and fire the whole day's quota that evening.
+ *
+ * A malformed window fails CLOSED rather than defaulting to all-day: a
+ * broadcast that sends at the wrong hour is worse than one that does not send.
+ */
+export function evaluateSendTiming(
+  schedule: BroadcastSchedule,
+  now:      Date,
+): SendTimingVerdict {
+  if (schedule.startsAt) {
+    const start = new Date(schedule.startsAt)
+    if (!Number.isNaN(start.getTime()) && now < start) {
+      return { canSend: false, reason: 'before_start', startsAt: schedule.startsAt }
+    }
+  }
+
+  const from = minutesOfDay(schedule.sendWindowStart)
+  const to   = minutesOfDay(schedule.sendWindowEnd)
+  if (from === null || to === null || from >= to) return { canSend: false, reason: 'bad_window' }
+
+  const nowMinutes = localMinutesOfDay(now, schedule.timeZone)
+  if (nowMinutes < from || nowMinutes >= to) {
+    return {
+      canSend: false,
+      reason:  'outside_window',
+      window:  `${schedule.sendWindowStart}-${schedule.sendWindowEnd} ${schedule.timeZone}`,
+    }
+  }
+  return { canSend: true }
+}

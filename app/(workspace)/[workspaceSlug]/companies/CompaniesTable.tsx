@@ -143,6 +143,10 @@ export function CompaniesTable({
   // 50 and clears selection when paging, so 'filtered' is the only way to
   // address a whole book in one send.
   const [blastScope,       setBlastScope]       = useState<'selected' | 'filtered'>('selected')
+  const [blastStartDate,   setBlastStartDate]   = useState('')
+  const [blastStartTime,   setBlastStartTime]   = useState('10:00')
+  const [blastWindowStart, setBlastWindowStart] = useState('09:00')
+  const [blastWindowEnd,   setBlastWindowEnd]   = useState('17:00')
   const [preApproved,      setPreApproved]      = useState(false)
   const [startMode,        setStartMode]        = useState<'now' | 'date'>('now')
   const [startDate,        setStartDate]        = useState('')
@@ -323,6 +327,8 @@ export function CompaniesTable({
     const confirmed = window.confirm(
       `Send a one-time email to the contacts of ${scopeLabel}?\n\n` +
       `Email: ${asset.name}\n` +
+      `Starts: ${blastStartDate ? `${blastStartDate} at ${blastStartTime}` : 'as soon as it is started'}\n` +
+      `Sends between ${blastWindowStart} and ${blastWindowEnd} each day\n\n` +
       'It goes out at the current sending velocity, not all at once, and yields ' +
       'to any campaign that starts while it runs.\n\n' +
       'Customers, former customers, suppressed addresses, and duplicate inboxes are excluded.'
@@ -346,6 +352,10 @@ export function CompaniesTable({
             }
           : { companyIds: Array.from(selectedIds) }),
         gracePeriodDays:      Number(blastGraceDays) || 7,
+        startDate:            blastStartDate || undefined,
+        startTime:            blastStartTime || undefined,
+        sendWindowStart:      blastWindowStart,
+        sendWindowEnd:        blastWindowEnd,
       })
       if (!created.success) { setError(created.error); return }
 
@@ -765,6 +775,46 @@ export function CompaniesTable({
                   <span className="text-muted-foreground">days</span>
                 </div>
               </label>
+            </div>
+
+            <div className="flex flex-wrap items-end gap-3 border-t pt-3">
+              <label className="flex flex-col gap-1 text-xs">
+                <span className="font-medium">Start on</span>
+                <input
+                  type="date"
+                  value={blastStartDate}
+                  onChange={e => setBlastStartDate(e.target.value)}
+                  className="rounded border px-2 py-1.5 text-sm"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs">
+                <span className="font-medium">at</span>
+                <input
+                  type="time"
+                  value={blastStartTime}
+                  onChange={e => setBlastStartTime(e.target.value)}
+                  className="rounded border px-2 py-1.5 text-sm"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs">
+                <span className="font-medium">Send only between</span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="time"
+                    value={blastWindowStart}
+                    onChange={e => setBlastWindowStart(e.target.value)}
+                    className="rounded border px-2 py-1.5 text-sm"
+                  />
+                  <span className="text-muted-foreground">and</span>
+                  <input
+                    type="time"
+                    value={blastWindowEnd}
+                    onChange={e => setBlastWindowEnd(e.target.value)}
+                    className="rounded border px-2 py-1.5 text-sm"
+                  />
+                </div>
+              </label>
+              <span className="pb-2 text-xs text-muted-foreground">America/New_York</span>
               <button
                 type="button"
                 onClick={handleCreateBroadcast}
@@ -779,9 +829,10 @@ export function CompaniesTable({
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Sends at the current velocity until the rotation finishes. If a campaign starts
-              meanwhile it takes priority, and you can hold this email and resume it after the
-              grace period rather than losing the list.
+              Sends at the current velocity until the rotation finishes, and only inside the
+              window above, every day it runs. Leave the start date blank to begin as soon as
+              you start it. If a campaign starts meanwhile it takes priority, and you can hold
+              this email and resume it after the grace period rather than losing the list.
             </p>
           </div>
         )

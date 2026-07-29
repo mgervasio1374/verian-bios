@@ -17,6 +17,7 @@ import { describe, it, expect } from 'vitest'
 import {
   evaluateResume,
   broadcastAllowance,
+  evaluateSendTiming,
   addDaysKey,
   toDateKey,
   BROADCAST_PRIORITY,
@@ -143,6 +144,99 @@ describe('TC-BPQ-06: the user scenario end to end', () => {
       broadcast: bc({ resumeAfter: '2026-10-22' }), activeCampaignCount: 0, today: '2026-10-22',
     })
     expect(d.action).toBe('resume')
+  })
+})
+
+// ---- Send schedule ---------------------------------------------------------
+
+const sched = (over: Partial<Parameters<typeof evaluateSendTiming>[0]> = {}) => ({
+  startsAt:        null as string | null,
+  sendWindowStart: '09:00',
+  sendWindowEnd:   '17:00',
+  timeZone:        'America/New_York',
+  ...over,
+})
+
+// 2026-08-03 is a Monday. EDT is UTC-4, so 09:00 ET = 13:00 UTC, 17:00 ET = 21:00 UTC.
+const at = (utc: string) => new Date(utc)
+
+describe('TC-BPQ-08: a broadcast does not send before its start time', () => {
+  it('holds before the start instant', () => {
+    const v = evaluateSendTiming(sched({ startsAt: '2026-08-04T14:00:00.000Z' }), at('2026-08-03T14:00:00.000Z'))
+    expect(v.canSend).toBe(false)
+    expect(!v.canSend && v.reason).toBe('before_start')
+  })
+  it('sends once the start instant has passed, inside the window', () => {
+    const v = evaluateSendTiming(sched({ startsAt: '2026-08-03T14:00:00.000Z' }), at('2026-08-03T15:00:00.000Z'))
+    expect(v.canSend).toBe(true)
+  })
+  it('a start time does not override the window', () => {
+    // Start passed, but 03:00 UTC is 11pm ET the previous evening.
+    const v = evaluateSendTiming(sched({ startsAt: '2026-08-03T14:00:00.000Z' }), at('2026-08-04T03:00:00.000Z'))
+    expect(v.canSend).toBe(false)
+    expect(!v.canSend && v.reason).toBe('outside_window')
+  })
+})
+
+describe('TC-BPQ-09: the daily window holds sending to business hours', () => {
+  it('11pm Eastern does not send — the reported complaint', () => {
+    // 2026-08-04T03:00Z = 2026-08-03 23:00 ET
+    expect(evaluateSendTiming(sched(), at('2026-08-04T03:00:00.000Z')).canSend).toBe(false)
+  })
+  it('the UTC day rollover does not open a sending window', () => {
+    // The governor's allowance resets at 00:00 UTC = 20:00 ET. Without the
+    // window the whole day's quota would fire that evening.
+    expect(evaluateSendTiming(sched(), at('2026-08-04T00:05:00.000Z')).canSend).toBe(false)
+  })
+  it('10am Eastern sends', () => {
+    expect(evaluateSendTiming(sched(), at('2026-08-03T14:00:00.000Z')).canSend).toBe(true)
+  })
+  it('is inclusive of the opening minute', () => {
+    expect(evaluateSendTiming(sched(), at('2026-08-03T13:00:00.000Z')).canSend).toBe(true)
+  })
+  it('is exclusive of the closing minute', () => {
+    expect(evaluateSendTiming(sched(), at('2026-08-03T21:00:00.000Z')).canSend).toBe(false)
+    expect(evaluateSendTiming(sched(), at('2026-08-03T20:59:00.000Z')).canSend).toBe(true)
+  })
+  it('honours a custom window', () => {
+    const s = sched({ sendWindowStart: '10:00', sendWindowEnd: '12:00' })
+    expect(evaluateSendTiming(s, at('2026-08-03T13:30:00.000Z')).canSend).toBe(false)  // 09:30 ET
+    expect(evaluateSendTiming(s, at('2026-08-03T15:00:00.000Z')).canSend).toBe(true)   // 11:00 ET
+  })
+})
+
+describe('TC-BPQ-10: the window is wall-clock, so DST does not shift it', () => {
+  it('9am local sends in both EDT and EST', () => {
+    // 2026-01-05 is EST (UTC-5): 09:00 ET = 14:00 UTC
+    expect(evaluateSendTiming(sched(), at('2026-01-05T14:00:00.000Z')).canSend).toBe(true)
+    expect(evaluateSendTiming(sched(), at('2026-01-05T13:00:00.000Z')).canSend).toBe(false) // 08:00 ET
+    // 2026-08-03 is EDT (UTC-4): 09:00 ET = 13:00 UTC
+    expect(evaluateSendTiming(sched(), at('2026-08-03T13:00:00.000Z')).canSend).toBe(true)
+  })
+  it('respects a different zone', () => {
+    const s = sched({ timeZone: 'America/Los_Angeles' })
+    // 2026-08-03T17:00Z = 10:00 PDT
+    expect(evaluateSendTiming(s, at('2026-08-03T17:00:00.000Z')).canSend).toBe(true)
+    // 2026-08-03T14:00Z = 07:00 PDT
+    expect(evaluateSendTiming(s, at('2026-08-03T14:00:00.000Z')).canSend).toBe(false)
+  })
+})
+
+describe('TC-BPQ-11: a malformed window fails closed', () => {
+  it('refuses rather than defaulting to all day', () => {
+    for (const bad of [{ sendWindowStart: '' }, { sendWindowEnd: '25:00' }, { sendWindowStart: 'noon' }]) {
+      const v = evaluateSendTiming(sched(bad), at('2026-08-03T14:00:00.000Z'))
+      expect(v.canSend).toBe(false)
+      expect(!v.canSend && v.reason).toBe('bad_window')
+    }
+  })
+  it('refuses an inverted window', () => {
+    const v = evaluateSendTiming(sched({ sendWindowStart: '17:00', sendWindowEnd: '09:00' }), at('2026-08-03T14:00:00.000Z'))
+    expect(!v.canSend && v.reason).toBe('bad_window')
+  })
+  it('ignores an unparseable start instant rather than blocking forever', () => {
+    const v = evaluateSendTiming(sched({ startsAt: 'not-a-date' }), at('2026-08-03T14:00:00.000Z'))
+    expect(v.canSend).toBe(true)
   })
 })
 

@@ -30,6 +30,10 @@ export default async function BroadcastsPage() {
           sentCount:       b.sentCount,
           gracePeriodDays: b.gracePeriodDays,
           resumeAfter:     b.resumeAfter,
+          startsAt:        b.startsAt,
+          sendWindowStart: b.sendWindowStart,
+          sendWindowEnd:   b.sendWindowEnd,
+          timeZone:        b.timeZone,
         }))}
       />
     </div>
