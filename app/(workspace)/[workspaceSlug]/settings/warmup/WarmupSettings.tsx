@@ -30,6 +30,9 @@ export function WarmupSettings({ snapshot }: { snapshot: WarmupSnapshot }) {
   const [weekdays,  setWeekdays]  = useState(p?.businessDaysOnly ?? true)
   const [ratio,     setRatio]     = useState(String(Math.round((p?.minVolumeRatio ?? 0.8) * 100)))
   const [stages,    setStages]    = useState<StageDraft[]>(toDrafts(snapshot))
+  const [pacing,    setPacing]    = useState(p?.pacingEnabled ?? true)
+  const [winStart,  setWinStart]  = useState(p?.sendWindowStart ?? '09:00')
+  const [winEnd,    setWinEnd]    = useState(p?.sendWindowEnd ?? '17:00')
   const [error,     setError]     = useState<string | null>(null)
   const [saved,     setSaved]     = useState(false)
 
@@ -54,6 +57,9 @@ export function WarmupSettings({ snapshot }: { snapshot: WarmupSnapshot }) {
         hardDailyCeiling: Number(ceiling),
         businessDaysOnly: weekdays,
         minVolumeRatio:   Number(ratio) / 100,
+        pacingEnabled:    pacing,
+        sendWindowStart:  winStart,
+        sendWindowEnd:    winEnd,
       })
       if (!result.success) { setError(result.error); return }
       setSaved(true)
@@ -214,6 +220,50 @@ export function WarmupSettings({ snapshot }: { snapshot: WarmupSnapshot }) {
               </span>
             </span>
           </label>
+
+          <div className="space-y-2 border-t pt-4">
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={pacing}
+                onChange={e => setPacing(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                <span className="font-medium">Spread the day&apos;s sends across the window</span>
+                <span className="block text-xs text-muted-foreground">
+                  Without this the dispatcher releases up to 100 every 15 minutes, so a
+                  500/day allowance is gone in about an hour. Bounces take minutes to come
+                  back, so a front-loaded day sends most of a bad list before the circuit
+                  breaker has the evidence to stop it.
+                </span>
+              </span>
+            </label>
+
+            <label className="flex flex-col gap-1 text-xs">
+              <span className="font-medium">Send only between</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="time"
+                  value={winStart}
+                  onChange={e => setWinStart(e.target.value)}
+                  className="rounded border px-2 py-1.5 text-sm"
+                />
+                <span className="text-muted-foreground">and</span>
+                <input
+                  type="time"
+                  value={winEnd}
+                  onChange={e => setWinEnd(e.target.value)}
+                  className="rounded border px-2 py-1.5 text-sm"
+                />
+                <span className="text-muted-foreground">{p?.timeZone ?? 'America/New_York'}</span>
+              </div>
+              <span className="text-muted-foreground">
+                Applies to campaigns and one-time emails alike. A one-time email may narrow
+                this further, but never widen it.
+              </span>
+            </label>
+          </div>
 
           <label className="flex flex-col gap-1 text-xs">
             <span className="font-medium">A day counts toward a stage at</span>

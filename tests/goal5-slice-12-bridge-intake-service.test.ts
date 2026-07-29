@@ -321,7 +321,7 @@ describe('Goal 5 Slice 12 — Bridge Intake Orchestration Service (TC-G5-S12-001
     expect(src).not.toContain('codex-review.repo')
   })
 
-  it('TC-G5-S12-047: no new migration file with prefix 20240073 or higher exists (20240070 send velocity governor, 20240071 one-time broadcasts, 20240072 broadcast send schedule)', () => {
+  it('TC-G5-S12-047: no new migration file with prefix 20240074 or higher exists (20240070-73: send velocity governor, one-time broadcasts, broadcast send schedule, send pacing window)', () => {
     // Guards the bridge intake service against acquiring schema dependencies.
     // The baseline is bumped as unrelated migrations legitimately land; what
     // matters is that nothing NEW appears without a deliberate review.
@@ -330,7 +330,7 @@ describe('Goal 5 Slice 12 — Bridge Intake Orchestration Service (TC-G5-S12-001
     const newMigrations = files.filter(f => {
       const match = f.match(/^(\d+)/)
       if (!match) return false
-      return parseInt(match[1], 10) >= 20240073
+      return parseInt(match[1], 10) >= 20240074
     })
     expect(newMigrations).toHaveLength(0)
   })

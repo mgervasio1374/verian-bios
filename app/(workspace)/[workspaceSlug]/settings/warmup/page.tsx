@@ -1,8 +1,15 @@
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { buildRequestContext } from '@/lib/auth/context'
 import { getWarmupSnapshotAction } from '@/modules/messaging/actions/send-velocity.actions'
+import { getSendHaltStatus } from '@/modules/messaging/services/send-halt-status.service'
+import { SendHaltBanner } from '@/components/messaging/SendHaltBanner'
 import { WarmupSettings } from './WarmupSettings'
 
 export default async function WarmupPage() {
-  const result = await getWarmupSnapshotAction()
+  const supabase   = await createSupabaseServerClient()
+  const ctx        = await buildRequestContext(supabase)
+  const haltStatus = await getSendHaltStatus(ctx.tenantId)
+  const result     = await getWarmupSnapshotAction()
 
   if (!result.success) {
     return (
@@ -17,6 +24,7 @@ export default async function WarmupPage() {
 
   return (
     <div className="space-y-6">
+      <SendHaltBanner status={haltStatus} />
       <div>
         <h1 className="text-2xl font-bold">Sending Velocity</h1>
         <p className="mt-1 text-sm text-muted-foreground">

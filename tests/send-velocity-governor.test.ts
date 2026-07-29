@@ -17,9 +17,11 @@ import {
   evaluateStageAdvance,
   currentStage,
   validateStages,
+  windowState,
+  perTickAllowance,
   type VelocityPolicy,
 } from '@/modules/messaging/services/send-velocity.service'
-import { evaluateSendHealth } from '@/modules/messaging/services/send-circuit-breaker.service'
+import { evaluateSendHealth, MIN_SAMPLE } from '@/modules/messaging/services/send-circuit-breaker.service'
 
 const policy = (over: Partial<VelocityPolicy> = {}): VelocityPolicy => ({
   tenantId:          't1',
@@ -31,6 +33,10 @@ const policy = (over: Partial<VelocityPolicy> = {}): VelocityPolicy => ({
   businessDaysOnly:  true,
   minVolumeRatio:    0.8,
   holdReason:        null,
+  pacingEnabled:     true,
+  sendWindowStart:   '09:00',
+  sendWindowEnd:     '17:00',
+  timeZone:          'America/New_York',
   ...over,
 })
 
@@ -229,6 +235,80 @@ describe('TC-SVG-12: configuration is genuinely adjustable', () => {
   it('toDateKey is UTC and stable', () => {
     expect(toDateKey(new Date('2026-08-03T23:59:59.999Z'))).toBe('2026-08-03')
     expect(toDateKey(new Date('2026-08-04T00:00:00.000Z'))).toBe('2026-08-04')
+  })
+})
+
+// ---- Intra-day pacing ------------------------------------------------------
+
+const paced = (over: Partial<VelocityPolicy> = {}) =>
+  policy({ pacingEnabled: true, sendWindowStart: '09:00', sendWindowEnd: '15:00', ...over })
+
+// EDT is UTC-4: 09:00 ET = 13:00 UTC, 15:00 ET = 19:00 UTC.
+const t = (utc: string) => new Date(utc)
+
+describe('TC-SVG-14: the window yields the right number of remaining ticks', () => {
+  it('a 6-hour window opens with 24 quarter-hour ticks', () => {
+    const w = windowState(paced(), t('2026-08-03T13:00:00.000Z'))
+    expect(w.open).toBe(true)
+    expect(w.open && w.ticksLeft).toBe(24)
+  })
+  it('halfway through, half the ticks remain', () => {
+    const w = windowState(paced(), t('2026-08-03T16:00:00.000Z'))   // 12:00 ET
+    expect(w.open && w.ticksLeft).toBe(12)
+  })
+  it('the final quarter hour still counts as one release', () => {
+    const w = windowState(paced(), t('2026-08-03T18:50:00.000Z'))   // 14:50 ET
+    expect(w.open && w.ticksLeft).toBe(1)
+  })
+  it('is closed before and after', () => {
+    expect(windowState(paced(), t('2026-08-03T12:00:00.000Z')).open).toBe(false)  // 08:00 ET
+    expect(windowState(paced(), t('2026-08-03T19:00:00.000Z')).open).toBe(false)  // 15:00 ET
+  })
+  it('a malformed window fails closed rather than running all day', () => {
+    const w = windowState(paced({ sendWindowEnd: '99:99' }), t('2026-08-03T16:00:00.000Z'))
+    expect(w.open).toBe(false)
+    expect(!w.open && w.reason).toBe('bad_window')
+  })
+})
+
+describe('TC-SVG-15: the per-tick release divides the remainder evenly', () => {
+  it('the operator example: 500 over a 9am-3pm window', () => {
+    // 24 ticks, so about 21 per quarter hour rather than 100 for five ticks.
+    expect(perTickAllowance(500, 24)).toBe(21)
+  })
+  it('self-corrects as the window closes, with no stranded allowance', () => {
+    // Walk the day: release, decrement, re-divide. Must land exactly on zero.
+    let remaining = 500
+    for (let ticksLeft = 24; ticksLeft >= 1; ticksLeft--) {
+      remaining -= perTickAllowance(remaining, ticksLeft)
+    }
+    expect(remaining).toBe(0)
+  })
+  it('the last tick releases the whole remainder, so no grace case is needed', () => {
+    expect(perTickAllowance(21, 1)).toBe(21)
+    expect(perTickAllowance(7, 1)).toBe(7)
+  })
+  it('a tick that under-delivers is made up later, not lost', () => {
+    // 100 left with 4 ticks would be 25 each; if a tick sends nothing, the
+    // next divides 100 by 3 and catches up.
+    expect(perTickAllowance(100, 4)).toBe(25)
+    expect(perTickAllowance(100, 3)).toBe(34)
+  })
+  it('never releases more than remains', () => {
+    expect(perTickAllowance(5, 24)).toBe(1)
+    expect(perTickAllowance(0, 24)).toBe(0)
+    expect(perTickAllowance(-3, 24)).toBe(0)
+  })
+})
+
+describe('TC-SVG-16: pacing shrinks the blast radius of a bad list', () => {
+  it('caps first-tick exposure far below the daily allowance', () => {
+    // The point of pacing: at 500/day the unpaced dispatcher would release 100
+    // immediately, well past the breaker's 50-send minimum sample, and most of
+    // the day before the first bounces return.
+    const firstTick = perTickAllowance(500, 24)
+    expect(firstTick).toBeLessThan(MIN_SAMPLE)
+    expect(firstTick).toBeLessThan(100)
   })
 })
 

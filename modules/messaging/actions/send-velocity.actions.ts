@@ -11,6 +11,7 @@ import {
   countSentToday,
   currentStage,
   validateStages,
+  parseHHMM,
   type VelocityStage,
   type VelocityPolicy,
 } from '@/modules/messaging/services/send-velocity.service'
@@ -74,6 +75,9 @@ export async function saveWarmupPolicyAction(input: {
   hardDailyCeiling: number
   businessDaysOnly: boolean
   minVolumeRatio:   number
+  pacingEnabled?:   boolean
+  sendWindowStart?: string
+  sendWindowEnd?:   string
 }): Promise<ActionResult> {
   try {
     const supabase = await createSupabaseServerClient()
@@ -88,6 +92,15 @@ export async function saveWarmupPolicyAction(input: {
     }
     if (input.minVolumeRatio < 0 || input.minVolumeRatio > 1) {
       return { success: false, error: 'Minimum volume must be between 0 and 100%.' }
+    }
+
+    const windowStart = input.sendWindowStart || '09:00'
+    const windowEnd   = input.sendWindowEnd   || '17:00'
+    if (parseHHMM(windowStart) === null || parseHHMM(windowEnd) === null) {
+      return { success: false, error: 'Send window times must be 24-hour HH:MM.' }
+    }
+    if (windowStart >= windowEnd) {
+      return { success: false, error: 'The send window must end after it starts.' }
     }
 
     const service  = createSupabaseServiceClient()
@@ -106,6 +119,9 @@ export async function saveWarmupPolicyAction(input: {
         hard_daily_ceiling:  input.hardDailyCeiling,
         business_days_only:  input.businessDaysOnly,
         min_volume_ratio:    input.minVolumeRatio,
+        pacing_enabled:      input.pacingEnabled ?? true,
+        send_window_start:   windowStart,
+        send_window_end:     windowEnd,
         ...(stagesChanged
           ? { current_stage_index: 0, stage_started_on: null, hold_reason: null }
           : {}),

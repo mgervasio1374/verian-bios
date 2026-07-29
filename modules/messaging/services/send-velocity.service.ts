@@ -49,6 +49,10 @@ export interface VelocityPolicy {
   businessDaysOnly:  boolean
   minVolumeRatio:    number
   holdReason:        string | null
+  pacingEnabled:     boolean
+  sendWindowStart:   string   // 'HH:MM' local
+  sendWindowEnd:     string   // 'HH:MM' local
+  timeZone:          string   // IANA
 }
 
 // ---------------------------------------------------------------------------
@@ -106,6 +110,70 @@ export function dailyAllowance(policy: VelocityPolicy | null, now: Date): Allowa
     limit:  Math.min(stage.cap, policy.hardDailyCeiling),
     reason: 'stage_cap',
   }
+}
+
+// ---------------------------------------------------------------------------
+// Intra-day pacing
+// ---------------------------------------------------------------------------
+
+export const TICK_MINUTES = 15   // matches the process-campaign-sends cron
+
+/** Minutes past local midnight, or null when the value is not 'HH:MM'. */
+export function parseHHMM(hhmm: string): number | null {
+  const m = /^([01][0-9]|2[0-3]):([0-5][0-9])$/.exec(hhmm)
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null
+}
+
+/** Local wall-clock minutes past midnight for an instant in a zone. */
+export function localMinutesOfDay(instant: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone, hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(instant)
+  const get = (t: string) => Number(parts.find(p => p.type === t)?.value ?? '0')
+  let hour = get('hour')
+  if (hour === 24) hour = 0
+  return hour * 60 + get('minute')
+}
+
+export type WindowState =
+  | { open: true;  ticksLeft: number }
+  | { open: false; reason: 'before_window' | 'after_window' | 'bad_window' }
+
+/**
+ * How many dispatch ticks remain in today's send window, counting the current
+ * one. Returns closed (and why) outside the window.
+ *
+ * A malformed window fails CLOSED rather than defaulting to all day: sending at
+ * the wrong hour is worse than not sending.
+ */
+export function windowState(
+  policy: Pick<VelocityPolicy, 'sendWindowStart' | 'sendWindowEnd' | 'timeZone'>,
+  now:    Date,
+): WindowState {
+  const from = parseHHMM(policy.sendWindowStart)
+  const to   = parseHHMM(policy.sendWindowEnd)
+  if (from === null || to === null || from >= to) return { open: false, reason: 'bad_window' }
+
+  const nowMinutes = localMinutesOfDay(now, policy.timeZone)
+  if (nowMinutes <  from) return { open: false, reason: 'before_window' }
+  if (nowMinutes >= to)   return { open: false, reason: 'after_window' }
+
+  // Ceil so a partially-elapsed tick still counts as one release opportunity.
+  return { open: true, ticksLeft: Math.max(1, Math.ceil((to - nowMinutes) / TICK_MINUTES)) }
+}
+
+/**
+ * How many sends this tick may release.
+ *
+ * ceil(remaining / ticksLeft) is self-correcting: the divisor shrinks as the
+ * window closes, so a tick that under-delivers is made up by later ticks and
+ * the final tick releases the whole remainder. No end-of-day special case is
+ * needed, and no allowance is stranded.
+ */
+export function perTickAllowance(remainingToday: number, ticksLeft: number): number {
+  if (remainingToday <= 0) return 0
+  if (ticksLeft <= 1) return remainingToday
+  return Math.ceil(remainingToday / ticksLeft)
 }
 
 /** Sends needed on a single day for that day to count toward the stage. */
@@ -259,6 +327,10 @@ function toPolicy(row: Record<string, unknown>): VelocityPolicy {
     businessDaysOnly:  row.business_days_only !== false,
     minVolumeRatio:    Number(row.min_volume_ratio ?? 0.8),
     holdReason:        (row.hold_reason as string | null) ?? null,
+    pacingEnabled:     row.pacing_enabled !== false,
+    sendWindowStart:   (row.send_window_start as string | null) ?? '09:00',
+    sendWindowEnd:     (row.send_window_end   as string | null) ?? '17:00',
+    timeZone:          (row.time_zone         as string | null) ?? 'America/New_York',
   }
 }
 
@@ -332,7 +404,10 @@ export interface RemainingAllowance {
   /** null = uncapped (no policy configured). */
   limit:     number | null
   sentToday: number
+  /** Sends left today, ignoring pacing. */
   remaining: number
+  /** What this tick may actually release. Never exceeds `remaining`. */
+  thisTick:  number
   reason:    string
 }
 
@@ -352,18 +427,35 @@ export async function getRemainingAllowance(
     const allowance = dailyAllowance(policy, now)
 
     if (!allowance.capped) {
-      return { limit: null, sentToday: 0, remaining: Number.MAX_SAFE_INTEGER, reason: allowance.reason }
+      const uncapped = Number.MAX_SAFE_INTEGER
+      return {
+        limit: null, sentToday: 0,
+        remaining: uncapped, thisTick: uncapped,
+        reason: allowance.reason,
+      }
     }
     const sentToday = await countSentToday(tenantId, now)
+    const remaining = Math.max(0, allowance.limit - sentToday)
+
+    // Pacing. Off, or outside the window, the tick budget is the whole
+    // remainder, which is the pre-pacing behavior.
+    if (!policy || !policy.pacingEnabled) {
+      return { limit: allowance.limit, sentToday, remaining, thisTick: remaining, reason: allowance.reason }
+    }
+    const win = windowState(policy, now)
+    if (!win.open) {
+      return { limit: allowance.limit, sentToday, remaining, thisTick: 0, reason: win.reason }
+    }
     return {
       limit:     allowance.limit,
       sentToday,
-      remaining: Math.max(0, allowance.limit - sentToday),
+      remaining,
+      thisTick:  Math.min(remaining, perTickAllowance(remaining, win.ticksLeft)),
       reason:    allowance.reason,
     }
   } catch (err) {
     console.error('[send-velocity] allowance read failed', err instanceof Error ? err.message : String(err))
-    return { limit: 0, sentToday: 0, remaining: 0, reason: 'allowance_error' }
+    return { limit: 0, sentToday: 0, remaining: 0, thisTick: 0, reason: 'allowance_error' }
   }
 }
 

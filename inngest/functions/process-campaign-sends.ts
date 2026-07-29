@@ -108,14 +108,17 @@ export const processCampaignSends = inngest.createFunction(
           // takes effect on this tick), then take today's remaining allowance.
           await evaluateAndAdvanceStage(tenantId)
           const allowance = await getRemainingAllowance(tenantId)
-          if (allowance.remaining <= 0) {
+          // thisTick, not remaining: pacing spreads the day's allowance across
+          // the send window so a bad list cannot be fully dispatched before the
+          // first bounce webhooks come back and trip the circuit breaker.
+          if (allowance.thisTick <= 0) {
             logger.info(
               `Campaign send dispatch capped for tenant ${tenantId}: ` +
               `${allowance.sentToday}/${allowance.limit} sent today (${allowance.reason})`,
             )
             return {
               tenantId, workspaceId, skipped: true,
-              reason:    `daily_cap_reached (${allowance.reason})`,
+              reason:     `no_tick_allowance (${allowance.reason})`,
               dailyLimit: allowance.limit,
               sentToday:  allowance.sentToday,
             }
@@ -125,7 +128,7 @@ export const processCampaignSends = inngest.createFunction(
           // Never fetch more than the allowance permits. Slicing here rather than
           // breaking mid-loop keeps unsent items in 'approved' for the next tick
           // instead of marking them failed.
-          const fetchLimit = Math.min(100, allowance.remaining)
+          const fetchLimit = Math.min(100, allowance.thisTick)
           const sendableItems = await listSendableScheduleItems(tenantId, workspaceId, now, fetchLimit)
 
           let sent         = 0
@@ -162,7 +165,7 @@ export const processCampaignSends = inngest.createFunction(
           let broadcastSent = 0
           try {
             await resumeQueuedBroadcast(tenantId, workspaceId)
-            const leftover = Math.max(0, allowance.remaining - sent)
+            const leftover = Math.max(0, allowance.thisTick - sent)
             if (leftover > 0) {
               const b = await dispatchBroadcast(tenantId, workspaceId, leftover)
               broadcastSent = b.sent

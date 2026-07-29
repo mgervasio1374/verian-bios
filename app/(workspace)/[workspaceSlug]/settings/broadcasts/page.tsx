@@ -1,16 +1,22 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import { listBroadcasts } from '@/modules/messaging/services/broadcast.service'
+import { getSendHaltStatus } from '@/modules/messaging/services/send-halt-status.service'
+import { SendHaltBanner } from '@/components/messaging/SendHaltBanner'
 import { BroadcastList } from './BroadcastList'
 
 export default async function BroadcastsPage() {
   const supabase = await createSupabaseServerClient()
   const ctx      = await buildRequestContext(supabase)
 
-  const broadcasts = await listBroadcasts(ctx.tenantId, ctx.workspaceId).catch(() => [])
+  const [broadcasts, haltStatus] = await Promise.all([
+    listBroadcasts(ctx.tenantId, ctx.workspaceId).catch(() => []),
+    getSendHaltStatus(ctx.tenantId),
+  ])
 
   return (
     <div className="space-y-6">
+      <SendHaltBanner status={haltStatus} />
       <div>
         <h1 className="text-2xl font-bold">One-time Emails</h1>
         <p className="mt-1 text-sm text-muted-foreground">
