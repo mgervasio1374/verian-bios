@@ -14,16 +14,15 @@ import {
   createRows,
   listRowsByBatch,
   listCommittableRows,
-  updateRowValidation,
-  updateRowDedupe,
   updateRowCommit,
-  updateRowNormalizedData,
+  bulkPatchRows,
+  type ImportRowPatch,
 } from './repositories/import-row.repo'
 import { parseFile } from './import.parser'
 import { detectColumnMapping, applyMapping } from './import.mapping'
 import { normalizeRow } from './import.normalization'
 import { validateRow } from './import.validation'
-import { checkRowForDuplicates } from './import.dedupe'
+import { loadDedupeIndex, matchRowAgainstIndex } from './import.dedupe'
 import { commitRow } from './import.commit'
 import {
   buildImportBatchCreatedPayload,
@@ -154,21 +153,37 @@ export async function validateBatch(
   let validRows = 0
   let invalidRows = 0
 
+  // One patch request per page instead of two UPDATEs per row. Normalization
+  // and validation are pure, so the only I/O is the page read and the write.
   while (true) {
     const rows = await listRowsByBatch(batchId, tenantId, pageSize, offset)
     if (rows.length === 0) break
+
+    const patches: ImportRowPatch[] = []
+    const validatedAt = new Date().toISOString()
 
     for (const row of rows) {
       const rawData = (row.raw_data as unknown as Record<string, unknown>) ?? {}
       const normalized = normalizeRow(rawData, columnMapping)
       const { status, errors } = validateRow(normalized)
 
-      await updateRowNormalizedData(row.id, normalized as unknown as Record<string, unknown>)
-      await updateRowValidation(row.id, status, errors)
+      patches.push({
+        id:                row.id,
+        import_batch_id:   row.import_batch_id,
+        tenant_id:         row.tenant_id,
+        workspace_id:      row.workspace_id,
+        row_number:        row.row_number,
+        normalized_data:   normalized as unknown as Record<string, unknown>,
+        validation_status: status,
+        validation_errors: errors,
+        validated_at:      validatedAt,
+      })
 
       if (status === 'valid') validRows++
       else invalidRows++
     }
+
+    await bulkPatchRows(patches)
 
     if (rows.length < pageSize) break
     offset += pageSize
@@ -200,18 +215,48 @@ export async function dedupeBatch(
   let duplicateRows = 0
   let uniqueRows = 0
 
+  // Load every comparison set once, then decide in memory. The previous
+  // implementation issued six duplicate queries plus a write per row, which for
+  // a few thousand rows was tens of thousands of round trips and could not
+  // finish inside a serverless function.
+  const index = await loadDedupeIndex(tenantId)
+
+  // Email -> the import_row id that first claimed it. Rows are read in
+  // row_number order, and an email is recorded only AFTER it is matched, so the
+  // first occurrence stays unique and later repeats are flagged. This carries
+  // across pages, which the per-row query did via `row_number <`.
+  const seenEmailsInBatch = new Map<string, string>()
+
   while (true) {
     const rows = await listRowsByBatch(batchId, tenantId, pageSize, offset)
     if (rows.length === 0) break
 
+    const patches: ImportRowPatch[] = []
+
     for (const row of rows) {
       if (row.validation_status !== 'valid') continue
       const normalized = row.normalized_data as unknown as import('./import.types').NormalizedImportRow
-      const { status, matches } = await checkRowForDuplicates(normalized, tenantId, batchId, row.row_number)
-      await updateRowDedupe(row.id, status, matches)
+      const { status, matches } = matchRowAgainstIndex(normalized, index, seenEmailsInBatch)
+
+      if (normalized.email && !seenEmailsInBatch.has(normalized.email)) {
+        seenEmailsInBatch.set(normalized.email, row.id)
+      }
+
+      patches.push({
+        id:                row.id,
+        import_batch_id:   row.import_batch_id,
+        tenant_id:         row.tenant_id,
+        workspace_id:      row.workspace_id,
+        row_number:        row.row_number,
+        duplicate_status:  status,
+        duplicate_matches: matches,
+      })
+
       if (status === 'duplicate') duplicateRows++
       else uniqueRows++
     }
+
+    await bulkPatchRows(patches)
 
     if (rows.length < pageSize) break
     offset += pageSize

@@ -18,6 +18,43 @@ export async function createRows(rows: ImportRowInsert[]): Promise<void> {
   if (error) throw new Error(`createRows: ${error.message}`)
 }
 
+// Columns PostgREST needs to construct the INSERT half of an upsert. The
+// conflict on `id` always fires for an existing row, but Postgres still builds
+// the candidate row first, so NOT NULL columns must be present.
+export interface ImportRowPatch {
+  id:               string
+  import_batch_id:  string
+  tenant_id:        string
+  workspace_id:     string
+  row_number:       number
+  normalized_data?:   unknown
+  validation_status?: ImportRowValidationStatus
+  validation_errors?: unknown
+  validated_at?:      string
+  duplicate_status?:  ImportRowDuplicateStatus
+  duplicate_matches?: unknown
+}
+
+/**
+ * Patch many rows in a handful of round trips.
+ *
+ * Validation and dedupe used to issue one UPDATE per row, which for a
+ * 3,618-row file meant ~7,200 and ~25,000 round trips respectively — minutes of
+ * pure latency, far past any serverless function limit. Upserting on the primary
+ * key collapses that to one request per chunk.
+ */
+export async function bulkPatchRows(patches: ImportRowPatch[], chunkSize = 500): Promise<void> {
+  if (patches.length === 0) return
+  const supabase = createSupabaseServiceClient()
+  for (let i = 0; i < patches.length; i += chunkSize) {
+    const { error } = await supabase
+      .from('import_rows')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .upsert(patches.slice(i, i + chunkSize) as any, { onConflict: 'id' })
+    if (error) throw new Error(`bulkPatchRows: ${error.message}`)
+  }
+}
+
 export async function listRowsByBatch(
   batchId:  string,
   tenantId: string,

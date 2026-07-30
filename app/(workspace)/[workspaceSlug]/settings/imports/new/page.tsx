@@ -4,6 +4,12 @@ import { requirePermission } from '@/lib/auth/permissions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ImportUploadForm } from '../[batchId]/ImportUploadForm'
 
+// Upload parses, validates and dedupes the whole file in one server action.
+// That is now a bounded number of round trips rather than several per row, but a
+// large file still does real work, and the platform default (10s) is not enough
+// headroom. 60s is the Hobby-plan maximum.
+export const maxDuration = 60
+
 interface PageProps {
   params: Promise<{ workspaceSlug: string }>
 }

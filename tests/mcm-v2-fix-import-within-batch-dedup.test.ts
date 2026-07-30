@@ -88,8 +88,28 @@ describe('TC-IWB-01: within-batch query excludes self via row_number (source-rea
     expect(src).toContain('checkWithinBatchDuplicate(normalized.email, batchId, currentRowNumber)')
   })
 
-  it('dedupeBatch passes the row’s row_number through', () => {
-    expect(read(SERVICE)).toContain('checkRowForDuplicates(normalized, tenantId, batchId, row.row_number)')
+  // dedupeBatch no longer queries per row — it loads a dedupe index once and
+  // decides in memory (the per-row version cost ~25,000 round trips on a
+  // 3,618-row file and timed out). The self-match guarantee moved with it: the
+  // batch's seen-emails map is written AFTER the row is matched, which is what
+  // keeps the first occurrence unique. Asserting that ORDER is the equivalent of
+  // the old `row_number <` predicate — reversing it would resurrect the original
+  // bug where every emailed row matched itself and batches committed 0 rows.
+  it('dedupeBatch records an email only AFTER matching it, so a row cannot self-match', () => {
+    const src = read(SERVICE)
+    const matchIdx  = src.indexOf('matchRowAgainstIndex(normalized, index, seenEmailsInBatch)')
+    const recordIdx = src.indexOf('seenEmailsInBatch.set(normalized.email, row.id)')
+    expect(matchIdx).toBeGreaterThan(-1)
+    expect(recordIdx).toBeGreaterThan(-1)
+    expect(matchIdx).toBeLessThan(recordIdx)
+  })
+
+  it('dedupeBatch loads the index once, outside the row loop', () => {
+    const src = read(SERVICE)
+    const loadIdx = src.indexOf('await loadDedupeIndex(tenantId)')
+    const loopIdx = src.indexOf('for (const row of rows)', loadIdx)
+    expect(loadIdx).toBeGreaterThan(-1)
+    expect(loadIdx).toBeLessThan(loopIdx)
   })
 })
 
