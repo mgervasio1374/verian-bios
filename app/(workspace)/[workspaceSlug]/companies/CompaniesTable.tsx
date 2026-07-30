@@ -86,6 +86,8 @@ interface Props {
   segments:        SegmentWithCount[]
   sequences:       SequenceOption[]
   broadcastAssets: BroadcastAssetOption[]
+  /** company id -> segment names, for the Segment column. */
+  segmentsByCompany: Record<string, string[]>
   inCampaignIds:   string[]
   workspaceSlug:   string
   activeSegmentId: string
@@ -106,6 +108,7 @@ export function CompaniesTable({
   segments,
   sequences,
   broadcastAssets,
+  segmentsByCompany,
   inCampaignIds,
   workspaceSlug,
   activeSegmentId,
@@ -1007,7 +1010,8 @@ export function CompaniesTable({
                     </button>
                   </th>
                 ))}
-                {/* Marketing is computed post-query — not sortable */}
+                {/* Segment and Marketing are computed post-query — not sortable */}
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Segment</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Marketing</th>
               </tr>
             </thead>
@@ -1043,6 +1047,22 @@ export function CompaniesTable({
                     </span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground capitalize">{c.source ?? '—'}</td>
+                  <td className="px-4 py-3">
+                    {(segmentsByCompany[c.id]?.length ?? 0) > 0 ? (
+                      <div className="flex flex-wrap items-center gap-1">
+                        {segmentsByCompany[c.id].map(name => (
+                          <span
+                            key={name}
+                            className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700"
+                          >
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap items-center gap-1.5">
                       {(() => {

@@ -178,6 +178,41 @@ export async function listSegmentsForCompany(
     .sort((a, b) => a.name.localeCompare(b.name))
 }
 
+/**
+ * Segment names for many companies in one query, keyed by company id.
+ *
+ * The companies list needs this per displayed row; calling
+ * listSegmentsForCompany in a loop would be one round trip per row, the same
+ * pattern that made the import path unusable at scale.
+ */
+export async function listSegmentNamesForCompanies(
+  companyIds: string[],
+  tenantId:   string,
+): Promise<Record<string, string[]>> {
+  if (companyIds.length === 0) return {}
+  const supabase = createSupabaseServiceClient()
+  const out: Record<string, string[]> = {}
+
+  for (let i = 0; i < companyIds.length; i += 500) {
+    const { data, error } = await supabase
+      .from('company_segments')
+      .select('company_id, segments(name)')
+      .eq('tenant_id', tenantId)
+      .in('company_id', companyIds.slice(i, i + 500))
+    if (error) throw new Error(`listSegmentNamesForCompanies: ${error.message}`)
+
+    type JoinedRow = { company_id: string; segments: { name: string } | { name: string }[] | null }
+    for (const row of (data ?? []) as JoinedRow[]) {
+      const segment = Array.isArray(row.segments) ? row.segments[0] : row.segments
+      if (!segment?.name) continue
+      ;(out[row.company_id] ??= []).push(segment.name)
+    }
+  }
+
+  for (const key of Object.keys(out)) out[key].sort((a, b) => a.localeCompare(b))
+  return out
+}
+
 export async function listCompanyIdsForSegment(
   segmentId: string,
   tenantId: string,

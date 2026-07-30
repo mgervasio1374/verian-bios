@@ -2,7 +2,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildRequestContext } from '@/lib/auth/context'
 import * as companyService from '@/modules/crm/services/company.service'
 import * as segmentService from '@/modules/crm/services/segment.service'
-import { listSegmentsForWorkspace } from '@/modules/crm/repositories/segment.repo'
+import { listSegmentsForWorkspace, listSegmentNamesForCompanies } from '@/modules/crm/repositories/segment.repo'
 import { listManualSequencesForWorkspace } from '@/modules/campaign-sequence/repositories/campaign-sequence.repo'
 import { listCampaignSequenceStepsForSequence } from '@/modules/campaign-sequence/repositories/campaign-sequence-step.repo'
 import { listCampaignTypes } from '@/modules/campaign-sequence/repositories/campaign-type.repo'
@@ -107,6 +107,12 @@ export default async function CompaniesPage({ params, searchParams }: PageProps)
     }
   }))
 
+  // Segment names for the displayed page, one query rather than one per row.
+  const segmentsByCompany = await listSegmentNamesForCompanies(
+    companies.map(c => c.id),
+    ctx.tenantId,
+  ).catch(() => ({}))
+
   // Marketing-status rollup for the displayed page (Set isn't serializable — pass an array)
   const inCampaign = await getCompaniesInActiveCampaigns(
     ctx.tenantId,
@@ -132,6 +138,7 @@ export default async function CompaniesPage({ params, searchParams }: PageProps)
         segments={segments}
         sequences={sequences}
         broadcastAssets={broadcastAssets.map(a => ({ id: a.id, name: a.asset_name }))}
+        segmentsByCompany={segmentsByCompany}
         inCampaignIds={[...inCampaign]}
         workspaceSlug={workspaceSlug}
         activeSegmentId={segment ?? ''}
