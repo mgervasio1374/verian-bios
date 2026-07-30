@@ -14,6 +14,10 @@ import {
   createRows,
   listRowsByBatch,
   listCommittableRows,
+  countCommittableRows,
+  countPendingSkippableRows,
+  markRemainingPendingSkipped,
+  countRowsByCommitStatus,
   updateRowCommit,
   bulkPatchRows,
   type ImportRowPatch,
@@ -283,8 +287,10 @@ export async function approveBatch(
   const batch = await getBatch(batchId, tenantId)
   if (!batch) throw new Error(`approveBatch: batch ${batchId} not found`)
 
-  const committableRows = await listCommittableRows(batchId, tenantId)
-  const validUniqueRows = committableRows.length
+  // A COUNT, not a capped list. listCommittableRows had no .range(), so this
+  // read exactly 1000 on any larger batch — landing on the wrong side of the
+  // `> threshold` test and committing a multi-thousand-row import inline.
+  const validUniqueRows = await countCommittableRows(batchId, tenantId)
 
   const isAsync = validUniqueRows > IMPORT_BACKGROUND_THRESHOLD
 
@@ -308,11 +314,28 @@ export async function approveBatch(
 // -------------------------------------------------------
 // commitBatch
 // -------------------------------------------------------
+export interface CommitBatchResult {
+  committedRows:    number
+  skippedRows:      number
+  failedCommitRows: number
+  /** Committable rows still outstanding. >0 means call again to continue. */
+  remaining:        number
+}
+
+/**
+ * Commit a batch, optionally only `opts.maxRows` of it.
+ *
+ * Chunking exists because each row costs up to six round trips, so a few
+ * thousand rows cannot finish in one serverless invocation. The Inngest handler
+ * calls this repeatedly, one Inngest step per chunk, each step getting a fresh
+ * function budget. When `remaining` comes back 0 the batch has been finalized.
+ */
 export async function commitBatch(
   batchId:     string,
   tenantId:    string,
   workspaceId: string,
-): Promise<{ committedRows: number; skippedRows: number; failedCommitRows: number }> {
+  opts?:       { maxRows?: number },
+): Promise<CommitBatchResult> {
   try {
     const batch = await getBatch(batchId, tenantId)
     if (!batch) throw new Error(`commitBatch: batch ${batchId} not found`)
@@ -325,7 +348,7 @@ export async function commitBatch(
     const startPayload = buildImportCommitStartedPayload({ batchId, tenantId })
     emitEvent(tenantId, workspaceId, ActivityEventType.IMPORT_COMMIT_STARTED, startPayload, batchId)
 
-    const committableRows = await listCommittableRows(batchId, tenantId)
+    const committableRows = await listCommittableRows(batchId, tenantId, opts?.maxRows)
     let committedRows = 0
     let skippedRows = 0
     let failedCommitRows = 0
@@ -352,21 +375,29 @@ export async function commitBatch(
       }
     }
 
-    // Rows that were duplicate or invalid → skipped
-    const allRows = await listRowsByBatch(batchId, tenantId)
-    skippedRows = allRows.filter(r =>
-      r.commit_status === 'pending' &&
-      (r.duplicate_status === 'duplicate' || r.validation_status === 'invalid')
-    ).length
-    for (const row of allRows) {
-      if (row.commit_status === 'pending') {
-        await updateRowCommit(row.id, 'skipped')
-      }
+    // More committable rows left than this chunk took: report progress and leave
+    // the batch in 'committing' so the caller can invoke again. Finalization
+    // (skip pass, status, events) must happen exactly once, at the end.
+    const remaining = await countCommittableRows(batchId, tenantId)
+    if (remaining > 0) {
+      return { committedRows, skippedRows: 0, failedCommitRows, remaining }
     }
 
-    const finalStatus = failedCommitRows > 0 && committedRows === 0
+    // Everything still pending is a duplicate or invalid row. Counted then
+    // updated in two statements, replacing a loop that listed rows with the
+    // repo's default 200-row limit and so missed most of a large batch.
+    skippedRows = await countPendingSkippableRows(batchId, tenantId)
+    await markRemainingPendingSkipped(batchId, tenantId)
+
+    // Totals must come from the database, not from this invocation's counters:
+    // under chunking the finalizing call has only committed its own slice, and
+    // reporting that as the batch total makes the audit record wrong.
+    const totalCommitted = await countRowsByCommitStatus(batchId, tenantId, 'committed')
+    const totalFailed    = await countRowsByCommitStatus(batchId, tenantId, 'failed')
+
+    const finalStatus = totalFailed > 0 && totalCommitted === 0
       ? IMPORT_BATCH_STATUS.FAILED
-      : failedCommitRows > 0
+      : totalFailed > 0
         ? IMPORT_BATCH_STATUS.PARTIALLY_COMMITTED
         : IMPORT_BATCH_STATUS.COMMITTED
 
@@ -374,19 +405,20 @@ export async function commitBatch(
       committed_at: new Date().toISOString(),
     })
     await updateBatchCounts(batchId, tenantId, {
-      committed_rows:     committedRows,
-      failed_commit_rows: failedCommitRows,
+      committed_rows:     totalCommitted,
+      failed_commit_rows: totalFailed,
     })
 
     if (finalStatus === IMPORT_BATCH_STATUS.FAILED) {
       const failPayload = buildImportCommitFailedPayload({ batchId, tenantId, error: 'All rows failed to commit' })
       emitEvent(tenantId, workspaceId, ActivityEventType.IMPORT_COMMIT_FAILED, failPayload, batchId)
     } else {
-      const donePayload = buildImportCommitCompletedPayload({ batchId, tenantId, committedRows, skippedRows, failedCommitRows })
+      const donePayload = buildImportCommitCompletedPayload({
+        batchId, tenantId, committedRows: totalCommitted, skippedRows, failedCommitRows: totalFailed })
       emitEvent(tenantId, workspaceId, ActivityEventType.IMPORT_COMMIT_COMPLETED, donePayload, batchId)
     }
 
-    return { committedRows, skippedRows, failedCommitRows }
+    return { committedRows, skippedRows, failedCommitRows, remaining: 0 }
   } catch (err) {
     createStructuredError({
       tenantId,

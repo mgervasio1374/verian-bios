@@ -12,6 +12,12 @@ import { CommitConfirmModal } from './CommitConfirmModal'
 import { cancelImportBatchAction } from '@/modules/imports/actions/import.actions'
 import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
 
+// The inline commit path (batches at or below IMPORT_BACKGROUND_THRESHOLD) runs
+// in a server action reached from this route, and each row costs several round
+// trips. 60s is the Hobby-plan maximum.
+export const maxDuration = 60
+
+
 interface PageProps {
   params: Promise<{ workspaceSlug: string; batchId: string }>
 }

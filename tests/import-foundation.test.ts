@@ -553,8 +553,13 @@ describe('Import Foundation — Inngest Function (structural)', () => {
     expect(source).toContain('import/batch.approved')
   })
 
-  it('IMPORT_BACKGROUND_THRESHOLD is 1000', () => {
-    expect(IMPORT_BACKGROUND_THRESHOLD).toBe(1000)
+  // Lowered from 1000 deliberately. The threshold decides what commits INLINE in
+  // a server action, and commitRow costs up to six round trips, so 1000 rows
+  // implied roughly 120s against a 60s function ceiling — a value the inline
+  // path could never satisfy. 250 is about 30s. Anything larger is chunked
+  // across Inngest steps instead.
+  it('IMPORT_BACKGROUND_THRESHOLD is sized to what the inline path can finish', () => {
+    expect(IMPORT_BACKGROUND_THRESHOLD).toBe(250)
   })
 })
 

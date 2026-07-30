@@ -73,35 +73,60 @@ export async function listRowsByBatch(
   return data ?? []
 }
 
+// PostgREST caps an unbounded select at 1,000 rows. These three lists had no
+// .range(), so on a 3,618-row batch they silently returned exactly 1,000 —
+// which made the review screen understate duplicates AND, worse, made
+// approveBatch compute validUniqueRows = 1000. Since the async threshold is
+// `> 1000`, that landed exactly on the boundary and committed inline, so a
+// 2,351-row import would have written at most 1,000 rows and timed out partway.
+// Paging is not an optimization here; without it the import loses data.
+const PAGE = 1000
+
+async function pageRows(
+  label: string,
+  build: (from: number, to: number) => PromiseLike<{ data: ImportRowRow[] | null; error: { message: string } | null }>,
+): Promise<ImportRowRow[]> {
+  const out: ImportRowRow[] = []
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await build(from, from + PAGE - 1)
+    if (error) throw new Error(`${label}: ${error.message}`)
+    const rows = data ?? []
+    out.push(...rows)
+    if (rows.length < PAGE) break
+  }
+  return out
+}
+
 export async function listInvalidRowsByBatch(batchId: string, tenantId: string): Promise<ImportRowRow[]> {
   const supabase = createSupabaseServiceClient()
-  const { data, error } = await supabase
+  return pageRows('listInvalidRowsByBatch', (from, to) => supabase
     .from('import_rows')
     .select('*')
     .eq('import_batch_id', batchId)
     .eq('tenant_id', tenantId)
     .eq('validation_status', 'invalid')
     .order('row_number', { ascending: true })
-  if (error) throw new Error(`listInvalidRowsByBatch: ${error.message}`)
-  return data ?? []
+    .range(from, to))
 }
 
 export async function listDuplicateRowsByBatch(batchId: string, tenantId: string): Promise<ImportRowRow[]> {
   const supabase = createSupabaseServiceClient()
-  const { data, error } = await supabase
+  return pageRows('listDuplicateRowsByBatch', (from, to) => supabase
     .from('import_rows')
     .select('*')
     .eq('import_batch_id', batchId)
     .eq('tenant_id', tenantId)
     .eq('duplicate_status', 'duplicate')
     .order('row_number', { ascending: true })
-  if (error) throw new Error(`listDuplicateRowsByBatch: ${error.message}`)
-  return data ?? []
+    .range(from, to))
 }
 
-export async function listCommittableRows(batchId: string, tenantId: string): Promise<ImportRowRow[]> {
+/** Every uncommitted valid+unique row. `maxRows` caps the fetch for chunked commits. */
+export async function listCommittableRows(
+  batchId: string, tenantId: string, maxRows?: number,
+): Promise<ImportRowRow[]> {
   const supabase = createSupabaseServiceClient()
-  const { data, error } = await supabase
+  const query = (from: number, to: number) => supabase
     .from('import_rows')
     .select('*')
     .eq('import_batch_id', batchId)
@@ -110,8 +135,81 @@ export async function listCommittableRows(batchId: string, tenantId: string): Pr
     .eq('duplicate_status', 'unique')
     .neq('commit_status', 'committed')
     .order('row_number', { ascending: true })
-  if (error) throw new Error(`listCommittableRows: ${error.message}`)
-  return data ?? []
+    .range(from, to)
+
+  if (maxRows !== undefined) {
+    const { data, error } = await query(0, maxRows - 1)
+    if (error) throw new Error(`listCommittableRows: ${error.message}`)
+    return data ?? []
+  }
+  return pageRows('listCommittableRows', query)
+}
+
+/** Rows left pending at the end of a commit: duplicates and invalids. */
+export async function countPendingSkippableRows(batchId: string, tenantId: string): Promise<number> {
+  const supabase = createSupabaseServiceClient()
+  const { count, error } = await supabase
+    .from('import_rows')
+    .select('id', { count: 'exact', head: true })
+    .eq('import_batch_id', batchId)
+    .eq('tenant_id', tenantId)
+    .eq('commit_status', 'pending')
+  if (error) throw new Error(`countPendingSkippableRows: ${error.message}`)
+  return count ?? 0
+}
+
+/**
+ * Mark every still-pending row skipped in ONE statement.
+ *
+ * This replaced a loop that listed rows (capped at 200 by its default limit, so
+ * it silently missed most of a large batch) and issued an UPDATE per row.
+ */
+export async function markRemainingPendingSkipped(batchId: string, tenantId: string): Promise<void> {
+  const supabase = createSupabaseServiceClient()
+  const { error } = await supabase
+    .from('import_rows')
+    .update({ commit_status: 'skipped' })
+    .eq('import_batch_id', batchId)
+    .eq('tenant_id', tenantId)
+    .eq('commit_status', 'pending')
+  if (error) throw new Error(`markRemainingPendingSkipped: ${error.message}`)
+}
+
+/**
+ * Authoritative count by commit_status, read from the database.
+ *
+ * A chunked commit cannot report totals from a local accumulator: each chunk is
+ * a separate call, so the finalizing chunk only knows its own tally. The first
+ * chunked run persisted committed_rows = 16 (the last chunk's 16 rows) for an
+ * import that actually wrote 3,416 — the audit record contradicted reality.
+ */
+export async function countRowsByCommitStatus(
+  batchId: string, tenantId: string, status: ImportRowCommitStatus,
+): Promise<number> {
+  const supabase = createSupabaseServiceClient()
+  const { count, error } = await supabase
+    .from('import_rows')
+    .select('id', { count: 'exact', head: true })
+    .eq('import_batch_id', batchId)
+    .eq('tenant_id', tenantId)
+    .eq('commit_status', status)
+  if (error) throw new Error(`countRowsByCommitStatus: ${error.message}`)
+  return count ?? 0
+}
+
+/** Count only — used where the row bodies are not needed. */
+export async function countCommittableRows(batchId: string, tenantId: string): Promise<number> {
+  const supabase = createSupabaseServiceClient()
+  const { count, error } = await supabase
+    .from('import_rows')
+    .select('id', { count: 'exact', head: true })
+    .eq('import_batch_id', batchId)
+    .eq('tenant_id', tenantId)
+    .eq('validation_status', 'valid')
+    .eq('duplicate_status', 'unique')
+    .neq('commit_status', 'committed')
+  if (error) throw new Error(`countCommittableRows: ${error.message}`)
+  return count ?? 0
 }
 
 export async function updateRowValidation(

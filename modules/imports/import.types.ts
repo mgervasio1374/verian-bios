@@ -83,7 +83,15 @@ export type ImportActionType = typeof IMPORT_ACTION_TYPES[keyof typeof IMPORT_AC
 // -------------------------------------------------------
 // Configuration constants
 // -------------------------------------------------------
-export const IMPORT_BACKGROUND_THRESHOLD = 1000
+// Above this, the commit is dispatched to Inngest and chunked; at or below it,
+// it runs inline in the server action.
+//
+// Sized to what the INLINE path can actually finish. commitRow costs up to six
+// round trips (company lookup, optional second lookup, company insert, contact
+// insert, lead insert, row update), so 250 rows is roughly 1,500 round trips —
+// about 30s at typical Vercel-to-Supabase latency, inside the 60s function
+// ceiling. The previous value of 1000 implied ~120s and could not complete.
+export const IMPORT_BACKGROUND_THRESHOLD = 250
 
 export const IMPORT_REQUIRED_FIELDS = ['company_name'] as const
 
